@@ -120,11 +120,26 @@ ls -la /var/www/resifaso/
 ```
 *(Si vous ne voyez pas "package.json", retournez à l'étape 2. Ne continuez pas !)*
 
-4. **Installer les dépendances et compiler :**
+4. **Configurer l'environnement via .env :**
+```bash
+cd /var/www/resifaso
+cp .env.example .env
+nano .env
+```
+*(Assurez-vous que `PORT=4000`, `VITE_API_URL=http://41.78.54.60:4000/api` et mettez le bon mot de passe MariaDB)*.
+
+5. **Installer les dépendances et compiler :**
 ```bash
 cd /var/www/resifaso
 npm install
 npm run build
+```
+
+6. **Lancer le serveur sur le port 4000 (en arrière-plan) :**
+```bash
+pm2 start npm --name "resifaso" -- run start
+pm2 save
+pm2 startup
 ```
 *(La commande `npm run build` créera un dossier `dist` contenant la version globale de l'app prête à être hébergée).*
 
@@ -147,12 +162,15 @@ Collez cette configuration (remplacez `votredomaine.com` par votre domaine ou l'
 ```nginx
 server {
     listen 80;
-    server_name votredomaine.com www.votredomaine.com; # Ou mettre l'IP ici
-    root /var/www/resifaso/dist; # /dist est le dossier généré par npm run build
-    index index.html;
-
+    server_name 41.78.54.60;
+    
     location / {
-        try_files $uri $uri/ /index.html;
+        proxy_pass http://127.0.0.1:4000;
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection 'upgrade';
+        proxy_set_header Host $host;
+        proxy_cache_bypass $http_upgrade;
     }
 
     # Configuration du cache pour les assets vitaux
