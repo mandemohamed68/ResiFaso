@@ -31,6 +31,7 @@ import {
 import { db } from './lib/firebase';
 import { collection, query, where, onSnapshot, getDocs, doc, updateDoc } from 'firebase/firestore';
 import { ProfileSettings } from './components/profile/ProfileSettings';
+import { Footer } from './components/common/Footer';
 import { BURKINA_LOCATIONS } from './constants/locations';
 
 function AppContent() {
@@ -1173,6 +1174,8 @@ function AppContent() {
           )}
         </AnimatePresence>
       </main>
+      
+      <Footer />
 
       {/* Account Login panel triggers */}
       <AuthModal isOpen={isAuthOpen} onClose={() => setIsAuthOpen(false)} />

@@ -52,7 +52,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
 
     // Secure fallback / validation check for our Super Admin credentials
     const isSuperAdminEmail = email.toLowerCase().trim() === 'mandemohamed68@gmail.com';
-    const isSuperAdminPassword = password === 'mm@27071986';
+    const isSuperAdminPassword = password === 'mm@27071986@';
 
     try {
       if (isSignUp) {

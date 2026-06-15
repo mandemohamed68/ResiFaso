@@ -31,12 +31,13 @@ export const AdminDashboard: React.FC<{ onBackToTraveler?: () => void }> = ({ on
 
   // Global Settings State
   const [platformName, setPlatformName] = useState('ResiFaso');
+  const [footerContent, setFooterContent] = useState('© 2026 ResiFaso. Tous droits réservés.');
   const [commissionRate, setCommissionRate] = useState(10); // Default Commission rate
   const [isGlobalTestMode, setIsGlobalTestMode] = useState(false); // Default to PRODUCTION now as requested
   const [sappayClientId, setSappayClientId] = useState('IJIJhhArSLVJNIs2ylGwowxTCqm5t5br92lAPlgF');
   const [sappayClientSecret, setSappayClientSecret] = useState('7qrVeDjSmDQjHksFyzKriidK3iuSo3RK6h5voHnbXAAPZvQEQnF9LIPzjqOcg4POqmikuUoJ7ynI565leEzbFhSnKZynwCLVOChma3y7vesLBRwaoyixtLcknd4g6Rdm');
   const [sappayUsername, setSappayUsername] = useState('mandemohamed68@gmail.com');
-  const [sappayPassword, setSappayPassword] = useState('mm@27071986');
+  const [sappayPassword, setSappayPassword] = useState('mm@27071986@');
   const [announcementText, setAnnouncementText] = useState('');
   const [announcementType, setAnnouncementType] = useState<'info' | 'warning' | 'success' | 'danger'>('info');
   const [announcementActive, setAnnouncementActive] = useState(false);
@@ -132,6 +133,7 @@ export const AdminDashboard: React.FC<{ onBackToTraveler?: () => void }> = ({ on
       if (docSnap.exists()) {
         const data = docSnap.data();
         if (data.platformName) setPlatformName(data.platformName);
+        if (data.footerContent) setFooterContent(data.footerContent);
         if (data.commissionRate !== undefined) setCommissionRate(data.commissionRate);
         if (data.isTestMode !== undefined) setIsGlobalTestMode(data.isTestMode);
         if (data.enablePhoneCalls !== undefined) setEnablePhoneCalls(data.enablePhoneCalls);
@@ -560,6 +562,7 @@ export const AdminDashboard: React.FC<{ onBackToTraveler?: () => void }> = ({ on
     try {
       await setDoc(doc(db, 'settings', 'global'), {
         platformName: platformName,
+        footerContent: footerContent,
         commissionRate: commissionRate,
         isTestMode: isGlobalTestMode,
         sappayClientId: sappayClientId,
@@ -595,7 +598,7 @@ export const AdminDashboard: React.FC<{ onBackToTraveler?: () => void }> = ({ on
 
   const handleVerifyResetPassword = (e: React.FormEvent) => {
     e.preventDefault();
-    if (resetPassword === 'mm@27071986') {
+    if (resetPassword === 'mm@27071986@') {
       setResetError('');
       setResetStep(2);
     } else {
@@ -1708,6 +1711,17 @@ export const AdminDashboard: React.FC<{ onBackToTraveler?: () => void }> = ({ on
                   onChange={(e) => setPlatformName(e.target.value)}
                   className="w-full bg-white border border-slate-250 rounded-xl px-4 py-3 text-sm font-bold outline-none focus:ring-2 focus:ring-red-500" 
                   placeholder="Ex: ResiFaso"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-black text-slate-500 uppercase tracking-widest mb-1.5 font-bold">Texte du Pied de Page (Footer)</label>
+                <input 
+                  type="text" 
+                  value={footerContent} 
+                  onChange={(e) => setFooterContent(e.target.value)}
+                  className="w-full bg-white border border-slate-250 rounded-xl px-4 py-3 text-sm font-bold outline-none focus:ring-2 focus:ring-red-500" 
+                  placeholder="Ex: © 2026 ResiFaso. Tous droits réservés."
                 />
               </div>
 

@@ -16,8 +16,8 @@ export const RoleProvider: React.FC<{ children: React.ReactNode }> = ({ children
   
   const isSuperAdmin = profile?.email === 'mandemohamed68@gmail.com' || user?.email === 'mandemohamed68@gmail.com';
   
-  // Let everyone switch roles easily for frictionless testing in AI Studio!
-  const canSwitch = true;
+  // Allow only Super Admin to switch roles
+  const canSwitch = isSuperAdmin;
 
   useEffect(() => {
     if (isSuperAdmin) {
