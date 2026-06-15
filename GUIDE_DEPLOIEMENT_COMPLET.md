@@ -126,7 +126,7 @@ cd /var/www/resifaso
 cp .env.example .env
 nano .env
 ```
-*(Assurez-vous que `PORT=4000`, `VITE_API_URL=http://41.78.54.60:4000/api` et mettez le bon mot de passe MariaDB)*.
+*(Assurez-vous que `PORT=3000` (pour Node en interne) et que `VITE_API_URL=http://41.78.54.60:5000/api` pour être intercepté par Nginx)*.
 
 5. **Installer les dépendances et compiler :**
 ```bash
@@ -135,19 +135,19 @@ npm install
 npm run build
 ```
 
-6. **Lancer le serveur sur le port 4000 (en arrière-plan) :**
+6. **Lancer le serveur Node (en arrière-plan sur le port 3000) :**
 ```bash
 pm2 start npm --name "resifaso" -- run start
 pm2 save
 pm2 startup
 ```
-*(La commande `npm run build` créera un dossier `dist` contenant la version globale de l'app prête à être hébergée).*
+*(Puisque Nginx écoutera sur le port 5000 publiquement, l'application Node en arrière-plan tourne sur le port 3000).*
 
 ---
 
 ## 🌐 ÉTAPE 5 : Configuration de Nginx (Serveur Web)
 
-Nous allons servir les fichiers générés par React.
+Ici, Nginx va écouter sur le port **5000** et transmettre le trafic en interne vers l'application Node qui tourne sur le port **3000**.
 
 1. **Installer Nginx :**
 ```bash
@@ -158,14 +158,15 @@ sudo apt install -y nginx
 ```bash
 sudo nano /etc/nginx/sites-available/resifaso
 ```
-Collez cette configuration (remplacez `votredomaine.com` par votre domaine ou l'adresse IP du serveur) :
+Collez cette configuration (Nginx transmet le trafic du port 5000 vers le port 3000 local) :
 ```nginx
 server {
-    listen 80;
+    listen 5000;
     server_name 41.78.54.60;
     
     location / {
-        proxy_pass http://127.0.0.1:4000;
+        # Transmet le trafic 5000 public vers le port 3000 interne
+        proxy_pass http://127.0.0.1:3000;
         proxy_http_version 1.1;
         proxy_set_header Upgrade $http_upgrade;
         proxy_set_header Connection 'upgrade';
