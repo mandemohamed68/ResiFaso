@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 150">
+  <rect width="400" height="150" rx="10" fill="#FFFFFF" stroke="#EEEEEE" stroke-width="2"/>
+  <circle cx="100" cy="75" r="30" fill="none" stroke="#299C3C" stroke-width="12"/>
+  <circle cx="140" cy="75" r="30" fill="none" stroke="#004F9F" stroke-width="12"/>
+  <text x="190" y="80" dominant-baseline="middle" font-family="Arial, sans-serif" font-weight="900" font-size="45" fill="#004F9F" letter-spacing="-1">Coris Bank</text>
+</svg>

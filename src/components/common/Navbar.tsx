@@ -1,0 +1,360 @@
+import React, { useState, useEffect } from 'react';
+import { useAuth } from '../../contexts/AuthContext';
+import { useRole } from '../../contexts/RoleContext';
+import { 
+  Home, Search, Heart, User, LogOut, Shield, Briefcase, 
+  LayoutDashboard, MessageSquare, Bell, ShieldAlert, CalendarCheck, Check, Sun, Moon
+} from 'lucide-react';
+import { cn } from '../../lib/utils';
+import { UserRole } from '../../types';
+import { AuthModal } from './AuthModal';
+import { db } from '../../lib/firebase';
+import { collection, query, where, onSnapshot, doc, updateDoc } from 'firebase/firestore';
+
+export const Navbar: React.FC<{ 
+  onNavigate: (view: any) => void;
+  isDarkMode: boolean;
+  onToggleDarkMode: () => void;
+}> = ({ onNavigate, isDarkMode, onToggleDarkMode }) => {
+  const { user, profile, logOut } = useAuth();
+  const { currentRole, setCurrentRole, canSwitch } = useRole();
+  const [isAuthOpen, setIsAuthOpen] = useState(false);
+  const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
+  const isSuperAdmin = profile?.email === 'mandemohamed68@gmail.com' || user?.email === 'mandemohamed68@gmail.com';
+
+  const [notifications, setNotifications] = useState<any[]>([]);
+  const [isNotifOpen, setIsNotifOpen] = useState(false);
+
+  useEffect(() => {
+    if (!user) {
+      setNotifications([]);
+      return;
+    }
+    const q = query(
+      collection(db, 'notifications'),
+      where('userId', '==', user.uid)
+    );
+    const unsub = onSnapshot(q, (snap) => {
+      const list: any[] = [];
+      snap.forEach(docSnap => {
+        list.push({ id: docSnap.id, ...docSnap.data() });
+      });
+      // Sort on client side
+      list.sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+      setNotifications(list);
+    }, (error) => console.error("Error loading navbar live notifications:", error));
+
+    return () => unsub();
+  }, [user]);
+
+  const handleMarkAsRead = async (id: string) => {
+    try {
+      await updateDoc(doc(db, 'notifications', id), { isRead: true });
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  const handleMarkAllAsRead = async () => {
+    try {
+      const unread = notifications.filter(n => !n.isRead);
+      await Promise.all(unread.map(n => updateDoc(doc(db, 'notifications', n.id), { isRead: true })));
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  const unreadCount = notifications.filter(n => !n.isRead).length;
+
+  const roleLabels: Record<UserRole, string> = {
+    client: 'Voyageur',
+    owner: 'Hôte',
+    admin: isSuperAdmin ? 'Super Admin' : 'Admin'
+  };
+
+  return (
+    <nav className="sticky top-0 z-50 bg-white border-b border-gray-100 px-4 py-3">
+      <div className="max-w-7xl mx-auto flex items-center justify-between">
+        {/* Logo */}
+        <div 
+          onClick={() => onNavigate('home')} 
+          className="flex items-center gap-1 sm:gap-2 cursor-pointer group hover:opacity-90 transition-opacity"
+        >
+          <div className="w-14 h-14 sm:w-16 sm:h-16 flex items-center justify-center group-hover:scale-105 transition-transform overflow-visible relative">
+            <img src="/logo.png" alt="ResiFaso" className="w-[200%] max-w-[200%] h-[200%] object-contain mix-blend-multiply scale-150 absolute" />
+          </div>
+          <div className="flex flex-col z-10 pl-4 sm:pl-8">
+            <span className="hidden sm:block font-black text-2xl tracking-tight text-slate-900 leading-none">
+              ResiFaso<span className="text-red-600 text-3xl leading-[0]">.</span>
+            </span>
+          </div>
+        </div>
+
+        {/* Role Switcher (Admin only) */}
+        {canSwitch && (
+          <div className="flex items-center gap-1 bg-slate-100 p-1 rounded-full hidden lg:flex">
+            {(['client', 'owner', 'admin'] as UserRole[]).map((role) => (
+              <button
+                key={role}
+                onClick={() => {
+                  setCurrentRole(role);
+                  if (role === 'admin') onNavigate('admin');
+                  else if (role === 'owner') onNavigate('owner-dashboard');
+                  else onNavigate('home');
+                }}
+                className={cn(
+                  "px-3 py-1 rounded-full text-xs font-medium transition-all",
+                  currentRole === role ? "bg-white text-red-600 shadow-sm font-bold" : "text-slate-500 hover:text-slate-900"
+                )}
+              >
+                {roleLabels[role]}
+              </button>
+            ))}
+          </div>
+        )}
+
+        {/* Mobile Dark Mode Toggle */}
+        <div className="flex md:hidden items-center">
+          <button
+            onClick={onToggleDarkMode}
+            className="p-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl cursor-pointer transition-all flex items-center justify-center border border-slate-150"
+            title={isDarkMode ? "Passer en mode Clair" : "Passer en mode Sombre"}
+          >
+            {isDarkMode ? <Sun size={18} className="text-amber-500 animate-pulse" /> : <Moon size={18} className="text-slate-700" />}
+          </button>
+        </div>
+
+        {/* Desktop Nav */}
+        <div className="hidden md:flex items-center gap-2">
+          {/* Desktop Theme Switcher */}
+          <button
+            onClick={onToggleDarkMode}
+            className="p-2 mr-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl cursor-pointer transition-all flex items-center justify-center border border-slate-150"
+            title={isDarkMode ? "Passer en mode Clair" : "Passer en mode Sombre"}
+          >
+            {isDarkMode ? <Sun size={16} className="text-amber-500" /> : <Moon size={16} className="text-slate-600" />}
+          </button>
+          <button 
+            onClick={() => onNavigate('home')}
+            className="text-slate-650 hover:text-red-600 font-bold text-xs uppercase tracking-wider transition-colors cursor-pointer px-2"
+          >
+            Rechercher
+          </button>
+
+          {user && (
+            <>
+              {currentRole === 'client' && (
+                <>
+                  <div className="h-6 w-px bg-slate-200 mx-2"></div>
+                  <button onClick={() => onNavigate('favorites')} className="p-2 text-slate-400 hover:text-red-500 transition-colors">
+                    <Heart size={18} />
+                  </button>
+                  <button onClick={() => onNavigate('messages')} className="p-2 text-slate-400 hover:text-green-500 transition-colors relative">
+                    <MessageSquare size={18} />
+                    <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-green-500 rounded-full"></span>
+                  </button>
+                  <button 
+                    onClick={() => onNavigate('bookings')}
+                    className="text-slate-650 hover:text-red-600 font-bold text-xs uppercase tracking-wider transition-colors cursor-pointer px-2 ml-1"
+                  >
+                    Mes voyages
+                  </button>
+                </>
+              )}
+              {currentRole === 'owner' && (
+                <button 
+                  onClick={() => onNavigate('owner-dashboard')}
+                  className="text-slate-650 hover:text-red-600 font-bold text-xs uppercase tracking-wider transition-colors cursor-pointer ml-3 px-2"
+                >
+                  Espace Hôte
+                </button>
+              )}
+              {currentRole === 'admin' && (
+                <button 
+                  onClick={() => onNavigate('admin')}
+                  className="text-slate-650 hover:text-red-600 font-bold text-xs uppercase tracking-wider transition-colors cursor-pointer ml-3 px-2"
+                >
+                  Dashboard Admin
+                </button>
+              )}
+            </>
+          )}
+
+          <div className="h-6 w-px bg-slate-200 mx-3"></div>
+
+          {/* User Actions */}
+          {user ? (
+            <div className="flex items-center">
+              {/* Notifications Bell */}
+              <div className="relative mr-3">
+                <button
+                  onClick={() => setIsNotifOpen(!isNotifOpen)}
+                  className="p-2 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-full cursor-pointer relative transition-all flex items-center justify-center"
+                  title="Notifications"
+                >
+                  <Bell size={18} />
+                  {unreadCount > 0 && (
+                    <span className="absolute -top-1 -right-1 w-5 h-5 bg-red-600 text-white text-[9px] font-black rounded-full flex items-center justify-center animate-bounce shadow-sm">
+                      {unreadCount}
+                    </span>
+                  )}
+                </button>
+
+                {isNotifOpen && (
+                  <>
+                    <div className="fixed inset-0 z-40" onClick={() => setIsNotifOpen(false)}></div>
+                    <div className="absolute right-0 top-full mt-2 w-80 bg-white rounded-3xl shadow-2xl border border-slate-150 py-4 px-4 z-50 flex flex-col max-h-[400px]">
+                      <div className="flex items-center justify-between border-b border-slate-100 pb-2 mb-2">
+                        <span className="text-xs font-black text-slate-800 uppercase tracking-tight">Notifications</span>
+                        {unreadCount > 0 && (
+                          <button
+                            onClick={handleMarkAllAsRead}
+                            className="text-[9px] font-black text-red-600 uppercase hover:underline cursor-pointer"
+                          >
+                            Tout lire
+                          </button>
+                        )}
+                      </div>
+
+                      <div className="overflow-y-auto no-scrollbar flex-1 space-y-2">
+                        {notifications.length === 0 ? (
+                          <p className="text-center text-xs text-slate-400 py-6">Aucune alerte pour l'instant.</p>
+                        ) : (
+                          notifications.map((notif) => (
+                            <div
+                              key={notif.id}
+                              onClick={() => {
+                                handleMarkAsRead(notif.id);
+                                if (notif.type === 'booking') {
+                                  if (currentRole === 'owner') onNavigate('owner-dashboard');
+                                  else onNavigate('bookings');
+                                  
+                                  if (notif.referenceId) {
+                                    setTimeout(() => {
+                                      window.dispatchEvent(new CustomEvent('openBookingDetails', { detail: notif.referenceId }));
+                                    }, 100);
+                                  }
+                                }
+                                setIsNotifOpen(false);
+                              }}
+                              className={cn(
+                                "p-2.5 rounded-xl border text-left cursor-pointer transition-all hover:bg-slate-50/50",
+                                notif.isRead 
+                                  ? "bg-white border-slate-100" 
+                                  : "bg-red-50/30 border-red-100 shadow-xs ring-1 ring-red-500/5"
+                              )}
+                            >
+                              <div className="flex items-center justify-between">
+                                <span className="text-xs font-black text-slate-910 text-slate-900 leading-tight">{notif.title}</span>
+                                {!notif.isRead && (
+                                  <span className="w-2 h-2 bg-red-650 bg-red-600 rounded-full" />
+                                )}
+                              </div>
+                              <p className="text-[11px] text-slate-500 mt-0.5 leading-snug font-medium">{notif.message}</p>
+                              <span className="block text-[8px] mt-1 font-black text-slate-400 font-mono uppercase">
+                                {new Date(notif.createdAt).toLocaleDateString('fr-FR', {
+                                  day: 'numeric',
+                                  month: 'short'
+                                })}
+                              </span>
+                            </div>
+                          ))
+                        )}
+                      </div>
+                    </div>
+                  </>
+                )}
+              </div>
+
+              <div className="relative">
+                <button 
+                  onClick={() => setIsUserMenuOpen(!isUserMenuOpen)}
+                  className="flex items-center gap-2 p-1.5 pr-4 border border-slate-200 rounded-full hover:shadow-md transition-shadow cursor-pointer bg-white"
+                >
+                  <div className="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center text-slate-500">
+                    <User size={18} />
+                  </div>
+                  <div className="text-left hidden sm:block">
+                    <p className="text-[11px] font-black text-slate-900 leading-tight">{profile?.displayName?.split(' ')[0]}</p>
+                  </div>
+                </button>
+
+              {isUserMenuOpen && (
+                <>
+                  <div className="fixed inset-0 z-40" onClick={() => setIsUserMenuOpen(false)}></div>
+                  <div className="absolute right-0 top-full mt-2 w-64 bg-white rounded-2xl shadow-xl border border-slate-100 py-3 z-50">
+                    {currentRole === 'client' && (
+                      <>
+                        <button onClick={() => { setIsUserMenuOpen(false); onNavigate('bookings'); }} className="w-full text-left px-5 py-2.5 hover:bg-slate-50 font-bold text-sm text-slate-700">Mes voyages</button>
+                        <button onClick={() => { setIsUserMenuOpen(false); onNavigate('favorites'); }} className="w-full text-left px-5 py-2.5 hover:bg-slate-50 font-bold text-sm text-slate-700">Mes favoris</button>
+                        <button onClick={() => { setIsUserMenuOpen(false); onNavigate('messages'); }} className="w-full text-left px-5 py-2.5 hover:bg-slate-50 font-bold text-sm text-slate-700 flex justify-between items-center">
+                          Messagerie <span className="bg-green-600 text-white text-[10px] px-1.5 py-0.5 rounded-full">Pro</span>
+                        </button>
+                        <div className="h-px bg-slate-100 my-2"></div>
+                        <button onClick={() => { setIsUserMenuOpen(false); onNavigate('profile'); }} className="w-full text-left px-5 py-2.5 hover:bg-slate-50 text-sm font-medium text-slate-600">Profil & Paramètres</button>
+                        <button onClick={() => { setIsUserMenuOpen(false); alert("Centre d'aide"); }} className="w-full text-left px-5 py-2.5 hover:bg-slate-50 text-sm font-medium text-slate-600">Centre d'aide</button>
+                      </>
+                    )}
+                    {currentRole === 'owner' && (
+                      <>
+                        <button onClick={() => { setIsUserMenuOpen(false); alert('Profil public'); }} className="w-full text-left px-5 py-2.5 hover:bg-slate-50 font-bold text-sm text-slate-700">Profil public</button>
+                        <button onClick={() => { setIsUserMenuOpen(false); onNavigate('profile'); }} className="w-full text-left px-5 py-2.5 hover:bg-slate-50 font-bold text-sm text-slate-700">Paramètres du compte</button>
+                        <div className="h-px bg-slate-100 my-2"></div>
+                      </>
+                    )}
+                    {currentRole === 'admin' && (
+                      <>
+                        <button onClick={() => { setIsUserMenuOpen(false); alert('Profil personnel à venir'); }} className="w-full text-left px-5 py-2.5 hover:bg-slate-50 font-bold text-sm text-slate-700">Profil personnel</button>
+                        <div className="h-px bg-slate-100 my-2"></div>
+                      </>
+                    )}
+                    <button onClick={() => { logOut(); setIsUserMenuOpen(false); onNavigate('home'); }} className="w-full text-left px-5 py-2.5 hover:bg-slate-50 text-sm font-bold text-red-600">Déconnexion</button>
+                  </div>
+                </>
+              )}
+            </div>
+          </div>
+          ) : (
+            <button 
+              onClick={() => setIsAuthOpen(true)}
+              className="bg-red-600 text-white px-5 py-2 rounded-lg font-bold hover:bg-red-700 transition-colors shadow-sm"
+            >
+              Connexion / Inscription
+            </button>
+          )}
+        </div>
+      </div>
+
+      {/* Mobile Bottom Nav */}
+      <div className="md:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-slate-100 px-6 py-2.5 flex justify-between items-center z-40 shadow-[0_-2px_10px_rgba(0,0,0,0.05)]">
+        <button onClick={() => onNavigate('home')} className="flex flex-col items-center gap-1 text-slate-500 hover:text-orange-600 cursor-pointer">
+          <Home size={20} />
+          <span className="text-[9px] font-bold uppercase tracking-wider">Accueil</span>
+        </button>
+        
+        {user && currentRole === 'client' && (
+          <button onClick={() => onNavigate('bookings')} className="flex flex-col items-center gap-1 text-slate-500 hover:text-orange-600 cursor-pointer">
+            <Search size={20} />
+            <span className="text-[9px] font-bold uppercase tracking-wider">Voyages</span>
+          </button>
+        )}
+
+        {(currentRole === 'owner' || currentRole === 'admin') && (
+          <button onClick={() => onNavigate('owner-dashboard')} className="flex flex-col items-center gap-1 text-slate-500 hover:text-orange-600 cursor-pointer">
+            <LayoutDashboard size={20} />
+            <span className="text-[9px] font-bold uppercase tracking-wider">Hôte</span>
+          </button>
+        )}
+
+        {currentRole === 'admin' && (
+          <button onClick={() => onNavigate('admin')} className="flex flex-col items-center gap-1 text-slate-500 hover:text-orange-600 cursor-pointer">
+            <Shield size={20} />
+            <span className="text-[9px] font-bold uppercase tracking-wider">Admin</span>
+          </button>
+        )}
+      </div>
+
+      <AuthModal isOpen={isAuthOpen} onClose={() => setIsAuthOpen(false)} />
+    </nav>
+  );
+};

@@ -1,0 +1,840 @@
+import { formatCurrency } from '../../utils/currency';
+import React, { useState, useEffect } from 'react';
+import { useAuth } from '../../contexts/AuthContext';
+import { getClientBookings, updateBookingStatus, AppNotification, sendNotification } from '../../lib/db';
+import { Booking, Residence } from '../../types';
+import { MOCK_RESIDENCES } from '../../mockData';
+import { motion, AnimatePresence } from 'motion/react';
+import { Calendar, CreditCard, MessageSquare, Compass, Send, CheckCircle2, RefreshCw, X, AlertCircle, Star, Download } from 'lucide-react';
+import { cn } from '../../lib/utils';
+import { PaymentModal } from './PaymentModal';
+import { db } from '../../lib/firebase';
+import { collection, query, where, onSnapshot, addDoc, doc, updateDoc, getDoc } from 'firebase/firestore';
+import { apiFetch } from '../../lib/api';
+import { InvoiceModal } from './InvoiceModal';
+
+interface ReviewModalProps {
+  isOpen: boolean;
+  onClose: () => void;
+  booking: Booking;
+  residence: Residence;
+  onSuccess: () => void;
+}
+
+const ReviewModal: React.FC<ReviewModalProps> = ({ isOpen, onClose, booking, residence, onSuccess }) => {
+  const [rating, setRating] = useState(5);
+  const [comment, setComment] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!confirm("Voulez-vous envoyer cet avis ?")) return;
+    
+    setIsSubmitting(true);
+    try {
+      const response = await apiFetch('/api/submit-review', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          bookingId: booking.id,
+          residenceId: residence.id,
+          clientId: booking.clientId,
+          rating,
+          comment
+        })
+      });
+
+      if (!response.ok) throw new Error("Failed to submit review");
+
+      onSuccess();
+      onClose();
+    } catch (err) {
+      console.error(err);
+      alert("Erreur lors de l'enregistrement de l'avis.");
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  if (!isOpen) return null;
+
+  return (
+    <div className="fixed inset-0 z-[120] flex items-center justify-center p-4">
+      <motion.div 
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        exit={{ opacity: 0 }}
+        onClick={onClose}
+        className="absolute inset-0 bg-black/60 backdrop-blur-sm"
+      />
+      <motion.div 
+        initial={{ opacity: 0, scale: 0.95, y: 20 }}
+        animate={{ opacity: 1, scale: 1, y: 0 }}
+        exit={{ opacity: 0, scale: 0.95, y: 20 }}
+        className="relative w-full max-w-md bg-white rounded-3xl shadow-2xl overflow-hidden"
+      >
+        <div className="p-6 border-b border-slate-50 flex items-center justify-between">
+          <h3 className="text-xl font-black text-slate-900 uppercase tracking-tight">Donnez votre avis</h3>
+          <button onClick={onClose} className="p-2 hover:bg-slate-100 rounded-full transition-colors text-slate-400">
+            <X size={20} />
+          </button>
+        </div>
+
+        <form 
+          onSubmit={handleSubmit} 
+          className="p-6 space-y-6"
+        >
+          <div>
+            <p className="text-sm font-bold text-slate-600 mb-4 text-center">Comment s'est passé votre séjour à {residence.title} ?</p>
+            <div className="flex justify-center gap-2 mb-2">
+              {[1, 2, 3, 4, 5].map((star) => (
+                <button
+                  key={star}
+                  type="button"
+                  onClick={() => setRating(star)}
+                  className="p-1 transition-transform active:scale-95"
+                >
+                  <Star 
+                    size={32} 
+                    className={cn(
+                      "transition-colors",
+                      star <= rating ? "text-yellow-500 fill-yellow-500" : "text-slate-200"
+                    )} 
+                  />
+                </button>
+              ))}
+            </div>
+            <p className="text-center text-[10px] font-black text-slate-400 uppercase tracking-widest">
+              {rating === 5 ? 'Excellent' : rating === 4 ? 'Très Bien' : rating === 3 ? 'Bien' : rating === 2 ? 'Moyen' : 'Déçu'}
+            </p>
+          </div>
+
+          <div>
+            <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Votre commentaire (optionnel)</label>
+            <textarea
+              className="w-full bg-slate-50 border border-slate-100 rounded-2xl p-4 text-sm font-bold outline-none focus:bg-white focus:border-red-500 transition-all resize-none"
+              rows={4}
+              placeholder="Ex: Hôte très accueillant, le forage était un vrai plus pendant les coupures..."
+              value={comment}
+              onChange={(e) => setComment(e.target.value)}
+            />
+          </div>
+
+          <button
+            type="submit"
+            disabled={isSubmitting}
+            className="w-full py-4 bg-red-600 hover:bg-red-700 text-white rounded-2xl font-black text-xs uppercase tracking-widest transition-all shadow-lg shadow-red-50 disabled:opacity-50 flex items-center justify-center gap-2"
+          >
+            {isSubmitting ? <RefreshCw size={16} className="animate-spin" /> : 'Envoyer mon avis'}
+          </button>
+        </form>
+      </motion.div>
+    </div>
+  );
+};
+
+interface CancellationModalProps {
+  isOpen: boolean;
+  onClose: () => void;
+  booking: Booking;
+  residence: Residence;
+  onSuccess: () => void;
+}
+
+const CancellationModal: React.FC<CancellationModalProps> = ({ isOpen, onClose, booking, residence, onSuccess }) => {
+  const [reason, setReason] = useState('');
+  const [refundPhone, setRefundPhone] = useState('');
+  const [refundProvider, setRefundProvider] = useState<'orange' | 'moov' | 'telecel' | 'coris'>('orange');
+  const [loading, setLoading] = useState(false);
+
+  // Home policy parameters fetched from the owner profile
+  const [hostCancellationFee, setHostCancellationFee] = useState<number>(1000);
+  const [hostCancellationRulesText, setHostCancellationRulesText] = useState<string>('');
+
+  useEffect(() => {
+    let active = true;
+    async function fetchHostPolicy() {
+      try {
+        const hostDoc = await getDoc(doc(db, 'users', booking.ownerId));
+        if (hostDoc.exists() && active) {
+          const data = hostDoc.data();
+          if (data.hostCancellationFee !== undefined) {
+            setHostCancellationFee(Number(data.hostCancellationFee));
+          }
+          if (data.hostCancellationRulesText !== undefined) {
+            setHostCancellationRulesText(data.hostCancellationRulesText);
+          }
+        }
+      } catch (err) {
+        console.error("Error loading host cancellation parameters in MyBookings.tsx: ", err);
+      }
+    }
+    if (isOpen) {
+      fetchHostPolicy();
+    }
+    return () => { active = false; };
+  }, [booking.ownerId, isOpen]);
+
+  // Helper to calculate nights between two dates
+  const getNights = (start: string, end: string) => {
+    const s = new Date(start);
+    const e = new Date(end);
+    const diff = e.getTime() - s.getTime();
+    return Math.max(1, Math.ceil(diff / (1000 * 60 * 60 * 24)));
+  };
+
+  const totalNights = getNights(booking.checkIn, booking.checkOut);
+  
+  // Calculate nights spent if checkout logic or stay logic dictates
+  const checkInDate = new Date(booking.checkIn);
+  const today = new Date();
+  checkInDate.setHours(0,0,0,0);
+  today.setHours(0,0,0,0);
+  const diffTime = today.getTime() - checkInDate.getTime();
+  const daysSpent = Math.max(0, Math.ceil(diffTime / (1000 * 60 * 60 * 24)));
+
+  const nightsSpent = booking.stayStatus === 'ongoing' 
+    ? Math.min(totalNights, Math.max(1, daysSpent)) 
+    : 0;
+
+  const isStayStarted = booking.stayStatus === 'ongoing' || nightsSpent > 0;
+  
+  // Base cost computations
+  const totalAmount = booking.totalPrice || 0;
+  const isFullyPaid = booking.paymentStatus === 'fully_paid';
+  const isAdvancePaid = booking.paymentStatus === 'advance_paid';
+  const paidAmount = isFullyPaid ? totalAmount : (isAdvancePaid ? (booking.advancePaid || 0) : 0);
+
+  const pricePerNight = totalAmount / totalNights;
+  const costOfNightsSpent = nightsSpent * pricePerNight;
+
+  // Prorated refund engine
+  let calculatedRefund = 0;
+  let scenarioLabel = "Acompte payé, séjour non commencé";
+  let explanationStr = "";
+
+  if (paidAmount > 0) {
+    if (isStayStarted) {
+      scenarioLabel = "Séjour commencé et interrompu (Remboursement au prorata)";
+      const remainingNights = Math.max(0, totalNights - nightsSpent);
+      const prorationAmount = remainingNights * pricePerNight;
+      calculatedRefund = Math.max(0, prorationAmount - hostCancellationFee);
+      explanationStr = `Vous libérez la chambre en cours de séjour après ${nightsSpent} nuit(s) consommée(s) sur ${totalNights} (${formatCurrency(costOfNightsSpent)} F CFA dus). Le solde prorata des nuits non consommées est de ${formatCurrency(prorationAmount)} F CFA, moins vos frais administratifs fixes de l'Hôte (${formatCurrency(hostCancellationFee)} F CFA).`;
+    } else if (isFullyPaid) {
+      scenarioLabel = "Paiement intégral soldé, séjour non commencé";
+      calculatedRefund = Math.max(0, paidAmount - hostCancellationFee);
+      explanationStr = `Séjour de ${totalNights} nuit(s) entièrement prépayé mais non débuté. Vous êtes remboursé de l'intégralité (${formatCurrency(paidAmount)} F CFA) moins les frais d'annulation fixes de l'Hôte (${formatCurrency(hostCancellationFee)} F CFA).`;
+    } else {
+      scenarioLabel = "Acompte partiel versé, séjour non commencé";
+      calculatedRefund = Math.max(0, paidAmount - hostCancellationFee);
+      explanationStr = `Seul l'acompte de ${formatCurrency(paidAmount)} F CFA a été réglé à l'Hôte. Vous êtes remboursé de cet acompte moins les frais d'annulation fixes de l'Hôte (${formatCurrency(hostCancellationFee)} F CFA).`;
+    }
+  }
+
+  const refundAmount = paidAmount > 0 ? calculatedRefund : 0;
+
+  const handleCancelSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!reason.trim()) {
+      alert("Veuillez indiquer le motif de votre annulation.");
+      return;
+    }
+    if (paidAmount > 0 && (!refundPhone || refundPhone.trim().length < 8)) {
+      alert("Veuillez entrer un numéro de téléphone Mobile Money burkinabè valide (8 chiffres) pour recevoir votre remboursement.");
+      return;
+    }
+
+    setLoading(true);
+    try {
+      await updateBookingStatus(booking.id, {
+        bookingStatus: 'cancelled',
+        cancelledBy: 'client',
+        cancellationReason: reason,
+        cancelledAt: new Date().toISOString(),
+        refundStatus: paidAmount > 0 ? 'pending' : 'none',
+        refundAmount: refundAmount,
+        refundPhone: refundPhone ? refundPhone.trim() : '',
+        refundProvider: refundProvider
+      });
+
+      // Send host notification
+      await sendNotification({
+        userId: booking.ownerId,
+        title: "Séjour Annulé par le Client ❌",
+        message: `La réservation pour ${residence.title} (${scenarioLabel}) a été annulée. Motif : ${reason}. Remboursement calculé automatiquement : ${formatCurrency(refundAmount)} F CFA.`,
+        type: 'booking'
+      });
+
+      // Send client notification
+      await sendNotification({
+        userId: booking.clientId,
+        title: "Séjour Annulé avec succès ❌",
+        message: paidAmount > 0 
+          ? `Votre séjour chez ${residence.title} a été annulé (${scenarioLabel}). Un remboursement de ${formatCurrency(refundAmount)} F CFA est en cours vers votre compte Mobile Money.`
+          : `Votre réservation pour ${residence.title} a été annulée de manière immédiate (aucun paiement n'avait été effectué).`,
+        type: 'booking'
+      });
+
+      onSuccess();
+      onClose();
+    } catch (err) {
+      console.error(err);
+      alert("Une erreur est survenue lors de l'annulation de la réservation.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  if (!isOpen) return null;
+
+  return (
+    <div className="fixed inset-0 z-[120] flex items-center justify-center p-4">
+      <motion.div 
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        exit={{ opacity: 0 }}
+        onClick={onClose}
+        className="absolute inset-0 bg-black/60 backdrop-blur-sm"
+      />
+      <motion.div 
+        initial={{ opacity: 0, scale: 0.95, y: 20 }}
+        animate={{ opacity: 1, scale: 1, y: 0 }}
+        exit={{ opacity: 0, scale: 0.95, y: 20 }}
+        className="relative w-full max-w-lg bg-white rounded-3xl shadow-2xl overflow-hidden"
+      >
+        <div className="p-6 border-b border-slate-150 flex items-center justify-between">
+          <div>
+            <h3 className="text-lg font-black text-slate-950 uppercase tracking-tight">Annuler ma réservation</h3>
+            <p className="text-[10px] text-slate-400 font-extrabold uppercase mt-0.5">Traitement de l'annulation et du remboursement</p>
+          </div>
+          <button onClick={onClose} className="p-2 hover:bg-slate-100 rounded-full transition-colors text-slate-400">
+            <X size={20} />
+          </button>
+        </div>
+
+        <form onSubmit={handleCancelSubmit} className="p-6 space-y-5">
+          {paidAmount > 0 ? (
+            <div className="p-4 bg-orange-50/60 border border-orange-200 rounded-2xl space-y-3">
+              <span className="text-[10px] font-black uppercase text-orange-900 tracking-wider block">🛡️ Charte de Remboursement Faso</span>
+              
+              <div className="space-y-2">
+                <div className="flex justify-between items-center border-b border-orange-100 pb-1.5">
+                  <span className="text-[10px] font-bold text-orange-800 uppercase">Scénario détecté</span>
+                  <span className="bg-orange-600 text-white text-[9px] font-black px-2 py-0.5 rounded-full uppercase tracking-wider">
+                    {booking.stayStatus === 'ongoing' ? 'Interruption' : isFullyPaid ? 'Soldé' : 'Acompte seul'}
+                  </span>
+                </div>
+                
+                <p className="text-xs text-orange-850 leading-relaxed font-semibold">
+                  {explanationStr}
+                </p>
+
+                <div className="mt-2 pt-2 border-t border-orange-150/50 space-y-1 text-xs">
+                  <div className="flex justify-between text-slate-600">
+                    <span>Total déjà réglé :</span>
+                    <span className="font-bold">{formatCurrency(paidAmount)} F CFA</span>
+                  </div>
+                  {nightsSpent > 0 && (
+                    <div className="flex justify-between text-slate-600">
+                      <span>Nuits consommées ({nightsSpent}/{totalNights}) :</span>
+                      <span className="font-bold">-{formatCurrency(costOfNightsSpent)} F CFA</span>
+                    </div>
+                  )}
+                  <div className="flex justify-between text-slate-600">
+                    <span>Frais de traitement administrative :</span>
+                    <span className="font-bold text-red-600">-{formatCurrency(hostCancellationFee)} F CFA</span>
+                  </div>
+                  <div className="flex justify-between text-slate-900 font-extrabold border-t border-dashed border-orange-200 pt-1.5 text-sm">
+                    <span className="text-orange-950">Remboursement Net transféré :</span>
+                    <span className="text-orange-950 underline">{formatCurrency(refundAmount)} F CFA</span>
+                  </div>
+                </div>
+              </div>
+
+              {hostCancellationRulesText && (
+                <div className="mt-2.5 p-2 bg-white/80 border border-orange-100 rounded-xl">
+                  <span className="text-[9px] font-black text-orange-800 uppercase tracking-widest block mb-1">📝 Conditions spécifiques de l'Hôte :</span>
+                  <p className="text-[10px] text-slate-600 italic leading-snug">{hostCancellationRulesText}</p>
+                </div>
+              )}
+            </div>
+          ) : (
+            <div className="p-4 bg-slate-50 border border-slate-100 rounded-2xl">
+              <p className="text-xs text-slate-500 leading-normal font-medium">
+                Cette réservation n'ayant pas encore fait l'objet d'un paiement d'acompte, l'annulation est immédiate et sans aucuns frais retenus.
+              </p>
+            </div>
+          )}
+
+          <div>
+            <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Motif d'annulation *</label>
+            <textarea
+              required
+              rows={3}
+              placeholder="Expliquez brièvement les raisons de votre annulation (Ex: Changement de plan de voyage...)"
+              value={reason}
+              onChange={(e) => setReason(e.target.value)}
+              className="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 text-sm font-bold outline-none focus:bg-white focus:border-red-500 transition-all resize-none"
+            />
+          </div>
+
+          {paidAmount > 0 && (
+            <div className="space-y-4">
+              <div>
+                <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Opérateur de Remboursement</label>
+                <div className="grid grid-cols-4 gap-2">
+                  {[
+                    { id: 'orange', label: 'Orange' },
+                    { id: 'moov', label: 'Moov' },
+                    { id: 'telecel', label: 'Telecel' },
+                    { id: 'coris', label: 'Coris' }
+                  ].map((prov) => (
+                    <button
+                      key={prov.id}
+                      type="button"
+                      onClick={() => setRefundProvider(prov.id as any)}
+                      className={cn(
+                        "p-3 rounded-xl border flex flex-col items-center justify-center bg-white transition-all cursor-pointer text-xs font-bold",
+                        refundProvider === prov.id 
+                          ? "border-red-510 border-red-500 text-red-600 shadow-sm ring-2 ring-red-500/10 scale-105" 
+                          : "border-slate-200 hover:bg-slate-50 text-slate-650"
+                      )}
+                    >
+                      {prov.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Numéro de téléphone de Remboursement</label>
+                <input
+                  type="tel"
+                  required
+                  placeholder="Ex: 70000000"
+                  value={refundPhone}
+                  onChange={(e) => setRefundPhone(e.target.value)}
+                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm font-bold text-slate-900 focus:bg-white focus:ring-2 focus:ring-red-500 outline-none transition-all"
+                />
+              </div>
+            </div>
+          )}
+
+          <button
+            type="submit"
+            disabled={loading}
+            className="w-full py-4 bg-red-650 bg-red-650 bg-red-600 hover:bg-black text-white rounded-2xl font-black text-xs uppercase tracking-widest transition-all shadow-lg shadow-red-50 disabled:opacity-50 flex items-center justify-center gap-2 cursor-pointer"
+          >
+            {loading ? <RefreshCw size={16} className="animate-spin" /> : 'CONFIRMER L\'ANNULATION'}
+          </button>
+        </form>
+      </motion.div>
+    </div>
+  );
+};
+
+export const MyBookings: React.FC<{ onContactHost: (ownerId: string, resId: string) => void, isTestMode?: boolean }> = ({ onContactHost, isTestMode }) => {
+  const { user } = useAuth();
+  const [bookings, setBookings] = useState<Booking[]>([]);
+  const [residencesMap, setResidencesMap] = useState<Record<string, Residence>>({});
+  const [loading, setLoading] = useState(true);
+  const [selectedBookingForPayment, setSelectedBookingForPayment] = useState<Booking | null>(null);
+  const [selectedBookingForReview, setSelectedBookingForReview] = useState<Booking | null>(null);
+  const [selectedBookingForCancel, setSelectedBookingForCancel] = useState<Booking | null>(null);
+  const [selectedBookingForInvoice, setSelectedBookingForInvoice] = useState<Booking | null>(null);
+
+  // Load residences map from MOCK and Firestore
+  useEffect(() => {
+    const handleOpenBooking = (e: Event) => {
+      const customEvent = e as CustomEvent;
+      const bookingId = customEvent.detail;
+      const targetElement = document.getElementById(`booking-card-${bookingId}`);
+      if (targetElement) {
+        setTimeout(() => {
+          targetElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          targetElement.classList.add('ring-4', 'ring-red-500', 'ring-opacity-50');
+          setTimeout(() => {
+            targetElement.classList.remove('ring-4', 'ring-red-500', 'ring-opacity-50');
+          }, 3000);
+        }, 100);
+      }
+    };
+
+    window.addEventListener('openBookingDetails', handleOpenBooking);
+    return () => window.removeEventListener('openBookingDetails', handleOpenBooking);
+  }, []);
+
+  useEffect(() => {
+    const rMap: Record<string, Residence> = {};
+    MOCK_RESIDENCES.forEach(res => {
+      rMap[res.id] = res;
+    });
+
+    // Also populate with live residences from Firestore if any
+    const unsubscribe = onSnapshot(collection(db, 'residences'), (snapshot) => {
+      snapshot.forEach(doc => {
+        rMap[doc.id] = { id: doc.id, ...doc.data() } as Residence;
+      });
+      setResidencesMap({ ...rMap });
+    }, (error) => console.error("MyBookings residences snapshot error:", error));
+
+    return unsubscribe;
+  }, []);
+
+  // Fetch guest's bookings in real-time
+  useEffect(() => {
+    if (!user) {
+      setLoading(false);
+      return;
+    }
+
+    setLoading(true);
+    const qBookings = query(collection(db, 'bookings'), where('clientId', '==', user.uid));
+    
+    const unsubscribe = onSnapshot(qBookings, (snapshot) => {
+      const list: Booking[] = [];
+      snapshot.forEach(docSnap => {
+        list.push({ id: docSnap.id, ...docSnap.data() } as Booking);
+      });
+      // Sort by createdAt desc
+      list.sort((a, b) => new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime());
+      setBookings(list);
+      setLoading(false);
+    }, (error) => {
+      console.error("Error watching guest bookings:", error);
+      setLoading(false);
+    });
+
+    return unsubscribe;
+  }, [user]);
+
+  const calculateDaysLeft = (checkInStr: string) => {
+    const diff = new Date(checkInStr).getTime() - new Date().getTime();
+    const days = Math.ceil(diff / (1000 * 60 * 60 * 24));
+    return days > 0 ? days : 0;
+  };
+
+  const getStatusBadge = (bStatus: string, pStatus: string) => {
+    switch (bStatus) {
+      case 'pending':
+        return <span className="px-3 py-1 bg-amber-50 border border-amber-200 text-amber-700 rounded-full text-[10px] font-black uppercase tracking-wider">En Attente d'Approbation</span>;
+      case 'confirmed':
+        if (pStatus === 'advance_paid') {
+          return <span className="px-3 py-1 bg-red-50 border border-red-200 text-red-700 rounded-full text-[10px] font-black uppercase tracking-wider">Confirmée & Avance Payée</span>;
+        } else if (pStatus === 'fully_paid') {
+          return <span className="px-3 py-1 bg-blue-50 border border-blue-200 text-blue-700 rounded-full text-[10px] font-black uppercase tracking-wider">Séjour Validé (Payé)</span>;
+        } else {
+          return <span className="px-3 py-1 bg-amber-100 text-amber-800 rounded-full text-[10px] font-black uppercase tracking-wider">Approuvée, En Attente d'Avance</span>;
+        }
+      case 'cancelled':
+        return <span className="px-3 py-1 bg-red-50 border border-red-200 text-red-700 rounded-full text-[10px] font-black uppercase tracking-wider">Annulée</span>;
+      case 'completed':
+        return <span className="px-3 py-1 bg-slate-100 text-slate-600 rounded-full text-[10px] font-black uppercase tracking-wider">Terminée</span>;
+      default:
+        return null;
+    }
+  };
+
+  if (!user) {
+    return (
+      <div className="flex flex-col items-center justify-center py-20 text-center max-w-5xl mx-auto px-4">
+        <h2 className="text-2xl font-black text-slate-900 mb-2">Accès à vos réservations</h2>
+        <p className="text-slate-500 font-bold text-sm">Veuillez vous connecter pour consulter vos voyages.</p>
+      </div>
+    );
+  }
+
+  if (loading) {
+    return (
+      <div className="flex flex-col items-center justify-center py-20">
+        <RefreshCw size={40} className="text-red-600 animate-spin mb-4" />
+        <p className="text-slate-500 font-bold text-sm">Chargement de vos réservations...</p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="max-w-6xl mx-auto px-4 py-8 animate-in fade-in duration-500">
+      <div className="flex items-center justify-between mb-10">
+        <div>
+          <h2 className="text-3xl font-black text-slate-900 tracking-tight leading-none mb-2">Mes Réservations</h2>
+          <p className="text-slate-500 text-sm font-medium">Consultez, payez vos avances et discutez en direct avec vos hôtes.</p>
+        </div>
+        <div className="w-12 h-12 bg-red-50 text-red-600 rounded-2xl flex items-center justify-center">
+          <Calendar size={20} />
+        </div>
+      </div>
+
+      {bookings.length === 0 ? (
+        <div className="bg-slate-50 border border-slate-100 rounded-[32px] p-12 text-center max-w-lg mx-auto">
+          <div className="w-16 h-16 bg-white shadow-md rounded-2xl flex items-center justify-center text-slate-400 mx-auto mb-6">
+            <Compass size={28} />
+          </div>
+          <h3 className="text-xl font-bold text-slate-800 mb-2">Aucun voyage pour le moment</h3>
+          <p className="text-slate-500 text-xs font-medium leading-relaxed mb-6">Explorez notre catalogue de résidences d'exception à Ouagadougou, Bobo-Dioulasso et Koudougou.</p>
+          <button 
+            onClick={() => window.location.reload()}
+            className="px-6 py-3.5 bg-red-600 text-white rounded-xl text-xs font-black uppercase tracking-wider hover:bg-red-700 transition-colors shadow-lg shadow-red-50"
+          >
+            Commencez mes recherches
+          </button>
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 gap-6">
+          {bookings.map((booking) => {
+            const res = residencesMap[booking.residenceId];
+            if (!res) return null;
+
+            return (
+              <motion.div 
+                id={`booking-card-${booking.id}`}
+                key={booking.id}
+                whileHover={{ y: -2 }}
+                className="bg-white border border-slate-100 rounded-[32px] overflow-hidden shadow-sm flex flex-col md:flex-row p-6 gap-6 relative group"
+              >
+                {/* Residence Image */}
+                <div className="w-full md:w-56 aspect-[4/3] rounded-2xl overflow-hidden shrink-0 shadow-sm relative">
+                  <img 
+                    src={res.images?.[0] || 'https://images.unsplash.com/photo-1493809842364-78817add7ffb?auto=format&fit=crop&q=80&w=800'} 
+                    alt={res.title} 
+                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                  />
+                  <div className="absolute top-3 left-3 bg-white/95 px-2 py-0.5 rounded text-[9px] font-black uppercase text-slate-800">
+                    {res.type}
+                  </div>
+                </div>
+
+                {/* Details */}
+                <div className="flex-1 flex flex-col justify-between py-1">
+                  <div>
+                    <div className="flex flex-wrap items-center gap-3 mb-2">
+                      {getStatusBadge(booking.bookingStatus, booking.paymentStatus)}
+                      <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">ID: {booking.id.slice(0, 8)}</span>
+                    </div>
+
+                    <h3 className="text-xl font-black text-slate-900 mb-2 leading-none group-hover:text-red-600 transition-colors">
+                      {res.title}
+                    </h3>
+                    
+                    <p className="text-xs text-slate-400 font-bold mb-1">
+                      {res.address?.street}, {res.address?.neighborhood}, {res.address?.city}
+                    </p>
+                    
+                    {res.ownerName && (
+                      <div className="text-[10px] text-slate-400 font-bold uppercase tracking-wider mb-4 border-l-2 border-red-500 pl-2 py-0.5">
+                        Hôte: <span className="text-slate-600">{res.ownerName}</span>
+                      </div>
+                    )}
+
+                    <div className="flex flex-wrap gap-x-6 gap-y-2 text-slate-600 text-xs">
+                      <div>Du <strong className="text-slate-900 font-bold">{booking.checkIn}</strong> au <strong className="text-slate-900 font-bold">{booking.checkOut}</strong></div>
+                      <div className="w-1 h-1 bg-slate-300 rounded-full self-center hidden md:block"></div>
+                      <div>Voyageurs : <strong className="text-slate-900 font-bold">{booking.guests} persist.</strong></div>
+                    </div>
+
+                    {booking.bookingStatus === 'cancelled' && (
+                      <div className="mt-4 p-4 rounded-2xl bg-red-50 border border-red-200/60 space-y-2.5">
+                        <div className="flex items-center gap-1.5 text-red-700 font-black text-xs uppercase tracking-wide">
+                          <span>❌ Séjour Annulé</span>
+                          <span className="normal-case font-bold text-red-600">(par {booking.cancelledBy === 'client' ? 'vous-même' : booking.cancelledBy === 'owner' ? "l'hôte" : "l'administration"})</span>
+                        </div>
+                        {booking.cancellationReason && (
+                          <p className="text-xs text-slate-700 font-bold">
+                            Motif : <span className="italic font-medium text-slate-605 text-slate-500">"{booking.cancellationReason}"</span>
+                          </p>
+                        )}
+                        {booking.refundStatus && booking.refundStatus !== 'none' && (
+                          <div className="pt-2 border-t border-red-100 space-y-1">
+                            <span className="block text-[9px] font-black text-slate-400 uppercase tracking-widest">Suivi de Remboursement</span>
+                            {booking.refundStatus === 'pending' && (
+                              <div className="flex items-center gap-1.5 text-xs text-amber-700 font-bold bg-amber-50 px-3 py-2 rounded-xl border border-amber-200 w-fit">
+                                <span className="animate-pulse">⏳</span>
+                                <span>Remboursement de {formatCurrency(booking.refundAmount)} F CFA en cours via {booking.refundProvider?.toUpperCase()} (+226 {booking.refundPhone})</span>
+                              </div>
+                            )}
+                            {booking.refundStatus === 'refunded' && (
+                              <div className="flex items-center gap-1.5 text-xs text-green-700 font-bold bg-green-50 px-3 py-2 rounded-xl border border-green-200 w-fit">
+                                <span>✅</span>
+                                <span>Remboursement de {formatCurrency(booking.refundAmount)} F CFA crédité le {booking.refundProcessedAt ? new Date(booking.refundProcessedAt).toLocaleDateString('fr-FR') : ''} via {booking.refundProvider?.toUpperCase()} (+226 {booking.refundPhone})</span>
+                              </div>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="flex flex-wrap items-center justify-between gap-4 mt-6 pt-4 border-t border-slate-50">
+                    {/* Price structure */}
+                    <div className="flex flex-wrap gap-4">
+                      <div>
+                        <span className="block text-[8px] font-black text-slate-400 uppercase tracking-widest">Prix Total</span>
+                        <span className="text-lg font-black text-slate-900 tracking-tight">{formatCurrency(booking.totalPrice)} F CFA</span>
+                      </div>
+                      <div className="border-l border-slate-100 pl-4">
+                        <span className="block text-[8px] font-black text-slate-400 uppercase tracking-widest">
+                          {booking.paymentStatus === 'fully_paid' 
+                            ? 'Total Payé' 
+                            : booking.paymentStatus === 'advance_paid' 
+                              ? 'Acompte Payé' 
+                              : 'Acompte Requis'}
+                        </span>
+                        <span className={`text-lg font-black tracking-tight ${
+                          booking.paymentStatus === 'fully_paid' 
+                            ? 'text-green-600' 
+                            : booking.paymentStatus === 'advance_paid' 
+                              ? 'text-green-600' 
+                              : 'text-amber-600'
+                        }`}>
+                          {formatCurrency(booking.advancePaid)} F CFA
+                        </span>
+                      </div>
+                      {booking.paymentStatus === 'advance_paid' && (
+                        <div className="border-l border-slate-100 pl-4">
+                          <span className="block text-[8px] font-black text-slate-400 uppercase tracking-widest">Solde Restant</span>
+                          <span className="text-lg font-black text-red-600 tracking-tight">{formatCurrency(booking.totalPrice - booking.advancePaid)} F CFA</span>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Action Panel */}
+                    <div className="flex items-center gap-2">
+                      <button 
+                        onClick={() => onContactHost(booking.ownerId, booking.residenceId)}
+                        className="px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl font-bold text-xs text-slate-700 hover:bg-slate-100 transition-colors flex items-center gap-2 cursor-pointer"
+                      >
+                        <MessageSquare size={14} className="text-red-600" />
+                        Discuter avec l'hôte
+                      </button>
+
+                      {booking.bookingStatus === 'completed' && (
+                        <button 
+                          onClick={() => setSelectedBookingForReview(booking)}
+                          className="px-4 py-2.5 bg-yellow-50 border border-yellow-200 rounded-xl font-bold text-xs text-yellow-700 hover:bg-yellow-100 transition-colors flex items-center gap-2 cursor-pointer"
+                        >
+                          <Star size={14} className="fill-yellow-500 text-yellow-500" />
+                          Laisser un avis
+                        </button>
+                      )}
+
+                      {booking.bookingStatus === 'confirmed' && booking.paymentStatus === 'pending' && (
+                        <button 
+                          onClick={() => setSelectedBookingForPayment(booking)}
+                          className="px-5 py-2.5 bg-red-600 hover:bg-red-700 text-white rounded-xl font-bold text-xs shadow-md shadow-red-50 flex items-center gap-2 animate-pulse"
+                        >
+                          <CreditCard size={14} />
+                          Payer l'Avance
+                        </button>
+                      )}
+
+                      {booking.paymentStatus === 'advance_paid' && booking.bookingStatus === 'confirmed' && (
+                        <button 
+                          onClick={() => setSelectedBookingForPayment(booking)}
+                          className="px-5 py-2.5 bg-green-600 hover:bg-green-700 text-white rounded-xl font-bold text-xs shadow-md shadow-green-50 flex items-center gap-2"
+                        >
+                          <CreditCard size={14} />
+                          Solder le séjour
+                        </button>
+                      )}
+
+                      {(booking.paymentStatus === 'advance_paid' || booking.paymentStatus === 'fully_paid') && booking.bookingStatus !== 'cancelled' && (
+                        <button 
+                          onClick={() => setSelectedBookingForInvoice(booking)}
+                          className="px-5 py-2.5 bg-slate-800 hover:bg-slate-900 text-white rounded-xl font-bold text-xs shadow-md flex items-center gap-2"
+                        >
+                          <Download size={14} />
+                          Télécharger Reçu
+                        </button>
+                      )}
+
+                      {(booking.bookingStatus === 'pending' || booking.bookingStatus === 'confirmed') && (
+                        <button 
+                          onClick={() => setSelectedBookingForCancel(booking)}
+                          className="px-4 py-2.5 bg-red-50 hover:bg-red-100 border border-red-200 text-red-700 rounded-xl font-bold text-xs flex items-center gap-1.5 cursor-pointer transition-all"
+                        >
+                          <X size={14} className="text-red-650" />
+                          Annuler Séjour
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              </motion.div>
+            );
+          })}
+        </div>
+      )}
+
+      <AnimatePresence>
+        {selectedBookingForPayment && (
+          <PaymentModal 
+            isOpen={!!selectedBookingForPayment}
+            onClose={() => setSelectedBookingForPayment(null)}
+            amount={selectedBookingForPayment.paymentStatus === 'advance_paid' ? (selectedBookingForPayment.totalPrice - selectedBookingForPayment.advancePaid) : selectedBookingForPayment.advancePaid}
+            residenceTitle={residencesMap[selectedBookingForPayment.residenceId]?.title || "Hébergement"}
+            isTestMode={isTestMode}
+            onSuccess={async () => {
+              try {
+                const isFinalPayment = selectedBookingForPayment.paymentStatus === 'advance_paid';
+                
+                await updateBookingStatus(selectedBookingForPayment.id, {
+                  paymentStatus: isFinalPayment ? 'fully_paid' : 'advance_paid'
+                });
+                
+                await sendNotification({
+                  userId: selectedBookingForPayment.ownerId,
+                  title: isFinalPayment ? "Séjour Solder ! 💰" : "Acompte Reçu ! 💰",
+                  message: `La résidence ${residencesMap[selectedBookingForPayment.residenceId]?.title} a reçu un paiement de ${formatCurrency(isFinalPayment ? (selectedBookingForPayment.totalPrice - selectedBookingForPayment.advancePaid) : selectedBookingForPayment.advancePaid)} F CFA.`,
+                  type: 'payment'
+                });
+
+                alert(isFinalPayment ? 'Félicitations ! Votre séjour est entièrement payé.' : 'Paiement de l\'avance enregistré avec succès ! Votre réservation est validée.');
+                setSelectedBookingForPayment(null);
+              } catch (err) {
+                console.error(err);
+                alert('Erreur lors de la validation du paiement.');
+              }
+            }}
+          />
+        )}
+      </AnimatePresence>
+
+      <AnimatePresence>
+        {selectedBookingForReview && residencesMap[selectedBookingForReview.residenceId] && (
+          <ReviewModal
+            isOpen={!!selectedBookingForReview}
+            onClose={() => setSelectedBookingForReview(null)}
+            booking={selectedBookingForReview}
+            residence={residencesMap[selectedBookingForReview.residenceId]}
+            onSuccess={() => {
+              alert("Merci pour votre avis !");
+            }}
+          />
+        )}
+      </AnimatePresence>
+
+      <AnimatePresence>
+        {selectedBookingForCancel && residencesMap[selectedBookingForCancel.residenceId] && (
+          <CancellationModal
+            isOpen={!!selectedBookingForCancel}
+            onClose={() => setSelectedBookingForCancel(null)}
+            booking={selectedBookingForCancel}
+            residence={residencesMap[selectedBookingForCancel.residenceId]}
+            onSuccess={() => {
+              alert("Réservation annulée avec succès et demande de remboursement enregistrée !");
+              setSelectedBookingForCancel(null);
+            }}
+          />
+        )}
+      </AnimatePresence>
+
+      <InvoiceModal
+        isOpen={!!selectedBookingForInvoice}
+        onClose={() => setSelectedBookingForInvoice(null)}
+        booking={selectedBookingForInvoice}
+        residence={selectedBookingForInvoice ? residencesMap[selectedBookingForInvoice.residenceId] : null}
+        clientName={user?.displayName || user?.email || undefined}
+      />
+    </div>
+  );
+};

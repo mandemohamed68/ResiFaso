@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 150">
+  <rect width="400" height="150" rx="20" fill="#E3000F"/>
+  <text x="50%" y="55%" dominant-baseline="middle" text-anchor="middle" font-family="Arial, sans-serif" font-weight="bold" font-size="70" fill="white" letter-spacing="-2">telecel</text>
+  <polygon points="330,40 335,60 355,60 340,75 345,95 330,80 315,95 320,75 305,60 325,60" fill="white" transform="translate(-10, -20) scale(0.6)"/>
+</svg>

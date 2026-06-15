@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="100%" height="100%">
+  <defs>
+    <style>
+      .bg-red { fill: #EF2B2D; }
+      .bg-green { fill: #009E49; }
+      .star-gold { fill: #FCD116; }
+    </style>
+    <clipPath id="houseClip">
+      <path d="M256,40 L40,220 L40,440 L472,440 L472,220 Z"/>
+    </clipPath>
+  </defs>
+  
+  <g clip-path="url(#houseClip)">
+    <!-- Top Red Half -->
+    <rect x="0" y="0" width="512" height="240" class="bg-red" />
+    <!-- Bottom Green Half -->
+    <rect x="0" y="240" width="512" height="272" class="bg-green" />
+  </g>
+  
+  <!-- Sleek Golden Star in Center of house alignment -->
+  <polygon points="256,180 278,240 342,240 290,278 310,338 256,300 202,338 222,278 170,240 234,240" class="star-gold" />
+</svg>

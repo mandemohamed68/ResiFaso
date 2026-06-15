@@ -1,0 +1,86 @@
+@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@100..900&display=swap');
+@import "tailwindcss";
+
+/* Leaflet maps support */
+@import "leaflet/dist/leaflet.css";
+
+@theme {
+  --font-sans: "Outfit", ui-sans-serif, system-ui;
+  --color-primary: #EF2B2D;
+  --color-secondary: #009E49;
+  --color-accent: #FCD116;
+  --color-primary-light: #fff1f2;
+}
+
+@variant dark (&:where(.dark, .dark *));
+
+body {
+  @apply bg-slate-50 text-slate-800 transition-colors duration-300;
+}
+
+.hide-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.hide-scrollbar {
+  -ms-overflow-style: none;  /* IE and Edge */
+  scrollbar-width: none;  /* Firefox */
+}
+
+/* Global Dark Mode Overrides for pristine nocturne support */
+.dark body {
+  background-color: #0b0f19 !important;
+}
+
+.dark nav, 
+.dark .sticky,
+.dark header,
+.dark footer {
+  background-color: #111827 !important; /* bg-slate-900 */
+  border-color: #1f2937 !important; /* border-slate-850 */
+}
+
+.dark .bg-white,
+.dark .bg-slate-50,
+.dark .bg-gray-50 {
+  background-color: #131c2e !important;
+}
+
+.dark .text-slate-900,
+.dark .text-slate-800,
+.dark .text-slate-700,
+.dark .text-gray-900,
+.dark .text-gray-800,
+.dark .text-gray-700 {
+  color: #f1f5f9 !important; /* text-slate-100 */
+}
+
+.dark .text-slate-600,
+.dark .text-slate-500,
+.dark .text-gray-600,
+.dark .text-gray-500,
+.dark .text-slate-650 {
+  color: #cbd5e1 !important; /* text-slate-300 */
+}
+
+.dark .border-slate-100,
+.dark .border-slate-150,
+.dark .border-slate-200,
+.dark .border-gray-100,
+.dark .border-gray-200 {
+  border-color: #1e293b !important;
+}
+
+.dark input,
+.dark textarea,
+.dark select {
+  background-color: #0b0f19 !important;
+  color: #f8fafc !important;
+  border-color: #1e293b !important;
+}
+
+.dark .shadow-sm,
+.dark .shadow-md,
+.dark .shadow-lg,
+.dark .shadow-xl {
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.6), 0 2px 4px -1px rgba(0, 0, 0, 0.4) !important;
+}

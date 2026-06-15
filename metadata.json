@@ -1,0 +1,6 @@
+{
+  "name": "ResiFaso",
+  "description": "Plateforme de recherche et de réservation de résidences au Burkina Faso. Solutions de logement pour voyageurs et outils de gestion pour propriétaires.",
+  "requestFramePermissions": ["camera"],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

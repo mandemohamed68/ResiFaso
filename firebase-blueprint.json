@@ -1,0 +1,179 @@
+{
+  "entities": {
+    "User": {
+      "title": "User Profile",
+      "description": "User account information and roles",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string" },
+        "email": { "type": "string" },
+        "displayName": { "type": "string" },
+        "phoneNumber": { "type": "string" },
+        "photoURL": { "type": "string" },
+        "role": { "type": "string", "enum": ["client", "owner", "admin"] },
+        "isVerified": { "type": "boolean" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["uid", "email", "role"]
+    },
+    "Residence": {
+      "title": "Residence",
+      "description": "Property listing details",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "ownerId": { "type": "string" },
+        "title": { "type": "string" },
+        "description": { "type": "string" },
+        "type": { "type": "string", "enum": ["appartement", "chambre", "villa", "auberge"] },
+        "pricePerNight": { "type": "number" },
+        "advancePercentage": { "type": "number" },
+        "cleaningFee": { "type": "number" },
+        "address": {
+          "type": "object",
+          "properties": {
+            "city": { "type": "string" },
+            "neighborhood": { "type": "string" },
+            "street": { "type": "string" },
+            "coordinates": {
+              "type": "object",
+              "properties": {
+                "lat": { "type": "number" },
+                "lng": { "type": "number" }
+              }
+            }
+          }
+        },
+        "amenities": { "type": "array", "items": { "type": "string" } },
+        "images": { "type": "array", "items": { "type": "string" } },
+        "capacity": { "type": "number" },
+        "bedrooms": { "type": "number" },
+        "beds": { "type": "number" },
+        "bathrooms": { "type": "number" },
+        "status": { "type": "string", "enum": ["draft", "pending", "published", "suspended"] },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["ownerId", "title", "type", "pricePerNight", "status"]
+    },
+    "Booking": {
+      "title": "Booking",
+      "description": "Reservation records",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "residenceId": { "type": "string" },
+        "clientId": { "type": "string" },
+        "ownerId": { "type": "string" },
+        "checkIn": { "type": "string", "format": "date" },
+        "checkOut": { "type": "string", "format": "date" },
+        "guests": { "type": "number" },
+        "totalPrice": { "type": "number" },
+        "advancePaid": { "type": "number" },
+        "paymentStatus": { "type": "string", "enum": ["pending", "advance_paid", "fully_paid", "failed"] },
+        "bookingStatus": { "type": "string", "enum": ["pending", "confirmed", "cancelled", "completed"] },
+        "transactionId": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "cancelledBy": { "type": "string", "enum": ["client", "owner", "admin"] },
+        "cancellationReason": { "type": "string" },
+        "cancelledAt": { "type": "string", "format": "date-time" },
+        "refundStatus": { "type": "string", "enum": ["none", "pending", "refunded"] },
+        "refundAmount": { "type": "number" },
+        "refundPhone": { "type": "string" },
+        "refundProvider": { "type": "string" },
+        "refundProcessedAt": { "type": "string", "format": "date-time" },
+        "stayStatus": { "type": "string", "enum": ["pending", "ongoing", "completed"] },
+        "checkedInAt": { "type": "string", "format": "date-time" },
+        "checkedOutAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["residenceId", "clientId", "checkIn", "checkOut", "totalPrice"]
+    },
+    "Review": {
+      "title": "Review",
+      "description": "Customer feedback",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "bookingId": { "type": "string" },
+        "residenceId": { "type": "string" },
+        "clientId": { "type": "string" },
+        "rating": { "type": "number" },
+        "comment": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["bookingId", "residenceId", "clientId", "rating"]
+    },
+    "Conversation": {
+      "title": "Conversation",
+      "description": "A chat thread between two users",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "participants": { "type": "array", "items": { "type": "string" } },
+        "lastMessage": { "type": "string" },
+        "updatedAt": { "type": "string", "format": "date-time" },
+        "relatedId": { "type": "string", "description": "Optional ID of residence or booking" }
+      },
+      "required": ["participants", "updatedAt"]
+    },
+    "Message": {
+      "title": "Message",
+      "description": "A single chat message",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "conversationId": { "type": "string" },
+        "senderId": { "type": "string" },
+        "text": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "isRead": { "type": "boolean" }
+      },
+      "required": ["conversationId", "senderId", "text", "createdAt"]
+    },
+    "Advertisement": {
+      "title": "Advertisement",
+      "description": "Custom administrator advertisements and sliders",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "imageUrl": { "type": "string" },
+        "title": { "type": "string" },
+        "description": { "type": "string" },
+        "linkUrl": { "type": "string" },
+        "isActive": { "type": "boolean" },
+        "frequencySeconds": { "type": "number" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "startAt": { "type": "string" },
+        "endAt": { "type": "string" }
+      },
+      "required": ["imageUrl", "title", "isActive", "frequencySeconds"]
+    },
+    "WithdrawalRequest": {
+      "title": "WithdrawalRequest",
+      "description": "Owner requests to withdraw earnings",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "ownerId": { "type": "string" },
+        "ownerName": { "type": "string" },
+        "ownerEmail": { "type": "string" },
+        "amount": { "type": "number" },
+        "phone": { "type": "string" },
+        "provider": { "type": "string", "enum": ["orange", "moov", "telecel", "coris"] },
+        "status": { "type": "string", "enum": ["pending", "approved", "rejected"] },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "approvedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["ownerId", "ownerName", "ownerEmail", "amount", "phone", "provider", "status", "createdAt"]
+    }
+  },
+  "firestore": {
+    "/users/{uid}": { "schema": "User", "description": "Global users collection" },
+    "/residences/{residenceId}": { "schema": "Residence", "description": "Global residences collection" },
+    "/bookings/{bookingId}": { "schema": "Booking", "description": "Global bookings collection" },
+    "/reviews/{reviewId}": { "schema": "Review", "description": "Global reviews collection" },
+    "/conversations/{conversationId}": { "schema": "Conversation", "description": "Global chat sessions" },
+    "/conversations/{conversationId}/messages/{messageId}": { "schema": "Message", "description": "Individual messages in a chat" },
+    "/ads/{adId}": { "schema": "Advertisement", "description": "Promotional advertisements managed by admin" },
+    "/withdrawals/{withdrawalId}": { "schema": "WithdrawalRequest", "description": "Withdrawal requests raised by owners" }
+  }
+}
