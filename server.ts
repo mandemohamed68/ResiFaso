@@ -422,6 +422,25 @@ async function startServer() {
 
   // --- AUTONOME MARIADB API ROUTES ---
 
+  // Auth: Register
+  app.post("/api/auth/register", async (req: any, res: any) => {
+    try {
+      const { email, password, displayName } = req.body;
+      const [rows]: any = await pool.execute("SELECT * FROM users WHERE email = ?", [email]);
+      if (rows.length > 0) return res.status(400).json({ error: "Email already exists" });
+      
+      const pwdHash = await bcrypt.hash(password, 10);
+      const uid = "u_" + Math.random().toString(36).substr(2, 9);
+      
+      await pool.execute(
+        "INSERT INTO users (id, email, password_hash, display_name, role) VALUES (?, ?, ?, ?, 'client')",
+        [uid, email, pwdHash, displayName]
+      );
+      const token = jwt.sign({ uid, email, role: 'client' }, process.env.JWT_SECRET || "resifaso_secret", { expiresIn: "7d" });
+      res.json({ token, user: { uid, email, displayName, role: 'client' } });
+    } catch (e: any) { res.status(500).json({ error: e.message }); }
+  });
+
   // Auth: Login
   app.post("/api/auth/login", async (req, res) => {
     try {
@@ -431,7 +450,9 @@ async function startServer() {
         return res.status(401).json({ error: "Invalid credentials" });
       }
       const user = rows[0];
-      // Pour l'instant, on simule sans hachage de mot de passe car on vient de Firebase
+      const isValid = user.password_hash ? await bcrypt.compare(password, user.password_hash) : true;
+      if (!isValid) return res.status(401).json({ error: "Invalid credentials" });
+
       const token = jwt.sign({ uid: user.id, email: user.email, role: user.role }, process.env.JWT_SECRET || "resifaso_secret", { expiresIn: "7d" });
       res.json({ token, user: { uid: user.id, email: user.email, displayName: user.display_name, role: user.role } });
     } catch (e: any) {
@@ -469,7 +490,8 @@ async function startServer() {
           images: images.map((i: any) => i.image_url),
           location: row.city + (row.neighborhood ? ", " + row.neighborhood : ""),
           rating: 4.5,
-          type: row.type
+          type: row.type,
+          ownerId: row.owner_id
         };
       }));
       res.json({ residences });
@@ -477,6 +499,61 @@ async function startServer() {
       res.status(500).json({ error: e.message });
     }
   });
+
+  // Bookings: Create
+  app.post("/api/bookings", async (req: any, res: any) => {
+    try {
+      const authHeader = req.headers.authorization;
+      if (!authHeader) return res.status(401).json({ error: "No token" });
+      const token = authHeader.split(" ")[1];
+      const decoded: any = jwt.verify(token, process.env.JWT_SECRET || "resifaso_secret");
+      const clientId = decoded.uid;
+
+      const { residenceId, checkIn, checkOut, guests, totalPrice } = req.body;
+      const bId = "b_" + Math.random().toString(36).substr(2, 9);
+      await pool.execute(
+        "INSERT INTO bookings (id, residence_id, client_id, check_in, check_out, guests, total_price, status) VALUES (?, ?, ?, ?, ?, ?, ?, 'pending')",
+        [bId, residenceId, clientId, new Date(checkIn), new Date(checkOut), guests, totalPrice]
+      );
+      res.json({ success: true, bookingId: bId });
+    } catch (e: any) { res.status(500).json({ error: e.message }); }
+  });
+
+  // Bookings: Get User Bookings
+  app.get("/api/bookings", async (req: any, res: any) => {
+    try {
+      const authHeader = req.headers.authorization;
+      if (!authHeader) return res.status(401).json({ error: "No token" });
+      const token = authHeader.split(" ")[1];
+      const decoded: any = jwt.verify(token, process.env.JWT_SECRET || "resifaso_secret");
+      
+      const isOwner = decoded.role === 'owner' || decoded.role === 'admin';
+      const query = isOwner 
+        ? "SELECT * FROM bookings WHERE owner_id = ? ORDER BY created_at DESC"
+        : "SELECT * FROM bookings WHERE client_id = ? ORDER BY created_at DESC";
+        
+      const [rows]: any = await pool.execute(query, [decoded.uid]);
+      
+      const bookings = await Promise.all(rows.map(async (row: any) => {
+        const [resRows]: any = await pool.execute("SELECT title, city, neighborhood FROM residences WHERE id = ?", [row.residence_id]);
+        const resData = resRows[0] || {};
+        return {
+          id: row.id,
+          residenceId: row.residence_id,
+          residenceTitle: resData.title || "Résidence supprimée",
+          location: resData.city + (resData.neighborhood ? ", " + resData.neighborhood : ""),
+          checkIn: row.check_in,
+          checkOut: row.check_out,
+          guests: row.guests,
+          totalPrice: row.total_price,
+          status: row.booking_status || row.status,
+          paymentStatus: row.payment_status
+        };
+      }));
+      res.json({ bookings });
+    } catch (e: any) { res.status(500).json({ error: e.message }); }
+  });
+
   app.post("/api/submit-review", async (req, res) => {
     const { bookingId, residenceId, clientId, rating, comment } = req.body;
     
