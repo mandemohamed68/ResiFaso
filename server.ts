@@ -313,6 +313,105 @@ async function startServer() {
         console.warn("⚠️ Error seeding default ads:", adsSeedErr.message);
       }
 
+      // Ensure default residences exist in residences table
+      try {
+        const [resRows]: any = await (pool as any).execute("SELECT * FROM residences");
+        if (resRows.length === 0) {
+          const defaultResidences = [
+            {
+              id: "res_1",
+              owner_id: "usr_admin_default",
+              title: "Villa de Luxe Somptueuse",
+              description: "Magnifique villa calme et sécurisée située dans un quartier résidentiel huppé de Ouagadougou. Dispose de tout le confort moderne réclamé. Idéal pour séjours court et moyen terme.",
+              type: "villa",
+              price_per_night: 45000,
+              advance_percentage: 20,
+              cleaning_fee: 5000,
+              service_fee: 2500,
+              city: "Ouagadougou",
+              neighborhood: "Ouaga 2000",
+              street: "Avenue Mouammar Kadhafi",
+              status: "published",
+              availability_status: "available",
+              images: [
+                "https://images.unsplash.com/photo-1613977257363-707ba9348227?auto=format&fit=crop&w=1200&q=80",
+                "https://images.unsplash.com/photo-1613490493576-7fde63acd811?auto=format&fit=crop&w=1200&q=80"
+              ],
+              amenities: ["Piscine", "Wi-Fi", "Climatisation", "Sécurité 24/7", "Cuisine équipée"]
+            },
+            {
+              id: "res_2",
+              owner_id: "usr_admin_default",
+              title: "Bel Appartement Meublé de Standing",
+              description: "Appartement moderne, élégamment décoré pour vos séjours professionnels ou en famille. Gardiennage 24/7 et climatisation intégrale.",
+              type: "appartement",
+              price_per_night: 25000,
+              advance_percentage: 15,
+              cleaning_fee: 3000,
+              service_fee: 1500,
+              city: "Ouagadougou",
+              neighborhood: "Koulouba",
+              street: "Rue de l'Aéroport",
+              status: "published",
+              availability_status: "available",
+              images: [
+                "https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?auto=format&fit=crop&w=1200&q=80"
+              ],
+              amenities: ["Wi-Fi", "Climatisation", "Sécurité 24/7", "Cuisine équipée"]
+            },
+            {
+              id: "res_3",
+              owner_id: "usr_admin_default",
+              title: "Studio Confortable Zone Industrielle",
+              description: "Studio parfait pour voyageurs d'affaires au centre de Bobo-Dioulasso. Proche de toutes commodités, autonome et équipé.",
+              type: "studio",
+              price_per_night: 15000,
+              advance_percentage: 10,
+              cleaning_fee: 2000,
+              service_fee: 1000,
+              city: "Bobo-Dioulasso",
+              neighborhood: "Tounouma",
+              street: "Avenue de la Nation",
+              status: "published",
+              availability_status: "available",
+              images: [
+                "https://images.unsplash.com/photo-1522771739844-6a9f6d5f14af?auto=format&fit=crop&w=1200&q=80"
+              ],
+              amenities: ["Wi-Fi", "Climatisation", "Cuisine équipée"]
+            }
+          ];
+
+          for (const res of defaultResidences) {
+            await (pool as any).execute(
+              `INSERT INTO residences (id, owner_id, title, description, type, price_per_night, advance_percentage, cleaning_fee, service_fee, city, neighborhood, street, status, availability_status) 
+               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+              [
+                res.id, res.owner_id, res.title, res.description, res.type,
+                res.price_per_night, res.advance_percentage, res.cleaning_fee, res.service_fee,
+                res.city, res.neighborhood, res.street, res.status, res.availability_status
+              ]
+            );
+
+            for (const img of res.images) {
+              await (pool as any).execute(
+                "INSERT INTO residence_images (residence_id, image_url) VALUES (?, ?)",
+                [res.id, img]
+              );
+            }
+
+            for (const amen of res.amenities) {
+              await (pool as any).execute(
+                "INSERT INTO residence_amenities (residence_id, amenity) VALUES (?, ?)",
+                [res.id, amen]
+              );
+            }
+          }
+          console.log("Seeded default residences, images, and amenities successfully.");
+        }
+      } catch (resSeedErr: any) {
+        console.warn("⚠️ Error seeding default residences:", resSeedErr.message);
+      }
+
       // Safely ensure users password and phone_number columns exist
       try {
         await (pool as any).execute("ALTER TABLE users ADD COLUMN IF NOT EXISTS password VARCHAR(255) NOT NULL DEFAULT ''");
@@ -1055,7 +1154,7 @@ async function startServer() {
       
       const isOwner = decoded.role === 'owner' || decoded.role === 'admin';
       const query = isOwner 
-        ? "SELECT * FROM bookings WHERE owner_id = ? ORDER BY created_at DESC"
+        ? "SELECT b.* FROM bookings b JOIN residences r ON b.residence_id = r.id WHERE r.owner_id = ? ORDER BY b.created_at DESC"
         : "SELECT * FROM bookings WHERE client_id = ? ORDER BY created_at DESC";
         
       const [rows]: any = await pool.execute(query, [decoded.uid]);

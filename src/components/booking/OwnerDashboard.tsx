@@ -780,41 +780,72 @@ export const OwnerDashboard: React.FC<{ isTestMode?: boolean; onBackToTraveler?:
     'Wi-Fi', 'Climatisation', 'Piscine', 'Parking', 'Sécurité 24/7', 'Cuisine équipée', 'Jardin', 'Groupe Électrogène', 'Forage Eau'
   ];
 
-  // Fetch real-time data for owners
+  // Fetch real-time data for owners (MariaDB with Firebase fallback)
   useEffect(() => {
     if (!user) {
       setLoading(false);
       return;
     }
 
+    let isMounted = true;
+    const loadHostData = async () => {
+      try {
+        const [resList, bookList] = await Promise.all([
+          getOwnerResidences(user.uid),
+          getOwnerBookings(user.uid)
+        ]);
+
+        if (!isMounted) return;
+
+        setResidences(resList);
+        bookList.sort((a, b) => new Date(a.checkIn).getTime() - new Date(b.checkIn).getTime());
+        setBookings(bookList);
+        setLoading(false);
+      } catch (err) {
+        console.warn("MariaDB host data fetch failed, using Firestore fallback:", err);
+      }
+    };
+
     setLoading(true);
+    loadHostData();
+    const interval = setInterval(loadHostData, 5000); // Poll every 5 seconds to keep dashboard instantly updated!
 
-    // Watch Residences
-    const qRes = query(collection(db, 'residences'), where('ownerId', '==', user.uid));
-    const unsubRes = onSnapshot(qRes, (snap) => {
-      const list: Residence[] = [];
-      snap.forEach(docSnap => {
-        list.push({ id: docSnap.id, ...docSnap.data() } as Residence);
-      });
-      setResidences(list);
-    }, (error) => console.error("OwnerDashboard residences snapshot error:", error));
+    // Firebase fallback watcher
+    let unsubRes = () => {};
+    let unsubBook = () => {};
+    try {
+      const qRes = query(collection(db, 'residences'), where('ownerId', '==', user.uid));
+      unsubRes = onSnapshot(qRes, (snap) => {
+        if (!isMounted) return;
+        if (snap.size > 0) {
+          const list: Residence[] = [];
+          snap.forEach(docSnap => {
+            list.push({ id: docSnap.id, ...docSnap.data() } as Residence);
+          });
+          setResidences(list);
+        }
+      }, (error) => console.warn("Firestore fallback residences error:", error));
 
-    // Watch Bookings
-    const qBook = query(collection(db, 'bookings'), where('ownerId', '==', user.uid));
-    const unsubBook = onSnapshot(qBook, (snap) => {
-      const list: Booking[] = [];
-      snap.forEach(docSnap => {
-        list.push({ id: docSnap.id, ...docSnap.data() } as Booking);
-      });
-      // Sort by check-in date
-      list.sort((a, b) => new Date(a.checkIn).getTime() - new Date(b.checkIn).getTime());
-      setBookings(list);
-      setLoading(false);
-    }, () => {
-      setLoading(false);
-    });
+      const qBook = query(collection(db, 'bookings'), where('ownerId', '==', user.uid));
+      unsubBook = onSnapshot(qBook, (snap) => {
+        if (!isMounted) return;
+        if (snap.size > 0) {
+          const list: Booking[] = [];
+          snap.forEach(docSnap => {
+            list.push({ id: docSnap.id, ...docSnap.data() } as Booking);
+          });
+          list.sort((a, b) => new Date(a.checkIn).getTime() - new Date(b.checkIn).getTime());
+          setBookings(list);
+        }
+        setLoading(false);
+      }, () => setLoading(false));
+    } catch (e) {
+      console.warn("Firestore fallback watcher skipped:", e);
+    }
 
     return () => {
+      isMounted = false;
+      clearInterval(interval);
       unsubRes();
       unsubBook();
     };
