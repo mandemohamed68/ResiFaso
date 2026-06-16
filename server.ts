@@ -148,6 +148,102 @@ async function startServer() {
 
   app.use(express.json());
 
+  // --- WORKFLOW AUDIT LOGGING SYSTEM ---
+  async function logWorkflowAction(level: string, category: string, userEmail: string | null, userRole: string | null, message: string, details: any = null, durationMs: number = 0) {
+    try {
+      let detailsStr = "";
+      if (details) {
+        if (typeof details === "object") {
+          try {
+            detailsStr = JSON.stringify(details);
+          } catch (e) {
+            detailsStr = String(details);
+          }
+        } else {
+          detailsStr = String(details);
+        }
+      }
+      await pool.execute(
+        "INSERT INTO system_logs (level, category, user_email, user_role, message, details, duration_ms) VALUES (?, ?, ?, ?, ?, ?, ?)",
+        [level, category, userEmail || "anonymous", userRole || "guest", message, detailsStr, durationMs]
+      );
+    } catch (err: any) {
+      console.error("Failed to write to system_logs:", err.message);
+    }
+  }
+
+  // Pre-emptive Auth Decoder Middleware for request logging
+  app.use((req: any, res: any, next: any) => {
+    try {
+      const authHeader = req.headers.authorization;
+      if (authHeader && authHeader.startsWith("Bearer ")) {
+        const token = authHeader.split(" ")[1];
+        const decoded: any = jwt.verify(token, process.env.JWT_SECRET || "resifaso_secret");
+        if (decoded) {
+          req.userEmail = decoded.email;
+          req.userRole = decoded.role;
+          req.userId = decoded.uid;
+        }
+      }
+    } catch (e) {
+      // Quiet fallback
+    }
+    next();
+  });
+
+  // Global HTTP Request Logger
+  app.use((req: any, res: any, next: any) => {
+    if (req.path.startsWith("/api/admin/system-logs")) {
+      return next();
+    }
+
+    const start = Date.now();
+    res.on("finish", () => {
+      const duration = Date.now() - start;
+      const status = res.statusCode;
+      const level = status >= 400 ? "ERROR" : (status >= 300 ? "WARN" : "SUCCESS");
+      
+      let category = "API_REQUEST";
+      if (req.path.startsWith("/api/auth")) category = "AUTHENTIFICATION";
+      else if (req.path.startsWith("/api/bookings")) category = "RÉSERVATION";
+      else if (req.path.startsWith("/api/owner")) category = "COMPTE_PROPRIÉTAIRE";
+      else if (req.path.startsWith("/api/withdrawals")) category = "RETRAITS";
+      else if (req.path.startsWith("/api/ads")) category = "PUBLICITÉ";
+
+      const userEmail = req.userEmail || null;
+      const userRole = req.userRole || null;
+
+      let bodyDetails = "";
+      if (req.body && Object.keys(req.body).length > 0) {
+        const clonedBody = { ...req.body };
+        if (clonedBody.password) clonedBody.password = "[MASQUÉ]";
+        if (clonedBody.adminPassword) clonedBody.adminPassword = "[MASQUÉ]";
+        try {
+          bodyDetails = JSON.stringify(clonedBody);
+        } catch (e) {
+          bodyDetails = "[Données non-sérialisables]";
+        }
+      } else if (Object.keys(req.query || {}).length > 0) {
+        bodyDetails = `Query Params: ${JSON.stringify(req.query)}`;
+      }
+
+      const methodEmoji = req.method === "GET" ? "📥" : req.method === "POST" ? "📤" : req.method === "PUT" ? "🔄" : "❌";
+      const message = `${methodEmoji} ${req.method} ${req.path} -> Statut ${status}`;
+
+      logWorkflowAction(
+        level,
+        category,
+        userEmail,
+        userRole,
+        message,
+        bodyDetails || null,
+        duration
+      );
+    });
+
+    next();
+  });
+
   // --- DB TABLES INITIALIZATION ---
   (async () => {
     try {
@@ -250,6 +346,18 @@ async function startServer() {
         status VARCHAR(50) DEFAULT 'pending',
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         approved_at TIMESTAMP NULL
+      )`);
+
+      await (pool as any).execute(`CREATE TABLE IF NOT EXISTS system_logs (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        level VARCHAR(20) DEFAULT 'INFO',
+        category VARCHAR(50) DEFAULT 'SYSTEM',
+        user_email VARCHAR(255) NULL,
+        user_role VARCHAR(50) NULL,
+        message TEXT,
+        details TEXT DEFAULT NULL,
+        duration_ms INT DEFAULT 0,
+        timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       )`);
 
       // Ensure super admin exists with id 'usr_admin_default' and email 'mandemohamed68@gmail.com'
@@ -975,6 +1083,47 @@ async function startServer() {
       next();
     } catch (e) { res.status(401).json({ error: "Invalid token" }); }
   };
+
+  // Admin: Get Real-time workflow system logs
+  app.get("/api/admin/system-logs", isAdmin, async (req: any, res: any) => {
+    try {
+      const [rows]: any = await pool.execute("SELECT * FROM system_logs ORDER BY timestamp DESC LIMIT 300");
+      const logs = rows.map((r: any) => {
+        let detailsObj = null;
+        if (r.details) {
+          try {
+            detailsObj = JSON.parse(r.details);
+          } catch (e) {
+            detailsObj = r.details;
+          }
+        }
+        return {
+          id: r.id,
+          timestamp: r.timestamp,
+          level: r.level || "INFO",
+          category: r.category || "SYSTEM",
+          user_email: r.user_email || "anonymous",
+          user_role: r.user_role || "guest",
+          message: r.message,
+          details: detailsObj,
+          duration_ms: r.duration_ms || 0
+        };
+      });
+      res.json({ logs });
+    } catch (e: any) {
+      res.status(500).json({ error: e.message });
+    }
+  });
+
+  // Admin: Purge system logs
+  app.delete("/api/admin/system-logs", isAdmin, async (req: any, res: any) => {
+    try {
+      await pool.execute("DELETE FROM system_logs");
+      res.json({ success: true, message: "Workflow activity logs purged" });
+    } catch (e: any) {
+      res.status(500).json({ error: e.message });
+    }
+  });
 
   // Admin: Get All Users
   app.get("/api/admin/users", isAdmin, async (req, res) => {

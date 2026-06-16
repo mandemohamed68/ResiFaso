@@ -296,6 +296,26 @@ export async function deleteAd(id: string): Promise<void> {
   } catch (error) { console.error('Error deleting ad:', error); }
 }
 
+export async function getSystemLogs(): Promise<any[]> {
+  try {
+    const data = await apiFetch('/api/admin/system-logs');
+    return data.logs || [];
+  } catch (error) {
+    console.error('Error fetching system logs:', error);
+    return [];
+  }
+}
+
+export async function purgeSystemLogs(): Promise<boolean> {
+  try {
+    const data = await apiFetch('/api/admin/system-logs', { method: 'DELETE' });
+    return data.success || false;
+  } catch (error) {
+    console.error('Error purging system logs:', error);
+    return false;
+  }
+}
+
 export async function hardResetDatabase() {
   // Safety: Admin only
   console.warn("Hard reset requested via API");

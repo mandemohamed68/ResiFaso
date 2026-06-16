@@ -90,7 +90,16 @@ function saveDB(data: any) {
 function loadDB(): any {
   if (fs.existsSync(LOCAL_DB_PATH)) {
     try {
-      return JSON.parse(fs.readFileSync(LOCAL_DB_PATH, 'utf8'));
+      const db = JSON.parse(fs.readFileSync(LOCAL_DB_PATH, 'utf8'));
+      let modified = false;
+      if (!db.system_logs) {
+        db.system_logs = [];
+        modified = true;
+      }
+      if (modified) {
+        fs.writeFileSync(LOCAL_DB_PATH, JSON.stringify(db, null, 2));
+      }
+      return db;
     } catch (err) {
       console.error('Error parsing local DB, recreating...', err);
     }
@@ -195,7 +204,8 @@ function loadDB(): any {
     settings: [
       { id: "global", data: JSON.stringify({ platformName: "ResiFaso", commissionRate: 10, isTestMode: false, enablePhoneCalls: true, enableWhatsApp: true }) }
     ],
-    ads: []
+    ads: [],
+    system_logs: []
   };
 
   saveDB(initialData);
@@ -357,6 +367,12 @@ async function mockExecute(sql: string, params: any[] = []): Promise<[any, any]>
     if (normalizedSql.toLowerCase().includes('from ads')) {
       return [db.ads, null];
     }
+
+    // SELECT * FROM system_logs
+    if (normalizedSql.toLowerCase().includes('from system_logs')) {
+      const sorted = [...(db.system_logs || [])].sort((a: any, b: any) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+      return [sorted, null];
+    }
   }
 
   // 4. INSERT Queries
@@ -504,6 +520,31 @@ async function mockExecute(sql: string, params: any[] = []): Promise<[any, any]>
       saveDB(db);
       return [{ affectedRows: 1 }, null];
     }
+
+    if (normalizedSql.toLowerCase().includes('insert into system_logs')) {
+      const level = params[0];
+      const category = params[1];
+      const user_email = params[2];
+      const user_role = params[3];
+      const message = params[4];
+      const details = params[5];
+      const duration_ms = params[6] || 0;
+      const val = {
+        id: (db.system_logs || []).length + 1,
+        level,
+        category,
+        user_email,
+        user_role,
+        message,
+        details,
+        duration_ms,
+        timestamp: new Date().toISOString()
+      };
+      if (!db.system_logs) db.system_logs = [];
+      db.system_logs.push(val);
+      saveDB(db);
+      return [{ affectedRows: 1, insertId: val.id }, null];
+    }
   }
 
   // 5. UPDATE Queries
@@ -599,6 +640,12 @@ async function mockExecute(sql: string, params: any[] = []): Promise<[any, any]>
     if (normalizedSql.toLowerCase().includes('from ads')) {
       const id = params[0];
       db.ads = db.ads.filter((a: any) => a.id !== id);
+      saveDB(db);
+      return [{ affectedRows: 1 }, null];
+    }
+
+    if (normalizedSql.toLowerCase().includes('from system_logs')) {
+      db.system_logs = [];
       saveDB(db);
       return [{ affectedRows: 1 }, null];
     }
