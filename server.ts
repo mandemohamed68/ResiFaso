@@ -486,16 +486,33 @@ async function startServer() {
       const [rows]: any = await pool.execute("SELECT * FROM residences WHERE status = 'published'");
       const residences = await Promise.all(rows.map(async (row: any) => {
         const [images]: any = await pool.execute("SELECT image_url FROM residence_images WHERE residence_id = ?", [row.id]);
+        const [amenities]: any = await pool.execute("SELECT amenity FROM residence_amenities WHERE residence_id = ?", [row.id]).catch(() => [[]]);
         return {
           id: row.id,
+          ownerId: row.owner_id || "unknown",
           title: row.title,
-          description: row.description,
-          pricePerNight: row.price_per_night,
-          images: images.map((i: any) => i.image_url),
+          description: row.description || "",
+          type: row.type || "appartement",
+          pricePerNight: Number(row.price_per_night) || 0,
+          advancePercentage: Number(row.advance_percentage) || 0,
+          cleaningFee: Number(row.cleaning_fee) || 0,
+          serviceFee: Number(row.service_fee) || 0,
+          address: {
+            city: row.city || "",
+            neighborhood: row.neighborhood || "",
+            street: row.street || "",
+            coordinates: {
+              lat: 12.371428,
+              lng: -1.519662
+            }
+          },
+          amenities: Array.isArray(amenities) ? amenities.map((a: any) => a.amenity) : [],
+          images: Array.isArray(images) ? images.map((i: any) => i.image_url) : [],
           location: row.city + (row.neighborhood ? ", " + row.neighborhood : ""),
           rating: 4.5,
-          type: row.type,
-          ownerId: row.owner_id
+          reviewCount: 3,
+          status: row.status || "published",
+          availabilityStatus: row.availability_status || "available"
         };
       }));
       res.json({ residences });

@@ -183,7 +183,7 @@ function AppContent() {
       const city = BURKINA_LOCATIONS.find(c => c.id === searchFilters.cityId);
       if (city) {
         const citySearch = city.name.toLowerCase().trim();
-        const resCity = (res.address.city || '').toLowerCase().trim();
+        const resCity = (res.address?.city || res.city || '').toLowerCase().trim();
         // Handle fuzzy matching like "Bobo-Dioulasso" vs "Bobo Dioulasso"
         const normalize = (s: string) => s.replace(/-/g, ' ').replace(/\s+/g, ' ');
         const matchesCity = normalize(resCity).includes(normalize(citySearch)) || 
@@ -205,7 +205,7 @@ function AppContent() {
       }
       
       if (nbName) {
-        const resNb = (res.address.neighborhood || '').toLowerCase().trim();
+        const resNb = (res.address?.neighborhood || res.neighborhood || '').toLowerCase().trim();
         const normalizeNb = (s: string) => s.replace(/['’]/g, '').replace(/\s+/g, ' ');
         const matchesNb = normalizeNb(resNb).includes(normalizeNb(nbName)) || 
                          normalizeNb(nbName).includes(normalizeNb(resNb));
@@ -690,7 +690,7 @@ function AppContent() {
                   </div>
                   
                   <div className="flex items-center gap-2 text-slate-500 font-medium text-lg mb-8">
-                    <span>{selectedResidence.address.street}, {selectedResidence.address.neighborhood}, {selectedResidence.address.city}</span>
+                    <span>{selectedResidence.address?.street || ''}{selectedResidence.address?.street && ', '}{selectedResidence.address?.neighborhood || selectedResidence.neighborhood || ''}, {selectedResidence.address?.city || selectedResidence.city || ''}</span>
                   </div>
 
                   <hr className="border-slate-100 mb-8" />
@@ -744,7 +744,7 @@ function AppContent() {
                     </h2>
                     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
                       {residences
-                        .filter(r => r.id !== selectedResidence.id && (r.type === selectedResidence.type || r.address.city === selectedResidence.address.city))
+                        .filter(r => r.id !== selectedResidence.id && (r.type === selectedResidence.type || (r.address?.city || r.city) === (selectedResidence.address?.city || selectedResidence.city)))
                         .slice(0, 3)
                         .map(res => (
                           <ResidenceCard 
@@ -756,7 +756,7 @@ function AppContent() {
                           />
                         ))
                       }
-                      {residences.filter(r => r.id !== selectedResidence.id && (r.type === selectedResidence.type || r.address.city === selectedResidence.address.city)).length === 0 && (
+                      {residences.filter(r => r.id !== selectedResidence.id && (r.type === selectedResidence.type || (r.address?.city || r.city) === (selectedResidence.address?.city || selectedResidence.city))).length === 0 && (
                         <div className="col-span-full py-12 text-center bg-white rounded-3xl border border-dashed border-slate-200">
                            <p className="text-slate-400 font-bold text-sm">Découvrez d'autres pépites burkinabè sur l'accueil.</p>
                         </div>
@@ -885,7 +885,7 @@ function AppContent() {
                                 <p className="text-[10px] font-black uppercase text-red-700 tracking-wider">🏠 Explorer ailleurs aux mêmes dates :</p>
                                 <div className="space-y-1">
                                   {residences
-                                    .filter(r => r.id !== selectedResidence.id && r.address.city === selectedResidence.address.city)
+                                    .filter(r => r.id !== selectedResidence.id && (r.address?.city || r.city) === (selectedResidence.address?.city || selectedResidence.city))
                                     .slice(0, 2)
                                     .map(alt => (
                                       <button 

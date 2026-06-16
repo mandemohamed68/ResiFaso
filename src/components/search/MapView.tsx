@@ -33,7 +33,7 @@ export const MapView: React.FC<Props> = ({ residences, onResidenceClick }) => {
           url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
         />
         {residences.map((res) => (
-          res.address.coordinates && (
+          res.address?.coordinates && (
             <Marker 
               key={res.id} 
               position={[res.address.coordinates.lat, res.address.coordinates.lng]}

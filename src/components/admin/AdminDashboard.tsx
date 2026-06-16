@@ -660,8 +660,8 @@ export const AdminDashboard: React.FC<{ onBackToTraveler?: () => void }> = ({ on
   // Filters logic 
   const filteredResidences = residences.filter(res => 
     res.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    res.address.city.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    res.address.neighborhood.toLowerCase().includes(searchQuery.toLowerCase())
+    res.address?.city?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    res.address?.neighborhood?.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
   const filteredUsers = users.filter(usr => 
@@ -895,7 +895,7 @@ export const AdminDashboard: React.FC<{ onBackToTraveler?: () => void }> = ({ on
                         <img src={res.images?.[0] || 'https://images.unsplash.com/photo-1513694203232-719a280e022f?auto=format&fit=crop&w=150'} className="w-14 h-12 object-cover rounded-xl" />
                         <div>
                           <h4 className="font-black text-slate-900 leading-tight">{res.title}</h4>
-                          <span className="text-[10px] text-slate-500 capitalize">{res.address.neighborhood}, {res.address.city} &bull; {formatCurrency(res.pricePerNight)} F/nuit</span>
+                          <span className="text-[10px] text-slate-500 capitalize">{res.address?.neighborhood}, {res.address?.city} &bull; {formatCurrency(res.pricePerNight)} F/nuit</span>
                         </div>
                       </div>
                       <div className="flex gap-2 self-end sm:self-auto">

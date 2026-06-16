@@ -402,13 +402,13 @@ const BookingTable: React.FC<BookingTableProps> = ({
                     <div className="space-y-1">
                       <span className="text-base font-extrabold text-slate-900 block">{currentRes?.title || "Logement Supprimé"}</span>
                       <p className="text-xs text-slate-500 font-bold leading-normal">
-                        {currentRes?.address?.street && `${currentRes.address.street}, `}
-                        {currentRes?.address?.neighborhood && `${currentRes.address.neighborhood}, `}
+                        {currentRes?.address?.street && `${currentRes.address?.street}, `}
+                        {currentRes?.address?.neighborhood && `${currentRes.address?.neighborhood}, `}
                         <strong className="text-slate-800 font-bold">{currentRes?.address?.city || "Burkina Faso"}</strong>
                       </p>
                       {currentRes?.address?.coordinates && (
                         <div className="inline-flex items-center gap-1 px-2.5 py-1 bg-slate-50 border border-slate-200 rounded-md text-[9px] font-mono font-bold text-slate-500 mt-1">
-                          📍 Lat: {currentRes.address.coordinates.lat.toFixed(5)} / Lng: {currentRes.address.coordinates.lng.toFixed(5)}
+                          📍 Lat: {currentRes.address?.coordinates?.lat.toFixed(5)} / Lng: {currentRes.address?.coordinates?.lng.toFixed(5)}
                         </div>
                       )}
                     </div>
@@ -934,8 +934,8 @@ export const OwnerDashboard: React.FC<{ isTestMode?: boolean; onBackToTraveler?:
     // Reverse geocode to fill fields
     const addr = await reverseGeocode(pos.lat, pos.lng);
     if (addr && addr.address) {
-      const city = addr.address.city || addr.address.town || addr.address.village;
-      const road = addr.address.road || addr.address.suburb || addr.address.neighbourhood;
+      const city = addr.address?.city || addr.address?.town || addr.address?.village;
+      const road = addr.address?.road || addr.address?.suburb || addr.address?.neighbourhood;
       
       if (city) {
         const foundCity = BURKINA_LOCATIONS.find(c => c.name.toLowerCase().includes(city.toLowerCase()));
@@ -1259,11 +1259,11 @@ export const OwnerDashboard: React.FC<{ isTestMode?: boolean; onBackToTraveler?:
     setTitle(res.title);
     setDescription(res.description);
     setType(res.type);
-    const city = BURKINA_LOCATIONS.find(c => c.name === res.address.city);
+    const city = BURKINA_LOCATIONS.find(c => c.name === res.address?.city);
     setSelectedCityId(city?.id || '');
-    const hood = city?.neighborhoods.find(n => n.name === res.address.neighborhood);
+    const hood = city?.neighborhoods.find(n => n.name === res.address?.neighborhood);
     setSelectedNeighborhoodId(hood?.id || '');
-    setStreet(res.address.street || '');
+    setStreet(res.address?.street || '');
     setPricePerNight(res.pricePerNight.toString());
     setAdvancePercentage(res.advancePercentage);
     setCleaningFee(res.cleaningFee.toString());
@@ -1280,7 +1280,7 @@ export const OwnerDashboard: React.FC<{ isTestMode?: boolean; onBackToTraveler?:
     setOwnerPhone(res.ownerPhone || '');
     setImages(res.images || []);
     setAmenities(res.amenities || []);
-    if (res.address.coordinates) {
+    if (res.address?.coordinates) {
       setCoordinates(res.address.coordinates);
     }
     setAvailabilityStatus(res.availabilityStatus || 'available');
@@ -1609,7 +1609,7 @@ export const OwnerDashboard: React.FC<{ isTestMode?: boolean; onBackToTraveler?:
                           </div>
                         </td>
                         <td className="py-4 px-6 font-medium text-slate-500">
-                          {res.address.neighborhood}, {res.address.city}
+                          {res.address?.neighborhood}, {res.address?.city}
                         </td>
                         <td className="py-4 px-6">
                           <div className="flex flex-col gap-1">
