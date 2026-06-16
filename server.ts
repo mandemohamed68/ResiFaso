@@ -948,7 +948,19 @@ async function startServer() {
     try {
       const { id } = req.params;
       const [rows]: any = await (pool as any).execute("SELECT data FROM settings WHERE id = ?", [id]);
-      res.json(rows.length > 0 ? rows[0].data : {});
+      if (rows.length > 0) {
+        let settingsData = rows[0].data;
+        if (typeof settingsData === "string") {
+          try {
+            settingsData = JSON.parse(settingsData);
+          } catch (e) {
+            // Keep as string if it is not valid JSON
+          }
+        }
+        res.json(settingsData);
+      } else {
+        res.json({});
+      }
     } catch (e: any) { res.status(500).json({ error: e.message }); }
   });
 
