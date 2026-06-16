@@ -8,6 +8,8 @@ import fs from "fs";
 import { pool, poolReady } from "./src/lib/db-server";
 import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
+import { createServer } from "http";
+import { Server as SocketServer } from "socket.io";
 
 dotenv.config();
 
@@ -133,6 +135,30 @@ async function getSappayToken(): Promise<string> {
 
 async function startServer() {
   const app = express();
+  const httpServer = createServer(app);
+  const io = new SocketServer(httpServer, {
+    cors: {
+      origin: "*",
+      methods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
+      credentials: true
+    }
+  });
+
+  app.set("io", io);
+
+  io.on("connection", (socket) => {
+    console.log("🟢 Live Socket client connected:", socket.id);
+    
+    socket.on("join", (userId) => {
+      socket.join(`user:${userId}`);
+      console.log(`👤 Client joined channel user:${userId}`);
+    });
+
+    socket.on("disconnect", () => {
+      console.log("🔴 Live Socket client disconnected:", socket.id);
+    });
+  });
+
   const PORT = Number(process.env.PORT) || 3000;
 
   // Lightweight CORS middleware to allow calls from mobile Capacitor webview (localhost / capacitor:// etc)
@@ -358,6 +384,24 @@ async function startServer() {
         details TEXT DEFAULT NULL,
         duration_ms INT DEFAULT 0,
         timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      )`);
+
+      await (pool as any).execute(`CREATE TABLE IF NOT EXISTS reservations (
+        id VARCHAR(128) PRIMARY KEY,
+        residence_id VARCHAR(128) NOT NULL,
+        client_id VARCHAR(128) NOT NULL,
+        owner_id VARCHAR(128) NOT NULL,
+        check_in DATE NOT NULL,
+        check_out DATE NOT NULL,
+        guests INT DEFAULT 1,
+        total_price DECIMAL(10,2) NOT NULL,
+        status VARCHAR(50) DEFAULT 'pending',
+        payment_status VARCHAR(50) DEFAULT 'pending',
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+        FOREIGN KEY (residence_id) REFERENCES residences(id) ON DELETE CASCADE,
+        FOREIGN KEY (client_id) REFERENCES users(id) ON DELETE CASCADE,
+        FOREIGN KEY (owner_id) REFERENCES users(id) ON DELETE CASCADE
       )`);
 
       // Ensure super admin exists with id 'usr_admin_default' and email 'mandemohamed68@gmail.com'
@@ -1275,7 +1319,8 @@ async function startServer() {
     } catch (e: any) { res.status(500).json({ error: e.message }); }
   });
 
-  app.post("/api/bookings", async (req: any, res: any) => {
+  // RESERVATIONS & BOOKINGS ENDPOINTS
+  app.post("/api/reservations", async (req: any, res: any) => {
     try {
       const authHeader = req.headers.authorization;
       if (!authHeader) return res.status(401).json({ error: "No token" });
@@ -1284,48 +1329,232 @@ async function startServer() {
       const clientId = decoded.uid;
 
       const { residenceId, checkIn, checkOut, guests, totalPrice } = req.body;
-      const bId = "b_" + Math.random().toString(36).substr(2, 9);
-      await pool.execute(
-        "INSERT INTO bookings (id, residence_id, client_id, check_in, check_out, guests, total_price, status) VALUES (?, ?, ?, ?, ?, ?, ?, 'pending')",
-        [bId, residenceId, clientId, new Date(checkIn), new Date(checkOut), guests, totalPrice]
+
+      // Get owner_id from residence
+      const [resRows]: any = await pool.execute("SELECT owner_id, price_per_night FROM residences WHERE id = ?", [residenceId]);
+      if (resRows.length === 0) {
+        return res.status(404).json({ error: "Résidence introuvable." });
+      }
+      const ownerId = resRows[0].owner_id;
+
+      // Overlap Check (status IN ('pending', 'confirmed'))
+      const [overlapRows]: any = await pool.execute(
+        "SELECT * FROM reservations WHERE residence_id = ? AND status IN ('pending', 'confirmed') AND NOT (check_out <= ? OR check_in >= ?)",
+        [residenceId, new Date(checkIn), new Date(checkOut)]
       );
-      res.json({ success: true, bookingId: bId });
-    } catch (e: any) { res.status(500).json({ error: e.message }); }
+
+      if (overlapRows.length > 0) {
+        return res.status(400).json({ error: "Désolé, cette résidence est déjà occupée ou réservée sur ces dates." });
+      }
+
+      const rId = "res_" + Math.random().toString(36).substr(2, 9);
+      const finalPrice = totalPrice || (resRows[0].price_per_night * (Math.ceil((new Date(checkOut).getTime() - new Date(checkIn).getTime()) / (1000 * 60 * 60 * 24)) || 1));
+
+      // Insert to reservations table
+      await pool.execute(
+        "INSERT INTO reservations (id, residence_id, client_id, owner_id, check_in, check_out, guests, total_price, status, payment_status) VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'pending', 'pending')",
+        [rId, residenceId, clientId, ownerId, new Date(checkIn), new Date(checkOut), guests || 1, finalPrice]
+      );
+
+      // Also insert to bookings table (for perfect compatibility with legacy watchers)
+      await pool.execute(
+        "INSERT INTO bookings (id, residence_id, client_id, check_in, check_out, guests, total_price, status, booking_status, payment_status) VALUES (?, ?, ?, ?, ?, ?, ?, 'pending', 'pending', 'pending')",
+        [rId, residenceId, clientId, new Date(checkIn), new Date(checkOut), guests || 1, finalPrice]
+      );
+
+      // Emit Event via Socket.io
+      const io = req.app.get("io");
+      if (io) {
+        io.to(`user:${ownerId}`).emit("reservation:new", {
+          id: rId,
+          residenceId,
+          clientId,
+          ownerId,
+          checkIn,
+          checkOut,
+          guests,
+          totalPrice: finalPrice,
+          status: 'pending'
+        });
+      }
+
+      res.json({ success: true, bookingId: rId, reservationId: rId });
+    } catch (e: any) {
+      console.error("Error creating reservation:", e);
+      res.status(500).json({ error: e.message });
+    }
   });
 
-  // Bookings: Get User Bookings
-  app.get("/api/bookings", async (req: any, res: any) => {
+  app.get("/api/reservations/client", async (req: any, res: any) => {
     try {
       const authHeader = req.headers.authorization;
       if (!authHeader) return res.status(401).json({ error: "No token" });
       const token = authHeader.split(" ")[1];
       const decoded: any = jwt.verify(token, process.env.JWT_SECRET || "resifaso_secret");
-      
-      const isOwner = decoded.role === 'owner' || decoded.role === 'admin';
-      const query = isOwner 
-        ? "SELECT b.* FROM bookings b JOIN residences r ON b.residence_id = r.id WHERE r.owner_id = ? ORDER BY b.created_at DESC"
-        : "SELECT * FROM bookings WHERE client_id = ? ORDER BY created_at DESC";
-        
-      const [rows]: any = await pool.execute(query, [decoded.uid]);
-      
-      const bookings = await Promise.all(rows.map(async (row: any) => {
-        const [resRows]: any = await pool.execute("SELECT title, city, neighborhood FROM residences WHERE id = ?", [row.residence_id]);
-        const resData = resRows[0] || {};
-        return {
-          id: row.id,
-          residenceId: row.residence_id,
-          residenceTitle: resData.title || "Résidence supprimée",
-          location: resData.city + (resData.neighborhood ? ", " + resData.neighborhood : ""),
-          checkIn: row.check_in,
-          checkOut: row.check_out,
-          guests: row.guests,
-          totalPrice: row.total_price,
-          status: row.booking_status || row.status,
-          paymentStatus: row.payment_status
-        };
+      const clientId = decoded.uid;
+
+      const [rows]: any = await pool.execute(
+        `SELECT r.*, res.title as residenceTitle, res.city, res.neighborhood, res.owner_id 
+         FROM reservations r 
+         JOIN residences res ON r.residence_id = res.id 
+         WHERE r.client_id = ? 
+         ORDER BY r.created_at DESC`,
+        [clientId]
+      );
+
+      const mappedReservations = rows.map((row: any) => ({
+        id: row.id,
+        residenceId: row.residence_id,
+        residenceTitle: row.residenceTitle,
+        location: row.city + (row.neighborhood ? ", " + row.neighborhood : ""),
+        checkIn: row.check_in,
+        checkOut: row.check_out,
+        guests: row.guests,
+        totalPrice: row.total_price,
+        status: row.status,
+        bookingStatus: row.status,
+        paymentStatus: row.payment_status,
+        ownerId: row.owner_id,
+        clientId: row.client_id,
+        createdAt: row.created_at
       }));
-      res.json({ bookings });
-    } catch (e: any) { res.status(500).json({ error: e.message }); }
+
+      res.json({ bookings: mappedReservations });
+    } catch (e: any) {
+      res.status(500).json({ error: e.message });
+    }
+  });
+
+  app.get("/api/reservations/owner", async (req: any, res: any) => {
+    try {
+      const authHeader = req.headers.authorization;
+      if (!authHeader) return res.status(401).json({ error: "No token" });
+      const token = authHeader.split(" ")[1];
+      const decoded: any = jwt.verify(token, process.env.JWT_SECRET || "resifaso_secret");
+      const ownerId = decoded.uid;
+
+      const [rows]: any = await pool.execute(
+        `SELECT 
+          r.*, 
+          res.title as residenceTitle, 
+          res.city, 
+          res.neighborhood,
+          u.display_name as clientName,
+          u.email as clientEmail,
+          u.phone_number as clientPhone
+         FROM reservations r 
+         JOIN residences res ON r.residence_id = res.id 
+         LEFT JOIN users u ON r.client_id = u.id
+         WHERE r.owner_id = ? 
+         ORDER BY r.created_at DESC`,
+        [ownerId]
+      );
+
+      const mappedReservations = rows.map((row: any) => ({
+        id: row.id,
+        residenceId: row.residence_id,
+        residenceTitle: row.residenceTitle,
+        location: row.city + (row.neighborhood ? ", " + row.neighborhood : ""),
+        checkIn: row.check_in,
+        checkOut: row.check_out,
+        guests: row.guests,
+        totalPrice: row.total_price,
+        status: row.status,
+        bookingStatus: row.status,
+        paymentStatus: row.payment_status,
+        ownerId: row.owner_id,
+        clientId: row.client_id,
+        createdAt: row.created_at,
+        clientName: row.clientName || "Voyageur Anonyme",
+        clientEmail: row.clientEmail || "N/A",
+        clientPhone: row.clientPhone || "N/A"
+      }));
+
+      res.json({ bookings: mappedReservations });
+    } catch (e: any) {
+      res.status(500).json({ error: e.message });
+    }
+  });
+
+  app.put("/api/reservations/:id/status", async (req: any, res: any) => {
+    try {
+      const { id } = req.params;
+      const { status, paymentStatus, stayStatus } = req.body;
+
+      // Check who triggers
+      const [infoRows]: any = await pool.execute("SELECT client_id, owner_id FROM reservations WHERE id = ?", [id]);
+      if (infoRows.length === 0) {
+        return res.status(404).json({ error: "Réservation introuvable." });
+      }
+      const { client_id, owner_id } = infoRows[0];
+
+      await pool.execute(
+        "UPDATE reservations SET status = ?, payment_status = COALESCE(?, payment_status) WHERE id = ?",
+        [status, paymentStatus || null, id]
+      );
+
+      // Keep bookings table perfectly synced
+      await pool.execute(
+        `UPDATE bookings SET 
+          status = ?, 
+          booking_status = ?, 
+          payment_status = COALESCE(?, payment_status)
+         WHERE id = ?`,
+        [status, status, paymentStatus || null, id]
+      );
+
+      // Emit Event via Socket.io
+      const io = req.app.get("io");
+      if (io) {
+        io.to(`user:${client_id}`).emit("reservation:updated", {
+          id,
+          status,
+          paymentStatus,
+          stayStatus
+        });
+        io.to(`user:${owner_id}`).emit("reservation:updated", {
+          id,
+          status,
+          paymentStatus,
+          stayStatus
+        });
+      }
+
+      res.json({ success: true });
+    } catch (e: any) {
+      res.status(500).json({ error: e.message });
+    }
+  });
+
+  // Legacy Bookings Fallback (proxies directly to the modern reservations database)
+  app.post("/api/bookings", async (req: any, res: any) => {
+    req.url = "/api/reservations";
+    app._router.handle(req, res);
+  });
+
+  app.get("/api/bookings", async (req: any, res: any) => {
+    const roleQ = req.query.role;
+    if (roleQ === 'client') {
+      req.url = "/api/reservations/client";
+    } else if (roleQ === 'owner') {
+      req.url = "/api/reservations/owner";
+    } else {
+      // Auto fallback by token
+      try {
+        const authHeader = req.headers.authorization;
+        if (!authHeader) return res.status(401).json({ error: "No token" });
+        const token = authHeader.split(" ")[1];
+        const decoded: any = jwt.verify(token, process.env.JWT_SECRET || "resifaso_secret");
+        if (decoded.role === 'owner' || decoded.role === 'admin') {
+          req.url = "/api/reservations/owner";
+        } else {
+          req.url = "/api/reservations/client";
+        }
+      } catch {
+        req.url = "/api/reservations/client";
+      }
+    }
+    app._router.handle(req, res);
   });
 
   app.post("/api/submit-review", async (req, res) => {
@@ -1383,7 +1612,7 @@ async function startServer() {
     });
   }
 
-  app.listen(PORT, "0.0.0.0", () => {
+  httpServer.listen(PORT, "0.0.0.0", () => {
     console.log(`Server running on http://localhost:${PORT}`);
     
     // Auto-seed default Super Admin and auto-detect columns

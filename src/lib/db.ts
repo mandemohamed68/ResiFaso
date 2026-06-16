@@ -1,4 +1,6 @@
 import { UserProfile, Residence, Booking, Conversation, Message } from '../types';
+import { db } from './firebase';
+import { doc, updateDoc } from 'firebase/firestore';
 
 async function apiFetch(url: string, options: RequestInit = {}) {
   const token = localStorage.getItem('resifaso_token');
@@ -90,11 +92,11 @@ export async function deleteResidence(id: string): Promise<void> {
 
 export async function createBooking(bookingData: Omit<Booking, 'id'>): Promise<string> {
   try {
-    const data = await apiFetch('/api/bookings', {
+    const data = await apiFetch('/api/reservations', {
       method: 'POST',
       body: JSON.stringify(bookingData)
     });
-    return data.bookingId;
+    return data.bookingId || data.reservationId || '';
   } catch (error) {
     console.error('Error creating booking:', error);
     return '';
@@ -103,7 +105,7 @@ export async function createBooking(bookingData: Omit<Booking, 'id'>): Promise<s
 
 export async function getClientBookings(clientId: string): Promise<Booking[]> {
   try {
-    const data = await apiFetch('/api/bookings');
+    const data = await apiFetch('/api/reservations/client');
     return data.bookings || [];
   } catch (error) {
     console.error('Error fetching client bookings:', error);
@@ -113,7 +115,7 @@ export async function getClientBookings(clientId: string): Promise<Booking[]> {
 
 export async function getOwnerBookings(ownerId: string): Promise<Booking[]> {
   try {
-    const data = await apiFetch('/api/bookings');
+    const data = await apiFetch('/api/reservations/owner');
     return data.bookings || [];
   } catch (error) {
     console.error('Error fetching owner bookings:', error);
@@ -123,7 +125,7 @@ export async function getOwnerBookings(ownerId: string): Promise<Booking[]> {
 
 export async function getAllBookings(): Promise<Booking[]> {
   try {
-    const data = await apiFetch('/api/bookings');
+    const data = await apiFetch('/api/reservations/owner');
     return data.bookings || [];
   } catch (error) {
     console.error('Error fetching all bookings:', error);
@@ -133,10 +135,21 @@ export async function getAllBookings(): Promise<Booking[]> {
 
 export async function updateBookingStatus(id: string, updates: Partial<Booking>): Promise<void> {
   try {
-    await apiFetch(`/api/bookings/${id}/status`, {
-      method: 'PATCH',
-      body: JSON.stringify({ status: updates.bookingStatus || updates.paymentStatus }) 
+    await apiFetch(`/api/reservations/${id}/status`, {
+      method: 'PUT',
+      body: JSON.stringify({
+        status: updates.bookingStatus || (updates as any).status, 
+        paymentStatus: updates.paymentStatus,
+        stayStatus: updates.stayStatus
+      }) 
     });
+
+    try {
+      const docRef = doc(db, 'bookings', id);
+      await updateDoc(docRef, updates);
+    } catch (fsErr) {
+      console.warn("Firestore status sync error (probably offline/unconnected):", fsErr);
+    }
   } catch (error) {
     console.error('Error updating booking status:', error);
   }

@@ -24,6 +24,9 @@ import { MessagesView } from './components/messaging/MessagesView';
 import { ProfileSettings } from './components/profile/ProfileSettings';
 import { Footer } from './components/common/Footer';
 import { BURKINA_LOCATIONS } from './constants/locations';
+import { createBooking } from './lib/db';
+import { db } from './lib/firebase';
+import { collection, doc, setDoc } from 'firebase/firestore';
 
 import { DumpData } from './pages/DumpData';
 
@@ -369,13 +372,23 @@ function AppContent() {
         createdAt: new Date().toISOString(),
       };
 
-      const newBookingId = "mock-booking";
-      
-      alert("Votre demande de réservation a été envoyée avec succès au propriétaire ! Vous allez être redirigé vers l'onglet 'Mes Réservations' pour suivre son statut.");
-      
-      setSelectedResidence(null);
-      // Directly redirect them to guest bookings lists page
-      setView('bookings');
+      const finalBookingId = await createBooking(bookingPayload);
+      if (finalBookingId) {
+        try {
+          await setDoc(doc(db, 'bookings', finalBookingId), {
+            ...bookingPayload,
+            id: finalBookingId
+          });
+        } catch (fsErr) {
+          console.warn("Firestore real-time sync completed with local notice:", fsErr);
+        }
+        alert("Votre demande de réservation a été envoyée avec succès au propriétaire ! Vous allez être redirigé vers l'onglet 'Mes Réservations' pour suivre son statut.");
+        setSelectedResidence(null);
+        // Directly redirect them to guest bookings lists page
+        setView('bookings');
+      } else {
+        alert("Une autre réservation existe déjà pour ces dates ou la création a échoué.");
+      }
     } catch (err) {
       console.error(err);
       alert("Échec de la soumission de la réservation.");
