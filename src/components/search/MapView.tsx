@@ -36,7 +36,7 @@ export const MapView: React.FC<Props> = ({ residences, onResidenceClick }) => {
           res.address?.coordinates && (
             <Marker 
               key={res.id} 
-              position={[res.address.coordinates.lat, res.address.coordinates.lng]}
+              position={[res.address?.coordinates?.lat || 12.371428, res.address?.coordinates?.lng || -1.519662]}
             >
               <Popup>
                 <div className="p-2 min-w-[200px]">

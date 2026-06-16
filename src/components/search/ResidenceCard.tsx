@@ -114,7 +114,7 @@ export const ResidenceCard: React.FC<Props> = ({
           <MapPin size={10} className="text-red-500" />
           <span className="line-clamp-1">
             {residence.address 
-              ? `${residence.address.neighborhood || ''}, ${residence.address.city || ''}` 
+              ? `${residence.address?.neighborhood || ''}, ${residence.address?.city || ''}` 
               : `${residence.neighborhood || ''}, ${residence.city || ''}`}
           </span>
         </div>

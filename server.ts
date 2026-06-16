@@ -11,7 +11,7 @@ import jwt from "jsonwebtoken";
 
 dotenv.config();
 
-export let userPasswordColumn = "password_hash";
+export let userPasswordColumn = "password";
 
 // Safe detection of __dirname and __filename for both CJS and ESM
 const currentFilename = typeof __filename !== "undefined" 
@@ -522,6 +522,136 @@ async function startServer() {
   });
 
   // Bookings: Create
+  // Residences: Get Owner Residences
+  app.get("/api/owner/residences", async (req: any, res: any) => {
+    try {
+      const authHeader = req.headers.authorization;
+      if (!authHeader) return res.status(401).json({ error: "No token" });
+      const token = authHeader.split(" ")[1];
+      const decoded: any = jwt.verify(token, process.env.JWT_SECRET || "resifaso_secret");
+      
+      const [rows]: any = await pool.execute("SELECT * FROM residences WHERE owner_id = ?", [decoded.uid]);
+      const residences = await Promise.all(rows.map(async (row: any) => {
+        const [images]: any = await pool.execute("SELECT image_url FROM residence_images WHERE residence_id = ?", [row.id]);
+        const [amenities]: any = await pool.execute("SELECT amenity FROM residence_amenities WHERE residence_id = ?", [row.id]).catch(() => [[]]);
+        return {
+          id: row.id,
+          ownerId: row.owner_id,
+          title: row.title,
+          description: row.description,
+          type: row.type,
+          pricePerNight: Number(row.price_per_night),
+          advancePercentage: Number(row.advance_percentage),
+          cleaningFee: Number(row.cleaning_fee),
+          serviceFee: Number(row.service_fee),
+          address: {
+            city: row.city,
+            neighborhood: row.neighborhood,
+            street: row.street,
+            coordinates: { lat: 12.371428, lng: -1.519662 }
+          },
+          amenities: amenities.map((a: any) => a.amenity),
+          images: images.map((i: any) => i.image_url),
+          status: row.status,
+          availabilityStatus: row.availability_status
+        };
+      }));
+      res.json({ residences });
+    } catch (e: any) { res.status(500).json({ error: e.message }); }
+  });
+
+  // Residences: Add new
+  app.post("/api/owner/residences", async (req: any, res: any) => {
+    try {
+      const authHeader = req.headers.authorization;
+      if (!authHeader) return res.status(401).json({ error: "No token" });
+      const token = authHeader.split(" ")[1];
+      const decoded: any = jwt.verify(token, process.env.JWT_SECRET || "resifaso_secret");
+
+      const resData = req.body;
+      const rId = "r_" + Math.random().toString(36).substr(2, 9);
+      
+      await pool.execute(
+        `INSERT INTO residences (id, owner_id, title, description, type, price_per_night, advance_percentage, cleaning_fee, service_fee, city, neighborhood, street, status, availability_status) 
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        [
+          rId, decoded.uid, resData.title, resData.description, resData.type, 
+          resData.pricePerNight, resData.advancePercentage, resData.cleaningFee, resData.serviceFee,
+          resData.address?.city, resData.address?.neighborhood, resData.address?.street,
+          'pending', 'available'
+        ]
+      );
+
+      if (resData.images && resData.images.length > 0) {
+        for (const img of resData.images) {
+          await pool.execute("INSERT INTO residence_images (residence_id, image_url) VALUES (?, ?)", [rId, img]);
+        }
+      }
+
+      if (resData.amenities && resData.amenities.length > 0) {
+        for (const am of resData.amenities) {
+          await pool.execute("INSERT INTO residence_amenities (residence_id, amenity) VALUES (?, ?)", [rId, am]);
+        }
+      }
+
+      res.json({ success: true, id: rId });
+    } catch (e: any) { res.status(500).json({ error: e.message }); }
+  });
+
+  // Residences: Update
+  app.put("/api/owner/residences/:id", async (req: any, res: any) => {
+    try {
+      const { id } = req.params;
+      const resData = req.body;
+      
+      await pool.execute(
+        `UPDATE residences SET title=?, description=?, type=?, price_per_night=?, advance_percentage=?, cleaning_fee=?, service_fee=?, city=?, neighborhood=?, street=?, availability_status=? WHERE id=?`,
+        [
+          resData.title, resData.description, resData.type, resData.pricePerNight, 
+          resData.advancePercentage, resData.cleaningFee, resData.serviceFee,
+          resData.address?.city, resData.address?.neighborhood, resData.address?.street,
+          resData.availabilityStatus, id
+        ]
+      );
+
+      // Simple image/amenity sync: delete all and re-add
+      await pool.execute("DELETE FROM residence_images WHERE residence_id = ?", [id]);
+      if (resData.images && resData.images.length > 0) {
+        for (const img of resData.images) {
+          await pool.execute("INSERT INTO residence_images (residence_id, image_url) VALUES (?, ?)", [id, img]);
+        }
+      }
+
+      await pool.execute("DELETE FROM residence_amenities WHERE residence_id = ?", [id]);
+      if (resData.amenities && resData.amenities.length > 0) {
+        for (const am of resData.amenities) {
+          await pool.execute("INSERT INTO residence_amenities (residence_id, amenity) VALUES (?, ?)", [id, am]);
+        }
+      }
+
+      res.json({ success: true });
+    } catch (e: any) { res.status(500).json({ error: e.message }); }
+  });
+
+  // Residences: Delete
+  app.delete("/api/owner/residences/:id", async (req, res) => {
+    try {
+      const { id } = req.params;
+      await pool.execute("DELETE FROM residences WHERE id = ?", [id]);
+      res.json({ success: true });
+    } catch (e: any) { res.status(500).json({ error: e.message }); }
+  });
+
+  // Bookings: Update Status
+  app.patch("/api/bookings/:id/status", async (req: any, res: any) => {
+    try {
+      const { id } = req.params;
+      const { status } = req.body;
+      await pool.execute("UPDATE bookings SET status = ? WHERE id = ?", [status, id]);
+      res.json({ success: true });
+    } catch (e: any) { res.status(500).json({ error: e.message }); }
+  });
+
   app.post("/api/bookings", async (req: any, res: any) => {
     try {
       const authHeader = req.headers.authorization;
@@ -640,9 +770,13 @@ async function startServer() {
         try {
           const [columns]: any = await pool.execute("DESCRIBE users");
           const fieldNames = columns.map((c: any) => c.Field ? c.Field.toLowerCase() : "");
-          if (!fieldNames.includes("password_hash") && fieldNames.includes("password")) {
+          if (!fieldNames.includes("password") && !fieldNames.includes("password_hash")) {
+            console.log("ℹ️ No password column found. Adding password column...");
+            await pool.execute("ALTER TABLE users ADD COLUMN password VARCHAR(255) NOT NULL DEFAULT ''");
             userPasswordColumn = "password";
-            console.log("ℹ️ Auto-detected column [password] for user credentials storage.");
+          } else if (!fieldNames.includes("password") && fieldNames.includes("password_hash")) {
+            userPasswordColumn = "password_hash";
+            console.log("ℹ️ Auto-detected column [password_hash] for user credentials storage.");
           } else {
             console.log(`ℹ️ Using default column [${userPasswordColumn}] for user credentials storage.`);
           }
