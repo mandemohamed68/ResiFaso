@@ -129,9 +129,9 @@ DB_NAME=resifaso_db
 
 ---
 
-## 🚀 ÉTAPE 5 : Lancement Industriel via PM2 et `ecosystem.config.js`
+## 🚀 ÉTAPE 5 : Lancement Industriel via PM2 et `ecosystem.config.cjs`
 
-Pour éviter de lancer manuellement avec npm, nous utilisons le fichier `ecosystem.config.js` pré-configuré à la racine de votre projet.
+Pour éviter de lancer manuellement avec npm, nous utilisons le fichier `ecosystem.config.cjs` pré-configuré à la racine de votre projet.
 
 
 ### 🚨 Libérer le port 5000 en cas d'erreur de démarrage :
@@ -152,7 +152,7 @@ npm run build
 
 2. **Démarrer en mode Cluster via l'écosystème :**
 ```bash
-pm2 start ecosystem.config.js
+pm2 start ecosystem.config.cjs
 ```
 
 3. **Sauvegarder l'état pour que PM2 relance l'application en cas de redémarrage système :**
