@@ -612,6 +612,29 @@ async function startServer() {
 
   app.listen(PORT, "0.0.0.0", () => {
     console.log(`Server running on http://localhost:${PORT}`);
+    
+    // Auto-seed default Super Admin
+    (async () => {
+      try {
+        const [rows]: any = await pool.execute("SELECT * FROM users WHERE email = ?", ["mandemohamed68@gmail.com"]);
+        if (rows.length === 0) {
+          const pwdHash = await bcrypt.hash("mm@27071986@", 10);
+          await pool.execute(
+            "INSERT INTO users (id, email, password_hash, display_name, role) VALUES (?, ?, ?, ?, ?)",
+            ["usr_admin_default", "mandemohamed68@gmail.com", pwdHash, "Super Administrateur", "admin"]
+          );
+          console.log("Seeded default Super Admin user (mandemohamed68@gmail.com) successfully.");
+        } else {
+          const existing = rows[0];
+          if (existing.role !== 'admin') {
+            await pool.execute("UPDATE users SET role = 'admin' WHERE email = ?", ["mandemohamed68@gmail.com"]);
+            console.log("Updated default Super Admin role to 'admin'.");
+          }
+        }
+      } catch (err: any) {
+        console.warn("Seeding default Super Admin user skipped or failed:", err.message);
+      }
+    })();
   });
 }
 

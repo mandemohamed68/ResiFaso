@@ -300,6 +300,10 @@ export const AdminDashboard: React.FC<{ onBackToTraveler?: () => void }> = ({ on
       alert("Action refusée : Seul le Super Administrateur principal (mandemohamed68@gmail.com) est habilité à modifier les rôles.");
       return;
     }
+    if (isSuperAdminEmail(email)) {
+      alert("Action refusée : Vous ne pouvez pas modifier le rôle du Super Administrateur principal.");
+      return;
+    }
     try {
       await updateDoc(doc(db, 'users', uid), { role: targetRole });
       logAction(`Promu utilisateur ${email} du rôle ${currentRole} à ${targetRole}`);
@@ -352,6 +356,10 @@ export const AdminDashboard: React.FC<{ onBackToTraveler?: () => void }> = ({ on
 
   // Helper to toggle suspension
   const handleToggleSuspendUser = async (uid: string, email: string, isSuspendedNow: boolean) => {
+    if (isSuperAdminEmail(email)) {
+      alert("Action refusée : Vous ne pouvez pas suspendre le Super Administrateur principal.");
+      return;
+    }
     try {
       await updateDoc(doc(db, 'users', uid), { isSuspended: !isSuspendedNow });
       logAction(`${!isSuspendedNow ? 'Suspension' : 'Réactivation'} de l'utilisateur ${email}`);
@@ -364,6 +372,10 @@ export const AdminDashboard: React.FC<{ onBackToTraveler?: () => void }> = ({ on
 
   // Helper to delete user permanently
   const handleDeleteUser = async (uid: string, email: string) => {
+    if (isSuperAdminEmail(email)) {
+      alert("Action refusée : Le Super Administrateur principal ne peut pas être supprimé.");
+      return;
+    }
     if (window.confirm(`Êtes-vous sûr de vouloir supprimer définitivement l'utilisateur ${email} de la base de données ?`)) {
       try {
         await deleteDoc(doc(db, 'users', uid));

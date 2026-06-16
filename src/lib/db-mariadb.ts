@@ -1,27 +1,7 @@
 import 'dotenv/config';
-import mysql from 'mysql2/promise';
-import dotenv from 'dotenv';
+import { pool } from './db-server';
 import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
-
-dotenv.config();
-
-let dbPassword = process.env.DB_PASSWORD || '"mm@27071986"';
-if (dbPassword === 'mm@27071986') {
-  dbPassword = '"mm@27071986"';
-}
-
-// Configuration de la connexion à MariaDB
-const pool = mysql.createPool({
-  host: process.env.DB_HOST || '127.0.0.1',
-  user: process.env.DB_USER || 'resifaso_user',
-  // Si le mot de passe inclut littéralement des guillemets, on les force ici
-  password: dbPassword,
-  database: process.env.DB_NAME || 'resifaso_db',
-  waitForConnections: true,
-  connectionLimit: 10,
-  queueLimit: 0
-});
 
 export const db = {
   // Fonction utilitaire pour exécuter une requête
