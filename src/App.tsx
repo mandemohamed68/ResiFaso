@@ -1189,11 +1189,15 @@ function AppContent() {
   );
 }
 
+import { SocketProvider } from './contexts/SocketContext';
+
 export default function App() {
   return (
     <AuthProvider>
       <RoleProvider>
-        <AppContent />
+        <SocketProvider>
+          <AppContent />
+        </SocketProvider>
       </RoleProvider>
     </AuthProvider>
   );

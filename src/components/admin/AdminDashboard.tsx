@@ -2,7 +2,7 @@ import { formatCurrency } from '../../utils/currency';
 import React, { useState, useEffect } from 'react';
 import { 
   LayoutDashboard, Home, Users, BarChart3, Settings, ShieldCheck, 
-  Activity, Search, Trash2, Edit3, Plus, ArrowUpRight, TrendingUp, Calendar, Check, X,
+  Activity, Search, Trash2, Edit3, Plus, ArrowUpRight, TrendingUp, Calendar, Check, X, CheckCircle2,
   FileText, Download, Award, ShieldAlert, Megaphone, Upload, Wallet, ArrowLeft
 } from 'lucide-react';
 import { Residence, UserProfile, UserRole, Booking, Review, BookingStatus, PaymentStatus, Advertisement, WithdrawalRequest, WithdrawalStatus } from '../../types';
@@ -32,7 +32,7 @@ import {
 
 export const AdminDashboard: React.FC<{ onBackToTraveler?: () => void }> = ({ onBackToTraveler }) => {
   const { user } = useAuth();
-  const [activeTab, setActiveTab] = useState<'overview' | 'alerts' | 'listings' | 'users' | 'bookings' | 'revenue' | 'reviews' | 'reports' | 'settings' | 'logs' | 'ads' | 'withdrawals'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'alerts' | 'listings' | 'users' | 'bookings' | 'revenue' | 'reviews' | 'reports' | 'settings' | 'logs' | 'ads' | 'withdrawals' | 'stats_advanced' | 'reports_finance' | 'approvals' | 'verifications' | 'audit'>('overview');
   
   // Database Collections States
   const [residences, setResidences] = useState<Residence[]>([]);
@@ -754,6 +754,8 @@ export const AdminDashboard: React.FC<{ onBackToTraveler?: () => void }> = ({ on
               category: "Pilotage & Synthèse",
               items: [
                 { id: 'overview', label: 'Tableau de bord', icon: LayoutDashboard },
+                { id: 'stats_advanced', label: 'Statistiques Avancées', icon: TrendingUp },
+                { id: 'reports_finance', label: 'Rapports Financiers', icon: BarChart3 },
                 { id: 'alerts', label: 'Alertes critiques', icon: ShieldCheck, badge: pendingResCount + pendingIdCount, badgeColor: 'bg-[#EF2B2D]' },
               ]
             },
@@ -761,25 +763,27 @@ export const AdminDashboard: React.FC<{ onBackToTraveler?: () => void }> = ({ on
               category: "Gestion & Modération",
               items: [
                 { id: 'listings', label: 'Hébergements', icon: Home },
+                { id: 'approvals', label: 'Approbations Résidences', icon: CheckCircle2, badge: pendingResCount, badgeColor: 'bg-amber-500' },
                 { id: 'users', label: 'Utilisateurs', icon: Users },
-                { id: 'reviews', label: 'Avis & Modération', icon: Activity },
+                { id: 'verifications', label: 'Certifications Identité', icon: ShieldCheck, badge: pendingIdCount, badgeColor: 'bg-indigo-600' },
+                { id: 'reviews', label: 'Avis & Plaintes', icon: Activity },
               ]
             },
             {
               category: "Flux & Opérations",
               items: [
                 { id: 'bookings', label: 'Réservations', icon: Calendar, badge: bookings.filter(b=>b.bookingStatus==='pending').length, badgeColor: 'bg-blue-600' },
-                { id: 'revenue', label: 'Finances', icon: TrendingUp },
+                { id: 'revenue', label: 'Finances & Flux', icon: TrendingUp },
                 { id: 'withdrawals', label: 'Demandes de Retrait', icon: Download, badge: withdrawals.filter(w=>w.status==='pending').length, badgeColor: 'bg-yellow-500' },
-                { id: 'ads', label: 'Affiches & Pubs', icon: Megaphone, badge: ads.filter(a => a.isActive).length, badgeColor: 'bg-green-600' },
+                { id: 'ads', label: 'Publicités (Ads)', icon: Megaphone, badge: ads.filter(a => a.isActive).length, badgeColor: 'bg-green-600' },
               ]
             },
             {
               category: "Outils & Systèmes",
               items: [
-                { id: 'reports', label: 'Rapports d\'Audit', icon: FileText },
-                { id: 'settings', label: 'Paramètres', icon: Settings },
-                { id: 'logs', label: 'Logs en Temps Réel', icon: Activity },
+                { id: 'audit', label: 'Rapports d\'Audit', icon: FileText },
+                { id: 'logs', label: 'Logs Plateforme', icon: Activity },
+                { id: 'settings', label: 'Paramètres Globaux', icon: Settings },
               ]
             }
           ].map((group, groupIdx) => (

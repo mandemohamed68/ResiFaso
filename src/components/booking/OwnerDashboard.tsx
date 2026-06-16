@@ -1501,7 +1501,7 @@ export const OwnerDashboard: React.FC<{ isTestMode?: boolean; onBackToTraveler?:
       <div className="flex border-b border-slate-100 gap-6 mb-8 overflow-x-auto no-scrollbar">
         {[
           { id: 'stats', label: 'Tableau de bord', icon: BarChart3 },
-          { id: 'listings', label: 'Mes résidences', icon: Home, count: residences.length },
+          { id: 'listings', label: `Mes résidences (${residences.length})`, icon: Home },
           { id: 'bookings', label: 'Réservations', icon: CalendarCheck, count: bookings.filter(b => b.bookingStatus === 'pending').length },
           { id: 'revenue', label: 'Gains', icon: Wallet },
           { id: 'messages', label: 'Messagerie', icon: Layers },
