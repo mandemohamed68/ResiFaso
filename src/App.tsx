@@ -69,6 +69,8 @@ function AppContent() {
   const [isAnnouncementDismissed, setIsAnnouncementDismissed] = useState(false);
   const [enablePhoneCalls, setEnablePhoneCalls] = useState<boolean>(true);
   const [enableWhatsApp, setEnableWhatsApp] = useState<boolean>(true);
+  const [platformName, setPlatformName] = useState<string>('ResiFaso');
+  const [commissionRate, setCommissionRate] = useState<number>(10);
 
   // New Booking date states
   const [checkIn, setCheckIn] = useState('');
@@ -87,12 +89,36 @@ function AppContent() {
     amenities: string[];
   } | null>(null);
 
-  // Synchroniser le Mode Test avec les Paramètres Globaux
+  // Synchroniser le Mode Test et les Paramètres Globaux depuis l'API MariaDB
   useEffect(() => {
-    setIsTestMode(false);
-    setEnablePhoneCalls(true);
-    setEnableWhatsApp(true);
-    setGlobalAnnouncement(null);
+    async function loadGlobalSettings() {
+      try {
+        const res = await fetch('/api/admin/settings/global');
+        if (res.ok) {
+          const settings = await res.json();
+          if (settings) {
+            if (settings.isTestMode !== undefined) setIsTestMode(settings.isTestMode);
+            if (settings.enablePhoneCalls !== undefined) setEnablePhoneCalls(settings.enablePhoneCalls);
+            if (settings.enableWhatsApp !== undefined) setEnableWhatsApp(settings.enableWhatsApp);
+            if (settings.platformName !== undefined) setPlatformName(settings.platformName);
+            if (settings.commissionRate !== undefined) setCommissionRate(settings.commissionRate);
+            if (settings.announcement) {
+              setGlobalAnnouncement({
+                text: settings.announcement.text || '',
+                type: settings.announcement.type || 'info',
+                active: !!settings.announcement.active
+              });
+            }
+          }
+        }
+      } catch (err) {
+        console.error("Failed to load global settings:", err);
+      }
+    }
+
+    loadGlobalSettings();
+    const interval = setInterval(loadGlobalSettings, 10000); // Polling every 10 seconds to keep in sync!
+    return () => clearInterval(interval);
   }, []);
 
   // Auto-seed and monitor published residences
@@ -160,7 +186,7 @@ function AppContent() {
 
     const base = (pricePerNight * nights) * (1 - discount / 100);
     const cleaning = res.cleaningFee;
-    const platformService = base * 0.08; // Platform commission
+    const platformService = base * (commissionRate / 100); // Platform commission
     const extraService = res.serviceFee || 0; // Host controlled service fee
     return Math.round(base + cleaning + platformService + extraService);
   };
@@ -393,6 +419,7 @@ function AppContent() {
         onNavigate={setView} 
         isDarkMode={isDarkMode}
         onToggleDarkMode={() => setIsDarkMode(!isDarkMode)}
+        platformName={platformName}
       />
       
       {profile?.isSuspended && (

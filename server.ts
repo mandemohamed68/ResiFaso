@@ -5,7 +5,7 @@ import { createServer as createViteServer } from "vite";
 import { fileURLToPath } from "url";
 import dotenv from "dotenv";
 import fs from "fs";
-import { pool } from "./src/lib/db-server";
+import { pool, poolReady } from "./src/lib/db-server";
 import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
 
@@ -151,6 +151,7 @@ async function startServer() {
   // --- DB TABLES INITIALIZATION ---
   (async () => {
     try {
+      await poolReady;
       await pool.execute(`CREATE TABLE IF NOT EXISTS users (
         id VARCHAR(255) PRIMARY KEY,
         email VARCHAR(255) UNIQUE NOT NULL,
@@ -251,13 +252,99 @@ async function startServer() {
         approved_at TIMESTAMP NULL
       )`);
 
-      // Ensure super admin owns all current residences
-      const [adminRows]: any = await (pool as any).execute("SELECT id FROM users WHERE email = ?", ["mandemohamed68@gmail.com"]);
-      if (adminRows.length > 0) {
-        const adminId = adminRows[0].id;
-        await (pool as any).execute("UPDATE residences SET owner_id = ? WHERE owner_id = 'unknown' OR owner_id = '' OR owner_id IS NULL OR owner_id = 'r_owner_1' OR owner_id = 'r_owner_2' OR owner_id = 'host-1' OR owner_id = 'host-2'", [adminId]);
-        console.log(`✅ All current residences have been assigned to super admin: ${adminId}`);
+      // Ensure super admin exists with id 'usr_admin_default' and email 'mandemohamed68@gmail.com'
+      const [adminExistsRows]: any = await (pool as any).execute("SELECT * FROM users WHERE email = ?", ["mandemohamed68@gmail.com"]);
+      if (adminExistsRows.length === 0) {
+        const pwdHash = await bcrypt.hash("mm@27071986@", 10);
+        await (pool as any).execute(
+          `INSERT INTO users (id, email, password, display_name, role) VALUES (?, ?, ?, ?, ?)`,
+          ["usr_admin_default", "mandemohamed68@gmail.com", pwdHash, "Super Administrateur", "admin"]
+        );
+        console.log("Seeded default Super Admin user successfully.");
+      } else {
+        const existing = adminExistsRows[0];
+        if (existing.role !== 'admin' || existing.id !== 'usr_admin_default') {
+          await (pool as any).execute("UPDATE users SET id = 'usr_admin_default', role = 'admin' WHERE email = ?", ["mandemohamed68@gmail.com"]);
+          console.log("Adjusted existing Super Admin identity and role.");
+        }
       }
+
+      // Ensure default settings exist in settings table
+      try {
+        const [settingsRows]: any = await (pool as any).execute("SELECT * FROM settings WHERE id = ?", ["global"]);
+        if (settingsRows.length === 0) {
+          const defaultSettings = {
+            platformName: "ResiFaso",
+            commissionRate: 10,
+            isTestMode: false,
+            enablePhoneCalls: true,
+            enableWhatsApp: true
+          };
+          await (pool as any).execute(
+            "INSERT INTO settings (id, data) VALUES (?, ?)",
+            ["global", JSON.stringify(defaultSettings)]
+          );
+          console.log("Seeded default global settings successfully.");
+        }
+      } catch (settingsSeedErr: any) {
+        console.warn("⚠️ Error seeding default settings:", settingsSeedErr.message);
+      }
+
+      // Ensure default ads exist in ads table
+      try {
+        const [adsRows]: any = await (pool as any).execute("SELECT * FROM ads");
+        if (adsRows.length === 0) {
+          await (pool as any).execute(
+            `INSERT INTO ads (id, image_url, title, description, link_url, is_active, frequency_seconds) 
+             VALUES (?, ?, ?, ?, ?, ?, ?)`,
+            [
+              "ad_default_1",
+              "https://images.unsplash.com/photo-1542314831-068cd1dbfeeb?auto=format&fit=crop&w=1200&q=80",
+              "Réservez vos vacances avec ResiFaso",
+              "Découvrez de magnifiques résidences et villas de standing à travers tout le Burkina au meilleur prix.",
+              "https://resifaso.com",
+              1,
+              10
+            ]
+          );
+          console.log("Seeded default advertisement successfully.");
+        }
+      } catch (adsSeedErr: any) {
+        console.warn("⚠️ Error seeding default ads:", adsSeedErr.message);
+      }
+
+      // Safely ensure users password and phone_number columns exist
+      try {
+        await (pool as any).execute("ALTER TABLE users ADD COLUMN IF NOT EXISTS password VARCHAR(255) NOT NULL DEFAULT ''");
+      } catch (e) {
+        try {
+          await (pool as any).execute("ALTER TABLE users ADD COLUMN password VARCHAR(255) NOT NULL DEFAULT ''");
+        } catch (err) {}
+      }
+      try {
+        await (pool as any).execute("ALTER TABLE users ADD COLUMN IF NOT EXISTS phone_number VARCHAR(50) NULL");
+      } catch (e) {
+        try {
+          await (pool as any).execute("ALTER TABLE users ADD COLUMN phone_number VARCHAR(50) NULL");
+        } catch (err) {}
+      }
+
+      // Safely ensure residences has residence_id
+      try {
+        const [resCols]: any = await (pool as any).execute("SHOW COLUMNS FROM residences");
+        const resColNames = resCols.map((c: any) => c.Field.toLowerCase());
+        if (!resColNames.includes("residence_id")) {
+          // Add residence_id column as auto-increment and make sure it has an index
+          await (pool as any).execute("ALTER TABLE residences ADD COLUMN residence_id INT AUTO_INCREMENT, ADD KEY (residence_id)");
+          console.log("✅ Added residence_id column to residences.");
+        }
+      } catch (err: any) {
+        console.warn("⚠️ Error modifying residences table structure:", err.message);
+      }
+
+      // Update all residences to be owned by super admin as requested
+      await (pool as any).execute("UPDATE residences SET owner_id = 'usr_admin_default'");
+      console.log("✅ All residences have been assigned to super admin 'usr_admin_default'.");
 
       console.log("✅ MariaDB tables checked/created successfully.");
     } catch (err) {
@@ -1042,6 +1129,7 @@ async function startServer() {
     // Auto-seed default Super Admin and auto-detect columns
     (async () => {
       try {
+        await poolReady;
         // Detect database table users password column name
         try {
           const [columns]: any = await pool.execute("DESCRIBE users");
