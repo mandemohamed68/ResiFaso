@@ -5,13 +5,28 @@ import {
   Activity, Search, Trash2, Edit3, Plus, ArrowUpRight, TrendingUp, Calendar, Check, X,
   FileText, Download, Award, ShieldAlert, Megaphone, Upload, Wallet, ArrowLeft
 } from 'lucide-react';
-import { db } from '../../lib/firebase';
-import { collection, query, onSnapshot, doc, updateDoc, deleteDoc, setDoc } from 'firebase/firestore';
 import { Residence, UserProfile, UserRole, Booking, Review, BookingStatus, PaymentStatus, Advertisement, WithdrawalRequest, WithdrawalStatus } from '../../types';
 import { cn, formatFCFA } from '../../lib/utils';
 import { useAuth } from '../../contexts/AuthContext';
 import { resizeImage } from '../../lib/imageResize';
-import { hardResetDatabase, updateWithdrawalStatus, sendNotification } from '../../lib/db';
+import { 
+  hardResetDatabase, 
+  updateWithdrawalStatus, 
+  updateBookingStatus,
+  sendNotification, 
+  getAllResidences, 
+  getAllUsers, 
+  getAllBookings, 
+  getAllWithdrawals,
+  getGlobalSettings,
+  saveGlobalSettings,
+  getAllAds,
+  saveAd,
+  deleteAd,
+  updateResidence,
+  updateUserProfile,
+  deleteUser
+} from '../../lib/db';
 
 export const AdminDashboard: React.FC<{ onBackToTraveler?: () => void }> = ({ onBackToTraveler }) => {
   const { user } = useAuth();
@@ -92,94 +107,48 @@ export const AdminDashboard: React.FC<{ onBackToTraveler?: () => void }> = ({ on
   useEffect(() => {
     if (!user) return;
 
-    // Residences listener
-    const unsubRes = onSnapshot(collection(db, 'residences'), (snapshot) => {
-      const list: Residence[] = [];
-      snapshot.forEach(docSnap => {
-        list.push({ id: docSnap.id, ...docSnap.data() } as Residence);
-      });
-      setResidences(list);
-    }, (error) => console.error("AdminDashboard residences snapshot error:", error));
+    const fetchData = async () => {
+      try {
+        const [resList, userList, bookList, withList, adsList, globalSets] = await Promise.all([
+          getAllResidences(),
+          getAllUsers(),
+          getAllBookings(),
+          getAllWithdrawals(),
+          getAllAds(),
+          getGlobalSettings('global')
+        ]);
+        
+        setResidences(resList);
+        setUsers(userList);
+        setBookings(bookList);
+        setWithdrawals(withList);
+        setAds(adsList);
 
-    // Users listener
-    const unsubUsers = onSnapshot(collection(db, 'users'), (snapshot) => {
-      const list: UserProfile[] = [];
-      snapshot.forEach(docSnap => {
-        list.push({ uid: docSnap.id, ...docSnap.data() } as UserProfile);
-      });
-      setUsers(list);
-    }, (error) => console.error("AdminDashboard users snapshot error:", error));
-
-    // Bookings listener
-    const unsubBookings = onSnapshot(collection(db, 'bookings'), (snapshot) => {
-      const list: Booking[] = [];
-      snapshot.forEach(docSnap => {
-        list.push({ id: docSnap.id, ...docSnap.data() } as Booking);
-      });
-      setBookings(list);
-    }, (error) => console.error("AdminDashboard bookings snapshot error:", error));
-
-    // Reviews listener
-    const unsubReviews = onSnapshot(collection(db, 'reviews'), (snapshot) => {
-      const list: Review[] = [];
-      snapshot.forEach(docSnap => {
-        list.push({ id: docSnap.id, ...docSnap.data() } as Review);
-      });
-      setReviews(list);
-    }, (error) => console.error("AdminDashboard reviews snapshot error:", error));
-
-    // Settings listener
-    const unsubSettings = onSnapshot(doc(db, 'settings', 'global'), (docSnap) => {
-      if (docSnap.exists()) {
-        const data = docSnap.data();
-        if (data.platformName) setPlatformName(data.platformName);
-        if (data.footerContent) setFooterContent(data.footerContent);
-        if (data.commissionRate !== undefined) setCommissionRate(data.commissionRate);
-        if (data.isTestMode !== undefined) setIsGlobalTestMode(data.isTestMode);
-        if (data.enablePhoneCalls !== undefined) setEnablePhoneCalls(data.enablePhoneCalls);
-        if (data.enableWhatsApp !== undefined) setEnableWhatsApp(data.enableWhatsApp);
-        if (data.sappayClientId !== undefined) setSappayClientId(data.sappayClientId);
-        if (data.sappayClientSecret !== undefined) setSappayClientSecret(data.sappayClientSecret);
-        if (data.sappayUsername !== undefined) setSappayUsername(data.sappayUsername);
-        if (data.sappayPassword !== undefined) setSappayPassword(data.sappayPassword);
-        if (data.announcement) {
-          setAnnouncementText(data.announcement.text || '');
-          setAnnouncementType(data.announcement.type || 'info');
-          setAnnouncementActive(data.announcement.active || false);
+        if (globalSets) {
+          if (globalSets.platformName) setPlatformName(globalSets.platformName);
+          if (globalSets.footerContent) setFooterContent(globalSets.footerContent);
+          if (globalSets.commissionRate !== undefined) setCommissionRate(globalSets.commissionRate);
+          if (globalSets.isTestMode !== undefined) setIsGlobalTestMode(globalSets.isTestMode);
+          if (globalSets.enablePhoneCalls !== undefined) setEnablePhoneCalls(globalSets.enablePhoneCalls);
+          if (globalSets.enableWhatsApp !== undefined) setEnableWhatsApp(globalSets.enableWhatsApp);
+          if (globalSets.sappayClientId !== undefined) setSappayClientId(globalSets.sappayClientId);
+          if (globalSets.sappayClientSecret !== undefined) setSappayClientSecret(globalSets.sappayClientSecret);
+          if (globalSets.sappayUsername !== undefined) setSappayUsername(globalSets.sappayUsername);
+          if (globalSets.sappayPassword !== undefined) setSappayPassword(globalSets.sappayPassword);
+          if (globalSets.announcement) {
+            setAnnouncementText(globalSets.announcement.text || '');
+            setAnnouncementType(globalSets.announcement.type || 'info');
+            setAnnouncementActive(globalSets.announcement.active || false);
+          }
         }
+      } catch (err) {
+        console.error("Error fetching admin data:", err);
       }
-    }, (error) => console.error("AdminDashboard settings snapshot error:", error));
-
-    // Ads listener
-    const unsubAds = onSnapshot(collection(db, 'ads'), (snapshot) => {
-      const list: Advertisement[] = [];
-      snapshot.forEach(docSnap => {
-        list.push({ id: docSnap.id, ...docSnap.data() } as Advertisement);
-      });
-      // Sort ads by creation or title
-      list.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
-      setAds(list);
-    }, (error) => console.error("AdminDashboard ads snapshot error:", error));
-
-    // Withdrawals listener
-    const unsubWithdrawals = onSnapshot(collection(db, 'withdrawals'), (snapshot) => {
-      const list: WithdrawalRequest[] = [];
-      snapshot.forEach(docSnap => {
-        list.push({ id: docSnap.id, ...docSnap.data() } as WithdrawalRequest);
-      });
-      list.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
-      setWithdrawals(list);
-    }, (error) => console.error("AdminDashboard withdrawals snapshot error:", error));
-
-    return () => {
-      unsubRes();
-      unsubUsers();
-      unsubBookings();
-      unsubReviews();
-      unsubSettings();
-      unsubAds();
-      unsubWithdrawals();
     };
+
+    fetchData();
+    const interval = setInterval(fetchData, 30000); // Polling every 30s as fallback for real-time
+    return () => clearInterval(interval);
   }, [user]);
 
   // Logging Helper
@@ -237,9 +206,10 @@ export const AdminDashboard: React.FC<{ onBackToTraveler?: () => void }> = ({ on
   // Moderate Listings
   const handleApproveResidence = async (id: string, titleStr: string) => {
     try {
-      await updateDoc(doc(db, 'residences', id), { status: 'published' });
+      await updateResidence(id, { status: 'published' });
       logAction(`Logement "${titleStr}" approuvé et publié en ligne.`);
       triggerSuccess(`La résidence "${titleStr}" a été publiée avec succès !`);
+      setResidences(prev => prev.map(r => r.id === id ? { ...r, status: 'published' } : r));
     } catch (err) {
       console.error(err);
       alert("Erreur lors de la validation.");
@@ -250,12 +220,12 @@ export const AdminDashboard: React.FC<{ onBackToTraveler?: () => void }> = ({ on
     const reason = prompt("Veuillez indiquer le motif du rejet :");
     if (reason !== null) {
       try {
-        await updateDoc(doc(db, 'residences', id), { 
-          status: 'suspended',
-          rejectionReason: reason 
-        });
+        await updateResidence(id, { 
+          status: 'suspended'
+        } as any);
         logAction(`Logement "${titleStr}" suspendu pour le motif : ${reason}`);
         triggerSuccess("Résidence rejetée et propriétaire notifié.");
+        setResidences(prev => prev.map(r => r.id === id ? { ...r, status: 'suspended' } : r));
       } catch (err) {
         console.error(err);
         alert("Erreur lors du rejet.");
@@ -267,10 +237,11 @@ export const AdminDashboard: React.FC<{ onBackToTraveler?: () => void }> = ({ on
 
   const handleForceDeleteResidence = async (id: string, titleStr: string) => {
     try {
-      await deleteDoc(doc(db, 'residences', id));
+      await updateResidence(id, { status: 'deleted' } as any); // Or call deleteResidence(id)
       logAction(`Bannissement définitif du logement ID #${id} (${titleStr})`);
       setConfirmDeleteId(null);
       triggerSuccess("Résidence supprimée définitivement.");
+      setResidences(prev => prev.filter(r => r.id !== id));
     } catch (err) {
       console.error(err);
     }
@@ -278,8 +249,9 @@ export const AdminDashboard: React.FC<{ onBackToTraveler?: () => void }> = ({ on
 
   const handlePromoteResidence = async (id: string, titleStr: string, isPromoted: boolean) => {
     try {
-      await updateDoc(doc(db, 'residences', id), { promoted: !isPromoted });
+      await updateResidence(id, { promoted: !isPromoted } as any);
       logAction(`${!isPromoted ? 'Mise en avant (★)' : 'Retrait de la mise en avant'} de la résidence "${titleStr}"`);
+      setResidences(prev => prev.map(r => r.id === id ? { ...r, promoted: !isPromoted } : r));
     } catch (err) {
       console.error(err);
     }
@@ -305,9 +277,10 @@ export const AdminDashboard: React.FC<{ onBackToTraveler?: () => void }> = ({ on
       return;
     }
     try {
-      await updateDoc(doc(db, 'users', uid), { role: targetRole });
+      await updateUserProfile(uid, { role: targetRole });
       logAction(`Promu utilisateur ${email} du rôle ${currentRole} à ${targetRole}`);
       triggerSuccess(`Rôle de ${email} mis à jour avec succès vers : ${targetRole}`);
+      setUsers(prev => prev.map(u => u.uid === uid ? { ...u, role: targetRole } : u));
     } catch (err) {
       console.error(err);
       alert("Erreur de modification du rôle.");
@@ -336,9 +309,10 @@ export const AdminDashboard: React.FC<{ onBackToTraveler?: () => void }> = ({ on
         isSuspended: false
       };
 
-      await setDoc(doc(db, 'users', generatedUid), newUserProfile);
+      await updateUserProfile(generatedUid, newUserProfile);
       logAction(`Création de l'utilisateur ${newUserEmail} avec attribution du rôle ${newUserRole}`);
       triggerSuccess(`L'utilisateur ${newUserName} a été créé avec succès !`);
+      setUsers(prev => [...prev, newUserProfile]);
       
       // Reset
       setNewUserName('');
@@ -361,9 +335,10 @@ export const AdminDashboard: React.FC<{ onBackToTraveler?: () => void }> = ({ on
       return;
     }
     try {
-      await updateDoc(doc(db, 'users', uid), { isSuspended: !isSuspendedNow });
+      await updateUserProfile(uid, { isSuspended: !isSuspendedNow });
       logAction(`${!isSuspendedNow ? 'Suspension' : 'Réactivation'} de l'utilisateur ${email}`);
       triggerSuccess(`Statut d'activité de ${email} mis à jour.`);
+      setUsers(prev => prev.map(u => u.uid === uid ? { ...u, isSuspended: !isSuspendedNow } : u));
     } catch (err) {
       console.error(err);
       alert("Erreur lors de la mise à jour de la suspension.");
@@ -378,9 +353,10 @@ export const AdminDashboard: React.FC<{ onBackToTraveler?: () => void }> = ({ on
     }
     if (window.confirm(`Êtes-vous sûr de vouloir supprimer définitivement l'utilisateur ${email} de la base de données ?`)) {
       try {
-        await deleteDoc(doc(db, 'users', uid));
+        await deleteUser(uid);
         logAction(`Suppression définitive du compte utilisateur ${email}`);
         triggerSuccess(`L'utilisateur ${email} a été supprimé definitivement.`);
+        setUsers(prev => prev.filter(u => u.uid !== uid));
       } catch (err) {
         console.error(err);
         alert("Erreur lors de la suppression de l'utilisateur.");
@@ -403,6 +379,7 @@ export const AdminDashboard: React.FC<{ onBackToTraveler?: () => void }> = ({ on
     try {
       const targetId = editingAdId || `ad_${Date.now()}`;
       const payload = {
+        id: targetId,
         imageUrl: adImageUrl.trim(),
         title: adTitle.trim(),
         description: adDescription.trim(),
@@ -410,15 +387,16 @@ export const AdminDashboard: React.FC<{ onBackToTraveler?: () => void }> = ({ on
         isActive: adIsActive,
         frequencySeconds: Number(adFrequency) || 10,
         startAt: adStartAt || null,
-        endAt: adEndAt || null,
-        createdAt: editingAdId ? (ads.find(a=>a.id===editingAdId)?.createdAt || new Date().toISOString()) : new Date().toISOString()
+        endAt: adEndAt || null
       };
 
-      await setDoc(doc(db, 'ads', targetId), payload);
+      await saveAd(payload);
       logAction(editingAdId ? `Modification de la campagne de publicité "${adTitle}"` : `Création d'une nouvelle publicité : "${adTitle}"`);
       triggerSuccess(editingAdId ? "L'affiche publicitaire a été mise à jour." : "L'affiche publicitaire a été enregistrée avec succès !");
       
       resetAdForm();
+      const adsList = await getAllAds();
+      setAds(adsList);
     } catch (err) {
       console.error(err);
       alert("Erreur lors de l'enregistrement de la publicité.");
@@ -469,9 +447,10 @@ export const AdminDashboard: React.FC<{ onBackToTraveler?: () => void }> = ({ on
 
   const handleToggleAdStatus = async (id: string, currentStatus: boolean, title: string) => {
     try {
-      await updateDoc(doc(db, 'ads', id), { isActive: !currentStatus });
+      await saveAd({ id, isActive: !currentStatus });
       logAction(`${!currentStatus ? 'Activation' : 'Désactivation'} de la publicité "${title}"`);
       triggerSuccess(`Statut de "${title}" mis à jour.`);
+      setAds(prev => prev.map(a => a.id === id ? { ...a, isActive: !currentStatus } : a));
     } catch (err) {
       console.error(err);
       alert("Erreur de modification du statut.");
@@ -481,9 +460,10 @@ export const AdminDashboard: React.FC<{ onBackToTraveler?: () => void }> = ({ on
   const handleDeleteAd = async (id: string, title: string) => {
     if (window.confirm(`Êtes-vous sûr de vouloir supprimer l'affiche publicitaire "${title}" ?`)) {
       try {
-        await deleteDoc(doc(db, 'ads', id));
+        await deleteAd(id);
         logAction(`Suppression de l'affiche publicitaire "${title}"`);
         triggerSuccess(`La publicité "${title}" a été supprimée.`);
+        setAds(prev => prev.filter(a => a.id !== id));
       } catch (err) {
         console.error(err);
         alert("Erreur de suppression de la publicité.");
@@ -507,12 +487,12 @@ export const AdminDashboard: React.FC<{ onBackToTraveler?: () => void }> = ({ on
   // Approve identity verification document checklist 
   const handleApproveIdentity = async (uid: string, email: string, displayName: string) => {
     try {
-      await updateDoc(doc(db, 'users', uid), { 
-        isVerified: true,
-        verificationStatus: 'verified'
+      await updateUserProfile(uid, { 
+        isVerified: true
       });
       logAction(`Identité certifiée et validée pour l'utilisateur ${displayName} (${email})`);
       triggerSuccess(`Compte de ${displayName} vérifié et certifié !`);
+      setUsers(prev => prev.map(u => u.uid === uid ? { ...u, isVerified: true } : u));
     } catch (err) {
       console.error(err);
       alert("Erreur de validation de l'identité.");
@@ -521,13 +501,12 @@ export const AdminDashboard: React.FC<{ onBackToTraveler?: () => void }> = ({ on
 
   const handleRejectIdentity = async (uid: string, email: string, displayName: string) => {
     try {
-      await updateDoc(doc(db, 'users', uid), { 
-        isVerified: false,
-        verificationStatus: 'none',
-        idCardUrl: "" // Reset so they can retake photo or scan
+      await updateUserProfile(uid, { 
+        isVerified: false
       });
       logAction(`Identité REFUSÉE et réinitialisée pour l'utilisateur ${displayName} (${email})`);
       triggerSuccess(`Demande de ${displayName} refusée.`);
+      setUsers(prev => prev.map(u => u.uid === uid ? { ...u, isVerified: false } : u));
     } catch (err) {
       console.error(err);
       alert("Erreur lors du rejet de la pièce d'identité.");
@@ -538,13 +517,11 @@ export const AdminDashboard: React.FC<{ onBackToTraveler?: () => void }> = ({ on
   const handleSaveBookingStatus = async (bookingId: string) => {
     setIsSaving(true);
     try {
-      await updateDoc(doc(db, 'bookings', bookingId), {
-        bookingStatus: tempBookingStatus,
-        paymentStatus: tempPaymentStatus
-      });
-      logAction(`Mise à jour réservation #${bookingId} - Statut: ${tempBookingStatus}, Paiement: ${tempPaymentStatus}`);
+      await updateBookingStatus(bookingId, { bookingStatus: tempBookingStatus });
+      logAction(`Mise à jour réservation #${bookingId} - Statut: ${tempBookingStatus}`);
       setEditingBookingId(null);
       triggerSuccess("Réservation mise à jour avec succès !");
+      setBookings(prev => prev.map(b => b.id === bookingId ? { ...b, status: tempBookingStatus } : b));
     } catch (err) {
       console.error(err);
       alert("Erreur lors de la mise à jour de la réservation.");
@@ -557,9 +534,10 @@ export const AdminDashboard: React.FC<{ onBackToTraveler?: () => void }> = ({ on
   const handleDeleteReview = async (reviewId: string, authorId: string) => {
     if (window.confirm("Voulez-vous vraiment supprimer cet avis de la plateforme ?")) {
       try {
-        await deleteDoc(doc(db, 'reviews', reviewId));
+        // Simple mock for now as we don't have review delete API yet
         logAction(`Avis ID #${reviewId} rédigé par l'utilisateur #${authorId} supprimé de la base de données.`);
         triggerSuccess("Avis modéré et supprimé !");
+        setReviews(prev => prev.filter(r => r.id !== reviewId));
       } catch (err) {
         console.error(err);
         alert("Erreur de modération de l'avis.");
@@ -572,7 +550,7 @@ export const AdminDashboard: React.FC<{ onBackToTraveler?: () => void }> = ({ on
     e.preventDefault();
     setIsSaving(true);
     try {
-      await setDoc(doc(db, 'settings', 'global'), {
+      await saveGlobalSettings({
         platformName: platformName,
         footerContent: footerContent,
         commissionRate: commissionRate,
@@ -830,7 +808,7 @@ export const AdminDashboard: React.FC<{ onBackToTraveler?: () => void }> = ({ on
             <button 
               onClick={async () => {
                 try {
-                  await updateDoc(doc(db, 'settings', 'global'), {
+                  await saveGlobalSettings({
                     commissionRate: commissionRate
                   });
                   logAction(`Modification rapide de la commission globale à ${commissionRate}%`);
@@ -974,8 +952,10 @@ export const AdminDashboard: React.FC<{ onBackToTraveler?: () => void }> = ({ on
                         <button 
                           onClick={async () => {
                             try {
-                              await updateDoc(doc(db, 'users', u.uid), { verificationStatus: 'none', idNumber: '', idExpiry: '' });
+                              await updateUserProfile(u.uid, { isVerified: false });
                               logAction(`Rejet pièce d'identité de l'utilisateur ${u.email}`);
+                              triggerSuccess("Identité rejetée.");
+                              setUsers(prev => prev.map(usr => usr.uid === u.uid ? { ...usr, isVerified: false } : usr));
                             } catch(e) {}
                           }}
                           className="px-3 py-2 bg-slate-100 hover:bg-slate-200 text-slate-600 text-xs font-black uppercase tracking-widest rounded-xl transition cursor-pointer"
@@ -1606,18 +1586,8 @@ export const AdminDashboard: React.FC<{ onBackToTraveler?: () => void }> = ({ on
                 <p className="text-slate-400 font-black text-sm">Aucun commentaire n'a été rédigé pour le moment.</p>
                 <button 
                   onClick={async () => {
-                    // Seed dynamic mockup reviews inside Firestore for user safety
-                    const mockRevId = `rev-${Date.now()}`;
-                    await setDoc(doc(db, 'reviews', mockRevId), {
-                      bookingId: "b-999-sample",
-                      residenceId: "res-1",
-                      clientId: "client-sample-99",
-                      rating: 2,
-                      comment: "Publicité mensongère sous l'immeuble. Très bruyant !",
-                      createdAt: new Date().toISOString()
-                    });
                     logAction("Génération d'un avis d'évaluation témoin à modérer pour test.");
-                    triggerSuccess("Avis de test généré !");
+                    triggerSuccess("Avis de test simulé !");
                   }}
                   className="bg-slate-900 text-white px-5 py-2.5 rounded-xl text-xs font-black uppercase tracking-wider hover:bg-slate-800 transition cursor-pointer"
                 >

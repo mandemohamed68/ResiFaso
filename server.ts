@@ -148,6 +148,115 @@ async function startServer() {
 
   app.use(express.json());
 
+  // --- DB TABLES INITIALIZATION ---
+  (async () => {
+    try {
+      await pool.execute(`CREATE TABLE IF NOT EXISTS users (
+        id VARCHAR(255) PRIMARY KEY,
+        email VARCHAR(255) UNIQUE NOT NULL,
+        password VARCHAR(255) NOT NULL,
+        display_name VARCHAR(255),
+        role VARCHAR(50) DEFAULT 'client',
+        phone_number VARCHAR(50),
+        photo_url TEXT,
+        is_verified BOOLEAN DEFAULT FALSE,
+        is_suspended BOOLEAN DEFAULT FALSE,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      )`);
+
+      await pool.execute(`CREATE TABLE IF NOT EXISTS residences (
+        id VARCHAR(255) PRIMARY KEY,
+        owner_id VARCHAR(255) NOT NULL,
+        title VARCHAR(255) NOT NULL,
+        description TEXT,
+        type VARCHAR(50),
+        price_per_night DECIMAL(10, 2),
+        advance_percentage INT,
+        cleaning_fee DECIMAL(10, 2),
+        service_fee DECIMAL(10, 2),
+        city VARCHAR(100),
+        neighborhood VARCHAR(100),
+        street VARCHAR(255),
+        status VARCHAR(50) DEFAULT 'pending',
+        availability_status VARCHAR(50) DEFAULT 'available',
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        promoted BOOLEAN DEFAULT FALSE
+      )`);
+
+      await pool.execute(`CREATE TABLE IF NOT EXISTS residence_images (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        residence_id VARCHAR(255),
+        image_url TEXT,
+        FOREIGN KEY (residence_id) REFERENCES residences(id) ON DELETE CASCADE
+      )`);
+
+      await pool.execute(`CREATE TABLE IF NOT EXISTS residence_amenities (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        residence_id VARCHAR(255),
+        amenity VARCHAR(100),
+        FOREIGN KEY (residence_id) REFERENCES residences(id) ON DELETE CASCADE
+      )`);
+
+      await pool.execute(`CREATE TABLE IF NOT EXISTS bookings (
+        id VARCHAR(255) PRIMARY KEY,
+        residence_id VARCHAR(255),
+        client_id VARCHAR(255),
+        check_in DATE,
+        check_out DATE,
+        guests INT,
+        total_price DECIMAL(10, 2),
+        status VARCHAR(50) DEFAULT 'pending',
+        booking_status VARCHAR(50) DEFAULT 'pending',
+        payment_status VARCHAR(50) DEFAULT 'pending',
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      )`);
+
+      await pool.execute(`CREATE TABLE IF NOT EXISTS reviews (
+        id VARCHAR(255) PRIMARY KEY,
+        booking_id VARCHAR(255),
+        residence_id VARCHAR(255),
+        client_id VARCHAR(255),
+        rating INT,
+        comment TEXT,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      )`);
+
+      await pool.execute(`CREATE TABLE IF NOT EXISTS settings (
+        id VARCHAR(50) PRIMARY KEY,
+        data JSON
+      )`);
+
+      await pool.execute(`CREATE TABLE IF NOT EXISTS ads (
+        id VARCHAR(255) PRIMARY KEY,
+        image_url TEXT,
+        title VARCHAR(255),
+        description TEXT,
+        link_url TEXT,
+        is_active BOOLEAN DEFAULT TRUE,
+        frequency_seconds INT DEFAULT 10,
+        start_at TIMESTAMP NULL,
+        end_at TIMESTAMP NULL,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      )`);
+
+      await pool.execute(`CREATE TABLE IF NOT EXISTS withdrawals (
+        id VARCHAR(255) PRIMARY KEY,
+        owner_id VARCHAR(255),
+        owner_name VARCHAR(255),
+        amount DECIMAL(10, 2),
+        provider VARCHAR(50),
+        phone VARCHAR(50),
+        status VARCHAR(50) DEFAULT 'pending',
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        approved_at TIMESTAMP NULL
+      )`);
+
+      console.log("✅ MariaDB tables checked/created successfully.");
+    } catch (err) {
+      console.error("❌ Error initializing MariaDB tables:", err);
+    }
+  })();
+
   // Sappay API Gateway Proxy: INIT invoice
   app.post("/api/payment/sappay/init", async (req, res) => {
     try {
@@ -652,6 +761,164 @@ async function startServer() {
     } catch (e: any) { res.status(500).json({ error: e.message }); }
   });
 
+  // --- ADMIN API ---
+
+  // Admin middleware (optional but good)
+  const isAdmin = (req: any, res: any, next: any) => {
+    const authHeader = req.headers.authorization;
+    if (!authHeader) return res.status(401).json({ error: "No token" });
+    try {
+      const token = authHeader.split(" ")[1];
+      const decoded: any = jwt.verify(token, process.env.JWT_SECRET || "resifaso_secret");
+      if (decoded.role !== 'admin') {
+        // En tant que mesure de sécurité souple pour le dév, on peut aussi checker l'email
+        if (decoded.email !== 'mandemohamed68@gmail.com') {
+           return res.status(403).json({ error: "Admin access required" });
+        }
+      }
+      req.admin = decoded;
+      next();
+    } catch (e) { res.status(401).json({ error: "Invalid token" }); }
+  };
+
+  // Admin: Get All Users
+  app.get("/api/admin/users", isAdmin, async (req, res) => {
+    try {
+      const [rows]: any = await pool.execute("SELECT id as uid, email, display_name as displayName, role, phone_number as phoneNumber, photo_url as photoUrl, is_verified as isVerified, is_suspended as isSuspended, created_at as createdAt FROM users");
+      res.json({ users: rows });
+    } catch (e: any) { res.status(500).json({ error: e.message }); }
+  });
+
+  // Admin: Update User
+  app.patch("/api/admin/users/:id", isAdmin, async (req, res) => {
+    try {
+      const { id } = req.params;
+      const updates = req.body;
+      const fields = Object.keys(updates).map(k => `${k === 'displayName' ? 'display_name' : k === 'isVerified' ? 'is_verified' : k === 'isSuspended' ? 'is_suspended' : k}=?`).join(", ");
+      const values = Object.values(updates);
+      await (pool as any).execute(`UPDATE users SET ${fields} WHERE id=?`, [...values, id]);
+      res.json({ success: true });
+    } catch (e: any) { res.status(500).json({ error: e.message }); }
+  });
+
+  // Admin: Delete User
+  app.delete("/api/admin/users/:id", isAdmin, async (req, res) => {
+    try {
+      const { id } = req.params;
+      await (pool as any).execute("DELETE FROM users WHERE id = ?", [id]);
+      res.json({ success: true });
+    } catch (e: any) { res.status(500).json({ error: e.message }); }
+  });
+
+  // Admin: Get All Residences
+  app.get("/api/admin/residences", isAdmin, async (req, res) => {
+    try {
+      const [rows]: any = await (pool as any).execute("SELECT * FROM residences");
+      const residences = await Promise.all(rows.map(async (row: any) => {
+        const [images]: any = await (pool as any).execute("SELECT image_url FROM residence_images WHERE residence_id = ?", [row.id]);
+        const [amenities]: any = await (pool as any).execute("SELECT amenity FROM residence_amenities WHERE residence_id = ?", [row.id]).catch(() => [[]]);
+        return {
+          id: row.id,
+          ownerId: row.owner_id,
+          title: row.title,
+          description: row.description,
+          type: row.type,
+          pricePerNight: Number(row.price_per_night),
+          address: { city: row.city, neighborhood: row.neighborhood, street: row.street },
+          amenities: amenities.map((a: any) => a.amenity),
+          images: images.map((i: any) => i.image_url),
+          status: row.status,
+          promoted: !!row.promoted,
+          availabilityStatus: row.availability_status
+        };
+      }));
+      res.json({ residences });
+    } catch (e: any) { res.status(500).json({ error: e.message }); }
+  });
+
+  // Admin: Update Residence Status/Promoted
+  app.patch("/api/admin/residences/:id", isAdmin, async (req, res) => {
+    try {
+      const { id } = req.params;
+      const { status, promoted } = req.body;
+      if (status !== undefined) await (pool as any).execute("UPDATE residences SET status = ? WHERE id = ?", [status, id]);
+      if (promoted !== undefined) await (pool as any).execute("UPDATE residences SET promoted = ? WHERE id = ?", [promoted ? 1 : 0, id]);
+      res.json({ success: true });
+    } catch (e: any) { res.status(500).json({ error: e.message }); }
+  });
+
+  // Admin: Get Settings
+  app.get("/api/admin/settings/:id", async (req, res) => {
+    try {
+      const { id } = req.params;
+      const [rows]: any = await (pool as any).execute("SELECT data FROM settings WHERE id = ?", [id]);
+      res.json(rows.length > 0 ? rows[0].data : {});
+    } catch (e: any) { res.status(500).json({ error: e.message }); }
+  });
+
+  // Admin: Save Settings
+  app.post("/api/admin/settings/:id", isAdmin, async (req, res) => {
+    try {
+      const { id } = req.params;
+      const data = req.body;
+      await (pool as any).execute("INSERT INTO settings (id, data) VALUES (?, ?) ON DUPLICATE KEY UPDATE data = ?", [id, JSON.stringify(data), JSON.stringify(data)]);
+      res.json({ success: true });
+    } catch (e: any) { res.status(500).json({ error: e.message }); }
+  });
+
+  // Admin: Ads
+  app.get("/api/admin/ads", async (req, res) => {
+    try {
+      const [rows]: any = await (pool as any).execute("SELECT * FROM ads ORDER BY created_at DESC");
+      res.json({ ads: rows.map((r: any) => ({
+        id: r.id,
+        imageUrl: r.image_url,
+        title: r.title,
+        description: r.description,
+        linkUrl: r.link_url,
+        isActive: !!r.is_active,
+        frequencySeconds: r.frequency_seconds,
+        startAt: r.start_at,
+        endAt: r.end_at,
+        createdAt: r.created_at
+      })) });
+    } catch (e: any) { res.status(500).json({ error: e.message }); }
+  });
+
+  app.post("/api/admin/ads", isAdmin, async (req, res) => {
+    try {
+      const ad = req.body;
+      const id = ad.id || "ad_" + Date.now();
+      await pool.execute(
+        `INSERT INTO ads (id, image_url, title, description, link_url, is_active, frequency_seconds, start_at, end_at) 
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?) 
+         ON DUPLICATE KEY UPDATE image_url=?, title=?, description=?, link_url=?, is_active=?, frequency_seconds=?, start_at=?, end_at=?`,
+        [
+          id, ad.imageUrl, ad.title, ad.description, ad.linkUrl, ad.isActive ? 1 : 0, ad.frequencySeconds, ad.startAt || null, ad.endAt || null,
+          ad.imageUrl, ad.title, ad.description, ad.linkUrl, ad.isActive ? 1 : 0, ad.frequencySeconds, ad.startAt || null, ad.endAt || null
+        ]
+      );
+      res.json({ success: true, id });
+    } catch (e: any) { res.status(500).json({ error: e.message }); }
+  });
+
+  // Admin: Withdrawals
+  app.get("/api/admin/withdrawals", isAdmin, async (req, res) => {
+    try {
+      const [rows]: any = await pool.execute("SELECT * FROM withdrawals ORDER BY created_at DESC");
+      res.json({ withdrawals: rows });
+    } catch (e: any) { res.status(500).json({ error: e.message }); }
+  });
+
+  app.patch("/api/admin/withdrawals/:id", isAdmin, async (req, res) => {
+    try {
+      const { id } = req.params;
+      const { status, approvedAt } = req.body;
+      await pool.execute("UPDATE withdrawals SET status = ?, approved_at = ? WHERE id = ?", [status, approvedAt || null, id]);
+      res.json({ success: true });
+    } catch (e: any) { res.status(500).json({ error: e.message }); }
+  });
+
   app.post("/api/bookings", async (req: any, res: any) => {
     try {
       const authHeader = req.headers.authorization;
@@ -795,7 +1062,7 @@ async function startServer() {
         } else {
           const existing = rows[0];
           if (existing.role !== 'admin') {
-            await pool.execute("UPDATE users SET role = 'admin' WHERE email = ?", ["mandemohamed68@gmail.com"]);
+            await (pool as any).execute("UPDATE users SET role = 'admin' WHERE email = ?", ["mandemohamed68@gmail.com"]);
             console.log("Updated default Super Admin role to 'admin'.");
           }
         }

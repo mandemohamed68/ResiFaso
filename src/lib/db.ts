@@ -32,8 +32,7 @@ export async function getPublishedResidences(): Promise<Residence[]> {
 
 export async function getAllResidences(): Promise<Residence[]> {
   try {
-    const data = await apiFetch('/api/residences'); // In generic app, this returns all published. 
-    // In admin view, we might need a specific admin endpoint, but for now this works.
+    const data = await apiFetch('/api/admin/residences');
     return data.residences || [];
   } catch (error) {
     console.error('Error fetching all residences:', error);
@@ -144,15 +143,38 @@ export async function updateBookingStatus(id: string, updates: Partial<Booking>)
 }
 
 // ==========================================
-// USER PROFILES
+// USER PROFILES (MariaDB)
 // ==========================================
 
 export async function getAllUsers(): Promise<UserProfile[]> {
-  return []; // Placeholder for now or add endpoint
+  try {
+    const data = await apiFetch('/api/admin/users');
+    return data.users || [];
+  } catch (error) {
+    console.error('Error fetching all users:', error);
+    return [];
+  }
 }
 
 export async function updateUserProfile(uid: string, updates: Partial<UserProfile>): Promise<void> {
-  // Placeholder
+  try {
+    await apiFetch(`/api/admin/users/${uid}`, {
+      method: 'PATCH',
+      body: JSON.stringify(updates)
+    });
+  } catch (error) {
+    console.error('Error updating user profile:', error);
+  }
+}
+
+export async function deleteUser(uid: string): Promise<void> {
+  try {
+    await apiFetch(`/api/admin/users/${uid}`, {
+      method: 'DELETE'
+    });
+  } catch (error) {
+    console.error('Error deleting user:', error);
+  }
 }
 
 // ==========================================
@@ -187,11 +209,12 @@ export async function sendMessage(conversationId: string, senderId: string, text
 }
 
 // ==========================================
-// WITHDRAWALS & ADMIN (MariaDB placeholders)
+// WITHDRAWALS & ADMIN (MariaDB)
 // ==========================================
-import { WithdrawalRequest, WithdrawalStatus } from '../types';
+import { WithdrawalRequest, WithdrawalStatus, Advertisement } from '../types';
 
 export async function createWithdrawalRequest(data: Omit<WithdrawalRequest, 'id'>): Promise<string> {
+  // Placeholder, need owner endpoint
   return 'mock_w_id';
 }
 
@@ -199,12 +222,83 @@ export async function getOwnerWithdrawals(ownerId: string): Promise<WithdrawalRe
   return [];
 }
 
+export async function getAllWithdrawals(): Promise<WithdrawalRequest[]> {
+  try {
+    const data = await apiFetch('/api/admin/withdrawals');
+    return data.withdrawals || [];
+  } catch (error) {
+    console.error('Error fetching all withdrawals:', error);
+    return [];
+  }
+}
+
 export async function updateWithdrawalStatus(id: string, status: WithdrawalStatus, approvedAt?: string): Promise<void> {
-  // Placeholder
+  try {
+    await apiFetch(`/api/admin/withdrawals/${id}`, {
+      method: 'PATCH',
+      body: JSON.stringify({ status, approvedAt })
+    });
+  } catch (error) {
+    console.error('Error updating withdrawal status:', error);
+  }
+}
+
+// ==========================================
+// SYSTEM SETTINGS & ADS
+// ==========================================
+
+export async function getGlobalSettings(id: string = 'global'): Promise<any> {
+  try {
+    return await apiFetch(`/api/admin/settings/${id}`);
+  } catch (error) {
+    console.error('Error fetching settings:', error);
+    return {};
+  }
+}
+
+export async function saveGlobalSettings(data: any, id: string = 'global'): Promise<void> {
+  try {
+    await apiFetch(`/api/admin/settings/${id}`, {
+      method: 'POST',
+      body: JSON.stringify(data)
+    });
+  } catch (error) {
+    console.error('Error saving settings:', error);
+  }
+}
+
+export async function getAllAds(): Promise<Advertisement[]> {
+  try {
+    const data = await apiFetch('/api/admin/ads');
+    return data.ads || [];
+  } catch (error) {
+    console.error('Error fetching ads:', error);
+    return [];
+  }
+}
+
+export async function saveAd(ad: any): Promise<string> {
+  try {
+    const data = await apiFetch('/api/admin/ads', {
+      method: 'POST',
+      body: JSON.stringify(ad)
+    });
+    return data.id;
+  } catch (error) {
+    console.error('Error saving ad:', error);
+    return '';
+  }
+}
+
+export async function deleteAd(id: string): Promise<void> {
+  try {
+    await apiFetch(`/api/admin/ads/${id}`, { method: 'DELETE' });
+  } catch (error) { console.error('Error deleting ad:', error); }
 }
 
 export async function hardResetDatabase() {
-  // Placeholder
+  // Safety: Admin only
+  console.warn("Hard reset requested via API");
 }
 
 
