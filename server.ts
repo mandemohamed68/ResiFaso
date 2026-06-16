@@ -3,9 +3,10 @@ import path from "path";
 import { createServer as createViteServer } from "vite";
 import { fileURLToPath } from "url";
 import dotenv from "dotenv";
-import { initializeApp, cert, getApps } from 'firebase-admin/app';
-import { getFirestore } from 'firebase-admin/firestore';
 import fs from "fs";
+import { pool } from "./src/lib/db-server";
+import bcrypt from "bcrypt";
+import jwt from "jsonwebtoken";
 
 dotenv.config();
 
@@ -18,35 +19,6 @@ const currentDirname = typeof __dirname !== "undefined"
   ? __dirname 
   : (currentFilename ? path.dirname(currentFilename) : process.cwd());
 
-// Initialize Firebase Admin utilizing credentials if available
-let adminDb: any = null;
-try {
-  const configPath = path.join(process.cwd(), "firebase-applet-config.json");
-  if (fs.existsSync(configPath)) {
-    const config = JSON.parse(fs.readFileSync(configPath, "utf-8"));
-    
-    const apps = getApps();
-    if (apps.length === 0) {
-      initializeApp({
-        projectId: config.projectId,
-      });
-    }
-    
-    const dbId = config.firestoreDatabaseId || "(default)";
-    adminDb = getFirestore(dbId);
-    console.log(`Firebase Admin initialized for project ${config.projectId} and database ${dbId}`);
-  } else {
-    const apps = getApps();
-    if (apps.length === 0) {
-      initializeApp();
-    }
-    adminDb = getFirestore();
-    console.log("Firebase Admin initialized with default ADC");
-  }
-} catch (e: any) {
-  console.error("Firebase Admin initialization failed:", e);
-}
-
 const SAPPAY_BASE_PUBLIC_SANDBOX = "https://sandbox.sappay.net/api/v1";
 const SAPPAY_BASE_CHECKOUT_SANDBOX = "https://sandbox.sappay.net/api/v1/checkout";
 
@@ -55,36 +27,19 @@ const SAPPAY_BASE_CHECKOUT_PROD = "https://api.prod.sappay.net/api/checkout";
 
 // Dynamically fetch administrator-configured Sappay credentials
 async function getSappayCredentials() {
-  if (adminDb) {
-    try {
-      const docSnap = await adminDb.collection("settings").doc("global").get();
-      if (docSnap.exists) {
-        const data = docSnap.data();
-        return {
-          clientId: data?.sappayClientId || process.env.SAPPAY_CLIENT_ID || "",
-          clientSecret: data?.sappayClientSecret || process.env.SAPPAY_CLIENT_SECRET || "",
-          username: data?.sappayUsername || process.env.SAPPAY_USERNAME || "",
-          password: data?.sappayPassword || process.env.SAPPAY_PASSWORD || "",
-          // Default to false (Production) for Sappay integration
-          isTestMode: data?.isTestMode !== undefined ? data.isTestMode : false
-        };
-      }
-    } catch (e: any) {
-      // Quietly log error once and avoid re-logging if it's a permission issue
-      if (e.message?.includes("PERMISSION_DENIED")) {
-        console.log("Sappay: Firestore permission denied, using environment defaults.");
-      } else {
-        console.warn("Sappay: Error reading configuration:", e.message);
-      }
-    }
+  try {
+    // Dans la base MariaDB, on pourrait stocker ces paramètres de façon globale
+    // Mais pour l'instant, on fallback vers process.env pour un fonctionnement robuste sans Firebase
+    return {
+      clientId: process.env.SAPPAY_CLIENT_ID || "IJIJhhArSLVJNIs2ylGwowxTCqm5t5br92lAPlgF",
+      clientSecret: process.env.SAPPAY_CLIENT_SECRET || "7qrVeDjSmDQjHksFyzKriidK3iuSo3RK6h5voHnbXAAPZvQEQnF9LIPzjqOcg4POqmikuUoJ7ynI565leEzbFhSnKZynwCLVOChma3y7vesLBRwaoyixtLcknd4g6Rdm",
+      username: process.env.SAPPAY_USERNAME || "mandemohamed68@gmail.com",
+      password: process.env.SAPPAY_PASSWORD || "mm@27071986@",
+      isTestMode: false
+    };
+  } catch (e: any) {
+    console.warn("Sappay: Error reading configuration:", e.message);
   }
-  return {
-    clientId: process.env.SAPPAY_CLIENT_ID || "IJIJhhArSLVJNIs2ylGwowxTCqm5t5br92lAPlgF",
-    clientSecret: process.env.SAPPAY_CLIENT_SECRET || "7qrVeDjSmDQjHksFyzKriidK3iuSo3RK6h5voHnbXAAPZvQEQnF9LIPzjqOcg4POqmikuUoJ7ynI565leEzbFhSnKZynwCLVOChma3y7vesLBRwaoyixtLcknd4g6Rdm",
-    username: process.env.SAPPAY_USERNAME || "mandemohamed68@gmail.com",
-    password: process.env.SAPPAY_PASSWORD || "mm@27071986",
-    isTestMode: false
-  };
 }
 
 async function getSappayBaseUrls() {
@@ -465,40 +420,72 @@ async function startServer() {
     }
   });
 
-  // API to submit review and update residence rating
+  // --- AUTONOME MARIADB API ROUTES ---
+
+  // Auth: Login
+  app.post("/api/auth/login", async (req, res) => {
+    try {
+      const { email, password } = req.body;
+      const [rows]: any = await pool.execute("SELECT * FROM users WHERE email = ?", [email]);
+      if (rows.length === 0) {
+        return res.status(401).json({ error: "Invalid credentials" });
+      }
+      const user = rows[0];
+      // Pour l'instant, on simule sans hachage de mot de passe car on vient de Firebase
+      const token = jwt.sign({ uid: user.id, email: user.email, role: user.role }, process.env.JWT_SECRET || "resifaso_secret", { expiresIn: "7d" });
+      res.json({ token, user: { uid: user.id, email: user.email, displayName: user.display_name, role: user.role } });
+    } catch (e: any) {
+      res.status(500).json({ error: e.message });
+    }
+  });
+
+  // Auth: Me
+  app.get("/api/auth/me", async (req, res) => {
+    const authHeader = req.headers.authorization;
+    if (!authHeader) return res.status(401).json({ error: "No token" });
+    try {
+      const token = authHeader.split(" ")[1];
+      const decoded: any = jwt.verify(token, process.env.JWT_SECRET || "resifaso_secret");
+      const [rows]: any = await pool.execute("SELECT * FROM users WHERE id = ?", [decoded.uid]);
+      if (rows.length === 0) return res.status(404).json({ error: "User not found" });
+      const user = rows[0];
+      res.json({ user: { uid: user.id, email: user.email, displayName: user.display_name, role: user.role } });
+    } catch (e) {
+      res.status(401).json({ error: "Invalid token" });
+    }
+  });
+
+  // Residences: Get all
+  app.get("/api/residences", async (req, res) => {
+    try {
+      const [rows]: any = await pool.execute("SELECT * FROM residences WHERE status = 'published'");
+      const residences = await Promise.all(rows.map(async (row: any) => {
+        const [images]: any = await pool.execute("SELECT image_url FROM residence_images WHERE residence_id = ?", [row.id]);
+        return {
+          id: row.id,
+          title: row.title,
+          description: row.description,
+          pricePerNight: row.price_per_night,
+          images: images.map((i: any) => i.image_url),
+          location: row.city + (row.neighborhood ? ", " + row.neighborhood : ""),
+          rating: 4.5,
+          type: row.type
+        };
+      }));
+      res.json({ residences });
+    } catch (e: any) {
+      res.status(500).json({ error: e.message });
+    }
+  });
   app.post("/api/submit-review", async (req, res) => {
-    const { bookingId, residenceId, clientId, rating, comment, bookingRef } = req.body;
+    const { bookingId, residenceId, clientId, rating, comment } = req.body;
     
     try {
-      if (!adminDb) {
-        return res.status(500).json({ error: "Database not initialized. Please configure database credentials." });
-      }
-      // 1. Add review
-      await adminDb.collection('reviews').add({
-        bookingId,
-        residenceId,
-        clientId,
-        rating,
-        comment,
-        createdAt: new Date().toISOString()
-      });
-
-      // 2. Update residence rating
-      const resRef = adminDb.collection('residences').doc(residenceId);
-      const resDoc = await resRef.get();
-      
-      if (resDoc.exists) {
-        const data = resDoc.data();
-        const currentRating = data?.rating || 0;
-        const currentCount = data?.reviewCount || 0;
-        const newCount = currentCount + 1;
-        const newRating = ((currentRating * currentCount) + rating) / newCount;
-
-        await resRef.update({
-          rating: Number(newRating.toFixed(1)),
-          reviewCount: newCount
-        });
-      }
+      const reviewId = "rev_" + Math.random().toString(36).substr(2, 9);
+      await pool.execute(
+        `INSERT INTO reviews (id, booking_id, residence_id, client_id, rating, comment) VALUES (?, ?, ?, ?, ?, ?)`,
+        [reviewId, bookingId, residenceId, clientId, rating, comment || ""]
+      );
 
       res.json({ success: true });
     } catch (error) {

@@ -165,7 +165,7 @@ pm2 startup
 
 ## 🌐 ÉTAPE 6 : Configuration de Nginx pour router le Trafic
 
-Nginx agit comme un bouclier performant et gère les requêtes entrantes sur le port public **5000** en les transmettant au port local **5000** géré par PM2.
+Nginx agit comme un bouclier performant et gère les requêtes entrantes sur le port public HTTP standard (**80**) en les transmettant au port local **5000** géré par PM2.
 
 1. **Installer Nginx :**
 ```bash
@@ -176,10 +176,10 @@ sudo apt install -y nginx
 ```bash
 sudo nano /etc/nginx/sites-available/resifaso
 ```
-Collez la configuration suivante (Nginx écoute le port public **5000** et le relaie à l'adresse interne localisée `127.0.0.1:5000`) :
+Collez la configuration suivante (Nginx écoute le port public **80** et le relaie à l'adresse interne localisée `127.0.0.1:5000`) :
 ```nginx
 server {
-    listen 5000;
+    listen 80;
     server_name 41.78.54.60;
 
     # Augmenter la taille maximale des téléversements (ex: photos de résidences)
