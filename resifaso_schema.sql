@@ -25,13 +25,13 @@ CREATE TABLE IF NOT EXISTS users (
   is_verified BOOLEAN DEFAULT FALSE,
   is_suspended BOOLEAN DEFAULT FALSE,
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-  PRIMARY KEY (id, email) -- Clé primaire composite incluant la clé de partition
+  PRIMARY KEY (id)
 )
-PARTITION BY KEY(email)
+PARTITION BY KEY(id)
 PARTITIONS 5;
 
--- Index uniques requis pour la rapidité de connexion
-CREATE UNIQUE INDEX idx_users_email ON users(email);
+-- Index (non unique) pour la rapidité de connexion au vu des contraintes de partitionnement
+CREATE INDEX idx_users_email ON users(email);
 
 
 -- ==========================================
