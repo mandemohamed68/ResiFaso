@@ -27,7 +27,7 @@ CREATE TABLE IF NOT EXISTS users (
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   PRIMARY KEY (id, email) -- Clé primaire composite incluant la clé de partition
 )
-PARTITION BY KEY(id)
+PARTITION BY KEY(email)
 PARTITIONS 5;
 
 -- Index uniques requis pour la rapidité de connexion
