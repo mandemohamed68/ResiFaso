@@ -1,25 +1,44 @@
--- Base de données pour RESIFASO (MariaDB / MySQL)
+-- =========================================================================
+-- Base de données optimisée et PARTITIONNÉE pour RESIFASO (MariaDB / MySQL)
+-- =========================================================================
 
 -- Création de la base de données
 CREATE DATABASE IF NOT EXISTS resifaso_db CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 USE resifaso_db;
 
--- 1. Table Utilisateurs (Profils)
+-- NOTE TECHNIQUE SÉCURITÉ & PERFORMANCE : 
+-- Dans MariaDB, les tables partitionnées ne supportent pas de clés étrangères physiques (FOREIGN KEY).
+-- Pour maximiser la vitesse et supporter le partitionnement horizontal par hachage de clé (PARTITION BY KEY),
+-- nous remplaçons les clés étrangères par des INDEX hautement performants de manière à maintenir l'intégrité
+-- via la logique applicative tout en bénéficiant de la puissance du partitionnement linéaire.
+
+-- ==========================================
+-- 1. Table Utilisateurs (Profils) - Partitionnée
+-- ==========================================
 CREATE TABLE IF NOT EXISTS users (
-  id VARCHAR(128) PRIMARY KEY, -- Correspond à l'uid Firebase ou généré par le backend
-  email VARCHAR(255) NOT NULL UNIQUE,
+  id VARCHAR(128) NOT NULL, -- Correspond à l'uid Firebase ou généré par le backend
+  email VARCHAR(255) NOT NULL,
   display_name VARCHAR(255) NOT NULL,
   phone_number VARCHAR(50),
   photo_url TEXT,
   role ENUM('client', 'owner', 'admin') DEFAULT 'client',
   is_verified BOOLEAN DEFAULT FALSE,
   is_suspended BOOLEAN DEFAULT FALSE,
-  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-);
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (id, email) -- Clé primaire composite incluant la clé de partition
+)
+PARTITION BY KEY(id)
+PARTITIONS 5;
 
--- 2. Table Résidences
+-- Index uniques requis pour la rapidité de connexion
+CREATE UNIQUE INDEX idx_users_email ON users(email);
+
+
+-- ==========================================
+-- 2. Table Résidences - Partitionnée
+-- ==========================================
 CREATE TABLE IF NOT EXISTS residences (
-  id VARCHAR(128) PRIMARY KEY,
+  id VARCHAR(128) NOT NULL,
   owner_id VARCHAR(128) NOT NULL,
   title VARCHAR(255) NOT NULL,
   description TEXT,
@@ -53,29 +72,45 @@ CREATE TABLE IF NOT EXISTS residences (
   rejection_reason TEXT,
   
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-  
-  FOREIGN KEY (owner_id) REFERENCES users(id) ON DELETE CASCADE
-);
+  PRIMARY KEY (id, owner_id) -- Clé primaire composite requise pour le partitionnement
+)
+PARTITION BY KEY(id)
+PARTITIONS 5;
 
--- Table des commodités (Amenities) associées aux résidences
+-- Index rapides pour les recherches et filtres
+CREATE INDEX idx_residences_owner ON residences(owner_id);
+CREATE INDEX idx_residences_status ON residences(status, availability_status);
+CREATE INDEX idx_residences_city ON residences(city);
+
+
+-- ==========================================
+-- Table des commodités (Amenities)
+-- ==========================================
 CREATE TABLE IF NOT EXISTS residence_amenities (
-  residence_id VARCHAR(128),
-  amenity VARCHAR(100),
-  PRIMARY KEY (residence_id, amenity),
-  FOREIGN KEY (residence_id) REFERENCES residences(id) ON DELETE CASCADE
+  residence_id VARCHAR(128) NOT NULL,
+  amenity VARCHAR(100) NOT NULL,
+  PRIMARY KEY (residence_id, amenity)
 );
 
+
+-- ==========================================
 -- Table des images des résidences
+-- ==========================================
 CREATE TABLE IF NOT EXISTS residence_images (
-  id INT AUTO_INCREMENT PRIMARY KEY,
-  residence_id VARCHAR(128),
+  id INT NOT NULL AUTO_INCREMENT,
+  residence_id VARCHAR(128) NOT NULL,
   image_url TEXT NOT NULL,
-  FOREIGN KEY (residence_id) REFERENCES residences(id) ON DELETE CASCADE
-);
+  PRIMARY KEY (id, residence_id)
+)
+PARTITION BY KEY(residence_id)
+PARTITIONS 5;
 
--- 3. Table Réservations (Bookings)
+
+-- ==========================================
+-- 3. Table Réservations (Bookings) - Partitionnée
+-- ==========================================
 CREATE TABLE IF NOT EXISTS bookings (
-  id VARCHAR(128) PRIMARY KEY,
+  id VARCHAR(128) NOT NULL,
   residence_id VARCHAR(128) NOT NULL,
   client_id VARCHAR(128) NOT NULL,
   owner_id VARCHAR(128) NOT NULL,
@@ -105,30 +140,39 @@ CREATE TABLE IF NOT EXISTS bookings (
   checked_out_at TIMESTAMP NULL,
   
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-  
-  FOREIGN KEY (residence_id) REFERENCES residences(id),
-  FOREIGN KEY (client_id) REFERENCES users(id),
-  FOREIGN KEY (owner_id) REFERENCES users(id)
-);
+  PRIMARY KEY (id, client_id) -- Clé primaire composite incluant la clé de partitionnement (client_id)
+)
+PARTITION BY KEY(client_id)
+PARTITIONS 5;
 
--- 4. Table Avis (Reviews)
+-- Index pour optimiser les jointures et requêtes d'historique
+CREATE INDEX idx_bookings_residence ON bookings(residence_id);
+CREATE INDEX idx_bookings_owner ON bookings(owner_id);
+CREATE INDEX idx_bookings_dates ON bookings(check_in, check_out);
+
+
+-- ==========================================
+-- 4. Table Avis (Reviews) - Partitionnée
+-- ==========================================
 CREATE TABLE IF NOT EXISTS reviews (
-  id VARCHAR(128) PRIMARY KEY,
+  id VARCHAR(128) NOT NULL,
   booking_id VARCHAR(128) NOT NULL,
   residence_id VARCHAR(128) NOT NULL,
   client_id VARCHAR(128) NOT NULL,
   rating INT NOT NULL CHECK (rating >= 1 AND rating <= 5),
   comment TEXT,
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-  
-  FOREIGN KEY (booking_id) REFERENCES bookings(id),
-  FOREIGN KEY (residence_id) REFERENCES residences(id),
-  FOREIGN KEY (client_id) REFERENCES users(id)
-);
+  PRIMARY KEY (id, residence_id)
+)
+PARTITION BY KEY(residence_id)
+PARTITIONS 5;
 
--- 5. Table Retraits (Withdrawal Requests)
+
+-- ==========================================
+-- 5. Table Retraits (Withdrawal Requests) - Partitionnée
+-- ==========================================
 CREATE TABLE IF NOT EXISTS withdrawals (
-  id VARCHAR(128) PRIMARY KEY,
+  id VARCHAR(128) NOT NULL,
   owner_id VARCHAR(128) NOT NULL,
   amount DECIMAL(10, 2) NOT NULL,
   phone VARCHAR(50) NOT NULL,
@@ -137,11 +181,15 @@ CREATE TABLE IF NOT EXISTS withdrawals (
   
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   approved_at TIMESTAMP NULL,
-  
-  FOREIGN KEY (owner_id) REFERENCES users(id)
-);
+  PRIMARY KEY (id, owner_id)
+)
+PARTITION BY KEY(owner_id)
+PARTITIONS 5;
 
+
+-- ==========================================
 -- 6. Table Publicités (Advertisements)
+-- ==========================================
 CREATE TABLE IF NOT EXISTS advertisements (
   id VARCHAR(128) PRIMARY KEY,
   title VARCHAR(255) NOT NULL,
@@ -154,9 +202,3 @@ CREATE TABLE IF NOT EXISTS advertisements (
   end_at TIMESTAMP NULL,
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
-
--- Index pour optimiser les requêtes fréquentes
-CREATE INDEX idx_residences_status ON residences(status, availability_status);
-CREATE INDEX idx_bookings_client ON bookings(client_id);
-CREATE INDEX idx_bookings_owner ON bookings(owner_id);
-CREATE INDEX idx_bookings_dates ON bookings(check_in, check_out);
