@@ -239,7 +239,7 @@ async function startServer() {
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       )`);
 
-      await pool.execute(`CREATE TABLE IF NOT EXISTS withdrawals (
+      await (pool as any).execute(`CREATE TABLE IF NOT EXISTS withdrawals (
         id VARCHAR(255) PRIMARY KEY,
         owner_id VARCHAR(255),
         owner_name VARCHAR(255),
@@ -250,6 +250,14 @@ async function startServer() {
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         approved_at TIMESTAMP NULL
       )`);
+
+      // Ensure super admin owns all current residences
+      const [adminRows]: any = await (pool as any).execute("SELECT id FROM users WHERE email = ?", ["mandemohamed68@gmail.com"]);
+      if (adminRows.length > 0) {
+        const adminId = adminRows[0].id;
+        await (pool as any).execute("UPDATE residences SET owner_id = ? WHERE owner_id = 'unknown' OR owner_id = '' OR owner_id IS NULL OR owner_id = 'r_owner_1' OR owner_id = 'r_owner_2' OR owner_id = 'host-1' OR owner_id = 'host-2'", [adminId]);
+        console.log(`✅ All current residences have been assigned to super admin: ${adminId}`);
+      }
 
       console.log("✅ MariaDB tables checked/created successfully.");
     } catch (err) {
@@ -537,19 +545,20 @@ async function startServer() {
   // Auth: Register
   app.post("/api/auth/register", async (req: any, res: any) => {
     try {
-      const { email, password, displayName } = req.body;
-      const [rows]: any = await pool.execute("SELECT * FROM users WHERE email = ?", [email]);
+      const { email, password, displayName, role } = req.body;
+      const [rows]: any = await (pool as any).execute("SELECT * FROM users WHERE email = ?", [email]);
       if (rows.length > 0) return res.status(400).json({ error: "Email already exists" });
       
       const pwdHash = await bcrypt.hash(password, 10);
       const uid = "u_" + Math.random().toString(36).substr(2, 9);
+      const userRole = role || 'client';
       
-      await pool.execute(
-        `INSERT INTO users (id, email, ${userPasswordColumn}, display_name, role) VALUES (?, ?, ?, ?, 'client')`,
-        [uid, email, pwdHash, displayName]
+      await (pool as any).execute(
+        `INSERT INTO users (id, email, ${userPasswordColumn}, display_name, role) VALUES (?, ?, ?, ?, ?)`,
+        [uid, email, pwdHash, displayName, userRole]
       );
-      const token = jwt.sign({ uid, email, role: 'client' }, process.env.JWT_SECRET || "resifaso_secret", { expiresIn: "7d" });
-      res.json({ token, user: { uid, email, displayName, role: 'client' } });
+      const token = jwt.sign({ uid, email, role: userRole }, process.env.JWT_SECRET || "resifaso_secret", { expiresIn: "7d" });
+      res.json({ token, user: { uid, email, displayName, role: userRole } });
     } catch (e: any) { res.status(500).json({ error: e.message }); }
   });
 
