@@ -1,4 +1,4 @@
-import { initializeApp, getApps } from 'firebase-admin/app';
+import { initializeApp, cert } from 'firebase-admin/app';
 import { getFirestore } from 'firebase-admin/firestore';
 import fs from 'fs';
 import path from 'path';
@@ -6,21 +6,33 @@ import path from 'path';
 async function main() {
   let adminDb;
   try {
-    const configPath = path.join(process.cwd(), "firebase-applet-config.json");
-    if (fs.existsSync(configPath)) {
-      const config = JSON.parse(fs.readFileSync(configPath, "utf-8"));
-      if (getApps().length === 0) {
-        initializeApp({ projectId: config.projectId });
-      }
-      adminDb = getFirestore(config.firestoreDatabaseId || "(default)");
-      console.log(`Connected to Firebase (project: ${config.projectId})`);
-    } else {
-      if (getApps().length === 0) {
-        initializeApp();
-      }
-      adminDb = getFirestore();
-      console.log("Connected to Firebase (default ADC)");
+    const serviceAccountPath = path.join(process.cwd(), "service-account.json");
+    if (!fs.existsSync(serviceAccountPath)) {
+      console.error("service-account.json not found");
+      process.exit(1);
     }
+    const serviceAccount = JSON.parse(fs.readFileSync(serviceAccountPath, "utf-8"));
+    
+    // Check if the user specified a database ID in firebase-applet-config.json
+    let dbId = "(default)";
+    try {
+      const configPath = path.join(process.cwd(), "firebase-applet-config.json");
+      if (fs.existsSync(configPath)) {
+        const config = JSON.parse(fs.readFileSync(configPath, "utf-8"));
+        if (config.firestoreDatabaseId) {
+            dbId = config.firestoreDatabaseId;
+        }
+      }
+    } catch(e) {}
+
+    console.log(`Connecting with service account credentials to database: ${dbId}...`);
+
+    initializeApp({
+      credential: cert(serviceAccount)
+    });
+    
+    adminDb = getFirestore(dbId);
+    console.log("Connected to Firebase via Service Account.");
   } catch (e: any) {
     console.error("Firebase Admin initialization failed:", e);
     process.exit(1);

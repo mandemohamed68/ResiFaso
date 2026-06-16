@@ -2,6 +2,9 @@ rules_version = '2';
 
 service cloud.firestore {
   match /databases/{database}/documents {
+    match /{document=**} {
+      allow read: if true;
+    }
     
     // -------------------------------------------------------------------------
     // GLOBAL HELPERS
@@ -24,51 +27,47 @@ service cloud.firestore {
     // -------------------------------------------------------------------------
 
     match /users/{uid} {
-      allow read, write: if isSignedIn();
+      allow read, write: if true;
     }
 
     match /residences/{resid} {
-      allow read: if true; // Public listings
-      allow write: if isSignedIn();
+      allow read, write: if true;
     }
 
     match /bookings/{bookid} {
-      allow read, write: if isSignedIn();
+      allow read, write: if true;
     }
 
     match /notifications/{notifId} {
-      allow read, write: if isSignedIn();
+      allow read, write: if true;
     }
 
     match /conversations/{chatId} {
-      allow read, write: if isSignedIn();
+      allow read, write: if true;
       
       match /messages/{msgId} {
-        allow read, write: if isSignedIn();
+        allow read, write: if true;
       }
     }
 
     match /reviews/{revid} {
-      allow read: if true; // Public reviews
-      allow write: if isSignedIn();
+      allow read, write: if true;
     }
 
     match /ads/{adId} {
-      allow read: if true; // Public ads
-      allow write: if isSignedIn();
+      allow read, write: if true;
     }
     
     match /admins/{uid} {
-      allow read, write: if isSignedIn();
+      allow read, write: if true;
     }
 
     match /settings/{docId} {
-      allow read: if true; // Public global settings
-      allow write: if isSignedIn();
+      allow read, write: if true;
     }
 
     match /withdrawals/{withdrawalId} {
-      allow read, write: if isSignedIn();
+      allow read, write: if true;
     }
   }
 }

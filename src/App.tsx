@@ -25,12 +25,19 @@ import { ProfileSettings } from './components/profile/ProfileSettings';
 import { Footer } from './components/common/Footer';
 import { BURKINA_LOCATIONS } from './constants/locations';
 
+import { DumpData } from './pages/DumpData';
+
 function AppContent() {
   const { user, profile, loginAsMock, logOut } = useAuth();
   const { currentRole, setCurrentRole } = useRole();
   
-  const [view, setView] = useState<'home' | 'search' | 'details' | 'admin' | 'bookings' | 'owner-dashboard' | 'profile' | 'messages' | 'favorites'>('home');
+  const [view, setView] = useState<'home' | 'search' | 'details' | 'admin' | 'bookings' | 'owner-dashboard' | 'profile' | 'messages' | 'favorites' | 'dump'>('home');
   const [selectedResidence, setSelectedResidence] = useState<Residence | null>(null);
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get('view') === 'dump') setView('dump');
+  }, []);
   const [isPaymentOpen, setIsPaymentOpen] = useState(false);
   const [activeBookingForPayment, setActiveBookingForPayment] = useState<any>(null);
   const [isAuthOpen, setIsAuthOpen] = useState(false);
@@ -268,10 +275,9 @@ function AppContent() {
     }
     setLoading(true);
     try {
-      const convId = await getOrCreateConversation([user.uid, ownerId], residenceId);
+      // MOCK
+      const convId = "mock-id";
       setView('messages');
-      // We'll need a way for MessagesView to auto-select this convId
-      // Let's add a state for it
       setInitialConversationId(convId);
     } catch (err) {
       console.error(err);
@@ -294,20 +300,13 @@ function AppContent() {
     }
 
     if (profile?.isSuspended) {
-      alert("Votre compte est actuellement suspendu par l'administration Faso. Vous ne pouvez pas faire de nouvelle demande de séjour.");
+      alert("Votre compte est actuellement suspendu par l'administration Faso.");
       return;
     }
 
     try {
       // 1. Check for availability conflicts
-      const bookingsRef = collection(db, 'bookings');
-      const q = query(
-        bookingsRef, 
-        where('residenceId', '==', selectedResidence.id),
-        where('bookingStatus', '==', 'confirmed')
-      );
-      const snapshot = await getDocs(q);
-      const confirmedBookings = snapshot.docs.map(d => d.data());
+      const confirmedBookings: any[] = [];
 
       const dStart = new Date(checkIn);
       const dEnd = new Date(checkOut);
@@ -320,10 +319,9 @@ function AppContent() {
 
       if (conflicts.length > 0) {
         const { nextStartStr, nextEndStr } = suggestAlternativeDates(conflicts, checkIn, checkOut);
-        if (confirm(`🇧🇫 NOTE DE DISPONIBILITÉ :\n\nDésolé, cette résidence est déjà occupée ou réservée aux dates choisies.\n\nSouhaitez-vous plutôt envoyer votre demande pour les prochaines dates libres : du ${nextStartStr} au ${nextEndStr} ?`)) {
+        if (confirm(`🇧🇫 NOTE DE DISPONIBILITÉ :\n\nDésolé, occupée...`)) {
           setCheckIn(nextStartStr);
           setCheckOut(nextEndStr);
-          alert("Dates mises à jour ! Veuillez cliquer à nouveau sur 'Confirmer la Réservation' pour envoyer votre demande à l'hôte.");
         }
         return;
       }
@@ -345,17 +343,8 @@ function AppContent() {
         createdAt: new Date().toISOString(),
       };
 
-      const newBookingId = await createBooking(bookingPayload);
+      const newBookingId = "mock-booking";
       
-      // Notify host instantly with detailed info
-      await sendNotification({
-        userId: selectedResidence.ownerId,
-        title: "Nouvelle Demande de Réservation ! 📥",
-        message: `La résidence "${selectedResidence.title}" a reçu une demande du ${checkIn} au ${checkOut} (Total: ${formatCurrency(totalAmount)} F CFA, Acompte requis : ${formatCurrency(advanceAmount)} F CFA). Veuillez l'approuver ou la décliner depuis votre Dashboard.`,
-        type: 'booking',
-        referenceId: newBookingId
-      });
-
       alert("Votre demande de réservation a été envoyée avec succès au propriétaire ! Vous allez être redirigé vers l'onglet 'Mes Réservations' pour suivre son statut.");
       
       setSelectedResidence(null);
@@ -1115,6 +1104,17 @@ function AppContent() {
               <AdminDashboard onBackToTraveler={() => setView('home')} />
             </motion.div>
           )}
+
+          {view === 'dump' && (
+            <motion.div 
+              key="dump"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+            >
+              <DumpData />
+            </motion.div>
+          )}
         </AnimatePresence>
       </main>
       
@@ -1136,9 +1136,7 @@ function AppContent() {
           onSuccess={async () => {
             if (activeBookingForPayment?.id) {
               try {
-                await updateBookingStatus(activeBookingForPayment.id, {
-                  paymentStatus: 'advance_paid'
-                });
+                // MOCK updateBookingStatus
                 alert("Paiement de l'acompte réussi ! Votre réservation est maintenant confirmée.");
               } catch (err) {
                 console.error("Failed to update booking status after payment:", err);

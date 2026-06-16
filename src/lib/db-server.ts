@@ -1,3 +1,4 @@
+import 'dotenv/config';
 import mysql from 'mysql2/promise';
 import dotenv from 'dotenv';
 
@@ -7,7 +8,8 @@ dotenv.config();
 export const pool = mysql.createPool({
   host: process.env.DB_HOST || '127.0.0.1',
   user: process.env.DB_USER || 'resifaso_user',
-  password: process.env.DB_PASSWORD || 'mm@27071986@',
+  // Si le mot de passe inclut littéralement des guillemets, on les force ici
+  password: process.env.DB_PASSWORD || '"mm@27071986"',
   database: process.env.DB_NAME || 'resifaso_db',
   port: Number(process.env.DB_PORT) || 3306,
   waitForConnections: true,
