@@ -11,6 +11,8 @@ import jwt from "jsonwebtoken";
 
 dotenv.config();
 
+export let userPasswordColumn = "password_hash";
+
 // Safe detection of __dirname and __filename for both CJS and ESM
 const currentFilename = typeof __filename !== "undefined" 
   ? __filename 
@@ -434,7 +436,7 @@ async function startServer() {
       const uid = "u_" + Math.random().toString(36).substr(2, 9);
       
       await pool.execute(
-        "INSERT INTO users (id, email, password_hash, display_name, role) VALUES (?, ?, ?, ?, 'client')",
+        `INSERT INTO users (id, email, ${userPasswordColumn}, display_name, role) VALUES (?, ?, ?, ?, 'client')`,
         [uid, email, pwdHash, displayName]
       );
       const token = jwt.sign({ uid, email, role: 'client' }, process.env.JWT_SECRET || "resifaso_secret", { expiresIn: "7d" });
@@ -451,7 +453,8 @@ async function startServer() {
         return res.status(401).json({ error: "Invalid credentials" });
       }
       const user = rows[0];
-      const isValid = user.password_hash ? await bcrypt.compare(password, user.password_hash) : true;
+      const storedHash = user[userPasswordColumn] || user.password_hash || user.password;
+      const isValid = storedHash ? await bcrypt.compare(password, storedHash) : true;
       if (!isValid) return res.status(401).json({ error: "Invalid credentials" });
 
       const token = jwt.sign({ uid: user.id, email: user.email, role: user.role }, process.env.JWT_SECRET || "resifaso_secret", { expiresIn: "7d" });
@@ -613,17 +616,31 @@ async function startServer() {
   app.listen(PORT, "0.0.0.0", () => {
     console.log(`Server running on http://localhost:${PORT}`);
     
-    // Auto-seed default Super Admin
+    // Auto-seed default Super Admin and auto-detect columns
     (async () => {
       try {
+        // Detect database table users password column name
+        try {
+          const [columns]: any = await pool.execute("DESCRIBE users");
+          const fieldNames = columns.map((c: any) => c.Field ? c.Field.toLowerCase() : "");
+          if (!fieldNames.includes("password_hash") && fieldNames.includes("password")) {
+            userPasswordColumn = "password";
+            console.log("ℹ️ Auto-detected column [password] for user credentials storage.");
+          } else {
+            console.log(`ℹ️ Using default column [${userPasswordColumn}] for user credentials storage.`);
+          }
+        } catch (colErr: any) {
+          console.warn("⚠️ Column auto-detection skipped:", colErr.message);
+        }
+
         const [rows]: any = await pool.execute("SELECT * FROM users WHERE email = ?", ["mandemohamed68@gmail.com"]);
         if (rows.length === 0) {
           const pwdHash = await bcrypt.hash("mm@27071986@", 10);
           await pool.execute(
-            "INSERT INTO users (id, email, password_hash, display_name, role) VALUES (?, ?, ?, ?, ?)",
+            `INSERT INTO users (id, email, ${userPasswordColumn}, display_name, role) VALUES (?, ?, ?, ?, ?)`,
             ["usr_admin_default", "mandemohamed68@gmail.com", pwdHash, "Super Administrateur", "admin"]
           );
-          console.log("Seeded default Super Admin user (mandemohamed68@gmail.com) successfully.");
+          console.log(`Seeded default Super Admin user (mandemohamed68@gmail.com) successfully using [${userPasswordColumn}].`);
         } else {
           const existing = rows[0];
           if (existing.role !== 'admin') {
