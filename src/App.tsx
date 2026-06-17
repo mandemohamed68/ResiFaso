@@ -21,26 +21,25 @@ import { cn, formatFCFA } from './lib/utils';
 import { MapView } from './components/search/MapView';
 import { AdminDashboard } from './components/admin/AdminDashboard';
 import { MessagesView } from './components/messaging/MessagesView';
+import { 
+  seedDatabaseIfNeeded, 
+  createBooking, 
+  getOrCreateConversation,
+  updateBookingStatus,
+  sendNotification
+} from './lib/db';
+import { db } from './lib/firebase';
+import { collection, query, where, onSnapshot, getDocs, doc, updateDoc } from 'firebase/firestore';
 import { ProfileSettings } from './components/profile/ProfileSettings';
 import { Footer } from './components/common/Footer';
 import { BURKINA_LOCATIONS } from './constants/locations';
-import { createBooking } from './lib/db';
-import { db } from './lib/firebase';
-import { collection, doc, setDoc } from 'firebase/firestore';
-
-import { DumpData } from './pages/DumpData';
 
 function AppContent() {
   const { user, profile, loginAsMock, logOut } = useAuth();
   const { currentRole, setCurrentRole } = useRole();
   
-  const [view, setView] = useState<'home' | 'search' | 'details' | 'admin' | 'bookings' | 'owner-dashboard' | 'profile' | 'messages' | 'favorites' | 'dump'>('home');
+  const [view, setView] = useState<'home' | 'search' | 'details' | 'admin' | 'bookings' | 'owner-dashboard' | 'profile' | 'messages' | 'favorites'>('home');
   const [selectedResidence, setSelectedResidence] = useState<Residence | null>(null);
-
-  useEffect(() => {
-    const params = new URLSearchParams(window.location.search);
-    if (params.get('view') === 'dump') setView('dump');
-  }, []);
   const [isPaymentOpen, setIsPaymentOpen] = useState(false);
   const [activeBookingForPayment, setActiveBookingForPayment] = useState<any>(null);
   const [isAuthOpen, setIsAuthOpen] = useState(false);
@@ -72,8 +71,6 @@ function AppContent() {
   const [isAnnouncementDismissed, setIsAnnouncementDismissed] = useState(false);
   const [enablePhoneCalls, setEnablePhoneCalls] = useState<boolean>(true);
   const [enableWhatsApp, setEnableWhatsApp] = useState<boolean>(true);
-  const [platformName, setPlatformName] = useState<string>('ResiFaso');
-  const [commissionRate, setCommissionRate] = useState<number>(10);
 
   // New Booking date states
   const [checkIn, setCheckIn] = useState('');
@@ -92,60 +89,74 @@ function AppContent() {
     amenities: string[];
   } | null>(null);
 
-  // Synchroniser le Mode Test et les Paramètres Globaux depuis l'API MariaDB
+  // Synchroniser le Mode Test avec les Paramètres Globaux (Firestore)
   useEffect(() => {
-    async function loadGlobalSettings() {
-      try {
-        const res = await fetch('/api/admin/settings/global');
-        if (res.ok) {
-          const settings = await res.json();
-          if (settings) {
-            if (settings.isTestMode !== undefined) setIsTestMode(settings.isTestMode);
-            if (settings.enablePhoneCalls !== undefined) setEnablePhoneCalls(settings.enablePhoneCalls);
-            if (settings.enableWhatsApp !== undefined) setEnableWhatsApp(settings.enableWhatsApp);
-            if (settings.platformName !== undefined) setPlatformName(settings.platformName);
-            if (settings.commissionRate !== undefined) setCommissionRate(settings.commissionRate);
-            if (settings.announcement) {
-              setGlobalAnnouncement({
-                text: settings.announcement.text || '',
-                type: settings.announcement.type || 'info',
-                active: !!settings.announcement.active
-              });
-            }
-          }
+    const unsubSettings = onSnapshot(doc(db, 'settings', 'global'), (docSnap) => {
+      if (docSnap.exists()) {
+        const data = docSnap.data();
+        if (data.isTestMode !== undefined) {
+          setIsTestMode(data.isTestMode);
         }
-      } catch (err) {
-        console.error("Failed to load global settings:", err);
+        if (data.enablePhoneCalls !== undefined) {
+          setEnablePhoneCalls(data.enablePhoneCalls);
+        } else {
+          setEnablePhoneCalls(true);
+        }
+        if (data.enableWhatsApp !== undefined) {
+          setEnableWhatsApp(data.enableWhatsApp);
+        } else {
+          setEnableWhatsApp(true);
+        }
+        if (data.announcement) {
+          setGlobalAnnouncement({
+            text: data.announcement.text || '',
+            type: data.announcement.type || 'info',
+            active: !!data.announcement.active
+          });
+          // Si le message change ou est réactivé, on réinitialise l'état masqué
+          setIsAnnouncementDismissed(false);
+        } else {
+          setGlobalAnnouncement(null);
+        }
       }
-    }
-
-    loadGlobalSettings();
-    const interval = setInterval(loadGlobalSettings, 10000); // Polling every 10 seconds to keep in sync!
-    return () => clearInterval(interval);
+    }, (err) => console.error("Error subscribing to global testMode in App.tsx:", err));
+    return () => unsubSettings();
   }, []);
 
-  // Auto-seed and monitor published residences
+  // Auto-seed and monitor published residences in real-time
   useEffect(() => {
-    let interval: any;
+    let unsubscribe: () => void;
 
-    async function fetchResidences() {
+    async function initAndListen() {
       try {
         setLoading(true);
-        const res = await fetch('/api/residences');
-        const data = await res.json();
-        if (data.residences) setResidences(data.residences);
-        setLoading(false);
+        // Ensure standard sample residences exist on pristine databases
+        await seedDatabaseIfNeeded();
+
+        // Listen for all published residences in real-time
+        const q = query(collection(db, 'residences'), where('status', '==', 'published'));
+        unsubscribe = onSnapshot(q, (snapshot) => {
+          const list: Residence[] = [];
+          snapshot.forEach(docSnap => {
+            list.push({ id: docSnap.id, ...docSnap.data() } as Residence);
+          });
+          setResidences(list);
+          setLoading(false);
+        }, (error) => {
+          console.error("SNAPSHOT_ERROR residences in App.tsx:", error.code, error.message);
+          setLoading(false);
+        });
       } catch (err) {
         console.error("Database initialization failed:", err);
         setLoading(false);
       }
     }
 
-    fetchResidences();
-    // Poll every 10 seconds for updates instead of Firebase onSnapshot
-    interval = setInterval(fetchResidences, 10000);
+    initAndListen();
 
-    return () => clearInterval(interval);
+    return () => {
+      if (unsubscribe) unsubscribe();
+    };
   }, []);
 
   const handleResidenceClick = (residence: Residence) => {
@@ -161,10 +172,20 @@ function AppContent() {
       setSelectedResidenceBookings([]);
       return;
     }
-    
-    // Instead of firebase snapshot, fetch bookings? 
-    // We didn't create a public residence booking endpoint, so let's mock empty for now
-    setSelectedResidenceBookings([]);
+    const q = query(
+      collection(db, 'bookings'),
+      where('residenceId', '==', selectedResidence.id),
+      where('bookingStatus', 'in', ['confirmed', 'pending'])
+    );
+    const unsub = onSnapshot(q, (snapshot) => {
+      const list: any[] = [];
+      snapshot.forEach(docSnap => {
+        list.push({ id: docSnap.id, ...docSnap.data() });
+      });
+      setSelectedResidenceBookings(list);
+    }, (err) => console.log("Error loading selectedResidence Bookings:", err));
+
+    return () => unsub();
   }, [selectedResidence]);
 
   const calculateNights = () => {
@@ -189,7 +210,7 @@ function AppContent() {
 
     const base = (pricePerNight * nights) * (1 - discount / 100);
     const cleaning = res.cleaningFee;
-    const platformService = base * (commissionRate / 100); // Platform commission
+    const platformService = base * 0.08; // Platform commission
     const extraService = res.serviceFee || 0; // Host controlled service fee
     return Math.round(base + cleaning + platformService + extraService);
   };
@@ -212,7 +233,7 @@ function AppContent() {
       const city = BURKINA_LOCATIONS.find(c => c.id === searchFilters.cityId);
       if (city) {
         const citySearch = city.name.toLowerCase().trim();
-        const resCity = (res.address?.city || res.city || '').toLowerCase().trim();
+        const resCity = (res.address.city || '').toLowerCase().trim();
         // Handle fuzzy matching like "Bobo-Dioulasso" vs "Bobo Dioulasso"
         const normalize = (s: string) => s.replace(/-/g, ' ').replace(/\s+/g, ' ');
         const matchesCity = normalize(resCity).includes(normalize(citySearch)) || 
@@ -234,7 +255,7 @@ function AppContent() {
       }
       
       if (nbName) {
-        const resNb = (res.address?.neighborhood || res.neighborhood || '').toLowerCase().trim();
+        const resNb = (res.address.neighborhood || '').toLowerCase().trim();
         const normalizeNb = (s: string) => s.replace(/['’]/g, '').replace(/\s+/g, ' ');
         const matchesNb = normalizeNb(resNb).includes(normalizeNb(nbName)) || 
                          normalizeNb(nbName).includes(normalizeNb(resNb));
@@ -304,9 +325,10 @@ function AppContent() {
     }
     setLoading(true);
     try {
-      // MOCK
-      const convId = "mock-id";
+      const convId = await getOrCreateConversation([user.uid, ownerId], residenceId);
       setView('messages');
+      // We'll need a way for MessagesView to auto-select this convId
+      // Let's add a state for it
       setInitialConversationId(convId);
     } catch (err) {
       console.error(err);
@@ -329,13 +351,20 @@ function AppContent() {
     }
 
     if (profile?.isSuspended) {
-      alert("Votre compte est actuellement suspendu par l'administration Faso.");
+      alert("Votre compte est actuellement suspendu par l'administration Faso. Vous ne pouvez pas faire de nouvelle demande de séjour.");
       return;
     }
 
     try {
       // 1. Check for availability conflicts
-      const confirmedBookings: any[] = [];
+      const bookingsRef = collection(db, 'bookings');
+      const q = query(
+        bookingsRef, 
+        where('residenceId', '==', selectedResidence.id),
+        where('bookingStatus', '==', 'confirmed')
+      );
+      const snapshot = await getDocs(q);
+      const confirmedBookings = snapshot.docs.map(d => d.data());
 
       const dStart = new Date(checkIn);
       const dEnd = new Date(checkOut);
@@ -348,9 +377,10 @@ function AppContent() {
 
       if (conflicts.length > 0) {
         const { nextStartStr, nextEndStr } = suggestAlternativeDates(conflicts, checkIn, checkOut);
-        if (confirm(`🇧🇫 NOTE DE DISPONIBILITÉ :\n\nDésolé, occupée...`)) {
+        if (confirm(`🇧🇫 NOTE DE DISPONIBILITÉ :\n\nDésolé, cette résidence est déjà occupée ou réservée aux dates choisies.\n\nSouhaitez-vous plutôt envoyer votre demande pour les prochaines dates libres : du ${nextStartStr} au ${nextEndStr} ?`)) {
           setCheckIn(nextStartStr);
           setCheckOut(nextEndStr);
+          alert("Dates mises à jour ! Veuillez cliquer à nouveau sur 'Confirmer la Réservation' pour envoyer votre demande à l'hôte.");
         }
         return;
       }
@@ -372,23 +402,22 @@ function AppContent() {
         createdAt: new Date().toISOString(),
       };
 
-      const finalBookingId = await createBooking(bookingPayload);
-      if (finalBookingId) {
-        try {
-          await setDoc(doc(db, 'bookings', finalBookingId), {
-            ...bookingPayload,
-            id: finalBookingId
-          });
-        } catch (fsErr) {
-          console.warn("Firestore real-time sync completed with local notice:", fsErr);
-        }
-        alert("Votre demande de réservation a été envoyée avec succès au propriétaire ! Vous allez être redirigé vers l'onglet 'Mes Réservations' pour suivre son statut.");
-        setSelectedResidence(null);
-        // Directly redirect them to guest bookings lists page
-        setView('bookings');
-      } else {
-        alert("Une autre réservation existe déjà pour ces dates ou la création a échoué.");
-      }
+      const newBookingId = await createBooking(bookingPayload);
+      
+      // Notify host instantly with detailed info
+      await sendNotification({
+        userId: selectedResidence.ownerId,
+        title: "Nouvelle Demande de Réservation ! 📥",
+        message: `La résidence "${selectedResidence.title}" a reçu une demande du ${checkIn} au ${checkOut} (Total: ${formatCurrency(totalAmount)} F CFA, Acompte requis : ${formatCurrency(advanceAmount)} F CFA). Veuillez l'approuver ou la décliner depuis votre Dashboard.`,
+        type: 'booking',
+        referenceId: newBookingId
+      });
+
+      alert("Votre demande de réservation a été envoyée avec succès au propriétaire ! Vous allez être redirigé vers l'onglet 'Mes Réservations' pour suivre son statut.");
+      
+      setSelectedResidence(null);
+      // Directly redirect them to guest bookings lists page
+      setView('bookings');
     } catch (err) {
       console.error(err);
       alert("Échec de la soumission de la réservation.");
@@ -432,7 +461,6 @@ function AppContent() {
         onNavigate={setView} 
         isDarkMode={isDarkMode}
         onToggleDarkMode={() => setIsDarkMode(!isDarkMode)}
-        platformName={platformName}
       />
       
       {profile?.isSuspended && (
@@ -730,7 +758,7 @@ function AppContent() {
                   </div>
                   
                   <div className="flex items-center gap-2 text-slate-500 font-medium text-lg mb-8">
-                    <span>{selectedResidence.address?.street || ''}{selectedResidence.address?.street && ', '}{selectedResidence.address?.neighborhood || selectedResidence.neighborhood || ''}, {selectedResidence.address?.city || selectedResidence.city || ''}</span>
+                    <span>{selectedResidence.address.street}, {selectedResidence.address.neighborhood}, {selectedResidence.address.city}</span>
                   </div>
 
                   <hr className="border-slate-100 mb-8" />
@@ -784,7 +812,7 @@ function AppContent() {
                     </h2>
                     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
                       {residences
-                        .filter(r => r.id !== selectedResidence.id && (r.type === selectedResidence.type || (r.address?.city || r.city) === (selectedResidence.address?.city || selectedResidence.city)))
+                        .filter(r => r.id !== selectedResidence.id && (r.type === selectedResidence.type || r.address.city === selectedResidence.address.city))
                         .slice(0, 3)
                         .map(res => (
                           <ResidenceCard 
@@ -796,7 +824,7 @@ function AppContent() {
                           />
                         ))
                       }
-                      {residences.filter(r => r.id !== selectedResidence.id && (r.type === selectedResidence.type || (r.address?.city || r.city) === (selectedResidence.address?.city || selectedResidence.city))).length === 0 && (
+                      {residences.filter(r => r.id !== selectedResidence.id && (r.type === selectedResidence.type || r.address.city === selectedResidence.address.city)).length === 0 && (
                         <div className="col-span-full py-12 text-center bg-white rounded-3xl border border-dashed border-slate-200">
                            <p className="text-slate-400 font-bold text-sm">Découvrez d'autres pépites burkinabè sur l'accueil.</p>
                         </div>
@@ -925,7 +953,7 @@ function AppContent() {
                                 <p className="text-[10px] font-black uppercase text-red-700 tracking-wider">🏠 Explorer ailleurs aux mêmes dates :</p>
                                 <div className="space-y-1">
                                   {residences
-                                    .filter(r => r.id !== selectedResidence.id && (r.address?.city || r.city) === (selectedResidence.address?.city || selectedResidence.city))
+                                    .filter(r => r.id !== selectedResidence.id && r.address.city === selectedResidence.address.city)
                                     .slice(0, 2)
                                     .map(alt => (
                                       <button 
@@ -1144,17 +1172,6 @@ function AppContent() {
               <AdminDashboard onBackToTraveler={() => setView('home')} />
             </motion.div>
           )}
-
-          {view === 'dump' && (
-            <motion.div 
-              key="dump"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-            >
-              <DumpData />
-            </motion.div>
-          )}
         </AnimatePresence>
       </main>
       
@@ -1176,7 +1193,9 @@ function AppContent() {
           onSuccess={async () => {
             if (activeBookingForPayment?.id) {
               try {
-                // MOCK updateBookingStatus
+                await updateBookingStatus(activeBookingForPayment.id, {
+                  paymentStatus: 'advance_paid'
+                });
                 alert("Paiement de l'acompte réussi ! Votre réservation est maintenant confirmée.");
               } catch (err) {
                 console.error("Failed to update booking status after payment:", err);
@@ -1189,15 +1208,11 @@ function AppContent() {
   );
 }
 
-import { SocketProvider } from './contexts/SocketContext';
-
 export default function App() {
   return (
     <AuthProvider>
       <RoleProvider>
-        <SocketProvider>
-          <AppContent />
-        </SocketProvider>
+        <AppContent />
       </RoleProvider>
     </AuthProvider>
   );

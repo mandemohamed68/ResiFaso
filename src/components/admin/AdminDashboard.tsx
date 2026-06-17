@@ -2,37 +2,20 @@ import { formatCurrency } from '../../utils/currency';
 import React, { useState, useEffect } from 'react';
 import { 
   LayoutDashboard, Home, Users, BarChart3, Settings, ShieldCheck, 
-  Activity, Search, Trash2, Edit3, Plus, ArrowUpRight, TrendingUp, Calendar, Check, X, CheckCircle2,
+  Activity, Search, Trash2, Edit3, Plus, ArrowUpRight, TrendingUp, Calendar, Check, X,
   FileText, Download, Award, ShieldAlert, Megaphone, Upload, Wallet, ArrowLeft
 } from 'lucide-react';
+import { db } from '../../lib/firebase';
+import { collection, query, onSnapshot, doc, updateDoc, deleteDoc, setDoc } from 'firebase/firestore';
 import { Residence, UserProfile, UserRole, Booking, Review, BookingStatus, PaymentStatus, Advertisement, WithdrawalRequest, WithdrawalStatus } from '../../types';
 import { cn, formatFCFA } from '../../lib/utils';
 import { useAuth } from '../../contexts/AuthContext';
 import { resizeImage } from '../../lib/imageResize';
-import { 
-  hardResetDatabase, 
-  updateWithdrawalStatus, 
-  updateBookingStatus,
-  sendNotification, 
-  getAllResidences, 
-  getAllUsers, 
-  getAllBookings, 
-  getAllWithdrawals,
-  getGlobalSettings,
-  saveGlobalSettings,
-  getAllAds,
-  saveAd,
-  deleteAd,
-  updateResidence,
-  updateUserProfile,
-  deleteUser,
-  getSystemLogs,
-  purgeSystemLogs
-} from '../../lib/db';
+import { hardResetDatabase, updateWithdrawalStatus, sendNotification } from '../../lib/db';
 
 export const AdminDashboard: React.FC<{ onBackToTraveler?: () => void }> = ({ onBackToTraveler }) => {
   const { user } = useAuth();
-  const [activeTab, setActiveTab] = useState<'overview' | 'alerts' | 'listings' | 'users' | 'bookings' | 'revenue' | 'reviews' | 'reports' | 'settings' | 'logs' | 'ads' | 'withdrawals' | 'stats_advanced' | 'reports_finance' | 'approvals' | 'verifications' | 'audit'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'alerts' | 'listings' | 'users' | 'bookings' | 'revenue' | 'reviews' | 'reports' | 'settings' | 'logs' | 'ads' | 'withdrawals'>('overview');
   
   // Database Collections States
   const [residences, setResidences] = useState<Residence[]>([]);
@@ -109,100 +92,95 @@ export const AdminDashboard: React.FC<{ onBackToTraveler?: () => void }> = ({ on
   useEffect(() => {
     if (!user) return;
 
-    const fetchData = async () => {
-      try {
-        const [resList, userList, bookList, withList, adsList, globalSets] = await Promise.all([
-          getAllResidences(),
-          getAllUsers(),
-          getAllBookings(),
-          getAllWithdrawals(),
-          getAllAds(),
-          getGlobalSettings('global')
-        ]);
-        
-        setResidences(resList);
-        setUsers(userList);
-        setBookings(bookList);
-        setWithdrawals(withList);
-        setAds(adsList);
+    // Residences listener
+    const unsubRes = onSnapshot(collection(db, 'residences'), (snapshot) => {
+      const list: Residence[] = [];
+      snapshot.forEach(docSnap => {
+        list.push({ id: docSnap.id, ...docSnap.data() } as Residence);
+      });
+      setResidences(list);
+    }, (error) => console.error("AdminDashboard residences snapshot error:", error));
 
-        if (globalSets) {
-          if (globalSets.platformName) setPlatformName(globalSets.platformName);
-          if (globalSets.footerContent) setFooterContent(globalSets.footerContent);
-          if (globalSets.commissionRate !== undefined) setCommissionRate(globalSets.commissionRate);
-          if (globalSets.isTestMode !== undefined) setIsGlobalTestMode(globalSets.isTestMode);
-          if (globalSets.enablePhoneCalls !== undefined) setEnablePhoneCalls(globalSets.enablePhoneCalls);
-          if (globalSets.enableWhatsApp !== undefined) setEnableWhatsApp(globalSets.enableWhatsApp);
-          if (globalSets.sappayClientId !== undefined) setSappayClientId(globalSets.sappayClientId);
-          if (globalSets.sappayClientSecret !== undefined) setSappayClientSecret(globalSets.sappayClientSecret);
-          if (globalSets.sappayUsername !== undefined) setSappayUsername(globalSets.sappayUsername);
-          if (globalSets.sappayPassword !== undefined) setSappayPassword(globalSets.sappayPassword);
-          if (globalSets.announcement) {
-            setAnnouncementText(globalSets.announcement.text || '');
-            setAnnouncementType(globalSets.announcement.type || 'info');
-            setAnnouncementActive(globalSets.announcement.active || false);
-          }
+    // Users listener
+    const unsubUsers = onSnapshot(collection(db, 'users'), (snapshot) => {
+      const list: UserProfile[] = [];
+      snapshot.forEach(docSnap => {
+        list.push({ uid: docSnap.id, ...docSnap.data() } as UserProfile);
+      });
+      setUsers(list);
+    }, (error) => console.error("AdminDashboard users snapshot error:", error));
+
+    // Bookings listener
+    const unsubBookings = onSnapshot(collection(db, 'bookings'), (snapshot) => {
+      const list: Booking[] = [];
+      snapshot.forEach(docSnap => {
+        list.push({ id: docSnap.id, ...docSnap.data() } as Booking);
+      });
+      setBookings(list);
+    }, (error) => console.error("AdminDashboard bookings snapshot error:", error));
+
+    // Reviews listener
+    const unsubReviews = onSnapshot(collection(db, 'reviews'), (snapshot) => {
+      const list: Review[] = [];
+      snapshot.forEach(docSnap => {
+        list.push({ id: docSnap.id, ...docSnap.data() } as Review);
+      });
+      setReviews(list);
+    }, (error) => console.error("AdminDashboard reviews snapshot error:", error));
+
+    // Settings listener
+    const unsubSettings = onSnapshot(doc(db, 'settings', 'global'), (docSnap) => {
+      if (docSnap.exists()) {
+        const data = docSnap.data();
+        if (data.platformName) setPlatformName(data.platformName);
+        if (data.footerContent) setFooterContent(data.footerContent);
+        if (data.commissionRate !== undefined) setCommissionRate(data.commissionRate);
+        if (data.isTestMode !== undefined) setIsGlobalTestMode(data.isTestMode);
+        if (data.enablePhoneCalls !== undefined) setEnablePhoneCalls(data.enablePhoneCalls);
+        if (data.enableWhatsApp !== undefined) setEnableWhatsApp(data.enableWhatsApp);
+        if (data.sappayClientId !== undefined) setSappayClientId(data.sappayClientId);
+        if (data.sappayClientSecret !== undefined) setSappayClientSecret(data.sappayClientSecret);
+        if (data.sappayUsername !== undefined) setSappayUsername(data.sappayUsername);
+        if (data.sappayPassword !== undefined) setSappayPassword(data.sappayPassword);
+        if (data.announcement) {
+          setAnnouncementText(data.announcement.text || '');
+          setAnnouncementType(data.announcement.type || 'info');
+          setAnnouncementActive(data.announcement.active || false);
         }
-      } catch (err) {
-        console.error("Error fetching admin data:", err);
       }
-    };
+    }, (error) => console.error("AdminDashboard settings snapshot error:", error));
 
-    fetchData();
-    const interval = setInterval(fetchData, 30000); // Polling every 30s as fallback for real-time
-    return () => clearInterval(interval);
+    // Ads listener
+    const unsubAds = onSnapshot(collection(db, 'ads'), (snapshot) => {
+      const list: Advertisement[] = [];
+      snapshot.forEach(docSnap => {
+        list.push({ id: docSnap.id, ...docSnap.data() } as Advertisement);
+      });
+      // Sort ads by creation or title
+      list.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+      setAds(list);
+    }, (error) => console.error("AdminDashboard ads snapshot error:", error));
+
+    // Withdrawals listener
+    const unsubWithdrawals = onSnapshot(collection(db, 'withdrawals'), (snapshot) => {
+      const list: WithdrawalRequest[] = [];
+      snapshot.forEach(docSnap => {
+        list.push({ id: docSnap.id, ...docSnap.data() } as WithdrawalRequest);
+      });
+      list.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+      setWithdrawals(list);
+    }, (error) => console.error("AdminDashboard withdrawals snapshot error:", error));
+
+    return () => {
+      unsubRes();
+      unsubUsers();
+      unsubBookings();
+      unsubReviews();
+      unsubSettings();
+      unsubAds();
+      unsubWithdrawals();
+    };
   }, [user]);
-
-  // Live Real-Time System logs
-  const [systemLogs, setSystemLogs] = useState<any[]>([]);
-  const [logsSearch, setLogsSearch] = useState('');
-  const [logsLevelFilter, setLogsLevelFilter] = useState('ALL');
-  const [logsCategoryFilter, setLogsCategoryFilter] = useState('ALL');
-  const [logsRoleFilter, setLogsRoleFilter] = useState('ALL');
-  const [expandedLogId, setExpandedLogId] = useState<number | null>(null);
-  const [isLogsAutoRefresh, setIsLogsAutoRefresh] = useState(true);
-  const [isPurgingLogs, setIsPurgingLogs] = useState(false);
-  const [logsLoading, setLogsLoading] = useState(false);
-
-  // Load system logs in real time
-  useEffect(() => {
-    if (!user || activeTab !== 'logs') return;
-
-    const loadLogs = async () => {
-      try {
-        const logs = await getSystemLogs();
-        setSystemLogs(logs);
-      } catch (err) {
-        console.error("Error loading system logs:", err);
-      }
-    };
-
-    loadLogs();
-    
-    let interval: any;
-    if (isLogsAutoRefresh) {
-      interval = setInterval(loadLogs, 3000);
-    }
-    return () => clearInterval(interval);
-  }, [user, activeTab, isLogsAutoRefresh]);
-
-  const handlePurgeLogs = async () => {
-    if (!window.confirm("Êtes-vous sûr de vouloir supprimer tous les logs système ? Cette action est irréversible.")) {
-      return;
-    }
-    setIsPurgingLogs(true);
-    try {
-      const ok = await purgeSystemLogs();
-      if (ok) {
-        setSystemLogs([]);
-        triggerSuccess("Logs d'activité du workflow purgés avec succès !");
-      }
-    } catch (e) {
-      console.error("Failed to purge logs", e);
-    } finally {
-      setIsPurgingLogs(false);
-    }
-  };
 
   // Logging Helper
   const logAction = (text: string) => {
@@ -259,10 +237,9 @@ export const AdminDashboard: React.FC<{ onBackToTraveler?: () => void }> = ({ on
   // Moderate Listings
   const handleApproveResidence = async (id: string, titleStr: string) => {
     try {
-      await updateResidence(id, { status: 'published' });
+      await updateDoc(doc(db, 'residences', id), { status: 'published' });
       logAction(`Logement "${titleStr}" approuvé et publié en ligne.`);
       triggerSuccess(`La résidence "${titleStr}" a été publiée avec succès !`);
-      setResidences(prev => prev.map(r => r.id === id ? { ...r, status: 'published' } : r));
     } catch (err) {
       console.error(err);
       alert("Erreur lors de la validation.");
@@ -273,12 +250,12 @@ export const AdminDashboard: React.FC<{ onBackToTraveler?: () => void }> = ({ on
     const reason = prompt("Veuillez indiquer le motif du rejet :");
     if (reason !== null) {
       try {
-        await updateResidence(id, { 
-          status: 'suspended'
-        } as any);
+        await updateDoc(doc(db, 'residences', id), { 
+          status: 'suspended',
+          rejectionReason: reason 
+        });
         logAction(`Logement "${titleStr}" suspendu pour le motif : ${reason}`);
         triggerSuccess("Résidence rejetée et propriétaire notifié.");
-        setResidences(prev => prev.map(r => r.id === id ? { ...r, status: 'suspended' } : r));
       } catch (err) {
         console.error(err);
         alert("Erreur lors du rejet.");
@@ -290,11 +267,10 @@ export const AdminDashboard: React.FC<{ onBackToTraveler?: () => void }> = ({ on
 
   const handleForceDeleteResidence = async (id: string, titleStr: string) => {
     try {
-      await updateResidence(id, { status: 'deleted' } as any); // Or call deleteResidence(id)
+      await deleteDoc(doc(db, 'residences', id));
       logAction(`Bannissement définitif du logement ID #${id} (${titleStr})`);
       setConfirmDeleteId(null);
       triggerSuccess("Résidence supprimée définitivement.");
-      setResidences(prev => prev.filter(r => r.id !== id));
     } catch (err) {
       console.error(err);
     }
@@ -302,9 +278,8 @@ export const AdminDashboard: React.FC<{ onBackToTraveler?: () => void }> = ({ on
 
   const handlePromoteResidence = async (id: string, titleStr: string, isPromoted: boolean) => {
     try {
-      await updateResidence(id, { promoted: !isPromoted } as any);
+      await updateDoc(doc(db, 'residences', id), { promoted: !isPromoted });
       logAction(`${!isPromoted ? 'Mise en avant (★)' : 'Retrait de la mise en avant'} de la résidence "${titleStr}"`);
-      setResidences(prev => prev.map(r => r.id === id ? { ...r, promoted: !isPromoted } : r));
     } catch (err) {
       console.error(err);
     }
@@ -325,15 +300,10 @@ export const AdminDashboard: React.FC<{ onBackToTraveler?: () => void }> = ({ on
       alert("Action refusée : Seul le Super Administrateur principal (mandemohamed68@gmail.com) est habilité à modifier les rôles.");
       return;
     }
-    if (isSuperAdminEmail(email)) {
-      alert("Action refusée : Vous ne pouvez pas modifier le rôle du Super Administrateur principal.");
-      return;
-    }
     try {
-      await updateUserProfile(uid, { role: targetRole });
+      await updateDoc(doc(db, 'users', uid), { role: targetRole });
       logAction(`Promu utilisateur ${email} du rôle ${currentRole} à ${targetRole}`);
       triggerSuccess(`Rôle de ${email} mis à jour avec succès vers : ${targetRole}`);
-      setUsers(prev => prev.map(u => u.uid === uid ? { ...u, role: targetRole } : u));
     } catch (err) {
       console.error(err);
       alert("Erreur de modification du rôle.");
@@ -362,10 +332,9 @@ export const AdminDashboard: React.FC<{ onBackToTraveler?: () => void }> = ({ on
         isSuspended: false
       };
 
-      await updateUserProfile(generatedUid, newUserProfile);
+      await setDoc(doc(db, 'users', generatedUid), newUserProfile);
       logAction(`Création de l'utilisateur ${newUserEmail} avec attribution du rôle ${newUserRole}`);
       triggerSuccess(`L'utilisateur ${newUserName} a été créé avec succès !`);
-      setUsers(prev => [...prev, newUserProfile]);
       
       // Reset
       setNewUserName('');
@@ -383,15 +352,10 @@ export const AdminDashboard: React.FC<{ onBackToTraveler?: () => void }> = ({ on
 
   // Helper to toggle suspension
   const handleToggleSuspendUser = async (uid: string, email: string, isSuspendedNow: boolean) => {
-    if (isSuperAdminEmail(email)) {
-      alert("Action refusée : Vous ne pouvez pas suspendre le Super Administrateur principal.");
-      return;
-    }
     try {
-      await updateUserProfile(uid, { isSuspended: !isSuspendedNow });
+      await updateDoc(doc(db, 'users', uid), { isSuspended: !isSuspendedNow });
       logAction(`${!isSuspendedNow ? 'Suspension' : 'Réactivation'} de l'utilisateur ${email}`);
       triggerSuccess(`Statut d'activité de ${email} mis à jour.`);
-      setUsers(prev => prev.map(u => u.uid === uid ? { ...u, isSuspended: !isSuspendedNow } : u));
     } catch (err) {
       console.error(err);
       alert("Erreur lors de la mise à jour de la suspension.");
@@ -400,16 +364,11 @@ export const AdminDashboard: React.FC<{ onBackToTraveler?: () => void }> = ({ on
 
   // Helper to delete user permanently
   const handleDeleteUser = async (uid: string, email: string) => {
-    if (isSuperAdminEmail(email)) {
-      alert("Action refusée : Le Super Administrateur principal ne peut pas être supprimé.");
-      return;
-    }
     if (window.confirm(`Êtes-vous sûr de vouloir supprimer définitivement l'utilisateur ${email} de la base de données ?`)) {
       try {
-        await deleteUser(uid);
+        await deleteDoc(doc(db, 'users', uid));
         logAction(`Suppression définitive du compte utilisateur ${email}`);
         triggerSuccess(`L'utilisateur ${email} a été supprimé definitivement.`);
-        setUsers(prev => prev.filter(u => u.uid !== uid));
       } catch (err) {
         console.error(err);
         alert("Erreur lors de la suppression de l'utilisateur.");
@@ -432,7 +391,6 @@ export const AdminDashboard: React.FC<{ onBackToTraveler?: () => void }> = ({ on
     try {
       const targetId = editingAdId || `ad_${Date.now()}`;
       const payload = {
-        id: targetId,
         imageUrl: adImageUrl.trim(),
         title: adTitle.trim(),
         description: adDescription.trim(),
@@ -440,16 +398,15 @@ export const AdminDashboard: React.FC<{ onBackToTraveler?: () => void }> = ({ on
         isActive: adIsActive,
         frequencySeconds: Number(adFrequency) || 10,
         startAt: adStartAt || null,
-        endAt: adEndAt || null
+        endAt: adEndAt || null,
+        createdAt: editingAdId ? (ads.find(a=>a.id===editingAdId)?.createdAt || new Date().toISOString()) : new Date().toISOString()
       };
 
-      await saveAd(payload);
+      await setDoc(doc(db, 'ads', targetId), payload);
       logAction(editingAdId ? `Modification de la campagne de publicité "${adTitle}"` : `Création d'une nouvelle publicité : "${adTitle}"`);
       triggerSuccess(editingAdId ? "L'affiche publicitaire a été mise à jour." : "L'affiche publicitaire a été enregistrée avec succès !");
       
       resetAdForm();
-      const adsList = await getAllAds();
-      setAds(adsList);
     } catch (err) {
       console.error(err);
       alert("Erreur lors de l'enregistrement de la publicité.");
@@ -500,10 +457,9 @@ export const AdminDashboard: React.FC<{ onBackToTraveler?: () => void }> = ({ on
 
   const handleToggleAdStatus = async (id: string, currentStatus: boolean, title: string) => {
     try {
-      await saveAd({ id, isActive: !currentStatus });
+      await updateDoc(doc(db, 'ads', id), { isActive: !currentStatus });
       logAction(`${!currentStatus ? 'Activation' : 'Désactivation'} de la publicité "${title}"`);
       triggerSuccess(`Statut de "${title}" mis à jour.`);
-      setAds(prev => prev.map(a => a.id === id ? { ...a, isActive: !currentStatus } : a));
     } catch (err) {
       console.error(err);
       alert("Erreur de modification du statut.");
@@ -513,10 +469,9 @@ export const AdminDashboard: React.FC<{ onBackToTraveler?: () => void }> = ({ on
   const handleDeleteAd = async (id: string, title: string) => {
     if (window.confirm(`Êtes-vous sûr de vouloir supprimer l'affiche publicitaire "${title}" ?`)) {
       try {
-        await deleteAd(id);
+        await deleteDoc(doc(db, 'ads', id));
         logAction(`Suppression de l'affiche publicitaire "${title}"`);
         triggerSuccess(`La publicité "${title}" a été supprimée.`);
-        setAds(prev => prev.filter(a => a.id !== id));
       } catch (err) {
         console.error(err);
         alert("Erreur de suppression de la publicité.");
@@ -540,12 +495,12 @@ export const AdminDashboard: React.FC<{ onBackToTraveler?: () => void }> = ({ on
   // Approve identity verification document checklist 
   const handleApproveIdentity = async (uid: string, email: string, displayName: string) => {
     try {
-      await updateUserProfile(uid, { 
-        isVerified: true
+      await updateDoc(doc(db, 'users', uid), { 
+        isVerified: true,
+        verificationStatus: 'verified'
       });
       logAction(`Identité certifiée et validée pour l'utilisateur ${displayName} (${email})`);
       triggerSuccess(`Compte de ${displayName} vérifié et certifié !`);
-      setUsers(prev => prev.map(u => u.uid === uid ? { ...u, isVerified: true } : u));
     } catch (err) {
       console.error(err);
       alert("Erreur de validation de l'identité.");
@@ -554,12 +509,13 @@ export const AdminDashboard: React.FC<{ onBackToTraveler?: () => void }> = ({ on
 
   const handleRejectIdentity = async (uid: string, email: string, displayName: string) => {
     try {
-      await updateUserProfile(uid, { 
-        isVerified: false
+      await updateDoc(doc(db, 'users', uid), { 
+        isVerified: false,
+        verificationStatus: 'none',
+        idCardUrl: "" // Reset so they can retake photo or scan
       });
       logAction(`Identité REFUSÉE et réinitialisée pour l'utilisateur ${displayName} (${email})`);
       triggerSuccess(`Demande de ${displayName} refusée.`);
-      setUsers(prev => prev.map(u => u.uid === uid ? { ...u, isVerified: false } : u));
     } catch (err) {
       console.error(err);
       alert("Erreur lors du rejet de la pièce d'identité.");
@@ -570,11 +526,13 @@ export const AdminDashboard: React.FC<{ onBackToTraveler?: () => void }> = ({ on
   const handleSaveBookingStatus = async (bookingId: string) => {
     setIsSaving(true);
     try {
-      await updateBookingStatus(bookingId, { bookingStatus: tempBookingStatus });
-      logAction(`Mise à jour réservation #${bookingId} - Statut: ${tempBookingStatus}`);
+      await updateDoc(doc(db, 'bookings', bookingId), {
+        bookingStatus: tempBookingStatus,
+        paymentStatus: tempPaymentStatus
+      });
+      logAction(`Mise à jour réservation #${bookingId} - Statut: ${tempBookingStatus}, Paiement: ${tempPaymentStatus}`);
       setEditingBookingId(null);
       triggerSuccess("Réservation mise à jour avec succès !");
-      setBookings(prev => prev.map(b => b.id === bookingId ? { ...b, status: tempBookingStatus } : b));
     } catch (err) {
       console.error(err);
       alert("Erreur lors de la mise à jour de la réservation.");
@@ -587,10 +545,9 @@ export const AdminDashboard: React.FC<{ onBackToTraveler?: () => void }> = ({ on
   const handleDeleteReview = async (reviewId: string, authorId: string) => {
     if (window.confirm("Voulez-vous vraiment supprimer cet avis de la plateforme ?")) {
       try {
-        // Simple mock for now as we don't have review delete API yet
+        await deleteDoc(doc(db, 'reviews', reviewId));
         logAction(`Avis ID #${reviewId} rédigé par l'utilisateur #${authorId} supprimé de la base de données.`);
         triggerSuccess("Avis modéré et supprimé !");
-        setReviews(prev => prev.filter(r => r.id !== reviewId));
       } catch (err) {
         console.error(err);
         alert("Erreur de modération de l'avis.");
@@ -603,7 +560,7 @@ export const AdminDashboard: React.FC<{ onBackToTraveler?: () => void }> = ({ on
     e.preventDefault();
     setIsSaving(true);
     try {
-      await saveGlobalSettings({
+      await setDoc(doc(db, 'settings', 'global'), {
         platformName: platformName,
         footerContent: footerContent,
         commissionRate: commissionRate,
@@ -691,8 +648,8 @@ export const AdminDashboard: React.FC<{ onBackToTraveler?: () => void }> = ({ on
   // Filters logic 
   const filteredResidences = residences.filter(res => 
     res.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    res.address?.city?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    res.address?.neighborhood?.toLowerCase().includes(searchQuery.toLowerCase())
+    res.address.city.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    res.address.neighborhood.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
   const filteredUsers = users.filter(usr => 
@@ -754,8 +711,6 @@ export const AdminDashboard: React.FC<{ onBackToTraveler?: () => void }> = ({ on
               category: "Pilotage & Synthèse",
               items: [
                 { id: 'overview', label: 'Tableau de bord', icon: LayoutDashboard },
-                { id: 'stats_advanced', label: 'Statistiques Avancées', icon: TrendingUp },
-                { id: 'reports_finance', label: 'Rapports Financiers', icon: BarChart3 },
                 { id: 'alerts', label: 'Alertes critiques', icon: ShieldCheck, badge: pendingResCount + pendingIdCount, badgeColor: 'bg-[#EF2B2D]' },
               ]
             },
@@ -763,27 +718,25 @@ export const AdminDashboard: React.FC<{ onBackToTraveler?: () => void }> = ({ on
               category: "Gestion & Modération",
               items: [
                 { id: 'listings', label: 'Hébergements', icon: Home },
-                { id: 'approvals', label: 'Approbations Résidences', icon: CheckCircle2, badge: pendingResCount, badgeColor: 'bg-amber-500' },
                 { id: 'users', label: 'Utilisateurs', icon: Users },
-                { id: 'verifications', label: 'Certifications Identité', icon: ShieldCheck, badge: pendingIdCount, badgeColor: 'bg-indigo-600' },
-                { id: 'reviews', label: 'Avis & Plaintes', icon: Activity },
+                { id: 'reviews', label: 'Avis & Modération', icon: Activity },
               ]
             },
             {
               category: "Flux & Opérations",
               items: [
                 { id: 'bookings', label: 'Réservations', icon: Calendar, badge: bookings.filter(b=>b.bookingStatus==='pending').length, badgeColor: 'bg-blue-600' },
-                { id: 'revenue', label: 'Finances & Flux', icon: TrendingUp },
+                { id: 'revenue', label: 'Finances', icon: TrendingUp },
                 { id: 'withdrawals', label: 'Demandes de Retrait', icon: Download, badge: withdrawals.filter(w=>w.status==='pending').length, badgeColor: 'bg-yellow-500' },
-                { id: 'ads', label: 'Publicités (Ads)', icon: Megaphone, badge: ads.filter(a => a.isActive).length, badgeColor: 'bg-green-600' },
+                { id: 'ads', label: 'Affiches & Pubs', icon: Megaphone, badge: ads.filter(a => a.isActive).length, badgeColor: 'bg-green-600' },
               ]
             },
             {
               category: "Outils & Systèmes",
               items: [
-                { id: 'audit', label: 'Rapports d\'Audit', icon: FileText },
-                { id: 'logs', label: 'Logs Plateforme', icon: Activity },
-                { id: 'settings', label: 'Paramètres Globaux', icon: Settings },
+                { id: 'reports', label: 'Rapports d\'Audit', icon: FileText },
+                { id: 'settings', label: 'Paramètres', icon: Settings },
+                { id: 'logs', label: 'Logs en Temps Réel', icon: Activity },
               ]
             }
           ].map((group, groupIdx) => (
@@ -865,7 +818,7 @@ export const AdminDashboard: React.FC<{ onBackToTraveler?: () => void }> = ({ on
             <button 
               onClick={async () => {
                 try {
-                  await saveGlobalSettings({
+                  await updateDoc(doc(db, 'settings', 'global'), {
                     commissionRate: commissionRate
                   });
                   logAction(`Modification rapide de la commission globale à ${commissionRate}%`);
@@ -930,7 +883,7 @@ export const AdminDashboard: React.FC<{ onBackToTraveler?: () => void }> = ({ on
                         <img src={res.images?.[0] || 'https://images.unsplash.com/photo-1513694203232-719a280e022f?auto=format&fit=crop&w=150'} className="w-14 h-12 object-cover rounded-xl" />
                         <div>
                           <h4 className="font-black text-slate-900 leading-tight">{res.title}</h4>
-                          <span className="text-[10px] text-slate-500 capitalize">{res.address?.neighborhood}, {res.address?.city} &bull; {formatCurrency(res.pricePerNight)} F/nuit</span>
+                          <span className="text-[10px] text-slate-500 capitalize">{res.address.neighborhood}, {res.address.city} &bull; {formatCurrency(res.pricePerNight)} F/nuit</span>
                         </div>
                       </div>
                       <div className="flex gap-2 self-end sm:self-auto">
@@ -1009,10 +962,8 @@ export const AdminDashboard: React.FC<{ onBackToTraveler?: () => void }> = ({ on
                         <button 
                           onClick={async () => {
                             try {
-                              await updateUserProfile(u.uid, { isVerified: false });
+                              await updateDoc(doc(db, 'users', u.uid), { verificationStatus: 'none', idNumber: '', idExpiry: '' });
                               logAction(`Rejet pièce d'identité de l'utilisateur ${u.email}`);
-                              triggerSuccess("Identité rejetée.");
-                              setUsers(prev => prev.map(usr => usr.uid === u.uid ? { ...usr, isVerified: false } : usr));
                             } catch(e) {}
                           }}
                           className="px-3 py-2 bg-slate-100 hover:bg-slate-200 text-slate-600 text-xs font-black uppercase tracking-widest rounded-xl transition cursor-pointer"
@@ -1643,8 +1594,18 @@ export const AdminDashboard: React.FC<{ onBackToTraveler?: () => void }> = ({ on
                 <p className="text-slate-400 font-black text-sm">Aucun commentaire n'a été rédigé pour le moment.</p>
                 <button 
                   onClick={async () => {
+                    // Seed dynamic mockup reviews inside Firestore for user safety
+                    const mockRevId = `rev-${Date.now()}`;
+                    await setDoc(doc(db, 'reviews', mockRevId), {
+                      bookingId: "b-999-sample",
+                      residenceId: "res-1",
+                      clientId: "client-sample-99",
+                      rating: 2,
+                      comment: "Publicité mensongère sous l'immeuble. Très bruyant !",
+                      createdAt: new Date().toISOString()
+                    });
                     logAction("Génération d'un avis d'évaluation témoin à modérer pour test.");
-                    triggerSuccess("Avis de test simulé !");
+                    triggerSuccess("Avis de test généré !");
                   }}
                   className="bg-slate-900 text-white px-5 py-2.5 rounded-xl text-xs font-black uppercase tracking-wider hover:bg-slate-800 transition cursor-pointer"
                 >
@@ -2558,326 +2519,25 @@ export const AdminDashboard: React.FC<{ onBackToTraveler?: () => void }> = ({ on
         )}
 
         {/* TAB 10: REAL-TIME AUDIT LOGS TIMELINE */}
-        {activeTab === 'logs' && (() => {
-          const filteredSystemLogs = systemLogs.filter(log => {
-            const searchLower = logsSearch.toLowerCase();
-            const matchesSearch = !logsSearch || 
-              (log.message && log.message.toLowerCase().includes(searchLower)) ||
-              (log.user_email && log.user_email.toLowerCase().includes(searchLower)) ||
-              (log.category && log.category.toLowerCase().includes(searchLower)) ||
-              (log.details && (typeof log.details === "object" ? JSON.stringify(log.details) : String(log.details)).toLowerCase().includes(searchLower));
-
-            const matchesLevel = logsLevelFilter === 'ALL' || log.level === logsLevelFilter;
-            const matchesCategory = logsCategoryFilter === 'ALL' || log.category === logsCategoryFilter;
-            const matchesRole = logsRoleFilter === 'ALL' || log.user_role === logsRoleFilter;
-
-            return matchesSearch && matchesLevel && matchesCategory && matchesRole;
-          });
-
-          const downloadLogsJson = () => {
-            const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(systemLogs, null, 2));
-            const downloadAnchor = document.createElement('a');
-            downloadAnchor.setAttribute("href", dataStr);
-            downloadAnchor.setAttribute("download", `resifaso_workflow_logs_${new Date().toISOString().slice(0, 10)}.json`);
-            document.body.appendChild(downloadAnchor);
-            downloadAnchor.click();
-            downloadAnchor.remove();
-          };
-
-          return (
-            <div className="space-y-6 animate-in fade-in" id="logs-tab-container">
-              <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-                <div>
-                  <h2 className="text-3xl font-black text-slate-900 tracking-tight leading-none mb-2">Logs & Flux de Workflows</h2>
-                  <p className="text-slate-500 font-medium text-sm">
-                    Console d'audit step-by-step pour capturer et corriger les actions des Voyageurs, Hôtes et Admins en local ou en production en temps réel.
-                  </p>
-                </div>
-
-                <div className="flex items-center gap-2 self-start md:self-auto">
-                  <button
-                    onClick={downloadLogsJson}
-                    className="flex items-center gap-1.5 px-4 py-2.5 bg-white border border-slate-205 hover:bg-slate-50 text-slate-700 rounded-2xl text-xs font-semibold shadow-sm transition active:scale-95 cursor-pointer"
-                    title="Télécharger l'historique complet en format JSON pour analyse"
-                  >
-                    <Download size={15} />
-                    <span>Exporter JSON</span>
-                  </button>
-                  <button
-                    onClick={handlePurgeLogs}
-                    disabled={isPurgingLogs}
-                    className="flex items-center gap-1.5 px-4 py-2.5 bg-rose-50 border border-rose-200 hover:bg-rose-100 text-rose-700 rounded-2xl text-xs font-semibold shadow-sm transition active:scale-95 disabled:opacity-50 cursor-pointer"
-                    title="Purger tous les logs enregistrés de la base de données"
-                  >
-                    <Trash2 size={15} />
-                    <span>Effacer l'historique</span>
-                  </button>
-                </div>
-              </div>
-
-              {/* FILTERS PANEL */}
-              <div className="bg-white border md:border-2 border-slate-100 rounded-[32px] p-6 shadow-sm space-y-4">
-                <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                  {/* Search query input */}
-                  <div className="relative">
-                    <span className="absolute inset-y-0 left-3 flex items-center text-slate-400">
-                      <Search size={15} />
-                    </span>
-                    <input
-                      type="text"
-                      value={logsSearch}
-                      onChange={(e) => setLogsSearch(e.target.value)}
-                      placeholder="Filtrer par URL, Email, Message, Payload JSON..."
-                      className="w-full bg-slate-50 border border-slate-200 focus:border-indigo-500 rounded-2xl pl-10 pr-4 py-2.5 text-xs text-slate-800 focus:ring-1 focus:ring-indigo-500 font-medium outline-none"
-                    />
-                    {logsSearch && (
-                      <button
-                        onClick={() => setLogsSearch('')}
-                        className="absolute right-3 top-2.5 text-xs text-slate-400 hover:text-slate-600 font-black cursor-pointer"
-                      >
-                        ×
-                      </button>
-                    )}
-                  </div>
-
-                  {/* Level Select */}
-                  <div>
-                    <select
-                      value={logsLevelFilter}
-                      onChange={(e) => setLogsLevelFilter(e.target.value)}
-                      className="w-full bg-slate-50 border border-slate-200 rounded-2xl px-3 py-2.5 text-xs font-semibold text-slate-800 focus:ring-1 focus:ring-indigo-500 outline-none cursor-pointer"
-                    >
-                      <option value="ALL">Tout Niveau (SUCCESS, WARN, ERROR)</option>
-                      <option value="SUCCESS">Vert | Succès / Requête OK</option>
-                      <option value="WARN">Jaune | Avertissement / Attention</option>
-                      <option value="ERROR">Rouge | Erreur / Bug d'intervenant</option>
-                    </select>
-                  </div>
-
-                  {/* Category Select */}
-                  <div>
-                    <select
-                      value={logsCategoryFilter}
-                      onChange={(e) => setLogsCategoryFilter(e.target.value)}
-                      className="w-full bg-slate-50 border border-slate-200 rounded-2xl px-3 py-2.5 text-xs font-semibold text-slate-800 focus:ring-1 focus:ring-indigo-500 outline-none cursor-pointer"
-                    >
-                      <option value="ALL">Toutes les Catégories</option>
-                      <option value="AUTHENTIFICATION">Authentification & Profils</option>
-                      <option value="RÉSERVATION">Réservations & Disponibilités</option>
-                      <option value="COMPTE_PROPRIÉTAIRE">Hôtes & Logements</option>
-                      <option value="RETRAITS">Paiements & Retraits</option>
-                      <option value="PUBLICITÉ">Publicité & Annonces</option>
-                      <option value="API_REQUEST">Requêtes API Génériques</option>
-                    </select>
-                  </div>
-
-                  {/* Role Select */}
-                  <div>
-                    <select
-                      value={logsRoleFilter}
-                      onChange={(e) => setLogsRoleFilter(e.target.value)}
-                      className="w-full bg-slate-50 border border-slate-200 rounded-2xl px-3 py-2.5 text-xs font-semibold text-slate-800 focus:ring-1 focus:ring-indigo-500 outline-none cursor-pointer"
-                    >
-                      <option value="ALL">Tous les Intervenants (Tous Rôles)</option>
-                      <option value="admin">Administrateur / Super-Admin</option>
-                      <option value="owner">Hôte / Propriétaire</option>
-                      <option value="client">Voyageur / Client</option>
-                      <option value="guest">Utilisateur Anonyme</option>
-                    </select>
-                  </div>
-                </div>
-
-                {/* Status footer with Auto-refresh control */}
-                <div className="flex flex-wrap items-center justify-between gap-4 pt-4 border-t border-slate-100 text-xs text-slate-500">
-                  <div className="flex items-center gap-3">
-                    <label className="flex items-center gap-2 cursor-pointer font-semibold select-none">
-                      <input
-                        type="checkbox"
-                        checked={isLogsAutoRefresh}
-                        onChange={(e) => setIsLogsAutoRefresh(e.target.checked)}
-                        className="rounded border-slate-300 text-indigo-600 focus:ring-indigo-500 w-4 h-4 cursor-pointer"
-                      />
-                      <span>Mise à jour en temps réel (Intervalles de 3 Sec)</span>
-                    </label>
-                    {isLogsAutoRefresh && (
-                      <span className="inline-flex items-center gap-1 bg-emerald-50 text-emerald-700 px-2 py-0.5 rounded-full font-bold">
-                        <span className="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-ping" />
-                        Actif
-                      </span>
-                    )}
-                  </div>
-
-                  <div className="font-medium text-slate-400">
-                    Affichage de <span className="font-bold text-slate-700">{filteredSystemLogs.length}</span> sur <span className="font-bold text-slate-700">{systemLogs.length}</span> entrées capturées.
-                  </div>
-                </div>
-              </div>
-
-              {/* REAL-TIME LOG STREAM VIEW */}
-              <div className="bg-slate-900 text-slate-300 rounded-[32px] p-6 border-4 border-slate-950 shadow-inner max-h-[600px] overflow-y-auto flex flex-col gap-3 scrollbar-thin scrollbar-thumb-slate-700 select-text">
-                {filteredSystemLogs.length === 0 ? (
-                  <div className="text-center py-12 space-y-3">
-                    <div className="text-slate-500 font-semibold mb-2 text-sm font-mono">=== AUCUNE ACTIVITÉ CAPTURÉE ===</div>
-                    <p className="text-slate-400 text-xs max-w-sm mx-auto leading-relaxed">
-                      Aucun workflow correspondant aux critères sélectionnés n'a été détecté. Déclenchez des actions sur l'application (comme changer de page, modifier un hébergement ou créer une réservation) pour voir les logs s'afficher ici pas-à-pas !
-                    </p>
-                  </div>
-                ) : (
-                  filteredSystemLogs.map((log) => {
-                    const isExpanded = expandedLogId === log.id;
-                    
-                    // Stylings
-                    let levelColor = "text-sky-400";
-                    let levelBg = "bg-sky-500/15 text-sky-400 border-sky-450/40";
-                    if (log.level === "SUCCESS") {
-                      levelColor = "text-emerald-400";
-                      levelBg = "bg-emerald-500/15 text-emerald-400 border-emerald-500/30";
-                    } else if (log.level === "WARN") {
-                      levelColor = "text-amber-400";
-                      levelBg = "bg-amber-500/15 text-amber-400 border-amber-500/30";
-                    } else if (log.level === "ERROR") {
-                      levelColor = "text-rose-400";
-                      levelBg = "bg-rose-500/15 text-rose-400 border-rose-500/30";
-                    }
-
-                    let categoryBg = "bg-slate-850 text-slate-450";
-                    if (log.category === "AUTHENTIFICATION") categoryBg = "bg-violet-950/70 text-violet-300 border border-violet-850/40";
-                    else if (log.category === "RÉSERVATION") categoryBg = "bg-blue-950/70 text-blue-300 border border-blue-850/40";
-                    else if (log.category === "COMPTE_PROPRIÉTAIRE") categoryBg = "bg-teal-950/70 text-teal-300 border border-teal-850/40";
-                    else if (log.category === "RETRAITS") categoryBg = "bg-amber-950/70 text-amber-300 border border-amber-850/40";
-                    else if (log.category === "PUBLICITÉ") categoryBg = "bg-fuchsia-950/70 text-fuchsia-300 border border-fuchsia-850/40";
-
-                    let roleBadge = "bg-slate-800/80 text-slate-400";
-                    if (log.user_role === "admin") roleBadge = "bg-rose-950 text-rose-300 text-[9px] font-black border border-rose-800/40";
-                    else if (log.user_role === "owner") roleBadge = "bg-sky-950 text-sky-300 text-[9px] font-black border border-sky-800/40";
-                    else if (log.user_role === "client") roleBadge = "bg-emerald-950 text-emerald-300 text-[9px] font-black border border-emerald-800/40";
-
-                    // Extract timestamp nicely
-                    const formattedTime = new Date(log.timestamp).toLocaleTimeString();
-
-                    return (
-                      <div 
-                        key={log.id} 
-                        className={cn(
-                          "rounded-2xl p-4 transition-all duration-155 border font-mono text-[11px] group cursor-pointer",
-                          isExpanded 
-                            ? "bg-slate-950/90 border-slate-750 shadow-2xl" 
-                            : "bg-slate-950/30 border-slate-800/90 hover:bg-slate-950/65 hover:border-slate-700"
-                        )}
-                        onClick={() => setExpandedLogId(isExpanded ? null : log.id)}
-                      >
-                        {/* LOG MAIN ROW */}
-                        <div className="flex flex-col md:flex-row md:items-center justify-between gap-3">
-                          <div className="flex flex-wrap items-center gap-2">
-                            {/* Log Badge */}
-                            <span className={cn("px-2 py-0.5 rounded-full font-bold text-[9px] uppercase border tracking-wider", levelBg)}>
-                              {log.level}
-                            </span>
-
-                            {/* Time */}
-                            <span className="text-slate-500 font-medium whitespace-nowrap">
-                              [{formattedTime}]
-                            </span>
-
-                            {/* Category */}
-                            <span className={cn("px-2 py-0.5 rounded-md font-bold text-[8px] uppercase tracking-wide", categoryBg)}>
-                              {log.category}
-                            </span>
-
-                            {/* Message */}
-                            <span className={cn("font-semibold break-all leading-relaxed", levelColor)}>
-                              {log.message}
-                            </span>
-                          </div>
-
-                          {/* Right tags */}
-                          <div className="flex items-center gap-2 self-start md:self-auto">
-                            {/* Speed performance meter */}
-                            {log.duration_ms > 0 && (
-                              <span className={cn(
-                                "text-[10px] font-bold px-1.5 py-0.5 rounded-md", 
-                                log.duration_ms > 300 ? "text-amber-400 bg-amber-500/10" : "text-emerald-400 bg-emerald-500/10"
-                              )}>
-                                ⏱️ {log.duration_ms}ms
-                              </span>
-                            )}
-
-                            {/* Email & Role of who triggered this */}
-                            {log.user_email && log.user_email !== "anonymous" && (
-                              <span 
-                                className="text-slate-400 hover:underline cursor-pointer font-medium max-w-[120px] md:max-w-[180px] overflow-hidden text-ellipsis whitespace-nowrap"
-                                title={`${log.user_email} (${log.user_role})`}
-                              >
-                                👤 {log.user_email}
-                              </span>
-                            )}
-
-                            <span className={cn("px-1.5 py-0.5 rounded text-[8px] uppercase font-bold tracking-widest", roleBadge)}>
-                              {log.user_role}
-                            </span>
-
-                            {/* Toggle Expand Icon */}
-                            <span className="text-xs font-black text-slate-500 ml-1 group-hover:text-slate-350">
-                              {isExpanded ? "▲" : "▼"}
-                            </span>
-                          </div>
-                        </div>
-
-                        {/* EXPANDED SYSTEM LOG DETAILS BLOCK */}
-                        {isExpanded && (
-                          <div 
-                            className="mt-4 pt-4 border-t border-slate-800/80 space-y-3 animate-in fade-in duration-200"
-                            onClick={(e) => e.stopPropagation()} // Stop propagation to allow text copying
-                          >
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs">
-                              <div className="bg-slate-900/50 p-3.5 rounded-xl border border-slate-800/60 leading-relaxed text-slate-400 font-sans">
-                                <div className="font-bold text-slate-300 mb-1 text-[10px] uppercase tracking-wider text-indigo-400 font-mono">Métadonnées du Déclencheur</div>
-                                <div><strong className="text-slate-300">Horodatage précis:</strong> {new Date(log.timestamp).toLocaleString()}</div>
-                                <div><strong className="text-slate-300">Identifiant Log:</strong> #{log.id}</div>
-                                <div><strong className="text-slate-300">Adresse Email:</strong> {log.user_email}</div>
-                                <div><strong className="text-slate-300">Rôle System:</strong> {log.user_role}</div>
-                              </div>
-                              
-                              <div className="bg-slate-900/50 p-3.5 rounded-xl border border-slate-800/60 leading-relaxed text-slate-400 font-sans">
-                                <div className="font-bold text-slate-300 mb-1 text-[10px] uppercase tracking-wider text-indigo-400 font-mono">Diagnostic d'Exécution</div>
-                                <div><strong className="text-slate-300">Niveau d'Urgence:</strong> {log.level}</div>
-                                <div><strong className="text-slate-300">Ressource Interrogée:</strong> {log.category}</div>
-                                <div><strong className="text-slate-300">Vitesse d'Exécution (Latence):</strong> {log.duration_ms || "Inconnue"} ms</div>
-                                <div><strong className="text-slate-300">Connexion DB:</strong> MariaDB / Firestore Fallback (OK)</div>
-                              </div>
-                            </div>
-
-                            {/* Render Parameter/JSON request details if exists */}
-                            {log.details && (
-                              <div className="space-y-1">
-                                <div className="font-bold text-slate-400 text-[10px] uppercase tracking-wider text-emerald-400 flex items-center gap-1">
-                                  <span>📦 Informations de session, payload & arguments reçus :</span>
-                                </div>
-                                <div className="bg-slate-950 p-4 rounded-xl border border-slate-850 text-[10px] leading-relaxed max-h-[300px] overflow-auto select-all font-mono">
-                                  <pre className="text-emerald-450 whitespace-pre-wrap">
-                                    {typeof log.details === "object" 
-                                      ? JSON.stringify(log.details, null, 2) 
-                                      : log.details
-                                    }
-                                  </pre>
-                                </div>
-                              </div>
-                            )}
-
-                            <div className="text-[10px] text-slate-400 leading-relaxed bg-slate-900/40 p-3 rounded-lg flex items-center gap-2 font-sans">
-                              <span className="text-amber-400 text-sm">💡</span>
-                              <span>Vous pouvez copier l'ensemble des payloads JSON ci-dessus dans vos logiciels de requêtes ou éditeurs de code locaux pour tester.</span>
-                            </div>
-                          </div>
-                        )}
-                      </div>
-                    );
-                  })
-                )}
-              </div>
+        {activeTab === 'logs' && (
+          <div className="space-y-6 animate-in fade-in" id="logs-tab-container">
+            <div>
+              <h2 className="text-3xl font-black text-slate-900 tracking-tight leading-none mb-1">Logs d'Activité en direct</h2>
+              <p className="text-slate-500 font-medium text-sm">Registre d'audit burkinabè des actions d'administrateurs et modifications de configurations.</p>
             </div>
-          );
-        })()}
+
+            <div className="bg-slate-950 text-slate-300 font-mono text-xs rounded-3xl p-6 border-4 border-slate-900 shadow-inner h-[400px] overflow-y-auto flex flex-col gap-2 shadow-2xl">
+              {actionLogs.map((log, idx) => {
+                const isAction = log.includes('ACTION');
+                return (
+                  <div key={idx} className={cn("leading-relaxed", isAction ? "text-green-400" : "text-slate-400")}>
+                    {log}
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
 
       </main>
 

@@ -402,13 +402,13 @@ const BookingTable: React.FC<BookingTableProps> = ({
                     <div className="space-y-1">
                       <span className="text-base font-extrabold text-slate-900 block">{currentRes?.title || "Logement Supprimé"}</span>
                       <p className="text-xs text-slate-500 font-bold leading-normal">
-                        {currentRes?.address?.street && `${currentRes.address?.street}, `}
-                        {currentRes?.address?.neighborhood && `${currentRes.address?.neighborhood}, `}
+                        {currentRes?.address?.street && `${currentRes.address.street}, `}
+                        {currentRes?.address?.neighborhood && `${currentRes.address.neighborhood}, `}
                         <strong className="text-slate-800 font-bold">{currentRes?.address?.city || "Burkina Faso"}</strong>
                       </p>
                       {currentRes?.address?.coordinates && (
                         <div className="inline-flex items-center gap-1 px-2.5 py-1 bg-slate-50 border border-slate-200 rounded-md text-[9px] font-mono font-bold text-slate-500 mt-1">
-                          📍 Lat: {currentRes.address?.coordinates?.lat.toFixed(5)} / Lng: {currentRes.address?.coordinates?.lng.toFixed(5)}
+                          📍 Lat: {currentRes.address.coordinates.lat.toFixed(5)} / Lng: {currentRes.address.coordinates.lng.toFixed(5)}
                         </div>
                       )}
                     </div>
@@ -780,72 +780,41 @@ export const OwnerDashboard: React.FC<{ isTestMode?: boolean; onBackToTraveler?:
     'Wi-Fi', 'Climatisation', 'Piscine', 'Parking', 'Sécurité 24/7', 'Cuisine équipée', 'Jardin', 'Groupe Électrogène', 'Forage Eau'
   ];
 
-  // Fetch real-time data for owners (MariaDB with Firebase fallback)
+  // Fetch real-time data for owners
   useEffect(() => {
     if (!user) {
       setLoading(false);
       return;
     }
 
-    let isMounted = true;
-    const loadHostData = async () => {
-      try {
-        const [resList, bookList] = await Promise.all([
-          getOwnerResidences(user.uid),
-          getOwnerBookings(user.uid)
-        ]);
-
-        if (!isMounted) return;
-
-        setResidences(resList);
-        bookList.sort((a, b) => new Date(a.checkIn).getTime() - new Date(b.checkIn).getTime());
-        setBookings(bookList);
-        setLoading(false);
-      } catch (err) {
-        console.warn("MariaDB host data fetch failed, using Firestore fallback:", err);
-      }
-    };
-
     setLoading(true);
-    loadHostData();
-    const interval = setInterval(loadHostData, 5000); // Poll every 5 seconds to keep dashboard instantly updated!
 
-    // Firebase fallback watcher
-    let unsubRes = () => {};
-    let unsubBook = () => {};
-    try {
-      const qRes = query(collection(db, 'residences'), where('ownerId', '==', user.uid));
-      unsubRes = onSnapshot(qRes, (snap) => {
-        if (!isMounted) return;
-        if (snap.size > 0) {
-          const list: Residence[] = [];
-          snap.forEach(docSnap => {
-            list.push({ id: docSnap.id, ...docSnap.data() } as Residence);
-          });
-          setResidences(list);
-        }
-      }, (error) => console.warn("Firestore fallback residences error:", error));
+    // Watch Residences
+    const qRes = query(collection(db, 'residences'), where('ownerId', '==', user.uid));
+    const unsubRes = onSnapshot(qRes, (snap) => {
+      const list: Residence[] = [];
+      snap.forEach(docSnap => {
+        list.push({ id: docSnap.id, ...docSnap.data() } as Residence);
+      });
+      setResidences(list);
+    }, (error) => console.error("OwnerDashboard residences snapshot error:", error));
 
-      const qBook = query(collection(db, 'bookings'), where('ownerId', '==', user.uid));
-      unsubBook = onSnapshot(qBook, (snap) => {
-        if (!isMounted) return;
-        if (snap.size > 0) {
-          const list: Booking[] = [];
-          snap.forEach(docSnap => {
-            list.push({ id: docSnap.id, ...docSnap.data() } as Booking);
-          });
-          list.sort((a, b) => new Date(a.checkIn).getTime() - new Date(b.checkIn).getTime());
-          setBookings(list);
-        }
-        setLoading(false);
-      }, () => setLoading(false));
-    } catch (e) {
-      console.warn("Firestore fallback watcher skipped:", e);
-    }
+    // Watch Bookings
+    const qBook = query(collection(db, 'bookings'), where('ownerId', '==', user.uid));
+    const unsubBook = onSnapshot(qBook, (snap) => {
+      const list: Booking[] = [];
+      snap.forEach(docSnap => {
+        list.push({ id: docSnap.id, ...docSnap.data() } as Booking);
+      });
+      // Sort by check-in date
+      list.sort((a, b) => new Date(a.checkIn).getTime() - new Date(b.checkIn).getTime());
+      setBookings(list);
+      setLoading(false);
+    }, () => {
+      setLoading(false);
+    });
 
     return () => {
-      isMounted = false;
-      clearInterval(interval);
       unsubRes();
       unsubBook();
     };
@@ -965,8 +934,8 @@ export const OwnerDashboard: React.FC<{ isTestMode?: boolean; onBackToTraveler?:
     // Reverse geocode to fill fields
     const addr = await reverseGeocode(pos.lat, pos.lng);
     if (addr && addr.address) {
-      const city = addr.address?.city || addr.address?.town || addr.address?.village;
-      const road = addr.address?.road || addr.address?.suburb || addr.address?.neighbourhood;
+      const city = addr.address.city || addr.address.town || addr.address.village;
+      const road = addr.address.road || addr.address.suburb || addr.address.neighbourhood;
       
       if (city) {
         const foundCity = BURKINA_LOCATIONS.find(c => c.name.toLowerCase().includes(city.toLowerCase()));
@@ -1290,11 +1259,11 @@ export const OwnerDashboard: React.FC<{ isTestMode?: boolean; onBackToTraveler?:
     setTitle(res.title);
     setDescription(res.description);
     setType(res.type);
-    const city = BURKINA_LOCATIONS.find(c => c.name === res.address?.city);
+    const city = BURKINA_LOCATIONS.find(c => c.name === res.address.city);
     setSelectedCityId(city?.id || '');
-    const hood = city?.neighborhoods.find(n => n.name === res.address?.neighborhood);
+    const hood = city?.neighborhoods.find(n => n.name === res.address.neighborhood);
     setSelectedNeighborhoodId(hood?.id || '');
-    setStreet(res.address?.street || '');
+    setStreet(res.address.street || '');
     setPricePerNight(res.pricePerNight.toString());
     setAdvancePercentage(res.advancePercentage);
     setCleaningFee(res.cleaningFee.toString());
@@ -1311,7 +1280,7 @@ export const OwnerDashboard: React.FC<{ isTestMode?: boolean; onBackToTraveler?:
     setOwnerPhone(res.ownerPhone || '');
     setImages(res.images || []);
     setAmenities(res.amenities || []);
-    if (res.address?.coordinates) {
+    if (res.address.coordinates) {
       setCoordinates(res.address.coordinates);
     }
     setAvailabilityStatus(res.availabilityStatus || 'available');
@@ -1501,7 +1470,7 @@ export const OwnerDashboard: React.FC<{ isTestMode?: boolean; onBackToTraveler?:
       <div className="flex border-b border-slate-100 gap-6 mb-8 overflow-x-auto no-scrollbar">
         {[
           { id: 'stats', label: 'Tableau de bord', icon: BarChart3 },
-          { id: 'listings', label: `Mes résidences (${residences.length})`, icon: Home },
+          { id: 'listings', label: 'Mes résidences', icon: Home, count: residences.length },
           { id: 'bookings', label: 'Réservations', icon: CalendarCheck, count: bookings.filter(b => b.bookingStatus === 'pending').length },
           { id: 'revenue', label: 'Gains', icon: Wallet },
           { id: 'messages', label: 'Messagerie', icon: Layers },
@@ -1640,7 +1609,7 @@ export const OwnerDashboard: React.FC<{ isTestMode?: boolean; onBackToTraveler?:
                           </div>
                         </td>
                         <td className="py-4 px-6 font-medium text-slate-500">
-                          {res.address?.neighborhood}, {res.address?.city}
+                          {res.address.neighborhood}, {res.address.city}
                         </td>
                         <td className="py-4 px-6">
                           <div className="flex flex-col gap-1">

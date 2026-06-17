@@ -15,8 +15,7 @@ export const Navbar: React.FC<{
   onNavigate: (view: any) => void;
   isDarkMode: boolean;
   onToggleDarkMode: () => void;
-  platformName?: string;
-}> = ({ onNavigate, isDarkMode, onToggleDarkMode, platformName }) => {
+}> = ({ onNavigate, isDarkMode, onToggleDarkMode }) => {
   const { user, profile, logOut } = useAuth();
   const { currentRole, setCurrentRole, canSwitch } = useRole();
   const [isAuthOpen, setIsAuthOpen] = useState(false);
@@ -86,7 +85,7 @@ export const Navbar: React.FC<{
           </div>
           <div className="flex flex-col z-10 pl-4 sm:pl-8">
             <span className="hidden sm:block font-black text-2xl tracking-tight text-slate-900 leading-none">
-              {platformName || 'ResiFaso'}<span className="text-red-600 text-3xl leading-[0]">.</span>
+              ResiFaso<span className="text-red-600 text-3xl leading-[0]">.</span>
             </span>
           </div>
         </div>

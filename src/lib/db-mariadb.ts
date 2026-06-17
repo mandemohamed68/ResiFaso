@@ -1,7 +1,20 @@
-import 'dotenv/config';
-import { pool } from './db-server';
+import mysql from 'mysql2/promise';
+import dotenv from 'dotenv';
 import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
+
+dotenv.config();
+
+// Configuration de la connexion à MariaDB
+const pool = mysql.createPool({
+  host: process.env.DB_HOST || '127.0.0.1',
+  user: process.env.DB_USER || 'resifaso_user',
+  password: process.env.DB_PASSWORD || 'MOT_DE_PASSE_TRES_FORT_ICI',
+  database: process.env.DB_NAME || 'resifaso_db',
+  waitForConnections: true,
+  connectionLimit: 10,
+  queueLimit: 0
+});
 
 export const db = {
   // Fonction utilitaire pour exécuter une requête

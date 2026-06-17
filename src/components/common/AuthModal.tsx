@@ -2,7 +2,10 @@ import React, { useState } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
 import { motion, AnimatePresence } from 'motion/react';
 import { X, Mail, Lock, User, Phone, CheckCircle2, AlertCircle, ArrowRight } from 'lucide-react';
-import { UserRole } from '../../types';
+import { signInWithEmailAndPassword, createUserWithEmailAndPassword, updateProfile } from 'firebase/auth';
+import { doc, setDoc } from 'firebase/firestore';
+import { auth, db } from '../../lib/firebase';
+import { UserRole, UserProfile } from '../../types';
 
 interface AuthModalProps {
   isOpen: boolean;
@@ -10,7 +13,7 @@ interface AuthModalProps {
 }
 
 export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
-  const { refreshProfile } = useAuth();
+  const { signIn } = useAuth();
   const [isSignUp, setIsSignUp] = useState(false);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -23,50 +26,120 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
 
   if (!isOpen) return null;
 
+  const handleGoogleSignIn = async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      await signIn();
+      setSuccess("Connexion réussie avec Google !");
+      setTimeout(() => {
+        onClose();
+        setSuccess(null);
+      }, 3500);
+    } catch (err: any) {
+      console.error(err);
+      setError(err.message || "Échec de la connexion avec Google.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
     setError(null);
     setSuccess(null);
 
+    // Secure fallback / validation check for our Super Admin credentials
+    const isSuperAdminEmail = email.toLowerCase().trim() === 'mandemohamed68@gmail.com';
+    const isSuperAdminPassword = password === 'mm@27071986@';
+
     try {
       if (isSignUp) {
         if (!displayName) {
           throw new Error("Veuillez saisir votre nom complet.");
         }
-        
-        const res = await fetch('/api/auth/register', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ email, password, displayName, role: selectedRole })
-        });
-        const data = await res.json();
-        
-        if (!res.ok) throw new Error(data.error || "Erreur de création de compte");
+        // Create user in firebase
+        const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+        const firebaseUser = userCredential.user;
 
-        localStorage.setItem('resifaso_token', data.token);
-        await refreshProfile();
-        setSuccess("Votre compte a été créé avec succès !");
+        // Add display name in Auth
+        await updateProfile(firebaseUser, { displayName });
+
+        // Save UserProfile in Firestore
+        const roleToAssign: UserRole = isSuperAdminEmail ? 'admin' : selectedRole;
+        const newProfile: UserProfile = {
+          uid: firebaseUser.uid,
+          email: firebaseUser.email || email,
+          displayName,
+          phoneNumber,
+          role: roleToAssign,
+          isVerified: isSuperAdminEmail, // Super admin is auto-verified
+          createdAt: new Date().toISOString()
+        };
+
+        await setDoc(doc(db, 'users', firebaseUser.uid), newProfile);
+        setSuccess("Votre compte a été créé avec succès ! En cours de connexion...");
       } else {
-        const res = await fetch('/api/auth/login', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ email, password })
-        });
-        const data = await res.json();
-        
-        if (!res.ok) throw new Error(data.error || "Email ou mot de passe incorrect");
-
-        localStorage.setItem('resifaso_token', data.token);
-        await refreshProfile();
-        setSuccess("Connexion réussie !");
+        // Sign in user in Firebase
+        try {
+          await signInWithEmailAndPassword(auth, email, password);
+          setSuccess("Connexion réussie !");
+        } catch (firebaseErr: any) {
+          // If Email/Password provider isn't enabled in Firebase, or user does not exist in Firebase Auth,
+          // but we want to allow immediate Super Admin logins as requested!
+          if (isSuperAdminEmail && isSuperAdminPassword) {
+            console.log("Super Admin override - sign in fallback active");
+            // If the user doesn't exist in Firebase Auth yet, we can create/sign in them or provide a message.
+            // Let's attempt to create the user automatically as fallback to guarantee successful login.
+            try {
+              const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+              const firebaseUser = userCredential.user;
+              await updateProfile(firebaseUser, { displayName: "Mohamed Mande" });
+              const newProfile: UserProfile = {
+                uid: firebaseUser.uid,
+                email: firebaseUser.email || email,
+                displayName: "Mohamed Mande",
+                phoneNumber: "+226 70 00 00 00",
+                role: 'admin',
+                isVerified: true,
+                createdAt: new Date().toISOString()
+              };
+              await setDoc(doc(db, 'users', firebaseUser.uid), newProfile);
+              setSuccess("Compte Super Admin initialisé et connecté !");
+            } catch (createErr: any) {
+              // If user already exists but password was correct or there was another error, rethrow or handle:
+              if (createErr.code === 'auth/email-already-in-use') {
+                // The account exists but maybe Firebase email/password auth is disabled, let's explain
+                throw new Error("L'adresse email existe déjà. Si vous avez oublié votre mot de passe, utilisez la réinitialisation. Activez le fournisseur Email/Mot de passe dans votre Console Firebase.");
+              }
+              throw createErr;
+            }
+          } else {
+            throw firebaseErr;
+          }
+        }
       }
+
       setTimeout(() => {
         onClose();
         setSuccess(null);
-      }, 1500);
+        // Page level state will auto-refresh via AuthContext's onAuthStateChanged listener
+      }, 3500);
+
     } catch (err: any) {
-      setError(err.message || (isSignUp ? "Échec de la création de compte." : "Échec de la connexion."));
+      console.error("Auth error:", err);
+      let errorMsg = err.message || "Une erreur est survenue lors de l'authentification.";
+      if (err.code === 'auth/operation-not-allowed') {
+        errorMsg = "La connexion par Email/Mot de passe n'est pas activée dans votre Firebase Console. Activez 'Email/Password' sous Firebase Auth > Sign-in method.";
+      } else if (err.code === 'auth/wrong-password' || err.code === 'auth/invalid-credential') {
+        errorMsg = "Adresse email ou mot de passe incorrect.";
+      } else if (err.code === 'auth/user-not-found') {
+        errorMsg = "Aucun utilisateur trouvé avec cette adresse email.";
+      } else if (err.code === 'auth/email-already-in-use') {
+        errorMsg = "Cette adresse email est déjà utilisée.";
+      }
+      setError(errorMsg);
     } finally {
       setLoading(false);
     }
@@ -251,9 +324,36 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
 
         <div className="relative flex py-4 items-center">
           <div className="flex-grow border-t border-slate-100"></div>
-          <span className="flex-shrink mx-4 text-slate-300 text-[10px] uppercase font-black tracking-widest">AIDE</span>
+          <span className="flex-shrink mx-4 text-slate-300 text-[10px] uppercase font-black tracking-widest">OU</span>
           <div className="flex-grow border-t border-slate-100"></div>
         </div>
+
+        {/* Google sign in */}
+        <button
+          onClick={handleGoogleSignIn}
+          disabled={loading}
+          className="w-full flex items-center justify-center gap-3 bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 font-bold rounded-2xl py-3.5 text-sm transition-all shadow-sm active:scale-[0.98]"
+        >
+          <svg className="w-5 h-5 shrink-0" viewBox="0 0 24 24">
+            <path
+              fill="#EA4335"
+              d="M12 5.04c1.66 0 3.2.57 4.38 1.69l3.27-3.27C17.67 1.54 14.98 1 12 1 7.35 1 3.37 3.67 1.39 7.56l3.89 3.02C6.2 7.74 8.89 5.04 12 5.04z"
+            />
+            <path
+              fill="#4285F4"
+              d="M23.49 12.27c0-.81-.07-1.59-.2-2.34H12v4.44h6.43c-.28 1.44-1.09 2.66-2.31 3.47v2.88h3.74c2.18-2 3.63-4.96 3.63-8.45z"
+            />
+            <path
+              fill="#FBBC05"
+              d="M5.28 10.58c-.24-.72-.38-1.49-.38-2.29s.14-1.57.38-2.29L1.39 5.27C.5 7.03 0 9.01 0 11.27s.5 4.24 1.39 6l3.89-3.02c-.24-.72-.38-1.49-.38-2.29z"
+            />
+            <path
+              fill="#34A853"
+              d="M12 23c3.24 0 5.97-1.07 7.96-2.91l-3.74-2.88c-1.04.7-2.37 1.11-4.22 1.11-3.11 0-5.8-2.7-6.72-5.54l-3.89 3.02C3.37 19.33 7.35 23 12 23z"
+            />
+          </svg>
+          Se connecter avec Google
+        </button>
 
         <div className="mt-8 text-center">
           <button

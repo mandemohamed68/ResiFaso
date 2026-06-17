@@ -1,197 +1,268 @@
+import { 
+  collection, 
+  doc, 
+  getDoc, 
+  getDocs, 
+  setDoc, 
+  addDoc, 
+  updateDoc, 
+  deleteDoc, 
+  query, 
+  where, 
+  orderBy, 
+  onSnapshot,
+  getDocFromServer
+} from 'firebase/firestore';
+import { db, auth } from './firebase';
 import { UserProfile, Residence, Booking, Conversation, Message } from '../types';
-import { db } from './firebase';
-import { doc, updateDoc } from 'firebase/firestore';
 
-async function apiFetch(url: string, options: RequestInit = {}) {
-  const token = localStorage.getItem('resifaso_token');
-  const headers = {
-    'Content-Type': 'application/json',
-    ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
-    ...((options.headers || {}) as any)
-  };
+export enum OperationType {
+  CREATE = 'create',
+  UPDATE = 'update',
+  DELETE = 'delete',
+  LIST = 'list',
+  GET = 'get',
+  WRITE = 'write',
+}
 
-  const res = await fetch(url, { ...options, headers });
-  if (!res.ok) {
-    const errorData = await res.json().catch(() => ({}));
-    throw new Error(errorData.error || `HTTP error! status: ${res.status}`);
+export interface FirestoreErrorInfo {
+  error: string;
+  operationType: OperationType;
+  path: string | null;
+  authInfo: {
+    userId?: string | null;
+    email?: string | null;
+    emailVerified?: boolean | null;
+    isAnonymous?: boolean | null;
   }
-  return res.json();
+}
+
+export function handleFirestoreError(error: unknown, operationType: OperationType, path: string | null) {
+  const errInfo: FirestoreErrorInfo = {
+    error: error instanceof Error ? error.message : String(error),
+    authInfo: {
+      userId: auth.currentUser?.uid,
+      email: auth.currentUser?.email,
+      emailVerified: auth.currentUser?.emailVerified,
+      isAnonymous: auth.currentUser?.isAnonymous
+    },
+    operationType,
+    path
+  };
+  console.error('Firestore Error: ', JSON.stringify(errInfo));
+  throw new Error(JSON.stringify(errInfo));
+}
+
+/**
+ * Cleans an object by removing any keys with 'undefined' values.
+ */
+export function cleanData<T extends object>(data: T): T {
+  const cleaned = { ...data };
+  Object.keys(cleaned).forEach(key => {
+    // @ts-ignore
+    if (cleaned[key] === undefined) {
+      // @ts-ignore
+      delete cleaned[key];
+    } else if (cleaned[key] !== null && typeof cleaned[key] === 'object' && !Array.isArray(cleaned[key])) {
+      // @ts-ignore
+      cleaned[key] = cleanData(cleaned[key]);
+    }
+  });
+  return cleaned;
 }
 
 // ==========================================
-// RESIDENCES COLLECTION CLIENT (MariaDB)
+// RESIDENCES COLLECTION CLIENT
 // ==========================================
 
 export async function getPublishedResidences(): Promise<Residence[]> {
+  const path = 'residences';
   try {
-    const data = await apiFetch('/api/residences');
-    return data.residences || [];
+    const q = query(collection(db, path), where('status', '==', 'published'));
+    const snap = await getDocs(q);
+    const list: Residence[] = [];
+    snap.forEach(doc => {
+      list.push({ id: doc.id, ...doc.data() } as Residence);
+    });
+    return list;
   } catch (error) {
-    console.error('Error fetching published residences:', error);
+    handleFirestoreError(error, OperationType.LIST, path);
     return [];
   }
 }
 
 export async function getAllResidences(): Promise<Residence[]> {
+  const path = 'residences';
   try {
-    const data = await apiFetch('/api/admin/residences');
-    return data.residences || [];
+    const snap = await getDocs(collection(db, path));
+    const list: Residence[] = [];
+    snap.forEach(doc => {
+      list.push({ id: doc.id, ...doc.data() } as Residence);
+    });
+    return list;
   } catch (error) {
-    console.error('Error fetching all residences:', error);
+    handleFirestoreError(error, OperationType.LIST, path);
     return [];
   }
 }
 
 export async function getOwnerResidences(ownerId: string): Promise<Residence[]> {
+  const path = 'residences';
   try {
-    const data = await apiFetch('/api/owner/residences');
-    return data.residences || [];
+    const q = query(collection(db, path), where('ownerId', '==', ownerId));
+    const snap = await getDocs(q);
+    const list: Residence[] = [];
+    snap.forEach(doc => {
+      list.push({ id: doc.id, ...doc.data() } as Residence);
+    });
+    return list;
   } catch (error) {
-    console.error('Error fetching owner residences:', error);
+    handleFirestoreError(error, OperationType.LIST, path);
     return [];
   }
 }
 
 export async function addResidence(resData: Omit<Residence, 'id'>): Promise<string> {
+  const path = 'residences';
   try {
-    const data = await apiFetch('/api/owner/residences', {
-      method: 'POST',
-      body: JSON.stringify(resData)
-    });
-    return data.id;
+    const docRef = await addDoc(collection(db, path), cleanData(resData));
+    return docRef.id;
   } catch (error) {
-    console.error('Error adding residence:', error);
+    handleFirestoreError(error, OperationType.CREATE, path);
     return '';
   }
 }
 
 export async function updateResidence(id: string, updates: Partial<Residence>): Promise<void> {
+  const path = `residences/${id}`;
   try {
-    await apiFetch(`/api/owner/residences/${id}`, {
-      method: 'PUT',
-      body: JSON.stringify(updates)
-    });
+    await updateDoc(doc(db, 'residences', id), cleanData(updates));
   } catch (error) {
-    console.error('Error updating residence:', error);
+    handleFirestoreError(error, OperationType.UPDATE, path);
   }
 }
 
 export async function deleteResidence(id: string): Promise<void> {
+  const path = `residences/${id}`;
   try {
-    await apiFetch(`/api/owner/residences/${id}`, {
-      method: 'DELETE'
-    });
+    await deleteDoc(doc(db, 'residences', id));
   } catch (error) {
-    console.error('Error deleting residence:', error);
+    handleFirestoreError(error, OperationType.DELETE, path);
   }
 }
 
 // ==========================================
-// BOOKINGS MANAGEMENT (MariaDB)
+// BOOKINGS MANAGEMENT
 // ==========================================
 
 export async function createBooking(bookingData: Omit<Booking, 'id'>): Promise<string> {
+  const path = 'bookings';
   try {
-    const data = await apiFetch('/api/reservations', {
-      method: 'POST',
-      body: JSON.stringify(bookingData)
-    });
-    return data.bookingId || data.reservationId || '';
+    const docRef = await addDoc(collection(db, path), cleanData({
+      ...bookingData,
+      createdAt: new Date().toISOString()
+    }));
+    return docRef.id;
   } catch (error) {
-    console.error('Error creating booking:', error);
+    handleFirestoreError(error, OperationType.CREATE, path);
     return '';
   }
 }
 
 export async function getClientBookings(clientId: string): Promise<Booking[]> {
+  const path = 'bookings';
   try {
-    const data = await apiFetch('/api/reservations/client');
-    return data.bookings || [];
+    const q = query(
+      collection(db, path), 
+      where('clientId', '==', clientId),
+      orderBy('createdAt', 'desc')
+    );
+    const snap = await getDocs(q);
+    const list: Booking[] = [];
+    snap.forEach(doc => {
+      list.push({ id: doc.id, ...doc.data() } as Booking);
+    });
+    return list;
   } catch (error) {
-    console.error('Error fetching client bookings:', error);
+    handleFirestoreError(error, OperationType.LIST, path);
     return [];
   }
 }
 
 export async function getOwnerBookings(ownerId: string): Promise<Booking[]> {
+  const path = 'bookings';
   try {
-    const data = await apiFetch('/api/reservations/owner');
-    return data.bookings || [];
+    const q = query(
+      collection(db, path), 
+      where('ownerId', '==', ownerId),
+      orderBy('createdAt', 'desc')
+    );
+    const snap = await getDocs(q);
+    const list: Booking[] = [];
+    snap.forEach(doc => {
+      list.push({ id: doc.id, ...doc.data() } as Booking);
+    });
+    return list;
   } catch (error) {
-    console.error('Error fetching owner bookings:', error);
+    handleFirestoreError(error, OperationType.LIST, path);
     return [];
   }
 }
 
 export async function getAllBookings(): Promise<Booking[]> {
+  const path = 'bookings';
   try {
-    const data = await apiFetch('/api/reservations/owner');
-    return data.bookings || [];
+    const snap = await getDocs(collection(db, path));
+    const list: Booking[] = [];
+    snap.forEach(doc => {
+      list.push({ id: doc.id, ...doc.data() } as Booking);
+    });
+    return list;
   } catch (error) {
-    console.error('Error fetching all bookings:', error);
+    handleFirestoreError(error, OperationType.LIST, path);
     return [];
   }
 }
 
 export async function updateBookingStatus(id: string, updates: Partial<Booking>): Promise<void> {
+  const path = `bookings/${id}`;
   try {
-    await apiFetch(`/api/reservations/${id}/status`, {
-      method: 'PUT',
-      body: JSON.stringify({
-        status: updates.bookingStatus || (updates as any).status, 
-        paymentStatus: updates.paymentStatus,
-        stayStatus: updates.stayStatus
-      }) 
-    });
-
-    try {
-      const docRef = doc(db, 'bookings', id);
-      await updateDoc(docRef, updates);
-    } catch (fsErr) {
-      console.warn("Firestore status sync error (probably offline/unconnected):", fsErr);
-    }
+    await updateDoc(doc(db, 'bookings', id), cleanData(updates));
   } catch (error) {
-    console.error('Error updating booking status:', error);
+    handleFirestoreError(error, OperationType.UPDATE, path);
   }
 }
 
 // ==========================================
-// USER PROFILES (MariaDB)
+// USER PROFILES
 // ==========================================
 
 export async function getAllUsers(): Promise<UserProfile[]> {
+  const path = 'users';
   try {
-    const data = await apiFetch('/api/admin/users');
-    return data.users || [];
+    const snap = await getDocs(collection(db, path));
+    const list: UserProfile[] = [];
+    snap.forEach(doc => {
+      list.push(doc.data() as UserProfile);
+    });
+    return list;
   } catch (error) {
-    console.error('Error fetching all users:', error);
+    handleFirestoreError(error, OperationType.LIST, path);
     return [];
   }
 }
 
 export async function updateUserProfile(uid: string, updates: Partial<UserProfile>): Promise<void> {
+  const path = `users/${uid}`;
   try {
-    await apiFetch(`/api/admin/users/${uid}`, {
-      method: 'PATCH',
-      body: JSON.stringify(updates)
-    });
+    await updateDoc(doc(db, 'users', uid), cleanData(updates));
   } catch (error) {
-    console.error('Error updating user profile:', error);
-  }
-}
-
-export async function deleteUser(uid: string): Promise<void> {
-  try {
-    await apiFetch(`/api/admin/users/${uid}`, {
-      method: 'DELETE'
-    });
-  } catch (error) {
-    console.error('Error deleting user:', error);
+    handleFirestoreError(error, OperationType.UPDATE, path);
   }
 }
 
 // ==========================================
-// SYSTEM LOGS & NOTIFICATIONS
+// SYSTEM LOGS & METRICS
 // ==========================================
 
 export interface AppNotification {
@@ -205,8 +276,17 @@ export interface AppNotification {
   referenceId?: string;
 }
 
-export async function sendNotification(notif: any): Promise<void> {
-  // Placeholder
+export async function sendNotification(notif: Omit<AppNotification, 'id' | 'isRead' | 'createdAt'>): Promise<void> {
+  const path = 'notifications';
+  try {
+    await addDoc(collection(db, path), {
+      ...notif,
+      isRead: false,
+      createdAt: new Date().toISOString()
+    });
+  } catch (error) {
+    handleFirestoreError(error, OperationType.CREATE, path);
+  }
 }
 
 // ==========================================
@@ -214,124 +294,190 @@ export async function sendNotification(notif: any): Promise<void> {
 // ==========================================
 
 export async function getOrCreateConversation(participants: string[], relatedId?: string): Promise<string> {
-  return '';
+  const path = 'conversations';
+  try {
+    // Basic search for existing conversation with same participants
+    const q = query(collection(db, path), where('participants', 'array-contains', participants[0]));
+    const snap = await getDocs(q);
+    
+    let existingId: string | null = null;
+    snap.forEach(docSnap => {
+      const data = docSnap.data() as Conversation;
+      if (data.participants.length === participants.length && 
+          participants.every(p => data.participants.includes(p))) {
+        existingId = docSnap.id;
+      }
+    });
+
+    if (existingId) return existingId;
+
+    // Create new
+    const docRef = await addDoc(collection(db, path), {
+      participants,
+      updatedAt: new Date().toISOString(),
+      relatedId: relatedId || null
+    });
+    return docRef.id;
+  } catch (error) {
+    handleFirestoreError(error, OperationType.WRITE, path);
+    return '';
+  }
 }
 
 export async function sendMessage(conversationId: string, senderId: string, text: string): Promise<void> {
-  // Placeholder
+  const msgPath = `conversations/${conversationId}/messages`;
+  try {
+    await addDoc(collection(db, 'conversations', conversationId, 'messages'), {
+      conversationId,
+      senderId,
+      text,
+      createdAt: new Date().toISOString(),
+      isRead: false
+    });
+
+    // Update conversation lastMessage
+    await updateDoc(doc(db, 'conversations', conversationId), {
+      lastMessage: text,
+      updatedAt: new Date().toISOString()
+    });
+  } catch (error) {
+    handleFirestoreError(error, OperationType.CREATE, msgPath);
+  }
 }
 
 // ==========================================
-// WITHDRAWALS & ADMIN (MariaDB)
+// DATABASE AUTO-SEEDER
 // ==========================================
-import { WithdrawalRequest, WithdrawalStatus, Advertisement } from '../types';
+import { MOCK_RESIDENCES } from '../mockData';
+
+export async function seedDatabaseIfNeeded() {
+  const path = 'residences';
+  try {
+    const snap = await getDocs(collection(db, path));
+    if (snap.empty) {
+      console.log("Seeding empty database with sample Burkina residences...");
+      for (const res of MOCK_RESIDENCES) {
+        await setDoc(doc(db, 'residences', res.id), res);
+      }
+      console.log("Database seeded successfully!");
+    }
+
+    // Seed global platform settings containing the global announcement if not present
+    const settingsSnap = await getDocs(collection(db, 'settings'));
+    if (settingsSnap.empty) {
+      console.log("Seeding default global settings with announcement...");
+      await setDoc(doc(db, 'settings', 'global'), {
+        platformName: 'ResiFaso',
+        commissionRate: 10,
+        isTestMode: false,
+        announcement: {
+          text: "Bienvenue sur ResiFaso ! Profitez d'un séjour mémorable dans nos résidences d'exception au Burkina Faso. 🇧🇫 ✨",
+          type: 'info',
+          active: true,
+          updatedAt: new Date().toISOString()
+        }
+      });
+      console.log("Global settings seeded successfully!");
+    }
+  } catch (error) {
+    console.error("Failed to seed database:", error);
+  }
+}
+
+// ==========================================
+// WITHDRAWALS MANAGEMENT
+// ==========================================
+import { WithdrawalRequest, WithdrawalStatus } from '../types';
 
 export async function createWithdrawalRequest(data: Omit<WithdrawalRequest, 'id'>): Promise<string> {
-  // Placeholder, need owner endpoint
-  return 'mock_w_id';
+  const path = 'withdrawals';
+  try {
+    const docRef = await addDoc(collection(db, path), cleanData({
+      ...data,
+      createdAt: new Date().toISOString()
+    }));
+    return docRef.id;
+  } catch (error) {
+    handleFirestoreError(error, OperationType.CREATE, path);
+    return '';
+  }
 }
 
 export async function getOwnerWithdrawals(ownerId: string): Promise<WithdrawalRequest[]> {
-  return [];
+  const path = 'withdrawals';
+  try {
+    const q = query(
+      collection(db, path),
+      where('ownerId', '==', ownerId),
+      orderBy('createdAt', 'desc')
+    );
+    const snap = await getDocs(q);
+    const list: WithdrawalRequest[] = [];
+    snap.forEach(doc => {
+      list.push({ id: doc.id, ...doc.data() } as WithdrawalRequest);
+    });
+    return list;
+  } catch (error) {
+    handleFirestoreError(error, OperationType.LIST, path);
+    return [];
+  }
 }
 
 export async function getAllWithdrawals(): Promise<WithdrawalRequest[]> {
+  const path = 'withdrawals';
   try {
-    const data = await apiFetch('/api/admin/withdrawals');
-    return data.withdrawals || [];
+    const snap = await getDocs(collection(db, path));
+    const list: WithdrawalRequest[] = [];
+    snap.forEach(doc => {
+      list.push({ id: doc.id, ...doc.data() } as WithdrawalRequest);
+    });
+    return list;
   } catch (error) {
-    console.error('Error fetching all withdrawals:', error);
+    handleFirestoreError(error, OperationType.LIST, path);
     return [];
   }
 }
 
 export async function updateWithdrawalStatus(id: string, status: WithdrawalStatus, approvedAt?: string): Promise<void> {
+  const path = `withdrawals/${id}`;
   try {
-    await apiFetch(`/api/admin/withdrawals/${id}`, {
-      method: 'PATCH',
-      body: JSON.stringify({ status, approvedAt })
-    });
+    const updates: Partial<WithdrawalRequest> = { status };
+    if (approvedAt) {
+      updates.approvedAt = approvedAt;
+    }
+    await updateDoc(doc(db, 'withdrawals', id), cleanData(updates));
   } catch (error) {
-    console.error('Error updating withdrawal status:', error);
-  }
-}
-
-// ==========================================
-// SYSTEM SETTINGS & ADS
-// ==========================================
-
-export async function getGlobalSettings(id: string = 'global'): Promise<any> {
-  try {
-    return await apiFetch(`/api/admin/settings/${id}`);
-  } catch (error) {
-    console.error('Error fetching settings:', error);
-    return {};
-  }
-}
-
-export async function saveGlobalSettings(data: any, id: string = 'global'): Promise<void> {
-  try {
-    await apiFetch(`/api/admin/settings/${id}`, {
-      method: 'POST',
-      body: JSON.stringify(data)
-    });
-  } catch (error) {
-    console.error('Error saving settings:', error);
-  }
-}
-
-export async function getAllAds(): Promise<Advertisement[]> {
-  try {
-    const data = await apiFetch('/api/admin/ads');
-    return data.ads || [];
-  } catch (error) {
-    console.error('Error fetching ads:', error);
-    return [];
-  }
-}
-
-export async function saveAd(ad: any): Promise<string> {
-  try {
-    const data = await apiFetch('/api/admin/ads', {
-      method: 'POST',
-      body: JSON.stringify(ad)
-    });
-    return data.id;
-  } catch (error) {
-    console.error('Error saving ad:', error);
-    return '';
-  }
-}
-
-export async function deleteAd(id: string): Promise<void> {
-  try {
-    await apiFetch(`/api/admin/ads/${id}`, { method: 'DELETE' });
-  } catch (error) { console.error('Error deleting ad:', error); }
-}
-
-export async function getSystemLogs(): Promise<any[]> {
-  try {
-    const data = await apiFetch('/api/admin/system-logs');
-    return data.logs || [];
-  } catch (error) {
-    console.error('Error fetching system logs:', error);
-    return [];
-  }
-}
-
-export async function purgeSystemLogs(): Promise<boolean> {
-  try {
-    const data = await apiFetch('/api/admin/system-logs', { method: 'DELETE' });
-    return data.success || false;
-  } catch (error) {
-    console.error('Error purging system logs:', error);
-    return false;
+    handleFirestoreError(error, OperationType.UPDATE, path);
   }
 }
 
 export async function hardResetDatabase() {
-  // Safety: Admin only
-  console.warn("Hard reset requested via API");
-}
+  const collectionsToClear = ['bookings', 'reviews', 'notifications', 'conversations', 'residences', 'users'];
+  
+  for (const coll of collectionsToClear) {
+    try {
+      const snap = await getDocs(collection(db, coll));
+      for (const d of snap.docs) {
+        if (coll === 'conversations') {
+          try {
+            const msgSnap = await getDocs(collection(db, 'conversations', d.id, 'messages'));
+            for (const m of msgSnap.docs) {
+              await deleteDoc(doc(db, 'conversations', d.id, 'messages', m.id));
+            }
+          } catch (e) {
+            console.error("Subcollection messages clean error:", e);
+          }
+        }
+        await deleteDoc(doc(db, coll, d.id));
+      }
+    } catch (e) {
+      console.error(`Error resetting database collection ${coll}:`, e);
+    }
+  }
 
+  // Force reseed standard mock residences
+  for (const res of MOCK_RESIDENCES) {
+    await setDoc(doc(db, 'residences', res.id), res);
+  }
+}
 

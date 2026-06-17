@@ -488,54 +488,24 @@ export const MyBookings: React.FC<{ onContactHost: (ownerId: string, resId: stri
       return;
     }
 
-    let isMounted = true;
-    const fetchFromMariaDB = async () => {
-      try {
-        const list = await getClientBookings(user.uid);
-        if (!isMounted) return;
-        if (list && list.length > 0) {
-          // Sync with loaded residences
-          list.sort((a, b) => new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime());
-          setBookings(list);
-        }
-        setLoading(false);
-      } catch (err) {
-        console.warn("MariaDB client fetch failed, reverting to Firestore snapshot load:", err);
-      }
-    };
-
     setLoading(true);
-    fetchFromMariaDB();
-    const interval = setInterval(fetchFromMariaDB, 4000);
-
-    // Watch Firestore bookings collection as primary/secondary real-time snapshot
-    let unsubscribe = () => {};
-    try {
-      const qBookings = query(collection(db, 'bookings'), where('clientId', '==', user.uid));
-      unsubscribe = onSnapshot(qBookings, (snapshot) => {
-        if (!isMounted) return;
-        if (snapshot.size > 0) {
-          const list: Booking[] = [];
-          snapshot.forEach(docSnap => {
-            list.push({ id: docSnap.id, ...docSnap.data() } as Booking);
-          });
-          list.sort((a, b) => new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime());
-          setBookings(list);
-        }
-        setLoading(false);
-      }, (error) => {
-        console.warn("Error watching guest bookings:", error);
-        setLoading(false);
+    const qBookings = query(collection(db, 'bookings'), where('clientId', '==', user.uid));
+    
+    const unsubscribe = onSnapshot(qBookings, (snapshot) => {
+      const list: Booking[] = [];
+      snapshot.forEach(docSnap => {
+        list.push({ id: docSnap.id, ...docSnap.data() } as Booking);
       });
-    } catch (fsErr) {
-      console.warn("Firestore mirror watcher skipped:", fsErr);
-    }
+      // Sort by createdAt desc
+      list.sort((a, b) => new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime());
+      setBookings(list);
+      setLoading(false);
+    }, (error) => {
+      console.error("Error watching guest bookings:", error);
+      setLoading(false);
+    });
 
-    return () => {
-      isMounted = false;
-      clearInterval(interval);
-      unsubscribe();
-    };
+    return unsubscribe;
   }, [user]);
 
   const calculateDaysLeft = (checkInStr: string) => {

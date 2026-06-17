@@ -1,21 +1,17 @@
 import React, { useEffect, useState } from 'react';
-import { getGlobalSettings } from '../../lib/db';
+import { db } from '../../lib/firebase';
+import { doc, onSnapshot } from 'firebase/firestore';
 
 export const Footer: React.FC = () => {
   const [footerContent, setFooterContent] = useState<string>("© 2026 ResiFaso. Tous droits réservés.");
 
   useEffect(() => {
-    async function loadFooter() {
-      try {
-        const settings = await getGlobalSettings('global');
-        if (settings && settings.footerContent) {
-          setFooterContent(settings.footerContent);
-        }
-      } catch (err) {
-        console.error("Error loading footer settings:", err);
+    const unsub = onSnapshot(doc(db, 'settings', 'global'), (docSnap) => {
+      if (docSnap.exists() && docSnap.data().footerContent) {
+        setFooterContent(docSnap.data().footerContent);
       }
-    }
-    loadFooter();
+    });
+    return () => unsub();
   }, []);
 
   return (

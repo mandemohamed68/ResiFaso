@@ -1,45 +1,34 @@
-# 🚀 GUIDE COMPLET DE DÉPLOIEMENT : Debian 12 + MariaDB Partitionné + PM2 (Port 5000)
+# 🚀 GUIDE COMPLET DE DÉPLOIEMENT : Debian 12 + MariaDB + Web + APK Android
 
-Ce fichier vous guide pas à pas dans l'hébergement de votre application sur un serveur brut **Debian 12** de manière 100% autonome, en connectant directement l'application à une base de données **MariaDB locale et partitionnée**, pilotée par un gestionnaire de processus **PM2** unifié sur le **port 5000**.
+Ce fichier contient l'intégralité des étapes nécessaires pour configurer votre serveur brut **Debian 12**, installer la base de données **MariaDB**, déployer l'application Web, et générer l'application mobile Android (**APK**).
 
 ---
 
-## 🛑 COMPRENDRE & ÉVITER L'ERREUR DE PORT DÉJÀ UTILISÉ (EADDRINUSE:5000)
+## 🛑 PRÉREQUIS IMPORTANTS À LIRE AVANT DE COMMENCER
+L'application actuelle est codée en React et utilise **Firebase** pour la base de données (Firestore) et l'authentification. 
+Pour utiliser **MariaDB** de façon 100% autonome et locale sur votre propre serveur, **vous devrez modifier le code source** pour créer un dossier backend local (API Node.js/Express) qui ira lire/écrire dans la base de données MariaDB via la structure que nous avons créée. 
 
-Dans votre configuration précédente, vous avez probablement rencontré cette erreur :
-`Error: listen EADDRINUSE: address already in use 0.0.0.0:5000`
-
-**Pourquoi cela arrive-t-il ?**
-Cette erreur survient lorsque deux programmes tentent d'écouter simultanément sur le même port (**5000**). Par exemple :
-1. Nginx est configuré pour écouter sur le port `5000`.
-2. Votre application Node.js (via PM2) tente également d'écouter sur le port `5000` de l'adresse globale `0.0.0.0`.
-
-### 🛡️ La solution unifiée et robuste (Node à 127.0.0.1:5000 et Nginx à l'écoute publique) :
-Pour éviter tout conflit :
-* **Votre application Node.js** est configurée pour écouter localement sur le port `5000` (`127.0.0.1:5000`).
-* **Nginx** écoute publiquement sur le port `5000` (ou port web standard `80`) et retransmet le trafic de façon transparente à l'application Node en local.
-* Alternativement, si vous n'utilisez pas Nginx, vous pouvez faire écouter Node directement sur `0.0.0.0:5000` sans activer Nginx sur ce port.
+Le guide ci-dessous prépare tout le terrain pour cette transition.
 
 ---
 
 ## 🛠️ ÉTAPE 1 : Préparation du Serveur Debian 12
 
-Connectez-vous à votre serveur en tant que `root` :
+Connectez-vous à votre serveur Debian 12 via SSH :
 ```bash
-ssh root@41.78.54.60
+ssh root@IP_DE_VOTRE_SERVEUR
 ```
 
-Mettez à jour les paquets et installez les outils de base :
+Mettez à jour le système et installez les outils de base :
 ```bash
 sudo apt update && sudo apt upgrade -y
-sudo apt install -y curl git wget build-essential unzip nano ufw lsof
+sudo apt install -y curl git wget build-essential unzip nano ufw
 ```
 
-Ouvrez les ports nécessaires sur le pare-feu (UFW) :
+Configurez le pare-feu (UFW) pour autoriser le web et SSH :
 ```bash
 sudo ufw allow "OpenSSH"
-sudo ufw allow 5000/tcp # Port unique de l'application
-sudo ufw allow 80/tcp   # Port web standard
+sudo ufw allow "Nginx Full"
 sudo ufw enable
 ```
 
@@ -47,20 +36,22 @@ sudo ufw enable
 
 ## 🟢 ÉTAPE 2 : Installation de Node.js v20 et PM2
 
-Installez Node.js en version stable v20 :
-```bash
-curl -fsSL https://deb.nodesource.com/setup_20.x | sudo -E bash -
-sudo apt install -y nodejs
-```
+L'application React/Node nécessite Node.js pour être compilée et servie.
 
-Installez **PM2** globalement pour gérer l'exécution permanente de votre application :
 ```bash
+# Ajouter le dépôt NodeSource pour la version 20
+curl -fsSL https://deb.nodesource.com/setup_20.x | sudo -E bash -
+
+# Installer Node.js
+sudo apt install -y nodejs
+
+# Installer PM2 (pour gérer les processus en arrière-plan) et yarn/pnpm si besoin
 sudo npm install -g pm2
 ```
 
 ---
 
-## 🗄️ ÉTAPE 3 : Installation de MariaDB et Importation du Schéma Partitionné
+## 🗄️ ÉTAPE 3 : Installation et Configuration de MariaDB
 
 1. **Installer le serveur MariaDB :**
 ```bash
@@ -71,148 +62,187 @@ sudo apt install -y mariadb-server
 ```bash
 sudo mysql_secure_installation
 ```
-*(Définissez votre mot de passe administrateur principal `mm@27071986@` et validez par `Y` aux étapes de sécurité).*
+*(Répondez **Y** à presque tout : définir un mot de passe root, supprimer les utilisateurs anonymes, désactiver le login root à distance, supprimer la table de test).*
 
-3. **Créer la Base de Données et l'Utilisateur :**
+3. **Créer la Base de Données et l'Utilisateur pour Résifaso :**
 ```bash
 sudo mysql -u root -p
 ```
-Collez ces requêtes SQL dans la console MariaDB :
+Une fois connecté à MariaDB (`MariaDB [(none)]>`), tapez exactement ceci :
 ```sql
-CREATE DATABASE IF NOT EXISTS resifaso_db CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
-CREATE USER 'resifaso_user'@'localhost' IDENTIFIED BY 'mm@27071986@';
+CREATE DATABASE resifaso_db CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+CREATE USER 'resifaso_user'@'localhost' IDENTIFIED BY 'MOT_DE_PASSE_TRES_FORT_ICI';
 GRANT ALL PRIVILEGES ON resifaso_db.* TO 'resifaso_user'@'localhost';
 FLUSH PRIVILEGES;
 EXIT;
 ```
 
-4. **Importer le Schéma de données PARTITIONNÉ :**
-L'application utilise un schéma SQL partitionné par clés (`PARTITION BY KEY`) présent dans le fichier `resifaso_schema.sql` pour garantir des temps de réponse ultra-rapides sur les tables volumineuses (`bookings`, `users`, `residences`).
+4. **Importer le schéma SQL :**
+Prenez le fichier `resifaso_schema.sql` (qui se trouve à la racine du projet) et importez-le dans MariaDB :
 ```bash
-# Se placer à la racine du projet déployé, puis importer :
-mysql -u resifaso_user -p resifaso_db < /var/www/resifaso/resifaso_schema.sql
+# Assurez-vous d'avoir transféré le fichier sur votre serveur, par exemple dans /tmp
+mysql -u resifaso_user -p resifaso_db < /chemin/vers/le/fichier/resifaso_schema.sql
 ```
 
 ---
 
-## 📂 ÉTAPE 4 : Déploiement du Code Source et Configuration de l'Environnement
+## 📂 ÉTAPE 4 : Déploiement du Code Source de l'Application
 
-1. **Créer le dossier de l'application :**
+⚠️ **L'erreur courante "Could not read package.json / ENOENT" se produit lorsque vous essayez de faire "npm install" dans un dossier vide !** Vous devez d'abord transférer tout le code source de AI Studio vers votre serveur Debian.
+
+1. **Créer le dossier d'hébergement :**
 ```bash
 sudo mkdir -p /var/www/resifaso
+# IMPORTANT : Remplacez $USER par "root" ou le nom d'utilisateur avec lequel vous êtes connecté sur votre Debian (ex: "debian" ou "ubuntu").
 sudo chown -R $USER:$USER /var/www/resifaso
 cd /var/www/resifaso
 ```
 
-2. **Transférer les fichiers du projet :**
-Une fois vos fichiers extraits dans `/var/www/resifaso/` (contenant le `package.json`, `ecosystem.config.js`, `src/`, etc.), vérifiez leur présence :
-```bash
-ls -la
-```
+2. **Transférer votre code web vers le serveur (CRUCIAL) :**
+Votre dossier `/var/www/resifaso` est vide à cette étape. Vous devez y transférer les fichiers.
 
-3. **Configurer votre fichier `.env` sur le serveur :**
-Générez votre fichier de production à partir du modèle :
+* **Méthode A (Depuis l'interface AI Studio ou votre PC) :**
+  1. Si vous êtes sur AI Studio, cliquez sur la roue crantée (Settings) et choisissez **"Export to ZIP"** ou **"Export to GitHub"**.
+  2. Sur votre ordinateur personnel, téléchargez un petit logiciel comme **FileZilla** ou **WinSCP**.
+  3. Connectez-vous à l'IP de votre serveur avec l'identifiant "root" et votre mot de passe (en SFTP).
+  4. Transférez TOUS les fichiers décompressés du projet (dont le fichier `package.json`, le dossier `src`, etc.) DANS le dossier `/var/www/resifaso/` du serveur Debian.
+
+* **Méthode B (Via Git) :**
+  Si vous avez choisi "Export to GitHub" depuis AI Studio, vous pouvez cloner le projet directement depuis le serveur :
+  ```bash
+  # Mettez le lien de votre dépôt GitHub et n'oubliez pas le L'ESPACE ET LE POINT "." à la fin
+  git clone https://github.com/VOTRE_COMPTE/NOM_DU_PROJET.git .
+  ```
+
+3. **Vérifier la présence des fichiers :**
 ```bash
+ls -la /var/www/resifaso/
+```
+*(Si vous ne voyez pas "package.json", retournez à l'étape 2. Ne continuez pas !)*
+
+4. **Configurer l'environnement via .env :**
+```bash
+cd /var/www/resifaso
 cp .env.example .env
 nano .env
 ```
-Assurez-vous d'avoir exactement ces valeurs de configuration pour le port local :
-```env
-PORT=5000
-VITE_API_URL=http://41.78.54.60:5000/api
-DB_HOST=127.0.0.1
-DB_PORT=3306
-DB_USER=resifaso_user
-DB_PASSWORD=mm@27071986@
-DB_NAME=resifaso_db
-```
+*(Assurez-vous que `PORT=3000` (pour Node en interne) et que `VITE_API_URL=http://41.78.54.60:5000/api` pour être intercepté par Nginx)*.
 
----
-
-## 🚀 ÉTAPE 5 : Lancement Industriel via PM2 et `ecosystem.config.cjs`
-
-Pour éviter de lancer manuellement avec npm, nous utilisons le fichier `ecosystem.config.cjs` pré-configuré à la racine de votre projet.
-
-
-### 🚨 Libérer le port 5000 en cas d'erreur de démarrage :
-Si vous obtenez toujours `EADDRINUSE: address already in use 0.0.0.0:5000`, exécutez ces commandes pour forcer l'arrêt de tout processus en écoute sur le port 5000 :
+5. **Installer les dépendances et compiler :**
 ```bash
-# Identifier et forcer la fermeture du processus occupant le port 5000
-sudo fuser -k 5000/tcp
-# Ou encore (alternative s'il s'agit d'un processus résiduel PM2) :
-pm2 delete all
-```
-
-### Lancement avec PM2 :
-1. **Installer les paquets et compiler le serveur :**
-```bash
+cd /var/www/resifaso
 npm install
 npm run build
 ```
 
-2. **Démarrer en mode Cluster via l'écosystème :**
+6. **Lancer le serveur Node (en arrière-plan sur le port 3000) :**
 ```bash
-pm2 start ecosystem.config.cjs
-```
-
-3. **Sauvegarder l'état pour que PM2 relance l'application en cas de redémarrage système :**
-```bash
+pm2 start npm --name "resifaso" -- run start
 pm2 save
 pm2 startup
 ```
+*(Puisque Nginx écoutera sur le port 5000 publiquement, l'application Node en arrière-plan tourne sur le port 3000).*
 
 ---
 
-## 🌐 ÉTAPE 6 : Configuration de Nginx pour router le Trafic
+## 🌐 ÉTAPE 5 : Configuration de Nginx (Serveur Web)
 
-Nginx agit comme un bouclier performant et gère les requêtes entrantes sur le port public HTTP standard (**80**) en les transmettant au port local **5000** géré par PM2.
+Ici, Nginx va écouter sur le port **5000** et transmettre le trafic en interne vers l'application Node qui tourne sur le port **3000**.
 
 1. **Installer Nginx :**
 ```bash
 sudo apt install -y nginx
 ```
 
-2. **Créer ou modifier la configuration du bloc de routage :**
+2. **Créer le bloc de configuration :**
 ```bash
 sudo nano /etc/nginx/sites-available/resifaso
 ```
-Collez la configuration suivante (Nginx écoute le port public **80** et le relaie à l'adresse interne localisée `127.0.0.1:5000`) :
+Collez cette configuration (Nginx transmet le trafic du port 5000 vers le port 3000 local) :
 ```nginx
 server {
-    listen 80;
+    listen 5000;
     server_name 41.78.54.60;
-
-    # Augmenter la taille maximale des téléversements (ex: photos de résidences)
-    client_max_body_size 20M;
-
+    
     location / {
-        # Transmet le trafic de façon sécurisée à PM2 qui écoute sur l'adresse de bouclage locale
-        proxy_pass http://127.0.0.1:5000;
+        # Transmet le trafic 5000 public vers le port 3000 interne
+        proxy_pass http://127.0.0.1:3000;
         proxy_http_version 1.1;
         proxy_set_header Upgrade $http_upgrade;
         proxy_set_header Connection 'upgrade';
         proxy_set_header Host $host;
-        proxy_set_header X-Real-IP $remote_addr;
-        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
         proxy_cache_bypass $http_upgrade;
     }
 
-    # Configuration de la mise en cache agressive des contenus statiques images/js/css
+    # Configuration du cache pour les assets vitaux
     location ~* \.(js|css|png|jpg|jpeg|gif|ico|svg)$ {
-        root /var/www/resifaso/dist;
         expires 30d;
         add_header Cache-Control "public, no-transform";
     }
 }
 ```
 
-3. **Activer la configuration et redémarrer Nginx :**
+3. **Activer le site et redémarrer Nginx :**
 ```bash
-sudo ln -sf /etc/nginx/sites-available/resifaso /etc/nginx/sites-enabled/
-# Tester l'intégrité de la syntaxe
+sudo ln -s /etc/nginx/sites-available/resifaso /etc/nginx/sites-enabled/
+# Tester la syntaxe Nginx
 sudo nginx -t
-# Redémarrer
+# Redémarrer Nginx
 sudo systemctl restart nginx
 ```
+🎉 Votre application Web est maintenant en ligne !
 
-🎉 Votre serveur est prêt, connecté à MariaDB avec une base de données partitionnée hautes performances, et accessible sur le **port 5000** !
+*(Optionnel)* Pour avoir le HTTPS (le cadenas vert), exécutez :
+```bash
+sudo apt install snapd
+sudo snap install core; sudo snap refresh core
+sudo snap install --classic certbot
+sudo ln -s /snap/bin/certbot /usr/bin/certbot
+sudo certbot --nginx -d votredomaine.com
+```
+
+---
+
+## 📱 ÉTAPE 6 : Génération et Exportation de l'Application Mobile (APK Android)
+
+La génération de l'APK (Android) **ne se fait pas sur votre serveur Debian (qui n'a pas d'interface graphique)**. Elle se fait sur votre ordinateur personnel (celui sur lequel vous codez : Windows / Mac / Ubuntu Desktop).
+
+### 1. Prérequis sur votre PC
+* Avoir **Node.js** d'installé.
+* Avoir téléchargé **Android Studio** (depuis le site développeur Google) avec le SDK Android configuré.
+
+### 2. Initialiser le projet Capacitor (sur votre PC)
+Dans le dossier de votre projet sur votre PC, ouvrez un terminal :
+```bash
+# Remplacer les identifiants Firebase par vos vrais URLs (si non fait)
+npm run build
+
+# Installer les dépendances Capacitor
+npm install @capacitor/core @capacitor/android
+npm install -D @capacitor/cli
+
+# Initialiser Capacitor (si ce n'est pas encore fait)
+npx cap init ResiFaso com.resifaso.app --web-dir dist
+
+# Ajouter la plateforme Android
+npx cap add android
+```
+
+### 3. Synchroniser et compiler l'APK
+```bash
+# Copier les derniers fichiers Web (.html, .js compilés) dans le dossier Android
+npx cap sync android
+
+# Ouvrir Android Studio automatiquement
+npx cap open android
+```
+
+### 4. Dans Android Studio :
+1. Une fois ouvert, attendez que la barre de progression (en bas) indique que `Gradle Sync` est terminé.
+2. Allez dans le menu en haut : **Build** > **Build Bundle(s) / APK(s)** > **Build APK(s)**.
+3. Le processus prend quelques minutes. Une notification apparaîtra en bas à droite une fois fini.
+4. Cliquez sur **Locate** dans cette notification.
+5. Vous trouverez votre fichier `app-debug.apk` généré.
+6. Copiez ce fichier sur votre téléphone Android et installez-le. (Pensez à autoriser l'installation provenant de sources inconnues).
+
+> **Important pour l'APK :** Dans votre code React, tous vos appels API doivent pointer vers le lien en `https://votredomaine.com` (votre serveur Debian) et non pas sur `localhost`, car le téléphone cherchera l'API sur son propre réseau plutôt que sur votre serveur.

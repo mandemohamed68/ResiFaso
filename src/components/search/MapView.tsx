@@ -33,10 +33,10 @@ export const MapView: React.FC<Props> = ({ residences, onResidenceClick }) => {
           url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
         />
         {residences.map((res) => (
-          res.address?.coordinates && (
+          res.address.coordinates && (
             <Marker 
               key={res.id} 
-              position={[res.address?.coordinates?.lat || 12.371428, res.address?.coordinates?.lng || -1.519662]}
+              position={[res.address.coordinates.lat, res.address.coordinates.lng]}
             >
               <Popup>
                 <div className="p-2 min-w-[200px]">
