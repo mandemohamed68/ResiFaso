@@ -1,9 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
 import { useRole } from '../../contexts/RoleContext';
+import { useToast } from '../../contexts/ToastContext';
 import { 
   Home, Search, Heart, User, LogOut, Shield, Briefcase, 
-  LayoutDashboard, MessageSquare, Bell, ShieldAlert, CalendarCheck, Check, Sun, Moon
+  LayoutDashboard, MessageSquare, Bell, ShieldAlert, CalendarCheck, Check, Sun, Moon,
+  Info, AlertTriangle, CheckCircle2, AlertCircle, Clock
 } from 'lucide-react';
 import { cn } from '../../lib/utils';
 import { UserRole } from '../../types';
@@ -18,6 +20,7 @@ export const Navbar: React.FC<{
 }> = ({ onNavigate, isDarkMode, onToggleDarkMode }) => {
   const { user, profile, logOut } = useAuth();
   const { currentRole, setCurrentRole, canSwitch } = useRole();
+  const { addToast } = useToast();
   const [isAuthOpen, setIsAuthOpen] = useState(false);
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
   const isSuperAdmin = profile?.email === 'mandemohamed68@gmail.com' || user?.email === 'mandemohamed68@gmail.com';
@@ -216,49 +219,103 @@ export const Navbar: React.FC<{
                         )}
                       </div>
 
-                      <div className="overflow-y-auto no-scrollbar flex-1 space-y-2">
+                      <div className="overflow-y-auto no-scrollbar flex-1 space-y-2.5 pb-2">
                         {notifications.length === 0 ? (
-                          <p className="text-center text-xs text-slate-400 py-6">Aucune alerte pour l'instant.</p>
+                          <div className="flex flex-col items-center justify-center py-10 opacity-40">
+                            <Bell size={40} className="mb-2" />
+                            <p className="text-center text-xs font-bold uppercase tracking-widest">Silence radio</p>
+                          </div>
                         ) : (
-                          notifications.map((notif) => (
-                            <div
-                              key={notif.id}
-                              onClick={() => {
-                                handleMarkAsRead(notif.id);
-                                if (notif.type === 'booking') {
-                                  if (currentRole === 'owner') onNavigate('owner-dashboard');
-                                  else onNavigate('bookings');
-                                  
-                                  if (notif.referenceId) {
-                                    setTimeout(() => {
-                                      window.dispatchEvent(new CustomEvent('openBookingDetails', { detail: notif.referenceId }));
-                                    }, 100);
+                          notifications.map((notif) => {
+                            const isRead = !!notif.isRead;
+                            let Icon = Info;
+                            let iconColor = "text-blue-500";
+                            let bgColor = "bg-blue-50/50";
+                            
+                            if (notif.type === 'booking') {
+                              Icon = CalendarCheck;
+                              iconColor = "text-emerald-500";
+                              bgColor = "bg-emerald-50/50";
+                            } else if (notif.type === 'alert' || notif.type === 'danger') {
+                              Icon = AlertCircle;
+                              iconColor = "text-red-500";
+                              bgColor = "bg-red-50/50";
+                            } else if (notif.type === 'warning') {
+                              Icon = AlertTriangle;
+                              iconColor = "text-amber-500";
+                              bgColor = "bg-amber-50/50";
+                            } else if (notif.type === 'success') {
+                              Icon = CheckCircle2;
+                              iconColor = "text-emerald-500";
+                              bgColor = "bg-emerald-50/50";
+                            }
+
+                            return (
+                              <div
+                                key={notif.id}
+                                onClick={() => {
+                                  handleMarkAsRead(notif.id);
+                                  if (notif.type === 'booking') {
+                                    if (currentRole === 'owner') onNavigate('owner-dashboard');
+                                    else onNavigate('bookings');
+                                    
+                                    if (notif.referenceId) {
+                                      setTimeout(() => {
+                                        window.dispatchEvent(new CustomEvent('openBookingDetails', { detail: notif.referenceId }));
+                                      }, 100);
+                                    }
                                   }
-                                }
-                                setIsNotifOpen(false);
-                              }}
-                              className={cn(
-                                "p-2.5 rounded-xl border text-left cursor-pointer transition-all hover:bg-slate-50/50",
-                                notif.isRead 
-                                  ? "bg-white border-slate-100" 
-                                  : "bg-red-50/30 border-red-100 shadow-xs ring-1 ring-red-500/5"
-                              )}
-                            >
-                              <div className="flex items-center justify-between">
-                                <span className="text-xs font-black text-slate-910 text-slate-900 leading-tight">{notif.title}</span>
-                                {!notif.isRead && (
-                                  <span className="w-2 h-2 bg-red-650 bg-red-600 rounded-full" />
+                                  setIsNotifOpen(false);
+                                }}
+                                className={cn(
+                                  "group relative p-3 rounded-2xl border transition-all duration-300 cursor-pointer flex gap-3",
+                                  isRead 
+                                    ? "bg-white border-slate-100 opacity-70 hover:opacity-100" 
+                                    : "bg-white border-slate-200 shadow-sm ring-1 ring-slate-900/5 hover:border-red-200"
                                 )}
+                              >
+                                {!isRead && (
+                                  <div className="absolute top-3 right-3 w-2 h-2 bg-red-600 rounded-full animate-pulse shadow-sm shadow-red-200" />
+                                )}
+                                
+                                <div className={cn(
+                                  "w-10 h-10 rounded-xl flex items-center justify-center shrink-0 transition-transform group-hover:scale-110",
+                                  bgColor,
+                                  iconColor
+                                )}>
+                                  <Icon size={20} className="stroke-[2.5]" />
+                                </div>
+
+                                <div className="flex-1 min-w-0">
+                                  <div className="flex items-center justify-between mb-0.5">
+                                    <span className={cn(
+                                      "text-xs font-black tracking-tight truncate pr-4",
+                                      isRead ? "text-slate-600" : "text-slate-900"
+                                    )}>
+                                      {notif.title}
+                                    </span>
+                                  </div>
+                                  <p className={cn(
+                                    "text-[11px] leading-relaxed font-medium line-clamp-2",
+                                    isRead ? "text-slate-400" : "text-slate-600"
+                                  )}>
+                                    {notif.message}
+                                  </p>
+                                  <div className="flex items-center gap-2 mt-2">
+                                    <Clock size={10} className="text-slate-300" />
+                                    <span className="text-[9px] font-black text-slate-300 font-mono uppercase">
+                                      {new Date(notif.createdAt).toLocaleDateString('fr-FR', {
+                                        day: 'numeric',
+                                        month: 'short',
+                                        hour: '2-digit',
+                                        minute: '2-digit'
+                                      })}
+                                    </span>
+                                  </div>
+                                </div>
                               </div>
-                              <p className="text-[11px] text-slate-500 mt-0.5 leading-snug font-medium">{notif.message}</p>
-                              <span className="block text-[8px] mt-1 font-black text-slate-400 font-mono uppercase">
-                                {new Date(notif.createdAt).toLocaleDateString('fr-FR', {
-                                  day: 'numeric',
-                                  month: 'short'
-                                })}
-                              </span>
-                            </div>
-                          ))
+                            );
+                          })
                         )}
                       </div>
                     </div>
@@ -292,7 +349,7 @@ export const Navbar: React.FC<{
                         </button>
                         <div className="h-px bg-slate-100 my-2"></div>
                         <button onClick={() => { setIsUserMenuOpen(false); onNavigate('profile'); }} className="w-full text-left px-5 py-2.5 hover:bg-slate-50 text-sm font-medium text-slate-600">Profil & Paramètres</button>
-                        <button onClick={() => { setIsUserMenuOpen(false); alert("Centre d'aide"); }} className="w-full text-left px-5 py-2.5 hover:bg-slate-50 text-sm font-medium text-slate-600">Centre d'aide</button>
+                        <button onClick={() => { setIsUserMenuOpen(false); addToast("Centre d'aide", 'info'); }} className="w-full text-left px-5 py-2.5 hover:bg-slate-50 text-sm font-medium text-slate-600">Centre d'aide</button>
                       </>
                     )}
                     {currentRole === 'owner' && (

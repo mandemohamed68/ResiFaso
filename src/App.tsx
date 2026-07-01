@@ -2,6 +2,7 @@ import { formatCurrency } from './utils/currency';
 import React, { useState, useEffect } from 'react';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { RoleProvider, useRole } from './contexts/RoleContext';
+import { ToastProvider, useToast } from './contexts/ToastContext';
 import { Navbar } from './components/common/Navbar';
 import { Hero } from './components/home/Hero';
 import { SearchForm } from './components/search/SearchForm';
@@ -15,7 +16,7 @@ import { motion, AnimatePresence } from 'motion/react';
 import { 
   Filter, Map as MapIcon, List, ArrowRight, Star, 
   CheckCircle2, ShieldCheck, RefreshCw, Compass, MessageSquare,
-  ChevronLeft, ChevronRight, Phone, Heart, Megaphone, X, Share2, Check, Calendar as CalendarIcon
+  ChevronLeft, ChevronRight, Phone, Heart, Megaphone, X, Share2, Check, Calendar as CalendarIcon, ShieldAlert
 } from 'lucide-react';
 import { cn, formatFCFA } from './lib/utils';
 import { MapView } from './components/search/MapView';
@@ -31,14 +32,17 @@ import {
 import { db } from './lib/firebase';
 import { collection, query, where, onSnapshot, getDocs, doc, updateDoc } from 'firebase/firestore';
 import { ProfileSettings } from './components/profile/ProfileSettings';
+import { LegalPage } from './components/legal/LegalPage';
 import { Footer } from './components/common/Footer';
 import { BURKINA_LOCATIONS } from './constants/locations';
+import { GlobalModal } from './components/common/GlobalModal';
 
 function AppContent() {
   const { user, profile, loginAsMock, logOut } = useAuth();
   const { currentRole, setCurrentRole } = useRole();
+  const { addToast } = useToast();
   
-  const [view, setView] = useState<'home' | 'search' | 'details' | 'admin' | 'bookings' | 'owner-dashboard' | 'profile' | 'messages' | 'favorites'>('home');
+  const [view, setView] = useState<'home' | 'search' | 'details' | 'admin' | 'bookings' | 'owner-dashboard' | 'profile' | 'messages' | 'favorites' | 'tos' | 'privacy'>('home');
   const [selectedResidence, setSelectedResidence] = useState<Residence | null>(null);
   const [isPaymentOpen, setIsPaymentOpen] = useState(false);
   const [activeBookingForPayment, setActiveBookingForPayment] = useState<any>(null);
@@ -76,9 +80,31 @@ function AppContent() {
   const [checkIn, setCheckIn] = useState('');
   const [checkOut, setCheckOut] = useState('');
 
+  // Global Modal State
+  const [modalConfig, setModalConfig] = useState<{
+    isOpen: boolean;
+    title: string;
+    message: string;
+    type: 'success' | 'confirm' | 'info' | 'error';
+    onConfirm?: () => void;
+    confirmLabel?: string;
+    cancelLabel?: string;
+  }>({
+    isOpen: false,
+    title: '',
+    message: '',
+    type: 'info'
+  });
+
+  const handleNavigate = (v: typeof view) => {
+    setView(v);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
   // Database list and loadings
   const [residences, setResidences] = useState<Residence[]>([]);
   const [loading, setLoading] = useState(true);
+  const [commissionRate, setCommissionRate] = useState<number>(8);
 
   // Search filter options
   const [searchFilters, setSearchFilters] = useState<{
@@ -96,6 +122,9 @@ function AppContent() {
         const data = docSnap.data();
         if (data.isTestMode !== undefined) {
           setIsTestMode(data.isTestMode);
+        }
+        if (data.commissionRate !== undefined) {
+          setCommissionRate(data.commissionRate);
         }
         if (data.enablePhoneCalls !== undefined) {
           setEnablePhoneCalls(data.enablePhoneCalls);
@@ -161,8 +190,7 @@ function AppContent() {
 
   const handleResidenceClick = (residence: Residence) => {
     setSelectedResidence(residence);
-    setView('details');
-    window.scrollTo(0, 0);
+    handleNavigate('details');
   };
 
   const [selectedResidenceBookings, setSelectedResidenceBookings] = useState<any[]>([]);
@@ -188,6 +216,13 @@ function AppContent() {
     return () => unsub();
   }, [selectedResidence]);
 
+  const handleBackToList = () => {
+    setSelectedResidence(null);
+    setCheckIn('');
+    setCheckOut('');
+    handleNavigate('home');
+  };
+
   const calculateNights = () => {
     const start = new Date(checkIn);
     const end = new Date(checkOut);
@@ -198,9 +233,20 @@ function AppContent() {
 
   const calculateTotal = (res: Residence) => {
     const nights = calculateNights();
-    const pricePerNight = res.promoPrice || res.pricePerNight;
+    let pricePerNight = res.promoPrice || res.pricePerNight;
     
-    // Apply duration discounts
+    // Check tiered pricing (degressive)
+    if (res.pricingTiers && res.pricingTiers.length > 0) {
+      const applicableTiers = [...res.pricingTiers]
+        .filter(tier => nights >= tier.minNights)
+        .sort((a, b) => b.minNights - a.minNights);
+      
+      if (applicableTiers.length > 0) {
+        pricePerNight = applicableTiers[0].pricePerNight;
+      }
+    }
+    
+    // Apply duration discounts (legacy percentage-based)
     let discount = 0;
     if (nights >= 28 && res.monthlyDiscount) {
       discount = res.monthlyDiscount;
@@ -210,7 +256,7 @@ function AppContent() {
 
     const base = (pricePerNight * nights) * (1 - discount / 100);
     const cleaning = res.cleaningFee;
-    const platformService = base * 0.08; // Platform commission
+    const platformService = base * (commissionRate / 100); // Platform commission
     const extraService = res.serviceFee || 0; // Host controlled service fee
     return Math.round(base + cleaning + platformService + extraService);
   };
@@ -231,15 +277,13 @@ function AppContent() {
     // 1. City Match
     if (searchFilters.cityId) {
       const city = BURKINA_LOCATIONS.find(c => c.id === searchFilters.cityId);
-      if (city) {
-        const citySearch = city.name.toLowerCase().trim();
-        const resCity = (res.address.city || '').toLowerCase().trim();
-        // Handle fuzzy matching like "Bobo-Dioulasso" vs "Bobo Dioulasso"
-        const normalize = (s: string) => s.replace(/-/g, ' ').replace(/\s+/g, ' ');
-        const matchesCity = normalize(resCity).includes(normalize(citySearch)) || 
-                           normalize(citySearch).includes(normalize(resCity));
-        if (!matchesCity) return false;
-      }
+      const citySearch = (city ? city.name : searchFilters.cityId).toLowerCase().trim();
+      const resCity = (res.address.city || '').toLowerCase().trim();
+      // Handle fuzzy matching like "Bobo-Dioulasso" vs "Bobo Dioulasso"
+      const normalize = (s: string) => s.replace(/-/g, ' ').replace(/\s+/g, ' ');
+      const matchesCity = normalize(resCity).includes(normalize(citySearch)) || 
+                         normalize(citySearch).includes(normalize(resCity));
+      if (!matchesCity) return false;
     }
 
     // 2. Neighborhood Match
@@ -254,13 +298,12 @@ function AppContent() {
         }
       }
       
-      if (nbName) {
-        const resNb = (res.address.neighborhood || '').toLowerCase().trim();
-        const normalizeNb = (s: string) => s.replace(/['’]/g, '').replace(/\s+/g, ' ');
-        const matchesNb = normalizeNb(resNb).includes(normalizeNb(nbName)) || 
-                         normalizeNb(nbName).includes(normalizeNb(resNb));
-        if (!matchesNb) return false;
-      }
+      const searchNb = (nbName || searchFilters.neighborhoodId).toLowerCase().trim();
+      const resNb = (res.address.neighborhood || '').toLowerCase().trim();
+      const normalizeNb = (s: string) => s.replace(/['’]/g, '').replace(/\s+/g, ' ');
+      const matchesNb = normalizeNb(resNb).includes(normalizeNb(searchNb)) || 
+                       normalizeNb(searchNb).includes(normalizeNb(resNb));
+      if (!matchesNb) return false;
     }
 
     // 3. Housing Type
@@ -326,13 +369,13 @@ function AppContent() {
     setLoading(true);
     try {
       const convId = await getOrCreateConversation([user.uid, ownerId], residenceId);
-      setView('messages');
+      handleNavigate('messages');
       // We'll need a way for MessagesView to auto-select this convId
       // Let's add a state for it
       setInitialConversationId(convId);
     } catch (err) {
       console.error(err);
-      alert("Erreur lors de l'ouverture de la messagerie.");
+      addToast("Erreur lors de l'ouverture de la messagerie.", 'error');
     } finally {
       setLoading(false);
     }
@@ -345,13 +388,13 @@ function AppContent() {
     if (!selectedResidence) return;
 
     if (!user) {
-      alert("Veuillez d'abord vous connecter pour effectuer une réservation.");
+      addToast("Veuillez d'abord vous connecter pour effectuer une réservation.", 'info');
       setIsAuthOpen(true);
       return;
     }
 
     if (profile?.isSuspended) {
-      alert("Votre compte est actuellement suspendu par l'administration Faso. Vous ne pouvez pas faire de nouvelle demande de séjour.");
+      addToast("Votre compte est actuellement suspendu par l'administration Faso. Vous ne pouvez pas faire de nouvelle demande de séjour.", 'error');
       return;
     }
 
@@ -377,11 +420,20 @@ function AppContent() {
 
       if (conflicts.length > 0) {
         const { nextStartStr, nextEndStr } = suggestAlternativeDates(conflicts, checkIn, checkOut);
-        if (confirm(`🇧🇫 NOTE DE DISPONIBILITÉ :\n\nDésolé, cette résidence est déjà occupée ou réservée aux dates choisies.\n\nSouhaitez-vous plutôt envoyer votre demande pour les prochaines dates libres : du ${nextStartStr} au ${nextEndStr} ?`)) {
-          setCheckIn(nextStartStr);
-          setCheckOut(nextEndStr);
-          alert("Dates mises à jour ! Veuillez cliquer à nouveau sur 'Confirmer la Réservation' pour envoyer votre demande à l'hôte.");
-        }
+        
+        setModalConfig({
+          isOpen: true,
+          type: 'confirm',
+          title: 'Note de Disponibilité',
+          message: `Désolé, cette résidence est déjà occupée ou réservée aux dates choisies.\n\nSouhaitez-vous plutôt envoyer votre demande pour les prochaines dates libres : du ${nextStartStr} au ${nextEndStr} ?`,
+          confirmLabel: 'Oui, changer',
+          cancelLabel: 'Annuler',
+          onConfirm: () => {
+            setCheckIn(nextStartStr);
+            setCheckOut(nextEndStr);
+            addToast("Dates mises à jour ! Veuillez cliquer à nouveau sur 'Confirmer la Réservation' pour envoyer votre demande à l'hôte.", 'info');
+          }
+        });
         return;
       }
 
@@ -413,14 +465,19 @@ function AppContent() {
         referenceId: newBookingId
       });
 
-      alert("Votre demande de réservation a été envoyée avec succès au propriétaire ! Vous allez être redirigé vers l'onglet 'Mes Réservations' pour suivre son statut.");
-      
-      setSelectedResidence(null);
-      // Directly redirect them to guest bookings lists page
-      setView('bookings');
+      setModalConfig({
+        isOpen: true,
+        type: 'success',
+        title: 'Réservation Envoyée !',
+        message: "Votre demande de réservation a été envoyée avec succès au propriétaire ! Vous allez être redirigé vers l'onglet 'Mes Réservations' pour suivre son statut.",
+        onConfirm: () => {
+          setSelectedResidence(null);
+          handleNavigate('bookings');
+        }
+      });
     } catch (err) {
       console.error(err);
-      alert("Échec de la soumission de la réservation.");
+      addToast("Échec de la soumission de la réservation.", 'error');
     }
   };
 
@@ -429,36 +486,59 @@ function AppContent() {
 
       {globalAnnouncement && globalAnnouncement.active && !isAnnouncementDismissed && (
         <div className={cn(
-          "relative overflow-hidden border-b transition-all duration-300 animate-in fade-in slide-in-from-top-4 z-[100]",
-          globalAnnouncement.type === 'info' && "bg-blue-600 text-white border-blue-700",
-          globalAnnouncement.type === 'warning' && "bg-amber-500 text-slate-900 border-amber-600 shadow-sm",
+          "relative overflow-hidden border-b transition-all duration-500 animate-in fade-in slide-in-from-top-full z-[100] shadow-lg",
+          globalAnnouncement.type === 'info' && "bg-slate-900 text-white border-slate-800",
+          globalAnnouncement.type === 'warning' && "bg-amber-400 text-slate-950 border-amber-500 shadow-amber-100/20",
           globalAnnouncement.type === 'success' && "bg-emerald-600 text-white border-emerald-700",
           globalAnnouncement.type === 'danger' && "bg-red-600 text-white border-red-700 font-extrabold"
         )} id="app-global-announcement-banner">
-          <div className="max-w-7xl mx-auto px-4 py-3 sm:py-3.5 pr-12 flex items-center justify-center gap-3 relative">
-            <Megaphone className={cn(
-              "flex-shrink-0 animate-bounce",
-              globalAnnouncement.type === 'warning' ? "text-slate-900" : "text-white"
-            )} size={18} />
-            <span className="text-xs sm:text-sm font-semibold tracking-wide text-center">
-              {globalAnnouncement.text}
-            </span>
+          {/* Decorative background pulse */}
+          <div className="absolute inset-0 opacity-10 pointer-events-none">
+            <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-white via-transparent to-transparent animate-pulse scale-150"></div>
+          </div>
+          
+          <div className="max-w-7xl mx-auto px-4 py-3.5 sm:py-4 pr-14 flex items-center justify-center gap-4 relative">
+            <div className={cn(
+              "p-2 rounded-full flex-shrink-0 animate-bounce shadow-inner",
+              globalAnnouncement.type === 'warning' ? "bg-amber-500 text-slate-950" : "bg-white/10 text-white"
+            )}>
+              <Megaphone size={16} className="stroke-[3]" />
+            </div>
+            
+            <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-3 text-center sm:text-left">
+              <span className={cn(
+                "text-[10px] uppercase font-black tracking-[0.2em] opacity-80",
+                globalAnnouncement.type === 'warning' ? "text-slate-900" : "text-white/80"
+              )}>
+                {globalAnnouncement.type === 'danger' ? 'Alerte Critique' : 'Flash Info'}
+              </span>
+              <p className="text-xs sm:text-sm font-black tracking-tight leading-tight">
+                {globalAnnouncement.text}
+              </p>
+            </div>
+
             <button 
               onClick={() => setIsAnnouncementDismissed(true)}
               className={cn(
-                "absolute right-4 top-1/2 -translate-y-1/2 p-1.5 rounded-full hover:bg-black/10 transition cursor-pointer outline-none focus:ring-1 focus:ring-current",
+                "absolute right-4 top-1/2 -translate-y-1/2 p-2 rounded-xl hover:bg-black/10 transition-all cursor-pointer outline-none focus:ring-2 focus:ring-current group",
                 globalAnnouncement.type === 'warning' ? "text-slate-900" : "text-white"
               )}
-              title="Masquer l'annonce temporairement"
+              title="Masquer l'annonce"
             >
-              <X size={14} />
+              <X size={16} className="group-hover:rotate-90 transition-transform duration-300" />
             </button>
           </div>
         </div>
       )}
 
       <Navbar 
-        onNavigate={setView} 
+        onNavigate={(v) => {
+          if (v === 'home' || v === 'search') {
+            setSearchFilters(null);
+            setSelectedResidence(null);
+          }
+          handleNavigate(v);
+        }} 
         isDarkMode={isDarkMode}
         onToggleDarkMode={() => setIsDarkMode(!isDarkMode)}
       />
@@ -579,28 +659,31 @@ function AppContent() {
               {/* Service Trust Cards Section */}
               <div className="bg-white py-16 mb-16 border-y border-slate-100">
                 <div className="max-w-7xl mx-auto px-4">
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-12">
-    <div className="flex flex-col items-center justify-center py-20 bg-white border border-slate-100 rounded-3xl shadow-sm">
-      <div className="w-16 h-16 bg-red-50 text-red-600 rounded-full flex items-center justify-center mb-4">
-        <CheckCircle2 size={32} />
-      </div>
-      <h3 className="text-xl font-bold mb-2">Sécurité Garantie</h3>
-      <p className="text-slate-500 text-sm">Toutes nos résidences sont vérifiées manuellement par nos équipes.</p>
-    </div>
-    <div className="flex flex-col items-center justify-center py-20 bg-white border border-slate-100 rounded-3xl shadow-sm">
-      <div className="w-16 h-16 bg-red-50 text-red-600 rounded-full flex items-center justify-center mb-4">
-        <Star size={32} />
-      </div>
-      <h3 className="text-xl font-bold mb-2">Qualité Premium</h3>
-      <p className="text-slate-500 text-sm">Nous sélectionnons uniquement les meilleurs logements pour vous.</p>
-    </div>
-    <div className="flex flex-col items-center justify-center py-20 bg-white border border-slate-100 rounded-3xl shadow-sm">
-      <div className="w-16 h-16 bg-red-50 text-red-600 rounded-full flex items-center justify-center mb-4">
-        <ShieldCheck size={32} />
-      </div>
-      <h3 className="text-xl font-bold mb-2">Support Local</h3>
-      <p className="text-slate-500 text-sm">Une équipe sur place à Ouagadougou pour vous accompagner.</p>
-    </div>
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+                    <div className="group flex flex-col items-center justify-center p-12 bg-white border border-slate-100 hover:border-red-100 hover:shadow-2xl hover:shadow-red-500/10 transition-all duration-500 rounded-[2rem] relative overflow-hidden">
+                      <div className="absolute inset-0 bg-gradient-to-br from-red-50/50 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
+                      <div className="w-20 h-20 bg-red-50 text-red-600 rounded-full flex items-center justify-center mb-8 group-hover:scale-110 group-hover:bg-red-600 group-hover:text-white transition-all duration-500 relative z-10 shadow-sm">
+                        <CheckCircle2 size={32} className="stroke-[2]" />
+                      </div>
+                      <h3 className="text-xl font-bold text-slate-900 mb-4 text-center tracking-tight relative z-10">Sécurité Garantie</h3>
+                      <p className="text-slate-500 text-sm text-center leading-relaxed max-w-[250px] relative z-10">Toutes nos résidences sont vérifiées manuellement par nos équipes.</p>
+                    </div>
+                    <div className="group flex flex-col items-center justify-center p-12 bg-white border border-slate-100 hover:border-red-100 hover:shadow-2xl hover:shadow-red-500/10 transition-all duration-500 rounded-[2rem] relative overflow-hidden">
+                      <div className="absolute inset-0 bg-gradient-to-br from-red-50/50 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
+                      <div className="w-20 h-20 bg-red-50 text-red-600 rounded-full flex items-center justify-center mb-8 group-hover:scale-110 group-hover:bg-red-600 group-hover:text-white transition-all duration-500 relative z-10 shadow-sm">
+                        <Star size={32} className="stroke-[2]" />
+                      </div>
+                      <h3 className="text-xl font-bold text-slate-900 mb-4 text-center tracking-tight relative z-10">Qualité Premium</h3>
+                      <p className="text-slate-500 text-sm text-center leading-relaxed max-w-[250px] relative z-10">Nous sélectionnons uniquement les meilleurs logements pour vous.</p>
+                    </div>
+                    <div className="group flex flex-col items-center justify-center p-12 bg-white border border-slate-100 hover:border-red-100 hover:shadow-2xl hover:shadow-red-500/10 transition-all duration-500 rounded-[2rem] relative overflow-hidden">
+                      <div className="absolute inset-0 bg-gradient-to-br from-red-50/50 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
+                      <div className="w-20 h-20 bg-red-50 text-red-600 rounded-full flex items-center justify-center mb-8 group-hover:scale-110 group-hover:bg-red-600 group-hover:text-white transition-all duration-500 relative z-10 shadow-sm">
+                        <ShieldCheck size={32} className="stroke-[2]" />
+                      </div>
+                      <h3 className="text-xl font-bold text-slate-900 mb-4 text-center tracking-tight relative z-10">Support Local</h3>
+                      <p className="text-slate-500 text-sm text-center leading-relaxed max-w-[250px] relative z-10">Une équipe sur place à Ouagadougou pour vous accompagner.</p>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -618,11 +701,11 @@ function AppContent() {
               <div className="flex items-center justify-between mb-6">
                 <div className="flex items-center gap-2">
                   <button 
-                    onClick={() => setView('home')}
-                    className="flex items-center gap-2 text-slate-500 hover:text-red-600 font-black text-xs uppercase tracking-widest transition-all cursor-pointer bg-slate-50 px-4 py-2 rounded-xl"
+                    onClick={handleBackToList}
+                    className="flex items-center gap-2 text-slate-500 hover:text-red-600 font-black text-xs uppercase tracking-widest transition-all cursor-pointer bg-slate-50 px-4 py-2 rounded-xl shadow-sm"
                   >
                     <ArrowRight size={16} className="rotate-180" />
-                    Liste des Hébergements
+                    Retour à la Liste
                   </button>
                   <button 
                     onClick={() => {
@@ -727,6 +810,20 @@ function AppContent() {
                         {selectedResidence.rooms} Pièces
                       </div>
                     )}
+                    {selectedResidence.utilitiesIncluded && (
+                      <div className="flex gap-2">
+                        {selectedResidence.utilitiesIncluded.water && (
+                          <div className="flex items-center gap-1 text-[10px] font-black text-blue-600 uppercase tracking-widest bg-blue-50 px-3 py-1 rounded-xl border border-blue-100">
+                            Eau incluse
+                          </div>
+                        )}
+                        {selectedResidence.utilitiesIncluded.electricity && (
+                          <div className="flex items-center gap-1 text-[10px] font-black text-amber-600 uppercase tracking-widest bg-amber-50 px-3 py-1 rounded-xl border border-amber-100">
+                            Élec. incluse
+                          </div>
+                        )}
+                      </div>
+                    )}
                   </div>
 
                   <div className="flex items-center justify-between gap-4 mb-4">
@@ -793,6 +890,38 @@ function AppContent() {
                   </div>
 
                   <div className="mb-12">
+                    <h2 className="text-2xl font-bold mb-4">Charges & Services</h2>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      <div className={`p-5 rounded-2xl border-2 ${selectedResidence.utilitiesIncluded?.water ? 'bg-blue-50 border-blue-200' : 'bg-slate-50 border-slate-100'}`}>
+                        <div className="flex items-center justify-between mb-2">
+                          <span className="font-black text-[10px] uppercase tracking-widest text-slate-500">Consommation Eau</span>
+                          {selectedResidence.utilitiesIncluded?.water ? (
+                            <CheckCircle2 size={16} className="text-blue-600" />
+                          ) : (
+                            <X size={16} className="text-slate-400" />
+                          )}
+                        </div>
+                        <p className={`text-sm font-black ${selectedResidence.utilitiesIncluded?.water ? 'text-blue-900' : 'text-slate-600'}`}>
+                          {selectedResidence.utilitiesIncluded?.water ? '✅ À LA CHARGE DE L\'HÔTE (INCLUS)' : '❌ À LA CHARGE DU CLIENT (NON INCLUS)'}
+                        </p>
+                      </div>
+                      <div className={`p-5 rounded-2xl border-2 ${selectedResidence.utilitiesIncluded?.electricity ? 'bg-amber-50 border-amber-200' : 'bg-slate-50 border-slate-100'}`}>
+                        <div className="flex items-center justify-between mb-2">
+                          <span className="font-black text-[10px] uppercase tracking-widest text-slate-500">Consommation Électricité</span>
+                          {selectedResidence.utilitiesIncluded?.electricity ? (
+                            <CheckCircle2 size={16} className="text-amber-600" />
+                          ) : (
+                            <X size={16} className="text-slate-400" />
+                          )}
+                        </div>
+                        <p className={`text-sm font-black ${selectedResidence.utilitiesIncluded?.electricity ? 'text-amber-900' : 'text-slate-600'}`}>
+                          {selectedResidence.utilitiesIncluded?.electricity ? '✅ À LA CHARGE DE L\'HÔTE (INCLUS)' : '❌ À LA CHARGE DU CLIENT (NON INCLUS)'}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="mb-12">
                     <h2 className="text-2xl font-bold mb-6">Équipements</h2>
                     <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
                       {selectedResidence.amenities.map(item => (
@@ -840,7 +969,32 @@ function AppContent() {
                       Finaliser la Réservation
                     </h2>
 
-                      <div className="flex items-baseline gap-1 mb-6">
+                          {/* Quick Utility Summary */}
+                          <div className="flex flex-col gap-1.5 mb-6">
+                            <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-1">Inclus dans le séjour :</p>
+                            <div className="flex flex-wrap gap-2">
+                              {selectedResidence.utilitiesIncluded?.water ? (
+                                <span className="text-[10px] font-black bg-blue-50 text-blue-700 px-3 py-1.5 rounded-xl border border-blue-100 uppercase tracking-tight flex items-center gap-1.5">
+                                  💧 EAU INCLUSE
+                                </span>
+                              ) : (
+                                <span className="text-[10px] font-black bg-slate-50 text-slate-500 px-3 py-1.5 rounded-xl border border-slate-100 uppercase tracking-tight flex items-center gap-1.5">
+                                  💧 EAU NON INCLUSE
+                                </span>
+                              )}
+                              {selectedResidence.utilitiesIncluded?.electricity ? (
+                                <span className="text-[10px] font-black bg-amber-50 text-amber-700 px-3 py-1.5 rounded-xl border border-amber-100 uppercase tracking-tight flex items-center gap-1.5">
+                                  ⚡ ÉLEC. INCLUSE
+                                </span>
+                              ) : (
+                                <span className="text-[10px] font-black bg-slate-50 text-slate-500 px-3 py-1.5 rounded-xl border border-slate-100 uppercase tracking-tight flex items-center gap-1.5">
+                                  ⚡ ÉLEC. NON INCLUSE
+                                </span>
+                              )}
+                            </div>
+                          </div>
+
+                          <div className="flex items-baseline gap-1 mb-6">
                         {selectedResidence.promoPrice ? (
                           <div className="flex flex-col">
                             <div className="flex items-center gap-2">
@@ -951,6 +1105,7 @@ function AppContent() {
                               
                               <div className="pt-2.5 border-t border-red-100 space-y-2">
                                 <p className="text-[10px] font-black uppercase text-red-700 tracking-wider">🏠 Explorer ailleurs aux mêmes dates :</p>
+                                <p className="text-[9px] text-slate-400 italic mb-2">* Note: Vérifiez si l'eau et l'électricité sont incluses pour ces alternatives.</p>
                                 <div className="space-y-1">
                                   {residences
                                     .filter(r => r.id !== selectedResidence.id && r.address.city === selectedResidence.address.city)
@@ -980,32 +1135,99 @@ function AppContent() {
                     </div>
 
                     <div className="space-y-3 mb-6 text-sm">
-                      <div className="flex justify-between text-slate-600">
-                        <span>{selectedResidence.promoPrice ? formatCurrency(selectedResidence.promoPrice) : formatCurrency(selectedResidence.pricePerNight)} FCFA x {calculateNights()} nuits</span>
-                        <span className="font-medium">{formatCurrency((selectedResidence.promoPrice || selectedResidence.pricePerNight) * calculateNights())} FCFA</span>
-                      </div>
-                      
-                      {calculateNights() >= 7 && (selectedResidence.weeklyDiscount || selectedResidence.monthlyDiscount) && (
-                        <div className="flex justify-between text-green-600 font-bold bg-green-50 p-2 rounded-lg">
-                          <span>Remise durée ({calculateNights() >= 28 ? (selectedResidence.monthlyDiscount || selectedResidence.weeklyDiscount) : selectedResidence.weeklyDiscount}%)</span>
-                          <span>- {formatCurrency((selectedResidence.promoPrice || selectedResidence.pricePerNight) * calculateNights() * ((calculateNights() >= 28 ? (selectedResidence.monthlyDiscount || selectedResidence.weeklyDiscount) : selectedResidence.weeklyDiscount) || 0) / 100)} FCFA</span>
-                        </div>
-                      )}
+                      {(() => {
+                        const nights = calculateNights();
+                        let pPerNight = selectedResidence.promoPrice || selectedResidence.pricePerNight;
+                        let isTierApplied = false;
 
-                      <div className="flex justify-between text-slate-600">
-                        <span>Frais de ménage</span>
-                        <span className="font-medium">{formatCurrency(selectedResidence.cleaningFee)} FCFA</span>
-                      </div>
-                      <div className="flex justify-between text-slate-600">
-                        <span>Frais de service (8%)</span>
-                        <span className="font-medium">{formatCurrency(selectedResidence.pricePerNight * calculateNights() * 0.08)} FCFA</span>
-                      </div>
-                      {selectedResidence.serviceFee > 0 && (
-                        <div className="flex justify-between text-slate-600">
-                          <span>Frais de service Additionnel</span>
-                          <span className="font-medium">{formatCurrency(selectedResidence.serviceFee)} FCFA</span>
-                        </div>
-                      )}
+                        if (selectedResidence.pricingTiers && selectedResidence.pricingTiers.length > 0) {
+                          const tiers = [...selectedResidence.pricingTiers]
+                            .filter(t => nights >= t.minNights)
+                            .sort((a, b) => b.minNights - a.minNights);
+                          if (tiers.length > 0) {
+                            pPerNight = tiers[0].pricePerNight;
+                            isTierApplied = true;
+                          }
+                        }
+
+                        const baseBeforeDiscount = pPerNight * nights;
+
+                        // Apply duration discounts (percentage based)
+                        let discountPercent = 0;
+                        if (nights >= 28 && selectedResidence.monthlyDiscount) {
+                          discountPercent = selectedResidence.monthlyDiscount;
+                        } else if (nights >= 7 && selectedResidence.weeklyDiscount) {
+                          discountPercent = selectedResidence.weeklyDiscount;
+                        }
+                        const discountAmount = baseBeforeDiscount * (discountPercent / 100);
+                        const baseAfterDiscount = baseBeforeDiscount - discountAmount;
+                        
+                        const platformService = baseAfterDiscount * (commissionRate / 100);
+
+                        return (
+                          <>
+                            {/* Note détaillée sur les charges */}
+                            <div className="p-4 bg-slate-900 rounded-2xl mb-6 border-l-4 border-red-500 shadow-lg">
+                              <p className="text-[10px] font-black text-red-400 uppercase tracking-widest mb-3 flex items-center gap-2">
+                                <ShieldAlert size={12} />
+                                Récapitulatif des charges :
+                              </p>
+                              <div className="space-y-2">
+                                <div className="flex justify-between items-center bg-slate-800/50 p-2 rounded-lg">
+                                  <span className="text-xs text-slate-300 font-bold">Eau courante :</span>
+                                  <span className={`text-xs font-black px-2 py-0.5 rounded ${selectedResidence.utilitiesIncluded?.water ? 'text-green-400 bg-green-400/10' : 'text-red-400 bg-red-400/10'}`}>
+                                    {selectedResidence.utilitiesIncluded?.water ? '✅ INCLUS (À LA CHARGE DE L\'HÔTE)' : '❌ NON INCLUS (À VOTRE CHARGE)'}
+                                  </span>
+                                </div>
+                                <div className="flex justify-between items-center bg-slate-800/50 p-2 rounded-lg">
+                                  <span className="text-xs text-slate-300 font-bold">Électricité :</span>
+                                  <span className={`text-xs font-black px-2 py-0.5 rounded ${selectedResidence.utilitiesIncluded?.electricity ? 'text-green-400 bg-green-400/10' : 'text-red-400 bg-red-400/10'}`}>
+                                    {selectedResidence.utilitiesIncluded?.electricity ? '✅ INCLUS (À LA CHARGE DE L\'HÔTE)' : '❌ NON INCLUS (À VOTRE CHARGE)'}
+                                  </span>
+                                </div>
+                              </div>
+                              <p className="text-[9px] text-slate-500 mt-2 italic font-medium">* Veuillez noter que si les charges ne sont pas incluses, vous devrez payer votre consommation directement sur place (compteur ou forfait).</p>
+                            </div>
+
+                            <div className="flex justify-between text-slate-600">
+                              <span>
+                                {formatCurrency(pPerNight)} FCFA x {nights} nuits
+                                {isTierApplied && (
+                                  <span className="ml-2 text-[9px] bg-blue-50 text-blue-600 px-1.5 py-0.5 rounded-full font-black border border-blue-100 uppercase tracking-tighter">
+                                    Tarif Dégressif
+                                  </span>
+                                )}
+                              </span>
+                              <span className="font-medium">{formatCurrency(baseBeforeDiscount)} FCFA</span>
+                            </div>
+                            
+                            {discountPercent > 0 && (
+                              <div className="flex justify-between text-green-600 font-bold bg-green-50 p-2 rounded-lg">
+                                <span>Remise durée ({discountPercent}%)</span>
+                                <span>- {formatCurrency(discountAmount)} FCFA</span>
+                              </div>
+                            )}
+
+                            <div className="flex justify-between text-slate-600">
+                              <span>Frais de ménage</span>
+                              <span className="font-medium">{formatCurrency(selectedResidence.cleaningFee)} FCFA</span>
+                            </div>
+                            {commissionRate > 0 && (
+                              <div className="flex justify-between text-slate-600">
+                                <span>Frais de service ({commissionRate}%)</span>
+                                <span className="font-medium">{formatCurrency(platformService)} FCFA</span>
+                              </div>
+                            )}
+                            {selectedResidence.serviceFee > 0 && (
+                              <div className="flex justify-between text-slate-600">
+                                <span>Frais de service Additionnel</span>
+                                <span className="font-medium">{formatCurrency(selectedResidence.serviceFee)} FCFA</span>
+                              </div>
+                            )}
+                          </>
+                        );
+                      })()}
+
                       <hr className="border-slate-50" />
                       <div className="flex justify-between text-lg font-black text-slate-900">
                         <span>Total du séjour</span>
@@ -1089,7 +1311,7 @@ function AppContent() {
                   <p className="text-slate-500 font-medium text-sm">Retrouvez les résidences que vous avez sauvegardées pour préparer votre séjour au Burkina Faso.</p>
                 </div>
                 <button
-                  onClick={() => setView('home')}
+                  onClick={() => handleNavigate('home')}
                   className="bg-slate-900 text-white px-5 py-3 rounded-2xl text-xs font-black uppercase tracking-widest hover:bg-slate-800 transition shadow-sm self-start cursor-pointer"
                 >
                   Découvrir des résidences
@@ -1113,7 +1335,7 @@ function AppContent() {
                     Explorez le catalogue des plus beaux appartements, villas et résidences de ResiFaso, puis cliquez sur le bouton coeur pour les ajouter ici.
                   </p>
                   <button
-                    onClick={() => setView('home')}
+                    onClick={() => handleNavigate('home')}
                     className="bg-red-600 text-white px-6 py-3 rounded-2xl text-xs font-black uppercase tracking-widest hover:bg-red-700 transition cursor-pointer"
                   >
                     Parcourir les résidences
@@ -1156,7 +1378,7 @@ function AppContent() {
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
             >
-              <OwnerDashboard isTestMode={isTestMode} onBackToTraveler={() => setView('home')} />
+              <OwnerDashboard isTestMode={isTestMode} onBackToTraveler={() => handleNavigate('home')} />
             </motion.div>
           )}
 
@@ -1169,16 +1391,38 @@ function AppContent() {
               exit={{ opacity: 0, scale: 0.98 }}
               className="max-w-7xl mx-auto px-4 py-8"
             >
-              <AdminDashboard onBackToTraveler={() => setView('home')} />
+              <AdminDashboard onBackToTraveler={() => handleNavigate('home')} />
+            </motion.div>
+          )}
+          {/* Legal views */}
+          {view === 'tos' && (
+            <motion.div key="tos" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
+              <LegalPage type="tos" />
+            </motion.div>
+          )}
+          {view === 'privacy' && (
+            <motion.div key="privacy" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
+              <LegalPage type="privacy" />
             </motion.div>
           )}
         </AnimatePresence>
       </main>
       
-      <Footer />
+      <Footer onNavigate={(v) => handleNavigate(v)} />
 
       {/* Account Login panel triggers */}
       <AuthModal isOpen={isAuthOpen} onClose={() => setIsAuthOpen(false)} />
+      
+      <GlobalModal
+        isOpen={modalConfig.isOpen}
+        title={modalConfig.title}
+        message={modalConfig.message}
+        type={modalConfig.type}
+        onConfirm={modalConfig.onConfirm}
+        onClose={() => setModalConfig({ ...modalConfig, isOpen: false })}
+        confirmLabel={modalConfig.confirmLabel}
+        cancelLabel={modalConfig.cancelLabel}
+      />
       
       {activeBookingForPayment && (
         <PaymentModal 
@@ -1190,13 +1434,14 @@ function AppContent() {
           amount={activeBookingForPayment.amount}
           residenceTitle={activeBookingForPayment.title}
           isTestMode={isTestMode}
+          utilitiesIncluded={residences.find(r => r.id === activeBookingForPayment.residenceId)?.utilitiesIncluded}
           onSuccess={async () => {
             if (activeBookingForPayment?.id) {
               try {
                 await updateBookingStatus(activeBookingForPayment.id, {
                   paymentStatus: 'advance_paid'
                 });
-                alert("Paiement de l'acompte réussi ! Votre réservation est maintenant confirmée.");
+                addToast("Paiement de l'acompte réussi ! Votre réservation est maintenant confirmée.", 'success');
               } catch (err) {
                 console.error("Failed to update booking status after payment:", err);
               }
@@ -1212,7 +1457,9 @@ export default function App() {
   return (
     <AuthProvider>
       <RoleProvider>
-        <AppContent />
+        <ToastProvider>
+          <AppContent />
+        </ToastProvider>
       </RoleProvider>
     </AuthProvider>
   );

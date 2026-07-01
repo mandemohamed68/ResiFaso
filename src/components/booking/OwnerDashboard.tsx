@@ -12,8 +12,10 @@ import {
   createWithdrawalRequest,
   getOwnerWithdrawals
 } from '../../lib/db';
+import { CustomSelect } from '../common/CustomSelect';
 import { Message, Conversation, Residence, Booking, WithdrawalRequest, MobileMoneyProvider } from '../../types';
 import { BURKINA_LOCATIONS } from '../../constants/locations';
+import { useLocations } from '../../hooks/useLocations';
 import { motion, AnimatePresence } from 'motion/react';
 import { cn } from '../../lib/utils';
 import { 
@@ -575,6 +577,12 @@ export const OwnerDashboard: React.FC<{ isTestMode?: boolean; onBackToTraveler?:
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<'stats' | 'listings' | 'bookings' | 'revenue' | 'messages' | 'notifications' | 'policy'>('stats');
+  const [commissionRate, setCommissionRate] = useState<number>(8);
+  
+  // Scroll to top when tab changes
+  useEffect(() => {
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }, [activeTab]);
   
   // Real-time notifications and host dynamic cancellation policy settings states
   const [dbNotifications, setDbNotifications] = useState<any[]>([]);
@@ -589,6 +597,7 @@ export const OwnerDashboard: React.FC<{ isTestMode?: boolean; onBackToTraveler?:
   const [newMessage, setNewMessage] = useState('');
 
   // Withdrawal features states
+  const { allLocations } = useLocations();
   const [withdrawals, setWithdrawals] = useState<WithdrawalRequest[]>([]);
   const [withdrawalAmount, setWithdrawalAmount] = useState<string>('');
   const [withdrawalPhone, setWithdrawalPhone] = useState<string>('');
@@ -716,7 +725,19 @@ export const OwnerDashboard: React.FC<{ isTestMode?: boolean; onBackToTraveler?:
       setWithdrawals(list);
     }, (error) => console.error("OwnerDashboard withdrawals snapshot error:", error));
 
-    return () => unsubWith();
+    const unsubSettings = onSnapshot(doc(db, 'settings', 'global'), (docSnap) => {
+      if (docSnap.exists()) {
+        const data = docSnap.data();
+        if (data.commissionRate !== undefined) {
+          setCommissionRate(data.commissionRate);
+        }
+      }
+    });
+
+    return () => {
+      unsubWith();
+      unsubSettings();
+    };
   }, [user]);
 
   // Modification/Decline flows
@@ -740,6 +761,10 @@ export const OwnerDashboard: React.FC<{ isTestMode?: boolean; onBackToTraveler?:
   const [step, setStep] = useState(1);
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
 
+  useEffect(() => {
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }, [step, activeTab]);
+
   // Form states
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
@@ -748,6 +773,8 @@ export const OwnerDashboard: React.FC<{ isTestMode?: boolean; onBackToTraveler?:
   const [selectedNeighborhoodId, setSelectedNeighborhoodId] = useState('');
   const [street, setStreet] = useState('');
   const [pricePerNight, setPricePerNight] = useState('');
+  const [utilitiesIncluded, setUtilitiesIncluded] = useState({ water: false, electricity: false });
+  const [pricingTiers, setPricingTiers] = useState<{ minNights: number, pricePerNight: number }[]>([]);
   const [advancePercentage, setAdvancePercentage] = useState(30);
   const [cleaningFee, setCleaningFee] = useState('');
   const [serviceFee, setServiceFee] = useState('0');
@@ -774,7 +801,7 @@ export const OwnerDashboard: React.FC<{ isTestMode?: boolean; onBackToTraveler?:
   const [isUpdatingStatus, setIsUpdatingStatus] = useState<string | null>(null);
 
   // Selected city object
-  const currentCity = BURKINA_LOCATIONS.find(c => c.id === selectedCityId);
+  const currentCity = allLocations.find(c => c.id === selectedCityId);
 
   const availableAmenities = [
     'Wi-Fi', 'Climatisation', 'Piscine', 'Parking', 'Sécurité 24/7', 'Cuisine équipée', 'Jardin', 'Groupe Électrogène', 'Forage Eau'
@@ -889,7 +916,7 @@ export const OwnerDashboard: React.FC<{ isTestMode?: boolean; onBackToTraveler?:
   // Compute metrics
   const totalRevenue = bookings
     .filter(b => b.paymentStatus === 'advance_paid' || b.paymentStatus === 'fully_paid')
-    .reduce((sum, b) => sum + Math.round(b.totalPrice * 0.9), 0); // 10% standard platform commission excluded
+    .reduce((sum, b) => sum + Math.round(b.totalPrice * (1 - (commissionRate / 100))), 0); // Dynamic platform commission excluded
 
   const occupancyRate = residences.length > 0
     ? Math.round((bookings.filter(b => b.bookingStatus === 'confirmed').length / (residences.length * 5)) * 100)
@@ -938,7 +965,7 @@ export const OwnerDashboard: React.FC<{ isTestMode?: boolean; onBackToTraveler?:
       const road = addr.address.road || addr.address.suburb || addr.address.neighbourhood;
       
       if (city) {
-        const foundCity = BURKINA_LOCATIONS.find(c => c.name.toLowerCase().includes(city.toLowerCase()));
+        const foundCity = allLocations.find(c => c.name.toLowerCase().includes(city.toLowerCase()));
         if (foundCity) {
           setSelectedCityId(foundCity.id);
           if (road) {
@@ -968,7 +995,7 @@ export const OwnerDashboard: React.FC<{ isTestMode?: boolean; onBackToTraveler?:
       return;
     }
 
-    const totalEarned = bookings.filter(b => b.paymentStatus === 'fully_paid').reduce((acc, curr) => acc + Math.round(curr.totalPrice * 0.9), 0);
+    const totalEarned = bookings.filter(b => b.paymentStatus === 'fully_paid').reduce((acc, curr) => acc + Math.round(curr.totalPrice * (1 - (commissionRate / 100))), 0);
     const totalWithdrawnAndPending = withdrawals.reduce((acc, w) => acc + w.amount, 0);
     const availableBalance = totalEarned - totalWithdrawnAndPending;
 
@@ -1214,6 +1241,8 @@ export const OwnerDashboard: React.FC<{ isTestMode?: boolean; onBackToTraveler?:
     setImages([]);
     setAmenities([]);
     setCoordinates({ lat: 12.3714, lng: -1.5197 });
+    setUtilitiesIncluded({ water: false, electricity: false });
+    setPricingTiers([]);
     setEditingResidenceId(null);
     setAvailabilityStatus('available');
     setStep(1);
@@ -1284,6 +1313,8 @@ export const OwnerDashboard: React.FC<{ isTestMode?: boolean; onBackToTraveler?:
       setCoordinates(res.address.coordinates);
     }
     setAvailabilityStatus(res.availabilityStatus || 'available');
+    setUtilitiesIncluded(res.utilitiesIncluded || { water: false, electricity: false });
+    setPricingTiers(res.pricingTiers || []);
     setEditingResidenceId(res.id);
     setStep(1);
     setIsAddOpen(true);
@@ -1372,8 +1403,8 @@ export const OwnerDashboard: React.FC<{ isTestMode?: boolean; onBackToTraveler?:
       monthlyDiscount: Number(monthlyDiscount) || 0,
       promoPrice: promoPrice ? Number(promoPrice) : null,
       address: {
-        city: currentCity?.name || 'Ouagadougou',
-        neighborhood: currentCity?.neighborhoods.find(n => n.id === selectedNeighborhoodId)?.name || 'Inconnu',
+        city: currentCity?.name || selectedCityId || 'Ouagadougou',
+        neighborhood: currentCity?.neighborhoods.find(n => n.id === selectedNeighborhoodId)?.name || selectedNeighborhoodId || 'Inconnu',
         street: street || 'Secteur non configuré',
         coordinates: coordinates
       },
@@ -1385,6 +1416,8 @@ export const OwnerDashboard: React.FC<{ isTestMode?: boolean; onBackToTraveler?:
       ownerPhone: ownerPhone,
       beds: Number(beds),
       bathrooms: Number(bathrooms),
+      utilitiesIncluded: utilitiesIncluded,
+      pricingTiers: pricingTiers,
       status: editingResidenceId ? undefined : 'pending', // Keeps old status if editing
       availabilityStatus: availabilityStatus,
       ownerName: user.displayName || 'Hôte vérifié',
@@ -1393,14 +1426,18 @@ export const OwnerDashboard: React.FC<{ isTestMode?: boolean; onBackToTraveler?:
 
     try {
       if (editingResidenceId) {
-        // Exclude fields that shouldn't be overwritten entirely if undefined
+        // Exclure les champs qui ne doivent pas être écrasés s'ils sont indéfinis
         const { status, createdAt, ...updateData } = newResidence;
         await updateResidence(editingResidenceId, updateData);
         triggerSuccess("Votre résidence a été modifiée avec succès !");
       } else {
-        newResidence.status = 'pending';
+        newResidence.status = isTestMode ? 'published' : 'pending';
         await addResidence(newResidence);
-        triggerSuccess("Votre résidence a été soumise avec succès ! Elle apparaîtra en ligne une fois validée par un modérateur.");
+        if (isTestMode) {
+          triggerSuccess("Votre résidence a été publiée avec succès !");
+        } else {
+          triggerSuccess("Votre résidence a été soumise avec succès ! Elle apparaîtra en ligne une fois validée par un modérateur.");
+        }
       }
       
       setIsAddOpen(false);
@@ -1864,7 +1901,7 @@ export const OwnerDashboard: React.FC<{ isTestMode?: boolean; onBackToTraveler?:
               <div className="bg-white border text-center border-slate-100 rounded-2xl p-6 shadow-sm">
                 <p className="text-sm font-black text-slate-400 uppercase tracking-widest mb-1">Gains du mois</p>
                 <p className="text-3xl font-black text-slate-900 leading-tight">
-                  {formatCurrency(bookings.filter(b => b.paymentStatus === 'fully_paid').reduce((acc, curr) => acc + Math.round(curr.totalPrice * 0.9), 0))} F CFA
+                  {formatCurrency(bookings.filter(b => b.paymentStatus === 'fully_paid').reduce((acc, curr) => acc + Math.round(curr.totalPrice * (1 - (commissionRate / 100))), 0))} F CFA
                 </p>
                 <div className="mt-4 flex justify-center">
                   <span className="text-xs bg-red-50 text-red-700 font-bold px-2 py-1 rounded-lg">+12% depuis le mois dernier</span>
@@ -1873,15 +1910,15 @@ export const OwnerDashboard: React.FC<{ isTestMode?: boolean; onBackToTraveler?:
               <div className="bg-white border text-center border-slate-100 rounded-2xl p-6 shadow-sm">
                 <p className="text-sm font-black text-slate-400 uppercase tracking-widest mb-1">Commissions ResiFaso</p>
                 <p className="text-3xl font-black text-green-600 leading-tight">
-                  {formatCurrency(bookings.filter(b => b.paymentStatus === 'fully_paid').reduce((acc, curr) => acc + Math.round(curr.totalPrice * 0.1), 0))} F CFA
+                  {formatCurrency(bookings.filter(b => b.paymentStatus === 'fully_paid').reduce((acc, curr) => acc + Math.round(curr.totalPrice * (commissionRate / 100)), 0))} F CFA
                 </p>
-                <p className="text-xs text-slate-500 font-bold mt-2">10% de frais prélevés</p>
+                <p className="text-xs text-slate-500 font-bold mt-2">{commissionRate}% de frais prélevés</p>
               </div>
               <div className="bg-slate-900 text-center rounded-2xl p-6 shadow-sm relative overflow-hidden">
                 <div className="absolute -right-4 -top-4 w-24 h-24 bg-red-600/20 rounded-full blur-2xl"></div>
                 <p className="text-sm font-black text-slate-300 uppercase tracking-widest mb-1 relative z-10">Prochain virement</p>
                 <p className="text-3xl font-black text-white leading-tight relative z-10">
-                  {formatCurrency(bookings.filter(b => b.paymentStatus === 'advance_paid').reduce((acc, curr) => acc + Math.round(curr.totalPrice * 0.9), 0))} F CFA
+                  {formatCurrency(bookings.filter(b => b.paymentStatus === 'advance_paid').reduce((acc, curr) => acc + Math.round(curr.totalPrice * (1 - (commissionRate / 100))), 0))} F CFA
                 </p>
                 <button className="mt-4 bg-red-600 hover:bg-red-700 text-white text-xs font-bold px-4 py-2 rounded-xl transition-colors relative z-10">
                   Configurer le compte
@@ -1904,7 +1941,7 @@ export const OwnerDashboard: React.FC<{ isTestMode?: boolean; onBackToTraveler?:
                     <span className="text-xs font-bold text-slate-500">Gains nets restants</span>
                   </div>
                   <span className="text-xl font-black text-red-700 underline underline-offset-4">
-                    {formatCurrency(bookings.filter(b => b.paymentStatus === 'fully_paid').reduce((acc, curr) => acc + Math.round(curr.totalPrice * 0.9), 0) - withdrawals.reduce((acc, w) => acc + w.amount, 0))} F CFA
+                    {formatCurrency(bookings.filter(b => b.paymentStatus === 'fully_paid').reduce((acc, curr) => acc + Math.round(curr.totalPrice * (1 - (commissionRate / 100))), 0) - withdrawals.reduce((acc, w) => acc + w.amount, 0))} F CFA
                   </span>
                 </div>
 
@@ -2452,16 +2489,25 @@ export const OwnerDashboard: React.FC<{ isTestMode?: boolean; onBackToTraveler?:
 
                     <div>
                       <label className="block text-xs font-black text-slate-400 uppercase tracking-wider mb-2">Type de bâtiment</label>
-                      <select 
+                      <input 
+                        list="residence-types"
                         value={type}
                         onChange={(e) => setType(e.target.value)}
+                        placeholder="Tapez ou sélectionnez le type"
                         className="w-full bg-slate-50 border border-slate-100 focus:bg-white focus:border-red-500 rounded-2xl py-3.5 px-4 outline-none text-sm font-bold transition-all"
-                      >
-                        <option value="appartement">Appartement Moderne</option>
-                        <option value="villa">Villa Chics & Spacieuse</option>
-                        <option value="chambre">Chambre standard d'Hôte</option>
-                        <option value="auberge">Auberge locale burkinabè</option>
-                      </select>
+                      />
+                      <datalist id="residence-types">
+                        <option value="Appartement meublé" />
+                        <option value="Villa basse" />
+                        <option value="Villa duplex" />
+                        <option value="Chambre d'hôte" />
+                        <option value="Auberge / Hôtel" />
+                        <option value="Studio moderne" />
+                        <option value="Maison complète" />
+                        <option value="Célibaterium" />
+                        <option value="Loft" />
+                        <option value="Paillote / Bungalow" />
+                      </datalist>
                     </div>
 
                     <div>
@@ -2482,37 +2528,26 @@ export const OwnerDashboard: React.FC<{ isTestMode?: boolean; onBackToTraveler?:
                 {step === 2 && (
                   <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} className="space-y-4">
                     <div>
-                      <label className="block text-xs font-black text-slate-400 uppercase tracking-wider mb-2">Ville (Burkina Faso) *</label>
-                      <select
-                        required
+                      <CustomSelect
+                        label="Ville (Burkina Faso) *"
+                        placeholder="Sélectionnez ou tapez la ville"
+                        options={allLocations.map(c => ({ id: c.id, name: c.name }))}
                         value={selectedCityId}
-                        onChange={(e) => {
-                          setSelectedCityId(e.target.value);
+                        onChange={(val) => {
+                          setSelectedCityId(val);
                           setSelectedNeighborhoodId('');
                         }}
-                        className="w-full bg-slate-50 border border-slate-100 focus:bg-white focus:border-red-500 rounded-2xl py-3.5 px-4 outline-none text-sm font-bold transition-all"
-                      >
-                        <option value="">Sélectionnez la ville</option>
-                        {BURKINA_LOCATIONS.map(c => (
-                          <option key={c.id} value={c.id}>{c.name}</option>
-                        ))}
-                      </select>
+                      />
                     </div>
 
                     <div>
-                      <label className="block text-xs font-black text-slate-400 uppercase tracking-wider mb-2">Quartier / Zone *</label>
-                      <select
-                        required
-                        disabled={!selectedCityId}
+                      <CustomSelect
+                        label="Quartier / Zone *"
+                        placeholder="Sélectionnez ou tapez le quartier"
+                        options={currentCity?.neighborhoods.map(nb => ({ id: nb.id, name: nb.name })) || []}
                         value={selectedNeighborhoodId}
-                        onChange={(e) => setSelectedNeighborhoodId(e.target.value)}
-                        className="w-full bg-slate-50 border border-slate-100 focus:bg-white focus:border-red-500 rounded-2xl py-3.5 px-4 outline-none text-sm font-bold transition-all disabled:opacity-45"
-                      >
-                        <option value="">Quartier disponible</option>
-                        {currentCity?.neighborhoods.map(nb => (
-                          <option key={nb.id} value={nb.id}>{nb.name}</option>
-                        ))}
-                      </select>
+                        onChange={(val) => setSelectedNeighborhoodId(val)}
+                      />
                     </div>
 
                     <div>
@@ -2647,6 +2682,61 @@ export const OwnerDashboard: React.FC<{ isTestMode?: boolean; onBackToTraveler?:
                           onChange={(e) => setBathrooms(e.target.value)}
                           className="w-full bg-slate-50 border border-slate-100 rounded-xl py-3 px-3 outline-none text-sm font-bold"
                         />
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-3 mt-6">
+                      <div className="col-span-2">
+                         <h4 className="text-xs font-black text-red-600 uppercase tracking-[0.2em] mb-4">Charges & Tarifs</h4>
+                      </div>
+                      <div className="col-span-2">
+                        <label className="block text-xs font-black text-slate-400 uppercase tracking-wider mb-2">Inclus dans le prix</label>
+                        <div className="flex gap-6">
+                          <label className="flex items-center gap-3 cursor-pointer group">
+                             <input 
+                               type="checkbox" 
+                               checked={utilitiesIncluded.water} 
+                               onChange={(e) => setUtilitiesIncluded(prev => ({...prev, water: e.target.checked}))} 
+                               className="w-5 h-5 rounded-lg border-slate-300 text-red-600 focus:ring-red-500 transition-all cursor-pointer"
+                             />
+                             <span className="text-sm font-black group-hover:text-red-600 transition-colors">💧 Eau (Inclus)</span>
+                          </label>
+                          <label className="flex items-center gap-3 cursor-pointer group">
+                             <input 
+                               type="checkbox" 
+                               checked={utilitiesIncluded.electricity} 
+                               onChange={(e) => setUtilitiesIncluded(prev => ({...prev, electricity: e.target.checked}))} 
+                               className="w-5 h-5 rounded-lg border-slate-300 text-red-600 focus:ring-red-500 transition-all cursor-pointer"
+                             />
+                             <span className="text-sm font-black group-hover:text-red-600 transition-colors">⚡ Électricité (Inclus)</span>
+                          </label>
+                        </div>
+                        <p className="mt-3 text-[10px] text-slate-500 italic font-bold bg-slate-50 p-2 rounded-lg border border-slate-100">
+                           💡 Cochez si ces charges sont <span className="text-red-600">comprises dans le prix de la nuitée</span>. Si décoché, le client devra payer sa consommation sur place.
+                        </p>
+                      </div>
+                      <div className="col-span-2">
+                         <label className="block text-xs font-black text-slate-400 uppercase tracking-wider mb-2">Paliers de prix dégressifs (par nombre de nuitées)</label>
+                         {pricingTiers.map((tier, index) => (
+                           <div key={index} className="flex gap-2 mb-2 items-center">
+                             <input 
+                               type="number" 
+                               placeholder="Min nuitées" 
+                               value={tier.minNights} 
+                               onChange={(e) => setPricingTiers(prev => prev.map((t, i) => i === index ? {...t, minNights: parseInt(e.target.value) || 0} : t))} 
+                               className="w-1/2 bg-slate-50 border border-slate-100 rounded-xl py-2 px-3 outline-none text-sm font-bold" 
+                             />
+                             <input 
+                               type="number" 
+                               placeholder="Prix par nuit" 
+                               value={tier.pricePerNight} 
+                               onChange={(e) => setPricingTiers(prev => prev.map((t, i) => i === index ? {...t, pricePerNight: parseInt(e.target.value) || 0} : t))} 
+                               className="w-1/2 bg-slate-50 border border-slate-100 rounded-xl py-2 px-3 outline-none text-sm font-bold" 
+                             />
+                             <button type="button" onClick={() => setPricingTiers(prev => prev.filter((_, i) => i !== index))} className="text-red-500 font-bold text-xs">Retirer</button>
+                           </div>
+                         ))}
+                         <button type="button" onClick={() => setPricingTiers(prev => [...prev, { minNights: 0, pricePerNight: 0 }])} className="text-blue-600 font-bold text-xs">+ Ajouter un palier</button>
                       </div>
                     </div>
 

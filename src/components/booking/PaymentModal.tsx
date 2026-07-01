@@ -12,6 +12,7 @@ interface Props {
   residenceTitle: string;
   onSuccess: () => void;
   isTestMode?: boolean;
+  utilitiesIncluded?: { water: boolean; electricity: boolean };
 }
 
 type Step = 'provider' | 'phone' | 'otp' | 'success';
@@ -24,7 +25,7 @@ const PROCESSOR_IDS: Record<string, string> = {
   coris: "11702302492453862"
 };
 
-export const PaymentModal: React.FC<Props> = ({ isOpen, onClose, amount, residenceTitle, onSuccess, isTestMode }) => {
+export const PaymentModal: React.FC<Props> = ({ isOpen, onClose, amount, residenceTitle, onSuccess, isTestMode, utilitiesIncluded }) => {
   const [step, setStep] = useState<Step>('provider');
   const [provider, setProvider] = useState<Provider | null>(null);
   const [phone, setPhone] = useState('');
@@ -224,6 +225,21 @@ export const PaymentModal: React.FC<Props> = ({ isOpen, onClose, amount, residen
                 </div>
                 
                 <p className="text-xs font-bold text-slate-500 uppercase tracking-widest mb-4">MOYEN DE PAIEMENT OTP</p>
+                
+                {utilitiesIncluded && (
+                  <div className="p-3 bg-slate-50 rounded-xl mb-4 border border-slate-100">
+                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1.5">Rappel des charges :</p>
+                    <div className="flex gap-4">
+                      <span className={`text-[11px] font-black ${utilitiesIncluded.water ? 'text-blue-600' : 'text-red-500'}`}>
+                         EAU : {utilitiesIncluded.water ? 'INCLUSE' : 'NON INCLUSE'}
+                      </span>
+                      <span className={`text-[11px] font-black ${utilitiesIncluded.electricity ? 'text-amber-600' : 'text-red-500'}`}>
+                         ÉLEC : {utilitiesIncluded.electricity ? 'INCLUSE' : 'NON INCLUSE'}
+                      </span>
+                    </div>
+                  </div>
+                )}
+
                 <div className="grid grid-cols-2 gap-3">
                   {[
                     { id: 'orange', name: 'Orange Money', logo: '/orange.svg' },

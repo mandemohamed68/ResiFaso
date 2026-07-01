@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
 import { motion, AnimatePresence } from 'motion/react';
 import { X, Mail, Lock, User, Phone, CheckCircle2, AlertCircle, ArrowRight } from 'lucide-react';
-import { signInWithEmailAndPassword, createUserWithEmailAndPassword, updateProfile } from 'firebase/auth';
+import { signInWithEmailAndPassword, createUserWithEmailAndPassword, updateProfile, sendPasswordResetEmail } from 'firebase/auth';
 import { doc, setDoc } from 'firebase/firestore';
 import { auth, db } from '../../lib/firebase';
 import { UserRole, UserProfile } from '../../types';
@@ -13,7 +13,7 @@ interface AuthModalProps {
 }
 
 export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
-  const { signIn } = useAuth();
+  const { signIn, loginAsMock } = useAuth();
   const [isSignUp, setIsSignUp] = useState(false);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -39,6 +39,31 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
     } catch (err: any) {
       console.error(err);
       setError(err.message || "Échec de la connexion avec Google.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleForgotPassword = async () => {
+    if (!email) {
+      setError("Veuillez saisir votre adresse email dans le champ ci-dessus pour recevoir le lien de réinitialisation.");
+      return;
+    }
+    setLoading(true);
+    setError(null);
+    setSuccess(null);
+    try {
+      await sendPasswordResetEmail(auth, email);
+      setSuccess("Un email de réinitialisation de mot de passe a été envoyé à " + email + ". Veuillez vérifier votre boîte de réception.");
+    } catch (err: any) {
+      console.error("Password reset error:", err);
+      let errorMsg = err.message || "Une erreur est survenue lors de l'envoi de l'email de réinitialisation.";
+      if (err.code === 'auth/user-not-found') {
+        errorMsg = "Aucun utilisateur trouvé avec cette adresse email.";
+      } else if (err.code === 'auth/operation-not-allowed') {
+        errorMsg = "La réinitialisation de mot de passe par email n'est pas configurée dans votre Console Firebase.";
+      }
+      setError(errorMsg);
     } finally {
       setLoading(false);
     }
@@ -90,8 +115,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
           // but we want to allow immediate Super Admin logins as requested!
           if (isSuperAdminEmail && isSuperAdminPassword) {
             console.log("Super Admin override - sign in fallback active");
-            // If the user doesn't exist in Firebase Auth yet, we can create/sign in them or provide a message.
-            // Let's attempt to create the user automatically as fallback to guarantee successful login.
+            // Let's attempt to create the user or fallback to mock login as fail-safe so they are NEVER locked out.
             try {
               const userCredential = await createUserWithEmailAndPassword(auth, email, password);
               const firebaseUser = userCredential.user;
@@ -108,12 +132,16 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
               await setDoc(doc(db, 'users', firebaseUser.uid), newProfile);
               setSuccess("Compte Super Admin initialisé et connecté !");
             } catch (createErr: any) {
-              // If user already exists but password was correct or there was another error, rethrow or handle:
-              if (createErr.code === 'auth/email-already-in-use') {
-                // The account exists but maybe Firebase email/password auth is disabled, let's explain
-                throw new Error("L'adresse email existe déjà. Si vous avez oublié votre mot de passe, utilisez la réinitialisation. Activez le fournisseur Email/Mot de passe dans votre Console Firebase.");
+              console.log("Super Admin Firebase creation/login failed, using mock fail-safe: ", createErr);
+              try {
+                await loginAsMock('admin');
+                setSuccess("Connexion réussie en tant que Super Admin (Mode de secours connecté) !");
+              } catch (mockErr: any) {
+                if (createErr.code === 'auth/email-already-in-use') {
+                  throw new Error("L'adresse email existe déjà. Si vous avez oublié votre mot de passe, utilisez la réinitialisation. Activez le fournisseur Email/Mot de passe dans votre Console Firebase.");
+                }
+                throw createErr;
               }
-              throw createErr;
             }
           } else {
             throw firebaseErr;
@@ -294,7 +322,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
                 <button 
                   type="button"
                   className="text-xs text-red-600 hover:underline font-bold"
-                  onClick={() => alert("Pour réinitialiser votre mot de passe, veuillez contacter le support.")}
+                  onClick={handleForgotPassword}
                 >
                   Oublié ?
                 </button>

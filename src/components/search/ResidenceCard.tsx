@@ -91,6 +91,16 @@ export const ResidenceCard: React.FC<Props> = ({
               Promo Flash ⚡
             </div>
           )}
+          {residence.utilitiesIncluded?.water && (
+            <div className="bg-blue-600/90 text-white px-2 py-1 rounded text-[10px] font-black uppercase tracking-widest shadow-sm self-start border border-blue-500/50">
+              Eau incluse 💧
+            </div>
+          )}
+          {residence.utilitiesIncluded?.electricity && (
+            <div className="bg-amber-500/90 text-white px-2 py-1 rounded text-[10px] font-black uppercase tracking-widest shadow-sm self-start border border-amber-400/50">
+              Élec. incluse ⚡
+            </div>
+          )}
         </div>
         <button 
           onClick={handleWishlist}

@@ -18,6 +18,8 @@ export const MOCK_RESIDENCES: Residence[] = [
       coordinates: { lat: 12.3714, lng: -1.5197 }
     },
     amenities: ['Wi-Fi', 'Climatisation', 'Parking', 'Sécurité 24/7', 'Piscine'],
+    utilitiesIncluded: { water: true, electricity: true },
+    pricingTiers: [],
     images: ['https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?auto=format&fit=crop&q=80&w=1200'],
     capacity: 4,
     bedrooms: 2,
@@ -48,6 +50,8 @@ export const MOCK_RESIDENCES: Residence[] = [
       coordinates: { lat: 11.1858, lng: -4.2959 }
     },
     amenities: ['Wi-Fi', 'Climatisation', 'Cuisine équipée', 'Jardin'],
+    utilitiesIncluded: { water: false, electricity: false },
+    pricingTiers: [],
     images: ['https://images.unsplash.com/photo-1580587771525-78b9dba3b914?auto=format&fit=crop&q=80&w=1200'],
     capacity: 6,
     bedrooms: 3,
@@ -78,6 +82,8 @@ export const MOCK_RESIDENCES: Residence[] = [
       coordinates: { lat: 12.3686, lng: -1.5271 }
     },
     amenities: ['Wi-Fi', 'Petit-déjeuner inclus', 'Climatisation'],
+    utilitiesIncluded: { water: true, electricity: false },
+    pricingTiers: [],
     images: ['https://images.unsplash.com/photo-1493809842364-78817add7ffb?auto=format&fit=crop&q=80&w=1200'],
     capacity: 2,
     bedrooms: 1,

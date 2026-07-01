@@ -27,13 +27,23 @@ export interface Residence {
   serviceFee: number;
   address: {
     city: string;
+    cityId?: string;
     neighborhood: string;
+    neighborhoodId?: string;
     street: string;
     coordinates?: {
       lat: number;
       lng: number;
     };
   };
+  utilitiesIncluded: {
+    water: boolean;
+    electricity: boolean;
+  };
+  pricingTiers: {
+    minNights: number;
+    pricePerNight: number;
+  }[];
   amenities: string[];
   images: string[];
   capacity: number;

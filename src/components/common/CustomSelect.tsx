@@ -25,14 +25,21 @@ export const CustomSelect: React.FC<CustomSelectProps> = ({
   icon: Icon
 }) => {
   const [isOpen, setIsOpen] = useState(false);
+  const [search, setSearch] = useState('');
   const dropdownRef = useRef<HTMLDivElement>(null);
   
   const selectedOption = options.find(opt => opt.id === value);
+  const displayValue = selectedOption ? selectedOption.name : (value || search);
+
+  const filteredOptions = options.filter(opt => 
+    opt.name.toLowerCase().includes(search.toLowerCase())
+  );
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
         setIsOpen(false);
+        setSearch('');
       }
     };
     document.addEventListener('mousedown', handleClickOutside);
@@ -41,10 +48,7 @@ export const CustomSelect: React.FC<CustomSelectProps> = ({
 
   return (
     <div className="relative flex-1" ref={dropdownRef}>
-      <div 
-        onClick={() => setIsOpen(!isOpen)}
-        className="cursor-pointer group"
-      >
+      <div className="group">
         <p className="text-[10px] uppercase font-black text-slate-400 tracking-widest mb-1 flex items-center gap-1.5 px-1">
           {Icon && <Icon size={12} className="text-red-500" />}
           {label}
@@ -53,15 +57,24 @@ export const CustomSelect: React.FC<CustomSelectProps> = ({
           "flex items-center justify-between px-4 py-3 bg-white border-2 rounded-2xl transition-all duration-200",
           isOpen ? "border-red-500 shadow-lg shadow-red-50" : "border-slate-50 hover:border-slate-200"
         )}>
-          <span className={cn(
-            "text-sm font-bold truncate",
-            selectedOption ? "text-slate-900" : "text-slate-400"
-          )}>
-            {selectedOption ? selectedOption.name : placeholder}
-          </span>
+          <input
+            type="text"
+            value={isOpen ? search : (displayValue === placeholder ? '' : displayValue)}
+            onChange={(e) => {
+              setSearch(e.target.value);
+              if (!isOpen) setIsOpen(true);
+            }}
+            onFocus={() => setIsOpen(true)}
+            placeholder={placeholder}
+            className={cn(
+              "text-sm font-bold truncate bg-transparent outline-none w-full",
+              selectedOption || value ? "text-slate-900" : "text-slate-400"
+            )}
+          />
           <ChevronDown 
             size={16} 
-            className={cn("text-slate-400 transition-transform duration-200", isOpen && "rotate-180 text-red-500")} 
+            onClick={() => setIsOpen(!isOpen)}
+            className={cn("text-slate-400 transition-transform duration-200 cursor-pointer ml-2", isOpen && "rotate-180 text-red-500")} 
           />
         </div>
       </div>
@@ -69,24 +82,39 @@ export const CustomSelect: React.FC<CustomSelectProps> = ({
       {isOpen && (
         <div className="absolute z-50 w-full mt-2 bg-white border border-slate-100 rounded-2xl shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-200">
           <div className="max-h-60 overflow-y-auto no-scrollbar">
-            {options.length > 0 ? options.map((option) => (
-              <div
-                key={option.id}
+            {filteredOptions.length > 0 ? (
+              filteredOptions.map((option) => (
+                <div
+                  key={option.id}
+                  onClick={() => {
+                    onChange(option.id);
+                    setIsOpen(false);
+                    setSearch('');
+                  }}
+                  className={cn(
+                    "flex items-center justify-between px-4 py-3 text-sm font-bold cursor-pointer transition-colors",
+                    value === option.id 
+                      ? "bg-red-50 text-red-700" 
+                      : "text-slate-600 hover:bg-slate-50"
+                  )}
+                >
+                  {option.name}
+                  {value === option.id && <Check size={14} className="text-red-600" />}
+                </div>
+              ))
+            ) : search ? (
+              <div 
                 onClick={() => {
-                  onChange(option.id);
+                  onChange(search);
                   setIsOpen(false);
+                  setSearch('');
                 }}
-                className={cn(
-                  "flex items-center justify-between px-4 py-3 text-sm font-bold cursor-pointer transition-colors",
-                  value === option.id 
-                    ? "bg-red-50 text-red-700" 
-                    : "text-slate-600 hover:bg-slate-50"
-                )}
+                className="px-4 py-3 text-sm font-bold text-red-600 hover:bg-red-50 cursor-pointer flex items-center justify-between"
               >
-                {option.name}
-                {value === option.id && <Check size={14} className="text-red-600" />}
+                <span>Utiliser "{search}"</span>
+                <span className="text-[10px] uppercase font-black bg-red-100 px-2 py-0.5 rounded">Nouveau</span>
               </div>
-            )) : (
+            ) : (
               <div className="px-4 py-8 text-center text-slate-400 text-xs font-bold uppercase tracking-widest">
                 Aucune option
               </div>

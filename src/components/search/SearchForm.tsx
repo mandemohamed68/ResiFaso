@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Search, MapPin, Building2, Users, Wifi, Wind, Car, HelpCircle, Check, MapPinIcon, ShieldCheck, Utensils, Trees, Zap, Droplet } from 'lucide-react';
 import { BURKINA_LOCATIONS } from '../../constants/locations';
+import { useLocations } from '../../hooks/useLocations';
 import { cn } from '../../lib/utils';
 import { CustomSelect } from '../common/CustomSelect';
 
@@ -15,13 +16,14 @@ interface SearchFormProps {
 }
 
 export const SearchForm: React.FC<SearchFormProps> = ({ onSearch }) => {
+  const { allLocations } = useLocations();
   const [selectedCityId, setSelectedCityId] = useState('');
   const [selectedNeighborhoodId, setSelectedNeighborhoodId] = useState('');
   const [housingType, setHousingType] = useState('Tout type');
   const [capacity, setCapacity] = useState(1);
   const [selectedAmenities, setSelectedAmenities] = useState<string[]>([]);
 
-  const currentCity = BURKINA_LOCATIONS.find(c => c.id === selectedCityId);
+  const currentCity = allLocations.find(c => c.id === selectedCityId);
 
   const amenitiesList = [
     { label: 'Wi-Fi', icon: Wifi },
@@ -67,7 +69,7 @@ export const SearchForm: React.FC<SearchFormProps> = ({ onSearch }) => {
               setSelectedCityId(val);
               setSelectedNeighborhoodId('');
             }}
-            options={BURKINA_LOCATIONS.map(c => ({ id: c.id, name: c.name }))}
+            options={allLocations.map(c => ({ id: c.id, name: c.name }))}
             placeholder="Où allez-vous ?"
           />
 

@@ -3,11 +3,15 @@ import React, { useState, useEffect } from 'react';
 import { 
   LayoutDashboard, Home, Users, BarChart3, Settings, ShieldCheck, 
   Activity, Search, Trash2, Edit3, Plus, ArrowUpRight, TrendingUp, Calendar, Check, X,
-  FileText, Download, Award, ShieldAlert, Megaphone, Upload, Wallet, ArrowLeft
+  FileText, Download, Award, ShieldAlert, Megaphone, Upload, Wallet, ArrowLeft, MapPin
 } from 'lucide-react';
 import { db } from '../../lib/firebase';
 import { collection, query, onSnapshot, doc, updateDoc, deleteDoc, setDoc } from 'firebase/firestore';
+import { CustomSelect } from '../common/CustomSelect';
 import { Residence, UserProfile, UserRole, Booking, Review, BookingStatus, PaymentStatus, Advertisement, WithdrawalRequest, WithdrawalStatus } from '../../types';
+import { BURKINA_LOCATIONS } from '../../constants/locations';
+import { useLocations } from '../../hooks/useLocations';
+import { motion, AnimatePresence } from 'motion/react';
 import { cn, formatFCFA } from '../../lib/utils';
 import { useAuth } from '../../contexts/AuthContext';
 import { resizeImage } from '../../lib/imageResize';
@@ -15,7 +19,7 @@ import { hardResetDatabase, updateWithdrawalStatus, sendNotification } from '../
 
 export const AdminDashboard: React.FC<{ onBackToTraveler?: () => void }> = ({ onBackToTraveler }) => {
   const { user } = useAuth();
-  const [activeTab, setActiveTab] = useState<'overview' | 'alerts' | 'listings' | 'users' | 'bookings' | 'revenue' | 'reviews' | 'reports' | 'settings' | 'logs' | 'ads' | 'withdrawals'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'alerts' | 'listings' | 'users' | 'bookings' | 'revenue' | 'reviews' | 'reports' | 'settings' | 'logs' | 'ads' | 'withdrawals' | 'flash-info'>('overview');
   
   // Database Collections States
   const [residences, setResidences] = useState<Residence[]>([]);
@@ -23,6 +27,19 @@ export const AdminDashboard: React.FC<{ onBackToTraveler?: () => void }> = ({ on
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [reviews, setReviews] = useState<Review[]>([]);
   const [withdrawals, setWithdrawals] = useState<WithdrawalRequest[]>([]);
+  const { allLocations, platformLocations } = useLocations();
+  const [newCityName, setNewCityName] = useState('');
+  const [newNeighborhoodName, setNewNeighborhoodName] = useState('');
+  const [selectedCityForNeighborhood, setSelectedCityForNeighborhood] = useState('');
+
+  // Residence Editing State
+  const [editingRes, setEditingRes] = useState<Residence | null>(null);
+  const [isSavingRes, setIsSavingRes] = useState(false);
+  const [editResTitle, setEditResTitle] = useState('');
+  const [editResCityId, setEditResCityId] = useState('');
+  const [editResNeighborhoodId, setEditResNeighborhoodId] = useState('');
+  const [editResPrice, setEditResPrice] = useState(0);
+  const [editResType, setEditResType] = useState('');
 
   // Local Search Filters
   const [searchQuery, setSearchQuery] = useState('');
@@ -82,11 +99,20 @@ export const AdminDashboard: React.FC<{ onBackToTraveler?: () => void }> = ({ on
   const [isCreatingUser, setIsCreatingUser] = useState(false);
   const [showAddUserForm, setShowAddUserForm] = useState(false);
 
+  // Scroll to top when tab changes as requested
+  useEffect(() => {
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }, [activeTab]);
+
   // Custom Hard Reset Modal States
   const [showResetModal, setShowResetModal] = useState(false);
   const [resetPassword, setResetPassword] = useState('');
   const [resetError, setResetError] = useState('');
   const [resetStep, setResetStep] = useState<1 | 2>(1);
+
+  useEffect(() => {
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }, [activeTab]);
 
   // Real-time listener for residences, users, bookings, reviews and global settings
   useEffect(() => {
@@ -231,6 +257,122 @@ export const AdminDashboard: React.FC<{ onBackToTraveler?: () => void }> = ({ on
     } catch (err) {
       console.error(err);
       alert("Erreur lors du rejet du retrait.");
+    }
+  };
+
+  const handleAddCity = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newCityName.trim()) return;
+    setIsSaving(true);
+    try {
+      const cityId = newCityName.toLowerCase().replace(/\s+/g, '-');
+      await setDoc(doc(db, 'locations', cityId), {
+        id: cityId,
+        name: newCityName.trim(),
+        neighborhoods: []
+      });
+      setNewCityName('');
+      triggerSuccess(`La ville "${newCityName}" a été ajoutée à la plateforme.`);
+      logAction(`Ajout de la ville "${newCityName}" aux localités de la plateforme.`);
+    } catch (err) {
+      console.error(err);
+      alert("Erreur lors de l'ajout de la ville.");
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const handleAddNeighborhood = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newNeighborhoodName.trim() || !selectedCityForNeighborhood) return;
+    setIsSaving(true);
+    try {
+      const city = allLocations.find(l => l.id === selectedCityForNeighborhood);
+      if (!city) return;
+
+      const newNb = {
+        id: `${selectedCityForNeighborhood}-${newNeighborhoodName.toLowerCase().replace(/\s+/g, '-')}`,
+        name: newNeighborhoodName.trim()
+      };
+
+      // Check if city is dynamic or static
+      const dynamicCity = platformLocations.find(l => l.id === selectedCityForNeighborhood);
+      if (dynamicCity) {
+        await updateDoc(doc(db, 'locations', selectedCityForNeighborhood), {
+          neighborhoods: [...(dynamicCity.neighborhoods || []), newNb]
+        });
+      } else {
+        // If it's a static city, we create a dynamic entry for it in 'locations' collection to store the new neighborhoods
+        await setDoc(doc(db, 'locations', selectedCityForNeighborhood), {
+          id: city.id,
+          name: city.name,
+          neighborhoods: [...city.neighborhoods, newNb]
+        });
+      }
+
+      setNewNeighborhoodName('');
+      triggerSuccess(`Le quartier "${newNeighborhoodName}" a été ajouté à ${city.name}.`);
+      logAction(`Ajout du quartier "${newNeighborhoodName}" à la ville de ${city.name}.`);
+    } catch (err) {
+      console.error(err);
+      alert("Erreur lors de l'ajout du quartier.");
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const handleDeleteLocation = async (id: string, name: string) => {
+    if (window.confirm(`Voulez-vous vraiment supprimer la localité "${name}" ?`)) {
+      try {
+        await deleteDoc(doc(db, 'locations', id));
+        triggerSuccess("Localité supprimée.");
+        logAction(`Suppression de la localité ${name} (${id})`);
+      } catch (err) {
+        console.error(err);
+      }
+    }
+  };
+
+  const currentCityForEdit = allLocations.find(c => c.id === editResCityId);
+
+  const handleStartEditResidence = (res: Residence) => {
+    setEditingRes(res);
+    setEditResTitle(res.title);
+    setEditResCityId(res.address.cityId || res.address.city);
+    setEditResNeighborhoodId(res.address.neighborhoodId || res.address.neighborhood);
+    setEditResPrice(res.pricePerNight);
+    setEditResType(res.type || '');
+  };
+
+  const handleUpdateResidence = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingRes) return;
+    setIsSavingRes(true);
+    try {
+      const cityName = BURKINA_LOCATIONS.find(c => c.id === editResCityId)?.name || editResCityId;
+      const neighborhoodName = currentCityForEdit?.neighborhoods.find(n => n.id === editResNeighborhoodId)?.name || editResNeighborhoodId;
+
+      await updateDoc(doc(db, 'residences', editingRes.id), {
+        title: editResTitle,
+        pricePerNight: editResPrice,
+        type: editResType,
+        address: {
+          ...editingRes.address,
+          city: cityName,
+          cityId: editResCityId,
+          neighborhood: neighborhoodName,
+          neighborhoodId: editResNeighborhoodId
+        }
+      });
+      
+      logAction(`Logement ID #${editingRes.id} ("${editResTitle}") modifié par l'administrateur.`);
+      triggerSuccess("Les informations du logement ont été mises à jour.");
+      setEditingRes(null);
+    } catch (err) {
+      console.error(err);
+      alert("Erreur lors de la mise à jour.");
+    } finally {
+      setIsSavingRes(false);
     }
   };
 
@@ -522,6 +664,24 @@ export const AdminDashboard: React.FC<{ onBackToTraveler?: () => void }> = ({ on
     }
   };
 
+  const handleToggleSuspension = async (uid: string, currentStatus: boolean, email: string) => {
+    if (isSuperAdminEmail(email)) {
+      alert("Impossible de suspendre un Super Admin.");
+      return;
+    }
+    const action = !currentStatus ? "suspendre" : "réactiver";
+    if (window.confirm(`Voulez-vous vraiment ${action} le compte de ${email} ?`)) {
+      try {
+        await updateDoc(doc(db, 'users', uid), { isSuspended: !currentStatus });
+        logAction(`${!currentStatus ? 'Suspension' : 'Réactivation'} du compte utilisateur ${email}`);
+        triggerSuccess(`Compte ${email} ${!currentStatus ? 'suspendu' : 'réactivé'}.`);
+      } catch (err) {
+        console.error(err);
+        alert("Erreur lors du changement de statut.");
+      }
+    }
+  };
+
   // Save Booking Status edits
   const handleSaveBookingStatus = async (bookingId: string) => {
     setIsSaving(true);
@@ -582,7 +742,7 @@ export const AdminDashboard: React.FC<{ onBackToTraveler?: () => void }> = ({ on
       triggerSuccess("Configuration de la plateforme enregistrée avec succès !");
     } catch (err) {
       console.error(err);
-      alert("Erreur lors de l'économie de la configuration.");
+      alert("Erreur lors de la sauvegarde de la configuration.");
     } finally {
       setIsSaving(false);
     }
@@ -728,7 +888,9 @@ export const AdminDashboard: React.FC<{ onBackToTraveler?: () => void }> = ({ on
                 { id: 'bookings', label: 'Réservations', icon: Calendar, badge: bookings.filter(b=>b.bookingStatus==='pending').length, badgeColor: 'bg-blue-600' },
                 { id: 'revenue', label: 'Finances', icon: TrendingUp },
                 { id: 'withdrawals', label: 'Demandes de Retrait', icon: Download, badge: withdrawals.filter(w=>w.status==='pending').length, badgeColor: 'bg-yellow-500' },
+                { id: 'locations', label: 'Villes & Quartiers', icon: MapPin },
                 { id: 'ads', label: 'Affiches & Pubs', icon: Megaphone, badge: ads.filter(a => a.isActive).length, badgeColor: 'bg-green-600' },
+                { id: 'flash-info', label: 'Flash Info', icon: Megaphone, badge: announcementActive ? 1 : 0, badgeColor: 'bg-red-500' },
               ]
             },
             {
@@ -1086,30 +1248,39 @@ export const AdminDashboard: React.FC<{ onBackToTraveler?: () => void }> = ({ on
                           </button>
                         </td>
                         <td className="py-4 px-6 text-center">
-                          {confirmDeleteId === res.id ? (
-                            <div className="flex items-center justify-center gap-2">
-                              <button
-                                onClick={() => handleForceDeleteResidence(res.id, res.title)}
-                                className="bg-red-650 text-white px-3 py-1.5 rounded-lg text-xs font-bold transition-colors select-none cursor-pointer"
-                              >
-                                Confirmer
-                              </button>
-                              <button
-                                onClick={() => setConfirmDeleteId(null)}
-                                className="bg-slate-100 text-slate-600 hover:bg-slate-200 px-3 py-1.5 rounded-lg text-xs font-bold transition-colors select-none cursor-pointer"
-                              >
-                                Annuler
-                              </button>
-                            </div>
-                          ) : (
+                          <div className="flex items-center justify-center gap-2">
                             <button
-                              onClick={() => setConfirmDeleteId(res.id)}
-                              className="bg-red-50 text-red-600 hover:bg-red-600 hover:text-white px-3 py-1.5 rounded-lg text-xs font-bold transition-colors select-none cursor-pointer"
-                              title="Bannir définitivement"
+                              onClick={() => handleStartEditResidence(res)}
+                              className="bg-slate-50 hover:bg-slate-100 border border-slate-200 text-slate-600 p-1.5 rounded-lg cursor-pointer transition"
+                              title="Modifier les détails"
                             >
-                              Forcer Suppr.
+                              <Edit3 size={14} />
                             </button>
-                          )}
+                            {confirmDeleteId === res.id ? (
+                              <div className="flex items-center justify-center gap-2">
+                                <button
+                                  onClick={() => handleForceDeleteResidence(res.id, res.title)}
+                                  className="bg-red-650 text-white px-3 py-1.5 rounded-lg text-xs font-bold transition-colors select-none cursor-pointer"
+                                >
+                                  Confirmer
+                                </button>
+                                <button
+                                  onClick={() => setConfirmDeleteId(null)}
+                                  className="bg-slate-100 text-slate-600 hover:bg-slate-200 px-3 py-1.5 rounded-lg text-xs font-bold transition-colors select-none cursor-pointer"
+                                >
+                                  Annuler
+                                </button>
+                              </div>
+                            ) : (
+                              <button
+                                onClick={() => setConfirmDeleteId(res.id)}
+                                className="bg-red-50 text-red-600 hover:bg-red-600 hover:text-white px-3 py-1.5 rounded-lg text-xs font-bold transition-colors select-none cursor-pointer"
+                                title="Bannir définitivement"
+                              >
+                                Forcer Suppr.
+                              </button>
+                            )}
+                          </div>
                         </td>
                       </tr>
                     ))}
@@ -1256,6 +1427,36 @@ export const AdminDashboard: React.FC<{ onBackToTraveler?: () => void }> = ({ on
                           {isListedSU && <span className="px-2 py-0.5 bg-red-100 text-red-800 rounded text-[9px] font-black uppercase">Super Administrateur</span>}
                           {isSuspended && <span className="px-2 py-0.5 bg-red-600 text-white rounded text-[9px] font-black uppercase">Compte Suspendu</span>}
                         </div>
+                      </div>
+                      <div className="flex gap-2 shrink-0">
+                        <button
+                          onClick={() => handleToggleSuspension(usr.uid, isSuspended, usr.email)}
+                          className={cn(
+                            "p-2 rounded-xl border transition cursor-pointer",
+                            isSuspended 
+                              ? "bg-green-50 border-green-200 text-green-600 hover:bg-green-100" 
+                              : "bg-amber-50 border-amber-200 text-amber-600 hover:bg-amber-100"
+                          )}
+                          title={isSuspended ? "Réactiver le compte" : "Suspendre le compte"}
+                        >
+                          {isSuspended ? <Check size={16} /> : <ShieldAlert size={16} />}
+                        </button>
+                        <button
+                          onClick={async () => {
+                            if (isSuperAdminEmail(usr.email)) {
+                              alert("Impossible de supprimer un Super Admin.");
+                              return;
+                            }
+                            if (window.confirm(`Voulez-vous supprimer définitivement le compte de ${usr.email} ?`)) {
+                              await deleteDoc(doc(db, 'users', usr.uid));
+                              triggerSuccess("Utilisateur supprimé.");
+                            }
+                          }}
+                          className="p-2 bg-red-50 border border-red-200 text-red-600 hover:bg-red-100 rounded-xl transition cursor-pointer"
+                          title="Supprimer définitivement"
+                        >
+                          <Trash2 size={16} />
+                        </button>
                       </div>
                     </div>
 
@@ -1644,7 +1845,7 @@ export const AdminDashboard: React.FC<{ onBackToTraveler?: () => void }> = ({ on
           </div>
         )}
 
-        {/* TAB 8: AUDIT REPORTS & EXPORTS */}
+        {/* TAB 8: AUDIT REPORTS & STATS */}
         {activeTab === 'reports' && (
           <div className="space-y-8 animate-in fade-in text-slate-800">
             <div>
@@ -1689,6 +1890,249 @@ export const AdminDashboard: React.FC<{ onBackToTraveler?: () => void }> = ({ on
                   <Download size={14} />
                   Exporter les données d'Audit (.CSV)
                 </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* TAB 12: WITHDRAWALS MANAGEMENT */}
+        {activeTab === 'withdrawals' && (
+          <div className="space-y-6 animate-in fade-in" id="withdrawals-admin-tab">
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+              <div>
+                <h2 className="text-3xl font-black text-slate-900 tracking-tight leading-none mb-1">Demandes de Retrait</h2>
+                <p className="text-slate-500 font-medium text-sm">Gérez les demandes de virement des gains des hôtes.</p>
+              </div>
+            </div>
+
+            <div className="bg-white border border-slate-100 rounded-[32px] overflow-hidden shadow-sm">
+              <div className="overflow-x-auto">
+                <table className="w-full text-left border-collapse">
+                  <thead>
+                    <tr className="border-b border-slate-100 bg-slate-50/40 text-[10px] font-black text-slate-400 uppercase tracking-widest">
+                      <th className="py-5 px-6">Hôte / Demandeur</th>
+                      <th className="py-5 px-6">Montant (FCFA)</th>
+                      <th className="py-5 px-6">Méthode de Paiement</th>
+                      <th className="py-5 px-6">Date de Demande</th>
+                      <th className="py-5 px-6">Statut</th>
+                      <th className="py-5 px-6 text-right">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-50 text-sm font-bold text-slate-700">
+                    {withdrawals.length === 0 ? (
+                      <tr>
+                        <td colSpan={6} className="py-12 text-center text-slate-400 italic">Aucune demande de retrait enregistrée.</td>
+                      </tr>
+                    ) : (
+                      withdrawals
+                        .sort((a, b) => b.createdAt.localeCompare(a.createdAt))
+                        .map(withd => {
+                        const owner = users.find(u => u.uid === withd.ownerId);
+                        return (
+                          <tr key={withd.id} className="hover:bg-slate-50 transition-colors">
+                            <td className="py-4 px-6">
+                              <div className="flex flex-col">
+                                <span className="text-slate-900 font-black">{owner?.displayName || 'Inconnu'}</span>
+                                <span className="text-[10px] text-slate-400 font-medium">{owner?.email}</span>
+                              </div>
+                            </td>
+                            <td className="py-4 px-6 font-black text-slate-950">
+                              {formatCurrency(withd.amount)} F
+                            </td>
+                            <td className="py-4 px-6">
+                              <div className="flex flex-col">
+                                <span className="text-[10px] font-black uppercase text-slate-400">{withd.provider} Money</span>
+                                <span className="text-xs font-mono font-black text-slate-900">{withd.phone}</span>
+                              </div>
+                            </td>
+                            <td className="py-4 px-6 text-xs text-slate-500 font-medium">
+                              {new Date(withd.createdAt).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' })}
+                            </td>
+                            <td className="py-4 px-6">
+                              <span className={cn(
+                                "px-2.5 py-1 rounded-full text-[9px] font-black uppercase inline-block",
+                                withd.status === 'pending' ? 'bg-amber-50 text-amber-700' : 
+                                withd.status === 'approved' ? 'bg-green-50 text-green-700' : 'bg-red-50 text-red-700'
+                              )}>
+                                {withd.status === 'pending' ? 'En attente' : withd.status === 'approved' ? 'Payé' : 'Refusé'}
+                              </span>
+                            </td>
+                            <td className="py-4 px-6 text-right">
+                              {withd.status === 'pending' && (
+                                <div className="flex justify-end gap-2">
+                                  <button
+                                    onClick={async () => {
+                                      if (confirm(`Voulez-vous marquer comme PAYÉ le retrait de ${withd.amount} F pour ${owner?.displayName || 'cet hôte'} ?`)) {
+                                        await updateWithdrawalStatus(withd.id, 'approved', new Date().toISOString());
+                                        triggerSuccess("Retrait marqué comme payé.");
+                                        logAction(`Validation retrait #${withd.id} pour ${withd.amount} F`);
+                                      }
+                                    }}
+                                    className="p-2 bg-green-50 text-green-600 hover:bg-green-600 hover:text-white rounded-xl transition cursor-pointer"
+                                    title="Approuver & Marquer comme payé"
+                                  >
+                                    <Check size={14} />
+                                  </button>
+                                  <button
+                                    onClick={async () => {
+                                      if (confirm("Voulez-vous rejeter cette demande de retrait ?")) {
+                                        await updateWithdrawalStatus(withd.id, 'rejected');
+                                        triggerSuccess("Retrait rejeté.");
+                                        logAction(`REJET retrait #${withd.id}`);
+                                      }
+                                    }}
+                                    className="p-2 bg-red-50 text-red-600 hover:bg-red-600 hover:text-white rounded-xl transition cursor-pointer"
+                                    title="Rejeter la demande"
+                                  >
+                                    <X size={14} />
+                                  </button>
+                                </div>
+                              )}
+                            </td>
+                          </tr>
+                        );
+                      })
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* TAB 12: FLASH INFO & ANNOUNCEMENTS */}
+        {activeTab === 'flash-info' && (
+          <div className="space-y-8 animate-in fade-in max-w-4xl">
+            <div>
+              <h2 className="text-3xl font-black text-slate-900 tracking-tight leading-none mb-1">Flash Info & Communications</h2>
+              <p className="text-slate-500 font-medium text-sm">Gérez le bandeau d'alerte global qui s'affiche en haut de toutes les pages de la plateforme.</p>
+            </div>
+
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+              {/* Configuration Form */}
+              <div className="bg-white border border-slate-200 rounded-[32px] p-8 shadow-sm space-y-6">
+                <div className="flex items-center justify-between">
+                  <h3 className="text-lg font-black text-slate-900">Configuration de l'Alerte</h3>
+                  <button
+                    type="button"
+                    onClick={() => setAnnouncementActive(!announcementActive)}
+                    className={cn(
+                      "relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-red-500",
+                      announcementActive ? "bg-red-600" : "bg-slate-200"
+                    )}
+                  >
+                    <span
+                      className={cn(
+                        "pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out",
+                        announcementActive ? "translate-x-5" : "translate-x-0"
+                      )}
+                    />
+                  </button>
+                </div>
+
+                <div className="space-y-4">
+                  <div>
+                    <label className="block text-[10px] font-black text-slate-400 uppercase tracking-wide mb-2">Style visuel (Gravité)</label>
+                    <div className="grid grid-cols-2 gap-2">
+                      {(['info', 'warning', 'success', 'danger'] as const).map((type) => {
+                        const styleColors: Record<string, string> = {
+                          info: 'bg-blue-50 text-blue-700 border-blue-100',
+                          warning: 'bg-amber-50 text-amber-700 border-amber-100',
+                          success: 'bg-emerald-50 text-emerald-700 border-emerald-100',
+                          danger: 'bg-rose-50 text-rose-700 border-rose-100'
+                        };
+                        const labelFrench: Record<string, string> = {
+                          info: 'Information (Bleu)',
+                          warning: 'Avertissement (Jaune)',
+                          success: 'Succès (Vert)',
+                          danger: 'Urgent / Alerte (Rouge)'
+                        };
+                        return (
+                          <button
+                            key={type}
+                            type="button"
+                            onClick={() => setAnnouncementType(type)}
+                            className={cn(
+                              "border text-[10px] py-3 px-2 rounded-xl font-black transition text-center uppercase tracking-wider cursor-pointer",
+                              styleColors[type],
+                              announcementType === type ? "ring-2 ring-slate-900 border-transparent" : "opacity-60 hover:opacity-100"
+                            )}
+                          >
+                            {labelFrench[type]}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-[10px] font-black text-slate-400 uppercase tracking-wide mb-2">Message à diffuser</label>
+                    <textarea
+                      value={announcementText}
+                      onChange={(e) => setAnnouncementText(e.target.value)}
+                      rows={4}
+                      className="w-full bg-slate-50 border border-slate-200 rounded-2xl px-4 py-3 text-sm font-bold outline-none focus:ring-2 focus:ring-red-500 leading-relaxed"
+                      placeholder="Ex: Les réservations sont maintenant ouvertes pour la période du SIAO 2026 !"
+                    />
+                  </div>
+
+                  <div className="pt-4">
+                    <button
+                      onClick={handleSaveGlobalSettings}
+                      disabled={isSaving}
+                      className="w-full bg-slate-900 text-white px-6 py-4 rounded-2xl text-xs font-black uppercase tracking-widest hover:bg-slate-800 transition shadow-lg shadow-slate-200 flex items-center justify-center gap-2"
+                    >
+                      {isSaving ? 'Mise à jour...' : 'Appliquer et Publier'}
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              {/* Live Preview Card */}
+              <div className="space-y-6">
+                <h3 className="text-lg font-black text-slate-900">Aperçu en temps réel</h3>
+                <div className="bg-slate-100 rounded-[32px] p-8 border border-slate-200 border-dashed relative overflow-hidden h-[300px] flex items-start justify-center">
+                  <div className="absolute top-0 left-0 right-0 p-4 text-center">
+                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-4">Vue Utilisateur (Haut de page)</p>
+                    
+                    {announcementActive ? (
+                      <motion.div 
+                        initial={{ y: -20, opacity: 0 }}
+                        animate={{ y: 0, opacity: 1 }}
+                        className={cn(
+                          "p-4 rounded-2xl border shadow-xl flex items-center justify-center gap-3",
+                          announcementType === 'info' && "bg-blue-600 text-white border-blue-700",
+                          announcementType === 'warning' && "bg-amber-500 text-slate-900 border-amber-600",
+                          announcementType === 'success' && "bg-emerald-600 text-white border-emerald-700",
+                          announcementType === 'danger' && "bg-red-600 text-white border-red-700 font-extrabold"
+                        )}
+                      >
+                        <Megaphone size={16} className={cn(announcementType === 'danger' && "animate-bounce")} />
+                        <span className="text-xs font-bold leading-snug">
+                          {announcementText || "Votre message s'affichera ici..."}
+                        </span>
+                      </motion.div>
+                    ) : (
+                      <div className="bg-white border border-slate-200 rounded-2xl p-8 text-center text-slate-400 font-bold text-xs">
+                        Le Flash Info est actuellement désactivé.
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                <div className="bg-blue-50 border border-blue-100 p-6 rounded-3xl">
+                  <h4 className="text-sm font-black text-blue-900 uppercase tracking-wider mb-2">Conseils de Modération</h4>
+                  <ul className="space-y-2 text-xs text-blue-700 font-medium">
+                    <li className="flex items-start gap-2">
+                      <span className="text-blue-900 font-black">•</span>
+                      Utilisez le style <strong>Danger</strong> uniquement pour les urgences techniques ou interruptions.
+                    </li>
+                    <li className="flex items-start gap-2">
+                      <span className="text-blue-900 font-black">•</span>
+                      Gardez les messages courts (moins de 100 caractères) pour une lisibilité optimale sur mobile.
+                    </li>
+                  </ul>
+                </div>
               </div>
             </div>
           </div>
@@ -1885,91 +2329,6 @@ export const AdminDashboard: React.FC<{ onBackToTraveler?: () => void }> = ({ on
                     )}
                   />
                 </button>
-              </div>
-
-              {/* COMPOSANT D'ANNONCE GLOBALE */}
-              <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm space-y-5" id="admin-global-announcement-container">
-                <div>
-                  <h4 className="text-sm font-black text-slate-800 uppercase tracking-wider mb-1 flex items-center gap-2">
-                    <Megaphone className="text-red-600 flex-shrink-0" size={16} />
-                    Message d'Annonce Globale (Bandeau de Plateforme)
-                  </h4>
-                  <p className="text-xs text-slate-500 leading-normal">
-                    Ce bandeau de notifications s'affichera instantanément en haut de l'écran pour tous les utilisateurs (visiteurs, gestionnaires et administrateurs).
-                  </p>
-                </div>
-
-                <div className="space-y-4 pt-1">
-                  {/* Commutateur de l'annonce */}
-                  <div className="flex items-center justify-between bg-slate-50 p-4 rounded-xl border border-slate-100">
-                    <div>
-                      <span className="text-xs font-black text-slate-700 uppercase tracking-wider">Statut de diffusion</span>
-                      <p className="text-[10px] text-slate-400 font-medium mt-0.5">Activez pour publier immédiatement la bannière.</p>
-                    </div>
-                    <button
-                      type="button"
-                      onClick={() => setAnnouncementActive(!announcementActive)}
-                      className={cn(
-                        "relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-red-500",
-                        announcementActive ? "bg-red-600" : "bg-slate-200"
-                      )}
-                    >
-                      <span
-                        className={cn(
-                          "pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out",
-                          announcementActive ? "translate-x-5" : "translate-x-0"
-                        )}
-                      />
-                    </button>
-                  </div>
-
-                  {/* Gravité de l'alerte */}
-                  <div>
-                    <label className="block text-[10px] font-black text-slate-400 uppercase tracking-wide mb-2">Style de la Bannière</label>
-                    <div className="grid grid-cols-4 gap-1.5 font-sans">
-                      {(['info', 'warning', 'success', 'danger'] as const).map((type) => {
-                        const styleColors: Record<string, string> = {
-                          info: 'bg-blue-550 border-blue-200 text-blue-700 bg-blue-50',
-                          warning: 'bg-amber-50 text-amber-700 border-amber-200',
-                          success: 'bg-emerald-50 text-emerald-700 border-emerald-200',
-                          danger: 'bg-rose-50 text-rose-700 border-rose-200'
-                        };
-                        const labelFrench: Record<string, string> = {
-                          info: 'Info (Bleu)',
-                          warning: 'Attention',
-                          success: 'Succès',
-                          danger: 'Urgent'
-                        };
-                        return (
-                          <button
-                            key={type}
-                            type="button"
-                            onClick={() => setAnnouncementType(type)}
-                            className={cn(
-                              "border text-[10px] py-2 rounded-lg font-black transition text-center uppercase tracking-wider cursor-pointer",
-                              styleColors[type],
-                              announcementType === type ? "ring-2 ring-slate-900 border-transparent" : "opacity-60 hover:opacity-100"
-                            )}
-                          >
-                            {labelFrench[type]}
-                          </button>
-                        );
-                      })}
-                    </div>
-                  </div>
-
-                  {/* Zone de texte de l'annonce */}
-                  <div>
-                    <label className="block text-[10px] font-black text-slate-400 uppercase tracking-wide mb-2">Message d'alerte global</label>
-                    <textarea
-                      value={announcementText}
-                      onChange={(e) => setAnnouncementText(e.target.value)}
-                      rows={3}
-                      className="w-full bg-white border border-slate-250 rounded-xl px-4 py-3 text-xs font-bold outline-none focus:ring-2 focus:ring-red-500 leading-relaxed"
-                      placeholder="Ex: [Maintenance] Les recharges par Mobile Money seront interrompues de 01h à 03h ce soir. Merci pour votre indulgence."
-                    />
-                  </div>
-                </div>
               </div>
 
               <button 
@@ -2384,136 +2743,143 @@ export const AdminDashboard: React.FC<{ onBackToTraveler?: () => void }> = ({ on
           </div>
         )}
 
-         {/* TAB 12: WITHDRAWAL REQUESTS MODERATION BOARD */}
-        {activeTab === 'withdrawals' && (
-          <div className="space-y-6 animate-in fade-in" id="withdrawals-tab-container">
+       {/* TAB 15: LOCATIONS MANAGEMENT */}
+        {activeTab === 'locations' && (
+          <div className="space-y-8 animate-in fade-in">
             <div className="flex flex-col md:flex-row justify-between md:items-end gap-4">
               <div>
-                <h2 className="text-3xl font-black text-slate-900 tracking-tight leading-none mb-1">Demandes de Retrait Hôtes</h2>
-                <p className="text-slate-500 font-medium text-sm">Gérez et validez les virements de gains d'hébergement vers les comptes mobiles money.</p>
+                <h2 className="text-3xl font-black text-slate-900 tracking-tight leading-none mb-1">Villes & Quartiers</h2>
+                <p className="text-slate-500 font-medium text-sm">Gérez la liste officielle des localités disponibles sur la plateforme.</p>
               </div>
             </div>
 
-            {/* Metrics cards */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              <div className="bg-white border border-slate-100 rounded-3xl p-6 shadow-sm">
-                <span className="text-[10px] font-black text-yellow-600 uppercase tracking-widest block mb-2 font-bold">En cours de traitement</span>
-                <span className="text-2xl font-black text-slate-900 leading-tight">
-                  {formatCurrency(withdrawals.filter(w => w.status === 'pending').reduce((acc, curr) => acc + curr.amount, 0))} F CFA
-                </span>
-                <span className="text-xs text-slate-400 font-bold block mt-3">
-                  {withdrawals.filter(w => w.status === 'pending').length} demandes d'hôtes burkinabè
-                </span>
-              </div>
-              <div className="bg-white border border-slate-100 rounded-3xl p-6 shadow-sm border-l-4 border-l-green-500">
-                <span className="text-[10px] font-black text-green-600 uppercase tracking-widest block mb-2 font-bold font-bold font-bold">Total reversé aux hôtes</span>
-                <span className="text-2xl font-black text-slate-900 leading-tight">
-                  {formatCurrency(withdrawals.filter(w => w.status === 'approved').reduce((acc, curr) => acc + curr.amount, 0))} F CFA
-                </span>
-                <span className="text-xs text-slate-400 font-bold block mt-3">
-                  {withdrawals.filter(w => w.status === 'approved').length} virements de fonds payés
-                </span>
-              </div>
-              <div className="bg-yellow-500 text-slate-950 rounded-3xl p-6 shadow-sm relative overflow-hidden">
-                <div className="absolute -right-6 -bottom-6 w-24 h-24 bg-white/10 rounded-full blur-xl"></div>
-                <span className="text-[10px] font-black uppercase tracking-widest block mb-2 relative z-10 font-bold">Volume total géré</span>
-                <span className="text-2xl font-black leading-tight relative z-10">
-                  {formatCurrency(withdrawals.reduce((acc, curr) => acc + curr.amount, 0))} F CFA
-                </span>
-                <span className="text-xs text-slate-900/70 font-bold block mt-3 relative z-10">
-                  {withdrawals.length} demandes de paiement au total
-                </span>
-              </div>
-            </div>
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+              {/* Add City Form */}
+              <div className="bg-white border border-slate-100 rounded-[32px] p-8 shadow-sm space-y-6 h-fit">
+                <div>
+                  <h3 className="text-lg font-black text-slate-900 flex items-center gap-2">
+                    <Plus className="text-red-600" size={20} /> Ajouter une nouvelle ville
+                  </h3>
+                  <p className="text-xs text-slate-500 font-medium mt-1">Si une ville n'existe pas, ajoutez-la ici pour qu'elle apparaisse dans les menus.</p>
+                </div>
 
-            {/* List Table */}
-            <div className="bg-white border border-slate-100 rounded-[32px] p-6 shadow-sm space-y-4">
-              <h3 className="font-black text-lg text-slate-900">Demandes de virements reçues</h3>
-              
-              {withdrawals.length > 0 ? (
+                <form onSubmit={handleAddCity} className="space-y-4">
+                  <div>
+                    <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 font-bold">Nom de la ville</label>
+                    <input
+                      type="text"
+                      required
+                      value={newCityName}
+                      onChange={(e) => setNewCityName(e.target.value)}
+                      placeholder="Ex: Bobo-Dioulasso, Koudougou..."
+                      className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm font-bold outline-none focus:ring-2 focus:ring-red-500 transition-all"
+                    />
+                  </div>
+                  <button
+                    type="submit"
+                    disabled={isSaving}
+                    className="w-full bg-slate-900 hover:bg-slate-800 text-white py-3.5 rounded-xl font-black text-xs uppercase tracking-widest transition-all shadow-lg shadow-slate-100 disabled:opacity-50"
+                  >
+                    {isSaving ? "Ajout..." : "Enregistrer la ville"}
+                  </button>
+                </form>
+              </div>
+
+              {/* Add Neighborhood Form */}
+              <div className="bg-white border border-slate-100 rounded-[32px] p-8 shadow-sm space-y-6 h-fit">
+                <div>
+                  <h3 className="text-lg font-black text-slate-900 flex items-center gap-2">
+                    <Plus className="text-red-600" size={20} /> Ajouter un quartier
+                  </h3>
+                  <p className="text-xs text-slate-500 font-medium mt-1">Associez de nouveaux quartiers aux villes existantes.</p>
+                </div>
+
+                <form onSubmit={handleAddNeighborhood} className="space-y-4">
+                  <div className="space-y-4">
+                    <CustomSelect
+                      label="Choisir la ville"
+                      placeholder="Sélectionner la ville..."
+                      options={allLocations.map(c => ({ id: c.id, name: c.name }))}
+                      value={selectedCityForNeighborhood}
+                      onChange={(val) => setSelectedCityForNeighborhood(val)}
+                    />
+                    <div>
+                      <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 font-bold">Nom du quartier</label>
+                      <input
+                        type="text"
+                        required
+                        value={newNeighborhoodName}
+                        onChange={(e) => setNewNeighborhoodName(e.target.value)}
+                        placeholder="Ex: Zone 1, Patte d'Oie, Sarfalao..."
+                        className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm font-bold outline-none focus:ring-2 focus:ring-red-500 transition-all"
+                      />
+                    </div>
+                  </div>
+                  <button
+                    type="submit"
+                    disabled={isSaving || !selectedCityForNeighborhood}
+                    className="w-full bg-red-600 hover:bg-red-700 text-white py-3.5 rounded-xl font-black text-xs uppercase tracking-widest transition-all shadow-lg shadow-red-100 disabled:opacity-50"
+                  >
+                    {isSaving ? "Ajout..." : "Enregistrer le quartier"}
+                  </button>
+                </form>
+              </div>
+
+              {/* Current Locations List */}
+              <div className="lg:col-span-2 bg-white border border-slate-100 rounded-[32px] overflow-hidden shadow-sm">
+                <div className="p-6 border-b border-slate-50 bg-slate-50/50">
+                  <h3 className="text-lg font-black text-slate-900">Localités Actuelles (Dynamiques)</h3>
+                  <p className="text-xs text-slate-500 font-medium mt-1">Liste des villes et quartiers ajoutés manuellement par l'administration.</p>
+                </div>
+
                 <div className="overflow-x-auto">
-                  <table className="w-full text-left text-xs border-collapse">
+                  <table className="w-full text-left border-collapse">
                     <thead>
-                      <tr className="border-b border-slate-100 text-slate-400">
-                        <th className="pb-3 font-black uppercase tracking-wider text-[10px]">Hôte (Bénéficiaire)</th>
-                        <th className="pb-3 font-black uppercase tracking-wider text-[10px]">Date Soumission</th>
-                        <th className="pb-3 font-black uppercase tracking-wider text-[10px]">Montant net</th>
-                        <th className="pb-3 font-black uppercase tracking-wider text-[10px]">Coordonnées de paiement</th>
-                        <th className="pb-3 font-black uppercase tracking-wider text-[10px] text-center">Statut</th>
-                        <th className="pb-3 font-black uppercase tracking-wider text-[10px] text-right">Actions</th>
+                      <tr className="border-b border-slate-100 bg-slate-50/20 text-[10px] font-black text-slate-400 uppercase tracking-widest">
+                        <th className="py-4 px-6">ID</th>
+                        <th className="py-4 px-6">Ville</th>
+                        <th className="py-4 px-6">Quartiers</th>
+                        <th className="py-4 px-6 text-right">Actions</th>
                       </tr>
                     </thead>
-                    <tbody>
-                      {withdrawals.map((item) => (
-                        <tr key={item.id} className="border-b border-slate-50 hover:bg-slate-50/50">
-                          <td className="py-4">
-                            <div>
-                              <p className="font-extrabold text-slate-900 text-sm">{item.ownerName}</p>
-                              <p className="text-[10px] text-slate-400 font-bold">{item.ownerEmail}</p>
-                            </div>
-                          </td>
-                          <td className="py-4 text-slate-500 font-bold">
-                            {new Date(item.createdAt).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
-                          </td>
-                          <td className="py-4 font-black text-slate-900 text-sm">
-                            {formatCurrency(item.amount)} F CFA
-                          </td>
-                          <td className="py-4">
-                            <div className="flex items-center gap-2">
-                              <img src={`/${item.provider}.png`} className="w-5 h-5 object-contain rounded" alt={item.provider} referrerPolicy="no-referrer" />
-                              <span className="font-mono font-black text-slate-700">{item.phone}</span>
-                            </div>
-                          </td>
-                          <td className="py-4 text-center">
-                            {item.status === 'pending' && (
-                              <span className="bg-yellow-100/70 text-yellow-800 font-black px-2.5 py-1 rounded-md text-[9px] uppercase tracking-wide">
-                                En attente
-                              </span>
-                            )}
-                            {item.status === 'approved' && (
-                              <span className="bg-green-100 text-green-800 font-black px-2.5 py-1 rounded-md text-[9px] uppercase tracking-wide">
-                                Payé
-                              </span>
-                            )}
-                            {item.status === 'rejected' && (
-                              <span className="bg-red-100 text-red-800 font-black px-2.5 py-1 rounded-md text-[9px] uppercase tracking-wide">
-                                Refusé
-                              </span>
-                            )}
-                          </td>
-                          <td className="py-4 text-right">
-                            {item.status === 'pending' ? (
-                              <div className="flex justify-end gap-2">
-                                <button
-                                  onClick={() => handleApproveWithdrawalReq(item)}
-                                  className="bg-green-500 hover:bg-green-600 text-white px-2.5 py-1.5 rounded-xl font-black text-[10px] uppercase tracking-wide cursor-pointer transition-colors flex items-center gap-1 shadow-sm"
-                                >
-                                  <Check size={12} className="stroke-[3]" /> Approuver et Payer
-                                </button>
-                                <button
-                                  onClick={() => handleRejectWithdrawalReq(item)}
-                                  className="bg-red-500 hover:bg-red-600 text-white px-2.5 py-1.5 rounded-xl font-black text-[10px] uppercase tracking-wide cursor-pointer transition-colors flex items-center gap-1 shadow-sm"
-                                >
-                                  <X size={12} className="stroke-[3]" /> Rejeter
-                                </button>
-                              </div>
-                            ) : (
-                              <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest pr-4">
-                                Traité {item.approvedAt ? `le ${new Date(item.approvedAt).toLocaleDateString('fr-FR')}` : ''}
-                              </span>
-                            )}
+                    <tbody className="divide-y divide-slate-50 text-sm font-bold text-slate-700">
+                      {platformLocations.length === 0 ? (
+                        <tr>
+                          <td colSpan={4} className="py-12 text-center text-slate-400 italic">
+                            Aucune localité dynamique ajoutée. Seules les données par défaut de BURKINA_LOCATIONS sont utilisées.
                           </td>
                         </tr>
-                      ))}
+                      ) : (
+                        platformLocations.map(loc => (
+                          <tr key={loc.id}>
+                            <td className="py-4 px-6 font-mono text-[10px] text-slate-400">{loc.id}</td>
+                            <td className="py-4 px-6 text-slate-900">{loc.name}</td>
+                            <td className="py-4 px-6">
+                              <div className="flex flex-wrap gap-1.5">
+                                {loc.neighborhoods?.map((n: any) => (
+                                  <span key={n.id} className="px-2 py-0.5 bg-slate-100 text-slate-600 rounded text-[10px] font-bold">
+                                    {n.name}
+                                  </span>
+                                ))}
+                                {loc.neighborhoods?.length === 0 && <span className="text-slate-400 italic font-normal text-xs">Aucun quartier</span>}
+                              </div>
+                            </td>
+                            <td className="py-4 px-6 text-right">
+                              <button
+                                onClick={() => handleDeleteLocation(loc.id, loc.name)}
+                                className="p-2 bg-red-50 text-red-600 hover:bg-red-100 rounded-xl transition cursor-pointer"
+                                title="Supprimer la ville"
+                              >
+                                <Trash2 size={14} />
+                              </button>
+                            </td>
+                          </tr>
+                        ))
+                      )}
                     </tbody>
                   </table>
                 </div>
-              ) : (
-                <div className="text-center py-16">
-                  <Wallet className="mx-auto h-12 w-12 text-slate-200 mb-3" />
-                  <p className="text-slate-400 font-bold text-xs uppercase tracking-wide">Aucune demande de retrait reçue sur la plateforme.</p>
-                </div>
-              )}
+              </div>
             </div>
           </div>
         )}
@@ -2540,6 +2906,101 @@ export const AdminDashboard: React.FC<{ onBackToTraveler?: () => void }> = ({ on
         )}
 
       </main>
+
+      {/* RESIDENCE EDIT MODAL FOR ADMIN */}
+      {editingRes && (
+        <div className="fixed inset-0 bg-slate-900/80 backdrop-blur-sm flex items-center justify-center p-4 z-[9999] animate-in fade-in duration-200 overflow-y-auto">
+          <div className="bg-white rounded-[32px] w-full max-w-2xl overflow-hidden p-8 border border-slate-100 shadow-2xl relative my-8 animate-in zoom-in-95 duration-200">
+            <button
+              onClick={() => setEditingRes(null)}
+              className="absolute top-6 right-6 p-2 rounded-full hover:bg-slate-50 text-slate-400 hover:text-slate-600 transition"
+            >
+              <X size={18} />
+            </button>
+
+            <div className="mb-6">
+              <h3 className="text-xl font-black text-slate-900 leading-tight">Modifier le Logement</h3>
+              <p className="text-xs text-slate-500 font-medium mt-1">Mise à jour des informations par l'administration.</p>
+            </div>
+
+            <form onSubmit={handleUpdateResidence} className="space-y-5">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="sm:col-span-2">
+                  <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1.5 font-bold">Titre du logement</label>
+                  <input
+                    type="text"
+                    required
+                    value={editResTitle}
+                    onChange={(e) => setEditResTitle(e.target.value)}
+                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-xs font-bold outline-none focus:ring-2 focus:ring-red-500"
+                  />
+                </div>
+
+                <div>
+                  <CustomSelect
+                    label="Ville (Burkina Faso)"
+                    placeholder="Sélectionnez ou tapez"
+                    options={allLocations.map(c => ({ id: c.id, name: c.name }))}
+                    value={editResCityId}
+                    onChange={(val) => {
+                      setEditResCityId(val);
+                      setEditResNeighborhoodId('');
+                    }}
+                  />
+                </div>
+
+                <div>
+                  <CustomSelect
+                    label="Quartier / Zone"
+                    placeholder="Sélectionnez ou tapez"
+                    options={currentCityForEdit?.neighborhoods.map(nb => ({ id: nb.id, name: nb.name })) || []}
+                    value={editResNeighborhoodId}
+                    onChange={(val) => setEditResNeighborhoodId(val)}
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1.5 font-bold">Prix par nuit (FCFA)</label>
+                  <input
+                    type="number"
+                    required
+                    value={editResPrice}
+                    onChange={(e) => setEditResPrice(Number(e.target.value))}
+                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-xs font-bold outline-none focus:ring-2 focus:ring-red-500"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1.5 font-bold">Type de logement</label>
+                  <input
+                    type="text"
+                    value={editResType}
+                    onChange={(e) => setEditResType(e.target.value)}
+                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-xs font-bold outline-none focus:ring-2 focus:ring-red-500"
+                  />
+                </div>
+              </div>
+
+              <div className="flex justify-end gap-3 pt-6 border-t border-slate-100 mt-4">
+                <button
+                  type="button"
+                  onClick={() => setEditingRes(null)}
+                  className="px-5 py-2.5 text-slate-500 text-[10px] font-black uppercase tracking-widest hover:bg-slate-50 rounded-xl transition cursor-pointer"
+                >
+                  Annuler
+                </button>
+                <button
+                  type="submit"
+                  disabled={isSavingRes}
+                  className="px-8 py-2.5 bg-slate-900 hover:bg-slate-800 disabled:opacity-50 text-white text-[10px] font-black uppercase tracking-widest rounded-xl transition cursor-pointer shadow-md"
+                >
+                  {isSavingRes ? "Enregistrement..." : "Mettre à jour"}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
 
       {/* REAL-TIME OVERLAY FOR HARD RESET MODAL */}
       {showResetModal && (
