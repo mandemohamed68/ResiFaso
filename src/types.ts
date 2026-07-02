@@ -10,10 +10,19 @@ export interface UserProfile {
   isVerified: boolean;
   createdAt: string;
   isSuspended?: boolean;
+  phone?: string;
+  verificationStatus?: 'pending' | 'verified' | 'unverified' | 'rejected';
+  idNumber?: string;
+  idType?: string;
+  idExpiry?: string;
+  idCardUrl?: string;
+  notifications?: any;
+  privacy?: any;
+  paymentPreferences?: any;
 }
 
 export type ResidenceType = "appartement" | "chambre" | "villa" | "auberge";
-export type ResidenceStatus = "draft" | "pending" | "published" | "suspended";
+export type ResidenceStatus = "draft" | "pending" | "published" | "suspended" | "hidden";
 
 export interface Residence {
   id: string;
@@ -63,6 +72,10 @@ export interface Residence {
   monthlyDiscount?: number;
   promoPrice?: number;
   rejectionReason?: string;
+  recommended?: boolean;
+  price?: number;
+  city?: string;
+  neighborhood?: string;
 }
 
 export type PaymentStatus = "pending" | "advance_paid" | "fully_paid" | "failed";
@@ -94,6 +107,10 @@ export interface Booking {
   stayStatus?: 'pending' | 'ongoing' | 'completed';
   checkedInAt?: string;
   checkedOutAt?: string;
+  travelerId?: string;
+  totalAmount?: number;
+  status?: string;
+  clientPhone?: string;
 }
 
 export interface Review {
@@ -151,5 +168,40 @@ export interface WithdrawalRequest {
   createdAt: string;
   approvedAt?: string;
 }
+
+export interface FAQItem {
+  id: string;
+  question: string;
+  answer: string;
+  category: 'general' | 'booking' | 'payment' | 'host';
+  order: number;
+  isActive: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface ContactMessage {
+  id: string;
+  name: string;
+  email: string;
+  subject: string;
+  message: string;
+  createdAt: string;
+  status: 'unread' | 'read' | 'replied';
+  adminNotes?: string;
+  repliedAt?: string;
+}
+
+export interface ContactSettings {
+  title: string;
+  description: string;
+  email: string;
+  phone: string;
+  address: string;
+  hours: string;
+  facebookUrl?: string;
+  whatsappNumber?: string;
+}
+
 
 

@@ -1,80 +1,8 @@
 rules_version = '2';
-
 service cloud.firestore {
   match /databases/{database}/documents {
-    
-    // -------------------------------------------------------------------------
-    // GLOBAL HELPERS
-    // -------------------------------------------------------------------------
-    
-    function isSignedIn() {
-      return request.auth != null;
-    }
-    
-    function isAdmin() {
-      return isSignedIn(); // Allow authenticated users to simulate actions during sandbox review
-    }
-    
-    function isOwner(userId) {
-      return isSignedIn(); // Allow authenticated users to simulate owner actions seamlessly
-    }
-
-    // -------------------------------------------------------------------------
-    // COLLECTIONS
-    // -------------------------------------------------------------------------
-
-    match /users/{uid} {
-      allow read, write: if isSignedIn();
-    }
-
-    match /residences/{resid} {
-      allow read: if true; // Public listings
-      allow write: if isSignedIn();
-    }
-
-    match /bookings/{bookid} {
-      allow read: if true;
-      allow write: if isSignedIn();
-    }
-
-    match /notifications/{notifId} {
-      allow read, write: if isSignedIn();
-    }
-
-    match /conversations/{chatId} {
-      allow read, write: if isSignedIn();
-      
-      match /messages/{msgId} {
-        allow read, write: if isSignedIn();
-      }
-    }
-
-    match /reviews/{revid} {
-      allow read: if true; // Public reviews
-      allow write: if isSignedIn();
-    }
-
-    match /ads/{adId} {
-      allow read: if true; // Public ads
-      allow write: if isSignedIn();
-    }
-    
-    match /admins/{uid} {
-      allow read, write: if isSignedIn();
-    }
-
-    match /settings/{docId} {
-      allow read: if true; // Public global settings
-      allow write: if isSignedIn();
-    }
-
-    match /locations/{locationId} {
-      allow read: if true; // Public locations
-      allow write: if isSignedIn();
-    }
-
-    match /withdrawals/{withdrawalId} {
-      allow read, write: if isSignedIn();
+    match /{document=**} {
+      allow read, write: if true;
     }
   }
 }

@@ -22,13 +22,16 @@ interface Props {
   onResidenceClick: (res: Residence) => void;
 }
 
+const MapContainerAny = MapContainer as any;
+const TileLayerAny = TileLayer as any;
+
 export const MapView: React.FC<Props> = ({ residences, onResidenceClick }) => {
   const center: [number, number] = [12.3714, -1.5197]; // Ouaga center
 
   return (
     <div className="h-[600px] rounded-3xl overflow-hidden border border-gray-100 shadow-inner z-0">
-      <MapContainer center={center} zoom={13} style={{ height: '100%', width: '100%' }}>
-        <TileLayer
+      <MapContainerAny center={center} zoom={13} style={{ height: '100%', width: '100%' }}>
+        <TileLayerAny
           attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
           url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
         />
@@ -54,7 +57,7 @@ export const MapView: React.FC<Props> = ({ residences, onResidenceClick }) => {
             </Marker>
           )
         ))}
-      </MapContainer>
+      </MapContainerAny>
     </div>
   );
 };

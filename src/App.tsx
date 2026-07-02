@@ -33,6 +33,8 @@ import { db } from './lib/firebase';
 import { collection, query, where, onSnapshot, getDocs, doc, updateDoc } from 'firebase/firestore';
 import { ProfileSettings } from './components/profile/ProfileSettings';
 import { LegalPage } from './components/legal/LegalPage';
+import { FAQPage } from './components/legal/FAQPage';
+import { ContactPage } from './components/legal/ContactPage';
 import { Footer } from './components/common/Footer';
 import { BURKINA_LOCATIONS } from './constants/locations';
 import { GlobalModal } from './components/common/GlobalModal';
@@ -42,7 +44,7 @@ function AppContent() {
   const { currentRole, setCurrentRole } = useRole();
   const { addToast } = useToast();
   
-  const [view, setView] = useState<'home' | 'search' | 'details' | 'admin' | 'bookings' | 'owner-dashboard' | 'profile' | 'messages' | 'favorites' | 'tos' | 'privacy'>('home');
+  const [view, setView] = useState<'home' | 'search' | 'details' | 'admin' | 'bookings' | 'owner-dashboard' | 'profile' | 'messages' | 'favorites' | 'tos' | 'privacy' | 'faq' | 'contact'>('home');
   const [selectedResidence, setSelectedResidence] = useState<Residence | null>(null);
   const [isPaymentOpen, setIsPaymentOpen] = useState(false);
   const [activeBookingForPayment, setActiveBookingForPayment] = useState<any>(null);
@@ -1403,6 +1405,16 @@ function AppContent() {
           {view === 'privacy' && (
             <motion.div key="privacy" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
               <LegalPage type="privacy" />
+            </motion.div>
+          )}
+          {view === 'faq' && (
+            <motion.div key="faq" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
+              <FAQPage />
+            </motion.div>
+          )}
+          {view === 'contact' && (
+            <motion.div key="contact" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
+              <ContactPage onBack={() => handleNavigate('home')} onNavigateToFaq={() => handleNavigate('faq')} />
             </motion.div>
           )}
         </AnimatePresence>

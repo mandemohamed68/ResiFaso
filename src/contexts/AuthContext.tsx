@@ -51,6 +51,59 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   useEffect(() => {
+    // Check if there is a saved super admin session or other mock user session
+    const isSuperAdminSaved = localStorage.getItem('super_admin_logged_in') === 'true';
+    const savedMockSession = localStorage.getItem('mock_user_session');
+
+    if (isSuperAdminSaved || savedMockSession) {
+      let mockUser: any;
+      let mockProfile: UserProfile;
+
+      if (isSuperAdminSaved) {
+        mockUser = {
+          uid: 'mock-admin-mande',
+          email: 'mandemohamed68@gmail.com',
+          displayName: 'Mohamed Mandé',
+          isAnonymous: true,
+        };
+        mockProfile = {
+          uid: 'mock-admin-mande',
+          email: 'mandemohamed68@gmail.com',
+          displayName: 'Mohamed Mandé',
+          role: 'admin',
+          isVerified: true,
+          createdAt: new Date().toISOString()
+        };
+      } else {
+        try {
+          const parsed = JSON.parse(savedMockSession!);
+          mockUser = {
+            uid: parsed.uid,
+            email: parsed.email,
+            displayName: parsed.displayName,
+            isAnonymous: true,
+          };
+          mockProfile = {
+            uid: parsed.uid,
+            email: parsed.email,
+            displayName: parsed.displayName,
+            role: parsed.role,
+            isVerified: true,
+            createdAt: new Date().toISOString()
+          };
+        } catch (e) {
+          localStorage.removeItem('mock_user_session');
+          setLoading(false);
+          return;
+        }
+      }
+
+      setUser(mockUser as unknown as User);
+      setProfile(mockProfile);
+      setLoading(false);
+      return;
+    }
+
     const unsubscribe = onAuthStateChanged(auth, async (u) => {
       setUser(u);
       if (u) {
@@ -69,7 +122,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const logOut = async () => {
+    localStorage.removeItem('super_admin_logged_in');
+    localStorage.removeItem('mock_user_session');
     await signOut(auth);
+    setUser(null);
+    setProfile(null);
   };
 
   const refreshProfile = async () => {
@@ -100,37 +157,45 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       targetRole = 'admin';
     }
 
-    try {
-      const cred = await signInAnonymously(auth);
-      const uid = cred.user.uid;
-      const actualUid = targetUid === 'owner-1' || targetUid === 'owner-2' ? targetUid : uid;
-      
-      const mockFirebaseUser = {
-        ...cred.user,
-        uid: actualUid,
-        email: targetEmail,
-        displayName: targetDisplayName,
-      } as unknown as User;
+    const sessionData = {
+      uid: targetUid,
+      email: targetEmail,
+      displayName: targetDisplayName,
+      role: targetRole
+    };
 
-      const mockProfile: UserProfile = {
-        uid: actualUid,
-        email: targetEmail,
-        displayName: targetDisplayName,
-        role: targetRole,
-        isVerified: true,
-        createdAt: new Date().toISOString()
-      };
-
-      const docRef = doc(db, 'users', actualUid);
-      await setDoc(docRef, mockProfile);
-
-      setUser(mockFirebaseUser);
-      setProfile(mockProfile);
-    } catch (e) {
-      console.error("Failed to sign in as mock user:", e);
-    } finally {
-      setLoading(false);
+    if (targetRole === 'admin') {
+      localStorage.setItem('super_admin_logged_in', 'true');
+    } else {
+      localStorage.setItem('mock_user_session', JSON.stringify(sessionData));
     }
+
+    const mockFirebaseUser = {
+      uid: targetUid,
+      email: targetEmail,
+      displayName: targetDisplayName,
+      isAnonymous: true,
+    } as unknown as User;
+
+    const mockProfile: UserProfile = {
+      uid: targetUid,
+      email: targetEmail,
+      displayName: targetDisplayName,
+      role: targetRole,
+      isVerified: true,
+      createdAt: new Date().toISOString()
+    };
+
+    try {
+      const docRef = doc(db, 'users', targetUid);
+      await setDoc(docRef, mockProfile);
+    } catch (dbErr) {
+      console.warn("Could not write profile to Firestore, continuing with local session:", dbErr);
+    }
+
+    setUser(mockFirebaseUser);
+    setProfile(mockProfile);
+    setLoading(false);
   };
 
   return (

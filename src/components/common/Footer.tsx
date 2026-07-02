@@ -3,7 +3,7 @@ import { db } from '../../lib/firebase';
 import { doc, onSnapshot } from 'firebase/firestore';
 
 interface FooterProps {
-  onNavigate?: (view: 'tos' | 'privacy' | 'home') => void;
+  onNavigate?: (view: 'tos' | 'privacy' | 'home' | 'faq' | 'contact') => void;
 }
 
 export const Footer: React.FC<FooterProps> = ({ onNavigate }) => {
@@ -25,7 +25,8 @@ export const Footer: React.FC<FooterProps> = ({ onNavigate }) => {
           <button onClick={() => onNavigate?.('home')} className="hover:text-red-500 transition-colors cursor-pointer">Accueil</button>
           <button onClick={() => onNavigate?.('tos')} className="hover:text-red-500 transition-colors cursor-pointer">Conditions d'utilisation</button>
           <button onClick={() => onNavigate?.('privacy')} className="hover:text-red-500 transition-colors cursor-pointer">Confidentialité</button>
-          <button className="hover:text-red-500 transition-colors cursor-pointer">Contact</button>
+          <button onClick={() => onNavigate?.('faq')} className="hover:text-red-500 transition-colors cursor-pointer">FAQ</button>
+          <button onClick={() => onNavigate?.('contact')} className="hover:text-red-500 transition-colors cursor-pointer text-[#EF2B2D] font-extrabold">Contact</button>
         </div>
         
         <div className="flex flex-col items-center gap-3">

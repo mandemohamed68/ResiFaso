@@ -379,6 +379,68 @@ export async function seedDatabaseIfNeeded() {
       });
       console.log("Global settings seeded successfully!");
     }
+
+    // Seed mock FAQs
+    const faqsSnap = await getDocs(collection(db, 'faqs'));
+    if (faqsSnap.empty) {
+      console.log("Seeding mock FAQs...");
+      const MOCK_FAQS = [
+        {
+          id: 'faq_1',
+          question: "Comment effectuer une réservation ?",
+          answer: "Vous pouvez effectuer une réservation en sélectionnant la résidence de votre choix, puis en choisissant vos dates de séjour. Suivez les étapes pour finaliser le paiement sécurisé via nos partenaires locaux.",
+          category: 'booking',
+          order: 1,
+          isActive: true,
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString()
+        },
+        {
+          id: 'faq_2',
+          question: "Quels sont les modes de paiement acceptés ?",
+          answer: "Nous acceptons les paiements via Orange Money, Moov Money et Coris Money pour garantir une transaction rapide et sécurisée au Burkina Faso.",
+          category: 'payment',
+          order: 2,
+          isActive: true,
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString()
+        },
+        {
+          id: 'faq_3',
+          question: "Puis-je annuler ma réservation ?",
+          answer: "Oui, vous pouvez annuler votre réservation depuis votre espace 'Mes Voyages'. Les frais d'annulation dépendent de la politique spécifique de chaque hôte (stricte, modérée ou flexible).",
+          category: 'booking',
+          order: 3,
+          isActive: true,
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString()
+        },
+        {
+          id: 'faq_4',
+          question: "Comment contacter l'hôte ?",
+          answer: "Une fois votre réservation confirmée ou en cours, vous pouvez utiliser la messagerie intégrée pour discuter directement avec l'hôte concernant les détails de votre arrivée ou toute autre question.",
+          category: 'host',
+          order: 4,
+          isActive: true,
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString()
+        },
+        {
+          id: 'faq_5',
+          question: "Est-ce que les résidences sont vérifiées ?",
+          answer: "Absolument. Toute résidence publiée sur notre plateforme fait l'objet d'une vérification par notre équipe pour s'assurer qu'elle répond à nos standards de sécurité et de qualité.",
+          category: 'general',
+          order: 5,
+          isActive: true,
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString()
+        }
+      ];
+      for (const faq of MOCK_FAQS) {
+        await setDoc(doc(db, 'faqs', faq.id), faq);
+      }
+      console.log("Mock FAQs seeded successfully!");
+    }
   } catch (error) {
     console.error("Failed to seed database:", error);
   }

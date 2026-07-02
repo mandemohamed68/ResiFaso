@@ -6,6 +6,7 @@ import dotenv from "dotenv";
 import { initializeApp, cert, getApps } from 'firebase-admin/app';
 import { getFirestore } from 'firebase-admin/firestore';
 import fs from "fs";
+import { executeSql } from './src/db/index';
 
 dotenv.config();
 
@@ -527,6 +528,24 @@ async function startServer() {
       res.json({ status: "success", message: "Payment confirmed" });
     } else {
       res.status(400).json({ status: "error", message: "Invalid OTP" });
+    }
+  });
+
+  // Execute local SQL (MariaDB / SQLite) when run on local server
+  app.post("/api/db/query", async (req, res) => {
+    try {
+      const { sql, params } = req.body;
+      if (!sql) {
+        return res.status(400).json({ error: "Missing SQL query" });
+      }
+      if (process.env.DB_TYPE === "firebase" || !process.env.DB_TYPE) {
+        return res.status(400).json({ error: "Local DB not configured. Set DB_TYPE to mariadb or sqlite." });
+      }
+      const result = await executeSql(sql, params || []);
+      res.json({ success: true, data: result });
+    } catch (err: any) {
+      console.error("SQL Error:", err);
+      res.status(500).json({ error: err.message });
     }
   });
 

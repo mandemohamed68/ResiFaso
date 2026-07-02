@@ -3,12 +3,12 @@ import React, { useState, useEffect } from 'react';
 import { 
   LayoutDashboard, Home, Users, BarChart3, Settings, ShieldCheck, 
   Activity, Search, Trash2, Edit3, Plus, ArrowUpRight, TrendingUp, Calendar, Check, X,
-  FileText, Download, Award, ShieldAlert, Megaphone, Upload, Wallet, ArrowLeft, MapPin
+  FileText, Download, Award, ShieldAlert, Megaphone, Upload, Wallet, ArrowLeft, MapPin, MessageSquare, Mail, Phone, Clock
 } from 'lucide-react';
 import { db } from '../../lib/firebase';
-import { collection, query, onSnapshot, doc, updateDoc, deleteDoc, setDoc } from 'firebase/firestore';
+import { collection, query, onSnapshot, doc, updateDoc, deleteDoc, setDoc, getDocs } from 'firebase/firestore';
 import { CustomSelect } from '../common/CustomSelect';
-import { Residence, UserProfile, UserRole, Booking, Review, BookingStatus, PaymentStatus, Advertisement, WithdrawalRequest, WithdrawalStatus } from '../../types';
+import { Residence, UserProfile, UserRole, Booking, Review, BookingStatus, PaymentStatus, Advertisement, WithdrawalRequest, WithdrawalStatus, FAQItem, ContactMessage, ContactSettings } from '../../types';
 import { BURKINA_LOCATIONS } from '../../constants/locations';
 import { useLocations } from '../../hooks/useLocations';
 import { motion, AnimatePresence } from 'motion/react';
@@ -17,9 +17,30 @@ import { useAuth } from '../../contexts/AuthContext';
 import { resizeImage } from '../../lib/imageResize';
 import { hardResetDatabase, updateWithdrawalStatus, sendNotification } from '../../lib/db';
 
+const DEFAULT_CONTACT_SETTINGS: ContactSettings = {
+  title: "Contactez-nous",
+  description: "Notre équipe est disponible 24h/7 pour vous accompagner dans vos réservations, vos questions de paiement ou la mise en ligne de vos résidences au Burkina Faso.",
+  email: "support@resifaso.com",
+  phone: "+226 25 30 12 34",
+  address: "Avenue Kwame Nkrumah, Ouagadougou, Burkina Faso",
+  hours: "Lundi - Vendredi : 08h00 - 18h00 | Samedi : 09h00 - 15h00",
+  facebookUrl: "https://facebook.com/resifaso",
+  whatsappNumber: "+226 70 12 34 56"
+};
+
 export const AdminDashboard: React.FC<{ onBackToTraveler?: () => void }> = ({ onBackToTraveler }) => {
   const { user } = useAuth();
-  const [activeTab, setActiveTab] = useState<'overview' | 'alerts' | 'listings' | 'users' | 'bookings' | 'revenue' | 'reviews' | 'reports' | 'settings' | 'logs' | 'ads' | 'withdrawals' | 'flash-info'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'alerts' | 'listings' | 'users' | 'bookings' | 'revenue' | 'reviews' | 'reports' | 'settings' | 'logs' | 'ads' | 'withdrawals' | 'locations' | 'flash-info' | 'faq' | 'contact'>('overview');
+  
+  // Contact page & messages states
+  const [contactSettings, setContactSettings] = useState<ContactSettings>(DEFAULT_CONTACT_SETTINGS);
+  const [contactMessages, setContactMessages] = useState<ContactMessage[]>([]);
+  const [isSavingContactSettings, setIsSavingContactSettings] = useState(false);
+  const [selectedContactMessage, setSelectedContactMessage] = useState<ContactMessage | null>(null);
+  const [adminNoteText, setAdminNoteText] = useState('');
+  const [isSavingAdminNote, setIsSavingAdminNote] = useState(false);
+  const [msgSearchQuery, setMsgSearchQuery] = useState('');
+  const [msgStatusFilter, setMsgStatusFilter] = useState<'all' | 'unread' | 'read' | 'replied'>('all');
   
   // Database Collections States
   const [residences, setResidences] = useState<Residence[]>([]);
@@ -27,6 +48,7 @@ export const AdminDashboard: React.FC<{ onBackToTraveler?: () => void }> = ({ on
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [reviews, setReviews] = useState<Review[]>([]);
   const [withdrawals, setWithdrawals] = useState<WithdrawalRequest[]>([]);
+  const [faqs, setFaqs] = useState<FAQItem[]>([]);
   const { allLocations, platformLocations } = useLocations();
   const [newCityName, setNewCityName] = useState('');
   const [newNeighborhoodName, setNewNeighborhoodName] = useState('');
@@ -46,11 +68,21 @@ export const AdminDashboard: React.FC<{ onBackToTraveler?: () => void }> = ({ on
   const [userSearchQuery, setUserSearchQuery] = useState('');
   const [bookingFilterStatus, setBookingFilterStatus] = useState<string>('all');
 
+  // FAQ Editing State
+  const [editingFaq, setEditingFaq] = useState<FAQItem | null>(null);
+  const [editFaqQuestion, setEditFaqQuestion] = useState('');
+  const [editFaqAnswer, setEditFaqAnswer] = useState('');
+  const [editFaqCategory, setEditFaqCategory] = useState<'general' | 'booking' | 'payment' | 'host'>('general');
+  const [editFaqOrder, setEditFaqOrder] = useState(0);
+  const [editFaqIsActive, setEditFaqIsActive] = useState(true);
+  const [isSavingFaq, setIsSavingFaq] = useState(false);
+
   // Global Settings State
   const [platformName, setPlatformName] = useState('ResiFaso');
   const [footerContent, setFooterContent] = useState('© 2026 ResiFaso. Tous droits réservés.');
   const [commissionRate, setCommissionRate] = useState(10); // Default Commission rate
   const [isGlobalTestMode, setIsGlobalTestMode] = useState(false); // Default to PRODUCTION now as requested
+  const [enableGoogleSignIn, setEnableGoogleSignIn] = useState(true);
   const [sappayClientId, setSappayClientId] = useState('IJIJhhArSLVJNIs2ylGwowxTCqm5t5br92lAPlgF');
   const [sappayClientSecret, setSappayClientSecret] = useState('7qrVeDjSmDQjHksFyzKriidK3iuSo3RK6h5voHnbXAAPZvQEQnF9LIPzjqOcg4POqmikuUoJ7ynI565leEzbFhSnKZynwCLVOChma3y7vesLBRwaoyixtLcknd4g6Rdm');
   const [sappayUsername, setSappayUsername] = useState('mandemohamed68@gmail.com');
@@ -161,6 +193,8 @@ export const AdminDashboard: React.FC<{ onBackToTraveler?: () => void }> = ({ on
         if (data.platformName) setPlatformName(data.platformName);
         if (data.footerContent) setFooterContent(data.footerContent);
         if (data.commissionRate !== undefined) setCommissionRate(data.commissionRate);
+        if (data.enableGoogleSignIn !== undefined) setEnableGoogleSignIn(data.enableGoogleSignIn);
+
         if (data.isTestMode !== undefined) setIsGlobalTestMode(data.isTestMode);
         if (data.enablePhoneCalls !== undefined) setEnablePhoneCalls(data.enablePhoneCalls);
         if (data.enableWhatsApp !== undefined) setEnableWhatsApp(data.enableWhatsApp);
@@ -197,6 +231,34 @@ export const AdminDashboard: React.FC<{ onBackToTraveler?: () => void }> = ({ on
       setWithdrawals(list);
     }, (error) => console.error("AdminDashboard withdrawals snapshot error:", error));
 
+    // FAQs listener
+    const unsubFaqs = onSnapshot(collection(db, 'faqs'), (snapshot) => {
+      const list: FAQItem[] = [];
+      snapshot.forEach(docSnap => {
+        list.push({ id: docSnap.id, ...docSnap.data() } as FAQItem);
+      });
+      list.sort((a, b) => a.order - b.order);
+      setFaqs(list);
+    }, (error) => console.error("AdminDashboard faqs snapshot error:", error));
+
+    // Contact settings listener
+    const unsubContactSettings = onSnapshot(doc(db, 'settings', 'contactSettings'), (docSnap) => {
+      if (docSnap.exists()) {
+        setContactSettings(docSnap.data() as ContactSettings);
+      }
+    }, (error) => console.error("AdminDashboard contactSettings snapshot error:", error));
+
+    // Contact messages listener
+    const unsubContactMessages = onSnapshot(collection(db, 'contactMessages'), (snapshot) => {
+      const list: ContactMessage[] = [];
+      snapshot.forEach(docSnap => {
+        list.push({ id: docSnap.id, ...docSnap.data() } as ContactMessage);
+      });
+      // Sort messages descending by creation date
+      list.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+      setContactMessages(list);
+    }, (error) => console.error("AdminDashboard contactMessages snapshot error:", error));
+
     return () => {
       unsubRes();
       unsubUsers();
@@ -205,6 +267,9 @@ export const AdminDashboard: React.FC<{ onBackToTraveler?: () => void }> = ({ on
       unsubSettings();
       unsubAds();
       unsubWithdrawals();
+      unsubFaqs();
+      unsubContactSettings();
+      unsubContactMessages();
     };
   }, [user]);
 
@@ -334,6 +399,76 @@ export const AdminDashboard: React.FC<{ onBackToTraveler?: () => void }> = ({ on
   };
 
   const currentCityForEdit = allLocations.find(c => c.id === editResCityId);
+
+  const handleStartEditFaq = (faq?: FAQItem) => {
+    if (faq) {
+      setEditingFaq(faq);
+      setEditFaqQuestion(faq.question);
+      setEditFaqAnswer(faq.answer);
+      setEditFaqCategory(faq.category);
+      setEditFaqOrder(faq.order);
+      setEditFaqIsActive(faq.isActive);
+    } else {
+      setEditingFaq(null);
+      setEditFaqQuestion('');
+      setEditFaqAnswer('');
+      setEditFaqCategory('general');
+      setEditFaqOrder(faqs.length + 1);
+      setEditFaqIsActive(true);
+    }
+    setActiveTab('faq');
+  };
+
+  const handleSaveFaq = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editFaqQuestion || !editFaqAnswer) return;
+    setIsSavingFaq(true);
+    try {
+      if (editingFaq) {
+        await updateDoc(doc(db, 'faqs', editingFaq.id), {
+          question: editFaqQuestion,
+          answer: editFaqAnswer,
+          category: editFaqCategory,
+          order: editFaqOrder,
+          isActive: editFaqIsActive,
+          updatedAt: new Date().toISOString()
+        });
+        logAction(`FAQ modifiée: ${editFaqQuestion.slice(0, 20)}...`);
+      } else {
+        const newId = `faq_${Date.now()}`;
+        await setDoc(doc(db, 'faqs', newId), {
+          id: newId,
+          question: editFaqQuestion,
+          answer: editFaqAnswer,
+          category: editFaqCategory,
+          order: editFaqOrder,
+          isActive: editFaqIsActive,
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString()
+        });
+        logAction(`FAQ ajoutée: ${editFaqQuestion.slice(0, 20)}...`);
+      }
+      setEditingFaq(null);
+      setEditFaqQuestion('');
+      setEditFaqAnswer('');
+    } catch (err) {
+      console.error(err);
+      alert("Erreur lors de la sauvegarde de la FAQ.");
+    } finally {
+      setIsSavingFaq(false);
+    }
+  };
+
+  const handleDeleteFaq = async (id: string, question: string) => {
+    if (!window.confirm("Supprimer cette question FAQ ?")) return;
+    try {
+      await deleteDoc(doc(db, 'faqs', id));
+      logAction(`FAQ supprimée: ${question.slice(0, 20)}...`);
+    } catch (err) {
+      console.error(err);
+      alert("Erreur lors de la suppression.");
+    }
+  };
 
   const handleStartEditResidence = (res: Residence) => {
     setEditingRes(res);
@@ -724,6 +859,7 @@ export const AdminDashboard: React.FC<{ onBackToTraveler?: () => void }> = ({ on
         platformName: platformName,
         footerContent: footerContent,
         commissionRate: commissionRate,
+        enableGoogleSignIn: enableGoogleSignIn,
         isTestMode: isGlobalTestMode,
         sappayClientId: sappayClientId,
         sappayClientSecret: sappayClientSecret,
@@ -745,6 +881,512 @@ export const AdminDashboard: React.FC<{ onBackToTraveler?: () => void }> = ({ on
       alert("Erreur lors de la sauvegarde de la configuration.");
     } finally {
       setIsSaving(false);
+    }
+  };
+
+  const handleExportDatabase = async (format: 'mariadb' | 'sqlite') => {
+    triggerSuccess("Génération du dump complet en cours... Veuillez patienter.");
+    
+    const escapeSql = (val: any) => {
+      if (val === undefined || val === null) return "NULL";
+      if (typeof val === 'boolean') return val ? 1 : 0;
+      if (typeof val === 'number') return val;
+      if (Array.isArray(val)) return `'${JSON.stringify(val).replace(/'/g, "''")}'`;
+      if (typeof val === 'object') return `'${JSON.stringify(val).replace(/'/g, "''")}'`;
+      return `'${String(val).replace(/'/g, "''")}'`;
+    };
+
+    let sql = `-- Dump Complet pour ${format === 'mariadb' ? 'MariaDB / MySQL' : 'SQLite'}\n`;
+    sql += `-- Généré le ${new Date().toISOString()}\n`;
+    sql += `-- Contient toutes les tables, données et images (URLs de stockage)\n\n`;
+
+    // 1. Users
+    sql += `-- Structure de la table users\n`;
+    sql += `CREATE TABLE IF NOT EXISTS users (\n`;
+    sql += `  uid VARCHAR(255) PRIMARY KEY,\n`;
+    sql += `  email VARCHAR(255),\n`;
+    sql += `  displayName VARCHAR(255),\n`;
+    sql += `  phoneNumber VARCHAR(100),\n`;
+    sql += `  photoURL TEXT,\n`;
+    sql += `  role VARCHAR(50),\n`;
+    sql += `  isVerified TINYINT(1) DEFAULT 0,\n`;
+    sql += `  isSuspended TINYINT(1) DEFAULT 0,\n`;
+    sql += `  createdAt VARCHAR(100)\n`;
+    sql += `);\n\n`;
+
+    if (users.length > 0) {
+      users.forEach(u => {
+        sql += `INSERT ${format === 'mariadb' ? 'IGNORE ' : 'OR IGNORE '}INTO users (uid, email, displayName, phoneNumber, photoURL, role, isVerified, isSuspended, createdAt) VALUES (\n`;
+        sql += `  ${escapeSql(u.uid)},\n`;
+        sql += `  ${escapeSql(u.email)},\n`;
+        sql += `  ${escapeSql(u.displayName)},\n`;
+        sql += `  ${escapeSql(u.phoneNumber)},\n`;
+        sql += `  ${escapeSql(u.photoURL)},\n`;
+        sql += `  ${escapeSql(u.role)},\n`;
+        sql += `  ${escapeSql(u.isVerified)},\n`;
+        sql += `  ${escapeSql(u.isSuspended)},\n`;
+        sql += `  ${escapeSql(u.createdAt || new Date().toISOString())}\n`;
+        sql += `);\n`;
+      });
+      sql += '\n';
+    }
+
+    // 2. Residences
+    sql += `-- Structure de la table residences\n`;
+    sql += `CREATE TABLE IF NOT EXISTS residences (\n`;
+    sql += `  id VARCHAR(255) PRIMARY KEY,\n`;
+    sql += `  ownerId VARCHAR(255),\n`;
+    sql += `  title VARCHAR(255),\n`;
+    sql += `  description TEXT,\n`;
+    sql += `  type VARCHAR(100),\n`;
+    sql += `  pricePerNight DECIMAL(10,2),\n`;
+    sql += `  advancePercentage DECIMAL(5,2),\n`;
+    sql += `  cleaningFee DECIMAL(10,2),\n`;
+    sql += `  serviceFee DECIMAL(10,2),\n`;
+    sql += `  city VARCHAR(255),\n`;
+    sql += `  neighborhood VARCHAR(255),\n`;
+    sql += `  street VARCHAR(255),\n`;
+    sql += `  capacity INT,\n`;
+    sql += `  bedrooms INT,\n`;
+    sql += `  beds INT,\n`;
+    sql += `  bathrooms INT,\n`;
+    sql += `  rooms INT,\n`;
+    sql += `  rating DECIMAL(3,2),\n`;
+    sql += `  reviewCount INT,\n`;
+    sql += `  ownerPhone VARCHAR(100),\n`;
+    sql += `  status VARCHAR(100),\n`;
+    sql += `  ownerName VARCHAR(255),\n`;
+    sql += `  createdAt VARCHAR(100),\n`;
+    sql += `  promoted TINYINT(1) DEFAULT 0,\n`;
+    sql += `  weeklyDiscount DECIMAL(5,2),\n`;
+    sql += `  monthlyDiscount DECIMAL(5,2),\n`;
+    sql += `  promoPrice DECIMAL(10,2),\n`;
+    sql += `  rejectionReason TEXT,\n`;
+    sql += `  images TEXT,\n`;
+    sql += `  amenities TEXT,\n`;
+    sql += `  pricingTiers TEXT,\n`;
+    sql += `  waterIncluded TINYINT(1) DEFAULT 0,\n`;
+    sql += `  electricityIncluded TINYINT(1) DEFAULT 0\n`;
+    sql += `);\n\n`;
+
+    if (residences.length > 0) {
+      residences.forEach(r => {
+        sql += `INSERT ${format === 'mariadb' ? 'IGNORE ' : 'OR IGNORE '}INTO residences (id, ownerId, title, description, type, pricePerNight, advancePercentage, cleaningFee, serviceFee, city, neighborhood, street, capacity, bedrooms, beds, bathrooms, rooms, rating, reviewCount, ownerPhone, status, ownerName, createdAt, promoted, weeklyDiscount, monthlyDiscount, promoPrice, rejectionReason, images, amenities, pricingTiers, waterIncluded, electricityIncluded) VALUES (\n`;
+        sql += `  ${escapeSql(r.id)},\n`;
+        sql += `  ${escapeSql(r.ownerId)},\n`;
+        sql += `  ${escapeSql(r.title)},\n`;
+        sql += `  ${escapeSql(r.description)},\n`;
+        sql += `  ${escapeSql(r.type)},\n`;
+        sql += `  ${escapeSql(r.pricePerNight || r.price || 0)},\n`;
+        sql += `  ${escapeSql(r.advancePercentage)},\n`;
+        sql += `  ${escapeSql(r.cleaningFee)},\n`;
+        sql += `  ${escapeSql(r.serviceFee)},\n`;
+        sql += `  ${escapeSql(r.address?.city || r.city || '')},\n`;
+        sql += `  ${escapeSql(r.address?.neighborhood || r.neighborhood || '')},\n`;
+        sql += `  ${escapeSql(r.address?.street || '')},\n`;
+        sql += `  ${escapeSql(r.capacity)},\n`;
+        sql += `  ${escapeSql(r.bedrooms)},\n`;
+        sql += `  ${escapeSql(r.beds)},\n`;
+        sql += `  ${escapeSql(r.bathrooms)},\n`;
+        sql += `  ${escapeSql(r.rooms)},\n`;
+        sql += `  ${escapeSql(r.rating || 0)},\n`;
+        sql += `  ${escapeSql(r.reviewCount || 0)},\n`;
+        sql += `  ${escapeSql(r.ownerPhone)},\n`;
+        sql += `  ${escapeSql(r.status)},\n`;
+        sql += `  ${escapeSql(r.ownerName || '')},\n`;
+        sql += `  ${escapeSql(r.createdAt || new Date().toISOString())},\n`;
+        sql += `  ${escapeSql(r.promoted)},\n`;
+        sql += `  ${escapeSql(r.weeklyDiscount)},\n`;
+        sql += `  ${escapeSql(r.monthlyDiscount)},\n`;
+        sql += `  ${escapeSql(r.promoPrice)},\n`;
+        sql += `  ${escapeSql(r.rejectionReason)},\n`;
+        sql += `  ${escapeSql(r.images)},\n`;
+        sql += `  ${escapeSql(r.amenities)},\n`;
+        sql += `  ${escapeSql(r.pricingTiers)},\n`;
+        sql += `  ${escapeSql(r.utilitiesIncluded?.water)},\n`;
+        sql += `  ${escapeSql(r.utilitiesIncluded?.electricity)}\n`;
+        sql += `);\n`;
+      });
+      sql += '\n';
+    }
+
+    // 3. Bookings
+    sql += `-- Structure de la table bookings\n`;
+    sql += `CREATE TABLE IF NOT EXISTS bookings (\n`;
+    sql += `  id VARCHAR(255) PRIMARY KEY,\n`;
+    sql += `  residenceId VARCHAR(255),\n`;
+    sql += `  clientId VARCHAR(255),\n`;
+    sql += `  ownerId VARCHAR(255),\n`;
+    sql += `  checkIn VARCHAR(100),\n`;
+    sql += `  checkOut VARCHAR(100),\n`;
+    sql += `  guests INT,\n`;
+    sql += `  totalPrice DECIMAL(10,2),\n`;
+    sql += `  advancePaid DECIMAL(10,2),\n`;
+    sql += `  paymentStatus VARCHAR(50),\n`;
+    sql += `  bookingStatus VARCHAR(50),\n`;
+    sql += `  transactionId VARCHAR(255),\n`;
+    sql += `  createdAt VARCHAR(100),\n`;
+    sql += `  cancelledBy VARCHAR(50),\n`;
+    sql += `  cancellationReason TEXT,\n`;
+    sql += `  cancelledAt VARCHAR(100),\n`;
+    sql += `  refundStatus VARCHAR(50),\n`;
+    sql += `  refundAmount DECIMAL(10,2),\n`;
+    sql += `  refundPhone VARCHAR(100),\n`;
+    sql += `  refundProvider VARCHAR(50),\n`;
+    sql += `  refundProcessedAt VARCHAR(100),\n`;
+    sql += `  stayStatus VARCHAR(50),\n`;
+    sql += `  checkedInAt VARCHAR(100),\n`;
+    sql += `  checkedOutAt VARCHAR(100)\n`;
+    sql += `);\n\n`;
+
+    if (bookings.length > 0) {
+      bookings.forEach(b => {
+        sql += `INSERT ${format === 'mariadb' ? 'IGNORE ' : 'OR IGNORE '}INTO bookings (id, residenceId, clientId, ownerId, checkIn, checkOut, guests, totalPrice, advancePaid, paymentStatus, bookingStatus, transactionId, createdAt, cancelledBy, cancellationReason, cancelledAt, refundStatus, refundAmount, refundPhone, refundProvider, refundProcessedAt, stayStatus, checkedInAt, checkedOutAt) VALUES (\n`;
+        sql += `  ${escapeSql(b.id)},\n`;
+        sql += `  ${escapeSql(b.residenceId)},\n`;
+        sql += `  ${escapeSql(b.clientId || b.travelerId || '')},\n`;
+        sql += `  ${escapeSql(b.ownerId)},\n`;
+        sql += `  ${escapeSql(b.checkIn)},\n`;
+        sql += `  ${escapeSql(b.checkOut)},\n`;
+        sql += `  ${escapeSql(b.guests || 1)},\n`;
+        sql += `  ${escapeSql(b.totalPrice || b.totalAmount || 0)},\n`;
+        sql += `  ${escapeSql(b.advancePaid || 0)},\n`;
+        sql += `  ${escapeSql(b.paymentStatus)},\n`;
+        sql += `  ${escapeSql(b.bookingStatus || b.status || 'pending')},\n`;
+        sql += `  ${escapeSql(b.transactionId)},\n`;
+        sql += `  ${escapeSql(b.createdAt || new Date().toISOString())},\n`;
+        sql += `  ${escapeSql(b.cancelledBy)},\n`;
+        sql += `  ${escapeSql(b.cancellationReason)},\n`;
+        sql += `  ${escapeSql(b.cancelledAt)},\n`;
+        sql += `  ${escapeSql(b.refundStatus)},\n`;
+        sql += `  ${escapeSql(b.refundAmount)},\n`;
+        sql += `  ${escapeSql(b.refundPhone)},\n`;
+        sql += `  ${escapeSql(b.refundProvider)},\n`;
+        sql += `  ${escapeSql(b.refundProcessedAt)},\n`;
+        sql += `  ${escapeSql(b.stayStatus)},\n`;
+        sql += `  ${escapeSql(b.checkedInAt)},\n`;
+        sql += `  ${escapeSql(b.checkedOutAt)}\n`;
+        sql += `);\n`;
+      });
+      sql += '\n';
+    }
+
+    // 4. Reviews
+    sql += `-- Structure de la table reviews\n`;
+    sql += `CREATE TABLE IF NOT EXISTS reviews (\n`;
+    sql += `  id VARCHAR(255) PRIMARY KEY,\n`;
+    sql += `  bookingId VARCHAR(255),\n`;
+    sql += `  residenceId VARCHAR(255),\n`;
+    sql += `  clientId VARCHAR(255),\n`;
+    sql += `  rating DECIMAL(3,2),\n`;
+    sql += `  comment TEXT,\n`;
+    sql += `  createdAt VARCHAR(100)\n`;
+    sql += `);\n\n`;
+
+    if (reviews.length > 0) {
+      reviews.forEach(rv => {
+        sql += `INSERT ${format === 'mariadb' ? 'IGNORE ' : 'OR IGNORE '}INTO reviews (id, bookingId, residenceId, clientId, rating, comment, createdAt) VALUES (\n`;
+        sql += `  ${escapeSql(rv.id)},\n`;
+        sql += `  ${escapeSql(rv.bookingId)},\n`;
+        sql += `  ${escapeSql(rv.residenceId)},\n`;
+        sql += `  ${escapeSql(rv.clientId)},\n`;
+        sql += `  ${escapeSql(rv.rating)},\n`;
+        sql += `  ${escapeSql(rv.comment)},\n`;
+        sql += `  ${escapeSql(rv.createdAt || new Date().toISOString())}\n`;
+        sql += `);\n`;
+      });
+      sql += '\n';
+    }
+
+    // 5. Ads
+    sql += `-- Structure de la table ads\n`;
+    sql += `CREATE TABLE IF NOT EXISTS ads (\n`;
+    sql += `  id VARCHAR(255) PRIMARY KEY,\n`;
+    sql += `  imageUrl TEXT,\n`;
+    sql += `  title VARCHAR(255),\n`;
+    sql += `  description TEXT,\n`;
+    sql += `  linkUrl TEXT,\n`;
+    sql += `  isActive TINYINT(1) DEFAULT 1,\n`;
+    sql += `  frequencySeconds INT,\n`;
+    sql += `  createdAt VARCHAR(100)\n`;
+    sql += `);\n\n`;
+
+    if (ads.length > 0) {
+      ads.forEach(ad => {
+        sql += `INSERT ${format === 'mariadb' ? 'IGNORE ' : 'OR IGNORE '}INTO ads (id, imageUrl, title, description, linkUrl, isActive, frequencySeconds, createdAt) VALUES (\n`;
+        sql += `  ${escapeSql(ad.id)},\n`;
+        sql += `  ${escapeSql(ad.imageUrl)},\n`;
+        sql += `  ${escapeSql(ad.title)},\n`;
+        sql += `  ${escapeSql(ad.description)},\n`;
+        sql += `  ${escapeSql(ad.linkUrl)},\n`;
+        sql += `  ${escapeSql(ad.isActive)},\n`;
+        sql += `  ${escapeSql(ad.frequencySeconds || 10)},\n`;
+        sql += `  ${escapeSql(ad.createdAt || new Date().toISOString())}\n`;
+        sql += `);\n`;
+      });
+      sql += '\n';
+    }
+
+    // 6. Withdrawals
+    sql += `-- Structure de la table withdrawals\n`;
+    sql += `CREATE TABLE IF NOT EXISTS withdrawals (\n`;
+    sql += `  id VARCHAR(255) PRIMARY KEY,\n`;
+    sql += `  ownerId VARCHAR(255),\n`;
+    sql += `  ownerName VARCHAR(255),\n`;
+    sql += `  ownerEmail VARCHAR(255),\n`;
+    sql += `  amount DECIMAL(10,2),\n`;
+    sql += `  phone VARCHAR(100),\n`;
+    sql += `  provider VARCHAR(50),\n`;
+    sql += `  status VARCHAR(50),\n`;
+    sql += `  createdAt VARCHAR(100),\n`;
+    sql += `  approvedAt VARCHAR(100)\n`;
+    sql += `);\n\n`;
+
+    if (withdrawals.length > 0) {
+      withdrawals.forEach(w => {
+        sql += `INSERT ${format === 'mariadb' ? 'IGNORE ' : 'OR IGNORE '}INTO withdrawals (id, ownerId, ownerName, ownerEmail, amount, phone, provider, status, createdAt, approvedAt) VALUES (\n`;
+        sql += `  ${escapeSql(w.id)},\n`;
+        sql += `  ${escapeSql(w.ownerId)},\n`;
+        sql += `  ${escapeSql(w.ownerName)},\n`;
+        sql += `  ${escapeSql(w.ownerEmail)},\n`;
+        sql += `  ${escapeSql(w.amount)},\n`;
+        sql += `  ${escapeSql(w.phone)},\n`;
+        sql += `  ${escapeSql(w.provider)},\n`;
+        sql += `  ${escapeSql(w.status)},\n`;
+        sql += `  ${escapeSql(w.createdAt || new Date().toISOString())},\n`;
+        sql += `  ${escapeSql(w.approvedAt || null)}\n`;
+        sql += `);\n`;
+      });
+      sql += '\n';
+    }
+
+    // 7. FAQs
+    sql += `-- Structure de la table faqs\n`;
+    sql += `CREATE TABLE IF NOT EXISTS faqs (\n`;
+    sql += `  id VARCHAR(255) PRIMARY KEY,\n`;
+    sql += `  question TEXT,\n`;
+    sql += `  answer TEXT,\n`;
+    sql += `  category VARCHAR(50),\n`;
+    sql += `  \`order\` INT,\n`;
+    sql += `  isActive TINYINT(1) DEFAULT 1,\n`;
+    sql += `  createdAt VARCHAR(100),\n`;
+    sql += `  updatedAt VARCHAR(100)\n`;
+    sql += `);\n\n`;
+
+    if (faqs.length > 0) {
+      faqs.forEach(f => {
+        sql += `INSERT ${format === 'mariadb' ? 'IGNORE ' : 'OR IGNORE '}INTO faqs (id, question, answer, category, \`order\`, isActive, createdAt, updatedAt) VALUES (\n`;
+        sql += `  ${escapeSql(f.id)},\n`;
+        sql += `  ${escapeSql(f.question)},\n`;
+        sql += `  ${escapeSql(f.answer)},\n`;
+        sql += `  ${escapeSql(f.category)},\n`;
+        sql += `  ${escapeSql(f.order)},\n`;
+        sql += `  ${escapeSql(f.isActive)},\n`;
+        sql += `  ${escapeSql(f.createdAt || new Date().toISOString())},\n`;
+        sql += `  ${escapeSql(f.updatedAt || new Date().toISOString())}\n`;
+        sql += `);\n`;
+      });
+      sql += '\n';
+    }
+
+    // 8. Fetch and Dump Conversations and Messages dynamically from Firestore
+    try {
+      const conversationsSnap = await getDocs(collection(db, 'conversations'));
+      if (!conversationsSnap.empty) {
+        sql += `-- Structure de la table conversations\n`;
+        sql += `CREATE TABLE IF NOT EXISTS conversations (\n`;
+        sql += `  id VARCHAR(255) PRIMARY KEY,\n`;
+        sql += `  participants TEXT,\n`;
+        sql += `  lastMessage TEXT,\n`;
+        sql += `  updatedAt VARCHAR(100),\n`;
+        sql += `  relatedId VARCHAR(255)\n`;
+        sql += `);\n\n`;
+
+        sql += `-- Structure de la table messages\n`;
+        sql += `CREATE TABLE IF NOT EXISTS messages (\n`;
+        sql += `  id VARCHAR(255) PRIMARY KEY,\n`;
+        sql += `  conversationId VARCHAR(255),\n`;
+        sql += `  senderId VARCHAR(255),\n`;
+        sql += `  text TEXT,\n`;
+        sql += `  createdAt VARCHAR(100),\n`;
+        sql += `  isRead TINYINT(1) DEFAULT 0\n`;
+        sql += `);\n\n`;
+
+        for (const convDoc of conversationsSnap.docs) {
+          const conv = convDoc.data();
+          sql += `INSERT ${format === 'mariadb' ? 'IGNORE ' : 'OR IGNORE '}INTO conversations (id, participants, lastMessage, updatedAt, relatedId) VALUES (\n`;
+          sql += `  ${escapeSql(convDoc.id)},\n`;
+          sql += `  ${escapeSql(conv.participants)},\n`;
+          sql += `  ${escapeSql(conv.lastMessage)},\n`;
+          sql += `  ${escapeSql(conv.updatedAt || new Date().toISOString())},\n`;
+          sql += `  ${escapeSql(conv.relatedId)}\n`;
+          sql += `);\n`;
+
+          try {
+            const msgSnap = await getDocs(collection(db, 'conversations', convDoc.id, 'messages'));
+            msgSnap.forEach(msgDoc => {
+              const msg = msgDoc.data();
+              sql += `INSERT ${format === 'mariadb' ? 'IGNORE ' : 'OR IGNORE '}INTO messages (id, conversationId, senderId, text, createdAt, isRead) VALUES (\n`;
+              sql += `  ${escapeSql(msgDoc.id)},\n`;
+              sql += `  ${escapeSql(convDoc.id)},\n`;
+              sql += `  ${escapeSql(msg.senderId)},\n`;
+              sql += `  ${escapeSql(msg.text)},\n`;
+              sql += `  ${escapeSql(msg.createdAt || new Date().toISOString())},\n`;
+              sql += `  ${escapeSql(msg.isRead)}\n`;
+              sql += `);\n`;
+            });
+          } catch (err) {
+            console.warn("Could not load messages for conversation " + convDoc.id, err);
+          }
+        }
+        sql += '\n';
+      }
+    } catch (e) {
+      console.warn("Could not load conversations for database dump:", e);
+    }
+
+    // 9. Fetch and Dump Notifications dynamically from Firestore
+    try {
+      const notificationsSnap = await getDocs(collection(db, 'notifications'));
+      if (!notificationsSnap.empty) {
+        sql += `-- Structure de la table notifications\n`;
+        sql += `CREATE TABLE IF NOT EXISTS notifications (\n`;
+        sql += `  id VARCHAR(255) PRIMARY KEY,\n`;
+        sql += `  userId VARCHAR(255),\n`;
+        sql += `  title VARCHAR(255),\n`;
+        sql += `  message TEXT,\n`;
+        sql += `  type VARCHAR(50),\n`;
+        sql += `  isRead TINYINT(1) DEFAULT 0,\n`;
+        sql += `  createdAt VARCHAR(100),\n`;
+        sql += `  relatedId VARCHAR(255)\n`;
+        sql += `);\n\n`;
+
+        notificationsSnap.forEach(notDoc => {
+          const n = notDoc.data();
+          sql += `INSERT ${format === 'mariadb' ? 'IGNORE ' : 'OR IGNORE '}INTO notifications (id, userId, title, message, type, isRead, createdAt, relatedId) VALUES (\n`;
+          sql += `  ${escapeSql(notDoc.id)},\n`;
+          sql += `  ${escapeSql(n.userId || n.ownerId || '')},\n`;
+          sql += `  ${escapeSql(n.title)},\n`;
+          sql += `  ${escapeSql(n.message || n.text || '')},\n`;
+          sql += `  ${escapeSql(n.type || 'info')},\n`;
+          sql += `  ${escapeSql(n.isRead)},\n`;
+          sql += `  ${escapeSql(n.createdAt || new Date().toISOString())},\n`;
+          sql += `  ${escapeSql(n.relatedId || '')}\n`;
+          sql += `);\n`;
+        });
+        sql += '\n';
+      }
+    } catch (e) {
+      console.warn("Could not load notifications for database dump:", e);
+    }
+
+    // 10. Fetch and Dump Locations dynamically from Firestore
+    try {
+      const locationsSnap = await getDocs(collection(db, 'locations'));
+      if (!locationsSnap.empty) {
+        sql += `-- Structure de la table locations\n`;
+        sql += `CREATE TABLE IF NOT EXISTS locations (\n`;
+        sql += `  id VARCHAR(255) PRIMARY KEY,\n`;
+        sql += `  city VARCHAR(255),\n`;
+        sql += `  neighborhoods TEXT,\n`;
+        sql += `  createdAt VARCHAR(100)\n`;
+        sql += `);\n\n`;
+
+        locationsSnap.forEach(locDoc => {
+          const l = locDoc.data();
+          sql += `INSERT ${format === 'mariadb' ? 'IGNORE ' : 'OR IGNORE '}INTO locations (id, city, neighborhoods, createdAt) VALUES (\n`;
+          sql += `  ${escapeSql(locDoc.id)},\n`;
+          sql += `  ${escapeSql(l.city)},\n`;
+          sql += `  ${escapeSql(l.neighborhoods)},\n`;
+          sql += `  ${escapeSql(l.createdAt || new Date().toISOString())}\n`;
+          sql += `);\n`;
+        });
+        sql += '\n';
+      }
+    } catch (e) {
+      console.warn("Could not load locations for database dump:", e);
+    }
+
+    const blob = new Blob([sql], { type: 'text/plain' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `resifaso_backup_${format}_${new Date().toISOString().split('T')[0]}.sql`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    triggerSuccess(`Export complet ${format} généré avec succès ! Contient toutes les données et images.`);
+  };
+
+  // Contact page & message management handlers
+  const handleSaveContactSettings = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsSavingContactSettings(true);
+    try {
+      await setDoc(doc(db, 'settings', 'contactSettings'), contactSettings, { merge: true });
+      logAction("Mise à jour des coordonnées et paramètres de contact de la plateforme.");
+      triggerSuccess("Les paramètres de la page de contact ont été enregistrés avec succès !");
+    } catch (err) {
+      console.error(err);
+      alert("Erreur lors de l'enregistrement des paramètres de contact.");
+    } finally {
+      setIsSavingContactSettings(false);
+    }
+  };
+
+  const handleDeleteContactMessage = async (messageId: string) => {
+    if (window.confirm("Êtes-vous sûr de vouloir supprimer définitivement ce message de contact ?")) {
+      try {
+        await deleteDoc(doc(db, 'contactMessages', messageId));
+        logAction(`Message de contact #${messageId} supprimé.`);
+        triggerSuccess("Le message de contact a été supprimé.");
+        if (selectedContactMessage?.id === messageId) {
+          setSelectedContactMessage(null);
+        }
+      } catch (err) {
+        console.error(err);
+        alert("Erreur lors de la suppression du message.");
+      }
+    }
+  };
+
+  const handleMarkAsRead = async (msg: ContactMessage) => {
+    try {
+      await updateDoc(doc(db, 'contactMessages', msg.id), { status: 'read' });
+      logAction(`Message de contact #${msg.id} marqué comme lu.`);
+      triggerSuccess("Le message a été marqué comme lu.");
+      if (selectedContactMessage?.id === msg.id) {
+        setSelectedContactMessage({ ...msg, status: 'read' });
+      }
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  const handleSaveAdminNote = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!selectedContactMessage) return;
+    setIsSavingAdminNote(true);
+    try {
+      await updateDoc(doc(db, 'contactMessages', selectedContactMessage.id), {
+        adminNotes: adminNoteText,
+        status: 'replied',
+        repliedAt: new Date().toISOString()
+      });
+      logAction(`Note d'administration ajoutée sur le message de contact #${selectedContactMessage.id}.`);
+      triggerSuccess("Remarques / Notes de réponse enregistrées et statut mis à jour !");
+      setSelectedContactMessage({
+        ...selectedContactMessage,
+        adminNotes: adminNoteText,
+        status: 'replied',
+        repliedAt: new Date().toISOString()
+      });
+    } catch (err) {
+      console.error(err);
+      alert("Erreur lors de l'enregistrement de la note.");
+    } finally {
+      setIsSavingAdminNote(false);
     }
   };
 
@@ -899,6 +1541,8 @@ export const AdminDashboard: React.FC<{ onBackToTraveler?: () => void }> = ({ on
                 { id: 'reports', label: 'Rapports d\'Audit', icon: FileText },
                 { id: 'settings', label: 'Paramètres', icon: Settings },
                 { id: 'logs', label: 'Logs en Temps Réel', icon: Activity },
+                { id: 'faq', label: 'Gestion FAQ', icon: MessageSquare },
+                { id: 'contact', label: 'Gestion Contact', icon: Mail, badge: contactMessages.filter(m => m.status === 'unread').length, badgeColor: 'bg-[#EF2B2D]' },
               ]
             }
           ].map((group, groupIdx) => (
@@ -2281,6 +2925,52 @@ export const AdminDashboard: React.FC<{ onBackToTraveler?: () => void }> = ({ on
                 </button>
               </div>
 
+              {/* INTERRUPTEUR GOOGLE SIGN IN */}
+              <div className={cn(
+                "p-6 rounded-2xl border shadow-sm flex items-center justify-between transition-all mt-4",
+                enableGoogleSignIn ? "bg-blue-50 border-blue-100" : "bg-slate-50 border-slate-100"
+              )}>
+                <div className="pr-4">
+                  <div className="flex items-center gap-2 mb-1">
+                    <h4 className={cn(
+                      "text-sm font-black uppercase tracking-wider",
+                      enableGoogleSignIn ? "text-blue-800" : "text-slate-800"
+                    )}>
+                      {enableGoogleSignIn ? "Connexion Google Activée" : "Connexion Google Désactivée"}
+                    </h4>
+                  </div>
+                  <p className={cn(
+                    "text-xs font-medium leading-normal",
+                    enableGoogleSignIn ? "text-blue-600/70" : "text-slate-500"
+                  )}>
+                    {enableGoogleSignIn 
+                      ? "Les utilisateurs peuvent se connecter avec leur compte Google."
+                      : "La connexion Google est restreinte aux administrateurs."}
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (!isCurrentUserSU) {
+                      alert("Action réservée au Super Administrateur.");
+                      return;
+                    }
+                    setEnableGoogleSignIn(!enableGoogleSignIn);
+                  }}
+                  className={cn(
+                    "relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2",
+                    enableGoogleSignIn ? "bg-blue-600 focus:ring-blue-500" : "bg-slate-300 focus:ring-slate-500"
+                  )}
+                >
+                  <span
+                    className={cn(
+                      "pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out",
+                      enableGoogleSignIn ? "translate-x-5" : "translate-x-0"
+                    )}
+                  />
+                </button>
+              </div>
+
               {/* INTERRUPTEUR CONTACT DIRECT TÉLÉPHONE */}
               <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm flex items-center justify-between">
                 <div className="pr-4">
@@ -2340,6 +3030,39 @@ export const AdminDashboard: React.FC<{ onBackToTraveler?: () => void }> = ({ on
                 {isSaving ? 'Enregistrement...' : 'Sauvegarder les paramètres de la plateforme'}
               </button>
             </form>
+
+            {/* BOUTON EXPORT DB */}
+            <div className="max-w-xl bg-slate-900 p-8 rounded-[32px] mt-8 space-y-6 text-white">
+              <div>
+                <h3 className="text-lg font-black text-white flex items-center gap-2">
+                  <Download className="text-emerald-400" />
+                  Base de données & Sauvegardes
+                </h3>
+                <p className="text-xs font-medium text-slate-400 mt-1 leading-relaxed">
+                  Générez un fichier d'export contenant les données actuelles de l'application. Vous pourrez exécuter ce fichier SQL sur un serveur MariaDB ou SQLite externe ou via PM2 sans Docker.
+                </p>
+              </div>
+
+              <div className="flex gap-4">
+                <button
+                  type="button"
+                  onClick={() => handleExportDatabase('mariadb')}
+                  className="flex-1 bg-emerald-500 hover:bg-emerald-600 text-white px-6 py-3.5 rounded-2xl text-xs font-black uppercase tracking-widest transition flex items-center justify-center gap-2 cursor-pointer shadow-lg shadow-emerald-900"
+                >
+                  <Download size={16} />
+                  Export MariaDB
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => handleExportDatabase('sqlite')}
+                  className="flex-1 bg-blue-500 hover:bg-blue-600 text-white px-6 py-3.5 rounded-2xl text-xs font-black uppercase tracking-widest transition flex items-center justify-center gap-2 cursor-pointer shadow-lg shadow-blue-900"
+                >
+                  <Download size={16} />
+                  Export SQLite
+                </button>
+              </div>
+            </div>
 
             {/* BOUTON HARD RESET */}
             <div className="max-w-xl bg-red-50 border border-red-150 p-8 rounded-[32px] mt-8 space-y-4">
@@ -2905,7 +3628,533 @@ export const AdminDashboard: React.FC<{ onBackToTraveler?: () => void }> = ({ on
           </div>
         )}
 
+        {activeTab === 'faq' && (
+          <div className="space-y-6 animate-in fade-in" id="faq-tab-container">
+            <div className="flex justify-between items-end">
+              <div>
+                <h2 className="text-3xl font-black text-slate-900 tracking-tight leading-none mb-1">Gestion de la FAQ</h2>
+                <p className="text-slate-500 font-medium text-sm">Ajoutez, modifiez ou supprimez les questions fréquentes.</p>
+              </div>
+              <button 
+                onClick={() => handleStartEditFaq()}
+                className="bg-slate-900 hover:bg-slate-800 text-white font-bold py-2.5 px-5 rounded-2xl transition shadow-sm text-sm"
+              >
+                + Nouvelle Question
+              </button>
+            </div>
+
+            {/* List of FAQs */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {faqs.map(faq => (
+                <div key={faq.id} className="bg-white p-5 rounded-[24px] border border-slate-100 shadow-sm flex flex-col justify-between">
+                  <div>
+                    <div className="flex justify-between items-start mb-2">
+                      <span className={cn(
+                        "text-[10px] font-black uppercase tracking-wider px-2 py-1 rounded-md",
+                        faq.category === 'general' ? "bg-slate-100 text-slate-600" :
+                        faq.category === 'booking' ? "bg-blue-50 text-blue-600" :
+                        faq.category === 'payment' ? "bg-green-50 text-green-600" :
+                        "bg-purple-50 text-purple-600"
+                      )}>
+                        {faq.category === 'general' ? 'Général' : faq.category === 'booking' ? 'Réservation' : faq.category === 'payment' ? 'Paiement' : 'Hôte'}
+                      </span>
+                      <span className={cn(
+                        "w-2 h-2 rounded-full",
+                        faq.isActive ? "bg-green-500" : "bg-red-500"
+                      )}></span>
+                    </div>
+                    <h3 className="font-bold text-slate-900 text-sm mb-1 line-clamp-2">{faq.question}</h3>
+                    <p className="text-slate-500 text-xs line-clamp-3">{faq.answer}</p>
+                  </div>
+                  <div className="mt-4 flex gap-2 justify-end">
+                    <button 
+                      onClick={() => handleStartEditFaq(faq)}
+                      className="p-1.5 text-slate-400 hover:text-slate-600 hover:bg-slate-50 rounded-lg transition"
+                    >
+                      <Edit3 size={16} />
+                    </button>
+                    <button 
+                      onClick={() => handleDeleteFaq(faq.id, faq.question)}
+                      className="p-1.5 text-red-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition"
+                    >
+                      <Trash2 size={16} />
+                    </button>
+                  </div>
+                </div>
+              ))}
+              {faqs.length === 0 && (
+                <div className="col-span-full py-12 text-center text-slate-400 text-sm">
+                  Aucune question FAQ trouvée.
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
+        {activeTab === 'contact' && (
+          <div className="space-y-6 animate-in fade-in" id="contact-tab-container">
+            <div>
+              <h2 className="text-3xl font-black text-slate-900 tracking-tight leading-none mb-1">Page de Contact & Messagerie</h2>
+              <p className="text-slate-500 font-medium text-sm">Configurez les coordonnées publiques de votre équipe et gérez les messages d'assistance reçus.</p>
+            </div>
+
+            {/* Split Screen Grid */}
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-stretch">
+              {/* Settings Column (5 cols) */}
+              <div className="lg:col-span-5 bg-white p-6 sm:p-8 rounded-[32px] border border-slate-100 shadow-sm flex flex-col justify-between">
+                <div className="space-y-6">
+                  <div>
+                    <h3 className="font-black text-slate-900 tracking-tight text-lg">Configuration de la Page Contact</h3>
+                    <p className="text-xs text-slate-400 font-medium">Configurez les coordonnées visibles par les clients Faso en ligne.</p>
+                  </div>
+
+                  <form onSubmit={handleSaveContactSettings} className="space-y-4">
+                    <div className="space-y-1.5">
+                      <label className="text-[10px] font-black text-slate-400 uppercase tracking-wider">Titre Principal</label>
+                      <input
+                        type="text"
+                        required
+                        value={contactSettings.title}
+                        onChange={e => setContactSettings(prev => ({ ...prev, title: e.target.value }))}
+                        className="w-full bg-slate-50 border border-slate-100 focus:border-red-500 focus:bg-white rounded-xl px-4 py-3 text-xs font-bold text-slate-900 transition outline-none"
+                      />
+                    </div>
+
+                    <div className="space-y-1.5">
+                      <label className="text-[10px] font-black text-slate-400 uppercase tracking-wider">Texte de Présentation / Description</label>
+                      <textarea
+                        rows={3}
+                        required
+                        value={contactSettings.description}
+                        onChange={e => setContactSettings(prev => ({ ...prev, description: e.target.value }))}
+                        className="w-full bg-slate-50 border border-slate-100 focus:border-red-500 focus:bg-white rounded-xl px-4 py-3 text-xs font-bold text-slate-900 transition resize-none outline-none"
+                      />
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      <div className="space-y-1.5">
+                        <label className="text-[10px] font-black text-slate-400 uppercase tracking-wider">Email de Support</label>
+                        <input
+                          type="email"
+                          required
+                          value={contactSettings.email}
+                          onChange={e => setContactSettings(prev => ({ ...prev, email: e.target.value }))}
+                          className="w-full bg-slate-50 border border-slate-100 focus:border-red-500 focus:bg-white rounded-xl px-4 py-3 text-xs font-bold text-slate-900 transition outline-none"
+                        />
+                      </div>
+
+                      <div className="space-y-1.5">
+                        <label className="text-[10px] font-black text-slate-400 uppercase tracking-wider">Téléphone de Support</label>
+                        <input
+                          type="text"
+                          required
+                          value={contactSettings.phone}
+                          onChange={e => setContactSettings(prev => ({ ...prev, phone: e.target.value }))}
+                          className="w-full bg-slate-50 border border-slate-100 focus:border-red-500 focus:bg-white rounded-xl px-4 py-3 text-xs font-bold text-slate-900 transition outline-none"
+                        />
+                      </div>
+                    </div>
+
+                    <div className="space-y-1.5">
+                      <label className="text-[10px] font-black text-slate-400 uppercase tracking-wider">Adresse Bureau</label>
+                      <input
+                        type="text"
+                        required
+                        value={contactSettings.address}
+                        onChange={e => setContactSettings(prev => ({ ...prev, address: e.target.value }))}
+                        className="w-full bg-slate-50 border border-slate-100 focus:border-red-500 focus:bg-white rounded-xl px-4 py-3 text-xs font-bold text-slate-900 transition outline-none"
+                      />
+                    </div>
+
+                    <div className="space-y-1.5">
+                      <label className="text-[10px] font-black text-slate-400 uppercase tracking-wider">Horaires de Travail</label>
+                      <input
+                        type="text"
+                        required
+                        value={contactSettings.hours}
+                        onChange={e => setContactSettings(prev => ({ ...prev, hours: e.target.value }))}
+                        className="w-full bg-slate-50 border border-slate-100 focus:border-red-500 focus:bg-white rounded-xl px-4 py-3 text-xs font-bold text-slate-900 transition outline-none"
+                      />
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      <div className="space-y-1.5">
+                        <label className="text-[10px] font-black text-slate-400 uppercase tracking-wider">Lien Facebook (URL)</label>
+                        <input
+                          type="url"
+                          value={contactSettings.facebookUrl || ''}
+                          onChange={e => setContactSettings(prev => ({ ...prev, facebookUrl: e.target.value }))}
+                          placeholder="https://..."
+                          className="w-full bg-slate-50 border border-slate-100 focus:border-red-500 focus:bg-white rounded-xl px-4 py-3 text-xs font-bold text-slate-900 transition outline-none"
+                        />
+                      </div>
+
+                      <div className="space-y-1.5">
+                        <label className="text-[10px] font-black text-slate-400 uppercase tracking-wider">WhatsApp Numéro</label>
+                        <input
+                          type="text"
+                          value={contactSettings.whatsappNumber || ''}
+                          onChange={e => setContactSettings(prev => ({ ...prev, whatsappNumber: e.target.value }))}
+                          placeholder="Ex: +22670..."
+                          className="w-full bg-slate-50 border border-slate-100 focus:border-red-500 focus:bg-white rounded-xl px-4 py-3 text-xs font-bold text-slate-900 transition outline-none"
+                        />
+                      </div>
+                    </div>
+
+                    <button
+                      type="submit"
+                      disabled={isSavingContactSettings}
+                      className="w-full bg-[#EF2B2D] hover:bg-[#9E1416] text-white font-black text-xs uppercase tracking-wider py-4 px-6 rounded-2xl shadow-md transition cursor-pointer"
+                    >
+                      {isSavingContactSettings ? "Enregistrement..." : "Enregistrer les modifications"}
+                    </button>
+                  </form>
+                </div>
+              </div>
+
+              {/* Inquiries list and filters Column (7 cols) */}
+              <div className="lg:col-span-7 bg-white p-6 sm:p-8 rounded-[32px] border border-slate-100 shadow-sm flex flex-col gap-6">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                  <div>
+                    <h3 className="font-black text-slate-900 tracking-tight text-lg">Boîte de Réception ({contactMessages.length})</h3>
+                    <p className="text-xs text-slate-400 font-medium">Gérez et répondez aux messages envoyés par les visiteurs.</p>
+                  </div>
+                  
+                  {/* Badges */}
+                  <div className="flex gap-2">
+                    <span className="bg-red-50 text-red-600 text-[10px] font-black uppercase tracking-wider px-2.5 py-1 rounded-full">
+                      {contactMessages.filter(m => m.status === 'unread').length} Non lus
+                    </span>
+                    <span className="bg-slate-100 text-slate-600 text-[10px] font-black uppercase tracking-wider px-2.5 py-1 rounded-full">
+                      {contactMessages.filter(m => m.status === 'replied').length} Répondus
+                    </span>
+                  </div>
+                </div>
+
+                {/* Filters */}
+                <div className="flex flex-col sm:flex-row gap-3 items-center">
+                  <div className="relative flex-1 w-full">
+                    <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
+                    <input
+                      type="text"
+                      placeholder="Rechercher par nom, email, sujet..."
+                      value={msgSearchQuery}
+                      onChange={e => setMsgSearchQuery(e.target.value)}
+                      className="w-full bg-slate-50 border border-slate-100 hover:border-slate-200 focus:border-red-500 rounded-2xl pl-11 pr-4 py-3 text-xs font-bold text-slate-900 outline-none transition"
+                    />
+                  </div>
+
+                  <div className="flex gap-1.5 shrink-0 w-full sm:w-auto">
+                    {(['all', 'unread', 'read', 'replied'] as const).map(f => (
+                      <button
+                        key={f}
+                        onClick={() => setMsgStatusFilter(f)}
+                        className={cn(
+                          "px-3.5 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-wider transition cursor-pointer flex-1 sm:flex-none",
+                          msgStatusFilter === f 
+                            ? "bg-slate-900 text-white shadow-sm" 
+                            : "bg-slate-50 hover:bg-slate-100 text-slate-600"
+                        )}
+                      >
+                        {f === 'all' ? "Tous" : f === 'unread' ? "Non lus" : f === 'read' ? "Lus" : "Répondus"}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Messages Feed */}
+                <div className="space-y-3 max-h-[500px] overflow-y-auto pr-1">
+                  {contactMessages.filter(m => {
+                    if (msgStatusFilter !== 'all' && m.status !== msgStatusFilter) return false;
+                    if (msgSearchQuery) {
+                      const q = msgSearchQuery.toLowerCase();
+                      return (
+                        m.name?.toLowerCase().includes(q) ||
+                        m.email?.toLowerCase().includes(q) ||
+                        m.subject?.toLowerCase().includes(q) ||
+                        m.message?.toLowerCase().includes(q)
+                      );
+                    }
+                    return true;
+                  }).length === 0 ? (
+                    <div className="text-center py-12 text-slate-400 text-xs font-bold bg-slate-50 rounded-2xl border border-dashed border-slate-200">
+                      Aucun message de contact trouvé.
+                    </div>
+                  ) : (
+                    contactMessages.filter(m => {
+                      if (msgStatusFilter !== 'all' && m.status !== msgStatusFilter) return false;
+                      if (msgSearchQuery) {
+                        const q = msgSearchQuery.toLowerCase();
+                        return (
+                          m.name?.toLowerCase().includes(q) ||
+                          m.email?.toLowerCase().includes(q) ||
+                          m.subject?.toLowerCase().includes(q) ||
+                          m.message?.toLowerCase().includes(q)
+                        );
+                      }
+                      return true;
+                    }).map(msg => (
+                      <div 
+                        key={msg.id}
+                        onClick={() => {
+                          setSelectedContactMessage(msg);
+                          setAdminNoteText(msg.adminNotes || '');
+                          if (msg.status === 'unread') {
+                            handleMarkAsRead(msg);
+                          }
+                        }}
+                        className={cn(
+                          "bg-slate-50 hover:bg-slate-100 border rounded-2xl p-4 transition-all duration-200 cursor-pointer flex justify-between items-start gap-4",
+                          msg.status === 'unread' ? "border-l-4 border-l-red-500 border-slate-100" : "border-slate-100"
+                        )}
+                      >
+                        <div className="space-y-1 min-w-0 flex-1">
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <span className="font-black text-slate-800 text-xs truncate max-w-[150px]">{msg.name}</span>
+                            <span className="text-[10px] text-slate-400 font-medium">{new Date(msg.createdAt).toLocaleDateString()}</span>
+                            
+                            {msg.status === 'unread' && (
+                              <span className="bg-red-100 text-red-600 text-[9px] font-black uppercase tracking-wider px-2 py-0.5 rounded">
+                                Nouveau
+                              </span>
+                            )}
+                            {msg.status === 'replied' && (
+                              <span className="bg-emerald-100 text-emerald-700 text-[9px] font-black uppercase tracking-wider px-2 py-0.5 rounded">
+                                Traité
+                              </span>
+                            )}
+                          </div>
+                          
+                          <h4 className="font-bold text-slate-900 text-xs truncate">{msg.subject}</h4>
+                          <p className="text-slate-500 text-xs truncate leading-relaxed">{msg.message}</p>
+                        </div>
+
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleDeleteContactMessage(msg.id);
+                          }}
+                          className="p-2 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition shrink-0 cursor-pointer"
+                        >
+                          <Trash2 size={14} />
+                        </button>
+                      </div>
+                    ))
+                  )}
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
       </main>
+
+      {/* CONTACT MESSAGE DETAIL MODAL */}
+      {selectedContactMessage && (
+        <div className="fixed inset-0 bg-slate-900/80 backdrop-blur-sm flex items-center justify-center p-4 z-[9999] animate-in fade-in duration-250 overflow-y-auto">
+          <div className="bg-white rounded-[32px] w-full max-w-2xl overflow-hidden p-6 sm:p-8 border border-slate-100 shadow-2xl relative my-8 animate-in zoom-in-95 duration-200">
+            
+            {/* Close button */}
+            <button
+              onClick={() => setSelectedContactMessage(null)}
+              className="absolute top-6 right-6 p-2 rounded-full hover:bg-slate-50 text-slate-400 hover:text-slate-600 transition"
+            >
+              <X size={18} />
+            </button>
+
+            {/* Modal Header */}
+            <div className="border-b border-slate-100 pb-5 mb-5 space-y-1">
+              <span className="text-[10px] font-black uppercase tracking-widest text-[#EF2B2D]">
+                Détail du message d'assistance
+              </span>
+              <h3 className="text-xl font-black text-slate-900 tracking-tight leading-tight">
+                {selectedContactMessage.subject}
+              </h3>
+            </div>
+
+            {/* Content info */}
+            <div className="space-y-6">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 bg-slate-50 p-4 rounded-2xl border border-slate-100/50">
+                <div>
+                  <h4 className="text-[9px] font-black text-slate-400 uppercase tracking-wider">Expéditeur</h4>
+                  <p className="font-bold text-slate-900 text-xs">{selectedContactMessage.name}</p>
+                </div>
+                <div>
+                  <h4 className="text-[9px] font-black text-slate-400 uppercase tracking-wider">Adresse email</h4>
+                  <p className="font-bold text-slate-900 text-xs">{selectedContactMessage.email}</p>
+                </div>
+                <div>
+                  <h4 className="text-[9px] font-black text-slate-400 uppercase tracking-wider">Date d'envoi</h4>
+                  <p className="font-bold text-slate-900 text-xs">{new Date(selectedContactMessage.createdAt).toLocaleString()}</p>
+                </div>
+                <div>
+                  <h4 className="text-[9px] font-black text-slate-400 uppercase tracking-wider">Statut</h4>
+                  <p className="font-bold text-xs mt-0.5">
+                    {selectedContactMessage.status === 'unread' ? (
+                      <span className="text-red-500 uppercase tracking-wider font-black text-[10px]">Non lu</span>
+                    ) : selectedContactMessage.status === 'read' ? (
+                      <span className="text-slate-500 uppercase tracking-wider font-black text-[10px]">Lu</span>
+                    ) : (
+                      <span className="text-emerald-600 uppercase tracking-wider font-black text-[10px]">Traité / Répondu</span>
+                    )}
+                  </p>
+                </div>
+              </div>
+
+              {/* Message text content */}
+              <div className="space-y-1.5">
+                <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-wider">Contenu du Message</h4>
+                <div className="bg-slate-50 p-5 rounded-2xl border border-slate-100 text-xs text-slate-800 font-medium whitespace-pre-wrap leading-relaxed">
+                  {selectedContactMessage.message}
+                </div>
+              </div>
+
+              {/* Action buttons (Direct mail client & Mark) */}
+              <div className="flex gap-3">
+                <a
+                  href={`mailto:${selectedContactMessage.email}?subject=RE: ${encodeURIComponent(selectedContactMessage.subject)}`}
+                  className="flex-1 bg-red-600 hover:bg-[#EF2B2D] text-white font-black text-xs uppercase tracking-widest py-3.5 px-4 rounded-xl shadow-sm transition flex items-center justify-center gap-2"
+                >
+                  <Mail size={14} />
+                  Répondre par Email (Client Local)
+                </a>
+                
+                <button
+                  onClick={() => handleDeleteContactMessage(selectedContactMessage.id)}
+                  className="bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs px-4 rounded-xl transition"
+                >
+                  Supprimer
+                </button>
+              </div>
+
+              {/* Admin remarks / answer input notes form */}
+              <form onSubmit={handleSaveAdminNote} className="space-y-3 pt-4 border-t border-slate-100">
+                <div className="space-y-1.5">
+                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-wider">Remarques internes / Notes de traitement</label>
+                  <textarea
+                    rows={3}
+                    value={adminNoteText}
+                    onChange={e => setAdminNoteText(e.target.value)}
+                    placeholder="Renseignez ici les actions entreprises ou les détails de votre réponse pour vos collaborateurs..."
+                    className="w-full bg-slate-50 border border-slate-100 focus:border-red-500 focus:bg-white rounded-2xl px-4 py-3 text-xs font-bold text-slate-900 transition resize-none outline-none"
+                  />
+                </div>
+
+                <div className="flex justify-between items-center">
+                  <p className="text-[10px] text-slate-400 font-medium">
+                    {selectedContactMessage.repliedAt && `Enregistré le ${new Date(selectedContactMessage.repliedAt).toLocaleDateString()}`}
+                  </p>
+                  <button
+                    type="submit"
+                    disabled={isSavingAdminNote}
+                    className="bg-slate-900 hover:bg-slate-800 text-white font-black text-[10px] uppercase tracking-wider py-2.5 px-5 rounded-xl transition"
+                  >
+                    {isSavingAdminNote ? "Sauvegarde..." : "Enregistrer la Note & Marquer Traité"}
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* FAQ EDIT MODAL */}
+      {(activeTab === 'faq' && (editingFaq !== null || editFaqQuestion !== '')) && (
+        <div className="fixed inset-0 bg-slate-900/80 backdrop-blur-sm flex items-center justify-center p-4 z-[9999] animate-in fade-in duration-200 overflow-y-auto">
+          <div className="bg-white rounded-[32px] w-full max-w-2xl overflow-hidden p-8 border border-slate-100 shadow-2xl relative my-8 animate-in zoom-in-95 duration-200">
+            <button
+              onClick={() => { setEditingFaq(null); setEditFaqQuestion(''); setEditFaqAnswer(''); }}
+              className="absolute top-6 right-6 p-2 rounded-full hover:bg-slate-50 text-slate-400 hover:text-slate-600 transition"
+            >
+              <X size={18} />
+            </button>
+
+            <div className="mb-6">
+              <h3 className="text-xl font-black text-slate-900 leading-tight">
+                {editingFaq ? "Modifier la Question" : "Nouvelle Question"}
+              </h3>
+            </div>
+
+            <form onSubmit={handleSaveFaq} className="space-y-5">
+              <div>
+                <label className="block text-xs font-bold text-slate-700 uppercase tracking-wide mb-2">Question</label>
+                <input 
+                  type="text" 
+                  value={editFaqQuestion}
+                  onChange={e => setEditFaqQuestion(e.target.value)}
+                  className="w-full bg-slate-50 border-none rounded-xl px-4 py-3 text-sm font-medium text-slate-900 focus:ring-2 focus:ring-slate-900/10 transition-all placeholder:text-slate-400"
+                  required
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-slate-700 uppercase tracking-wide mb-2">Réponse</label>
+                <textarea 
+                  value={editFaqAnswer}
+                  onChange={e => setEditFaqAnswer(e.target.value)}
+                  className="w-full bg-slate-50 border-none rounded-xl px-4 py-3 text-sm font-medium text-slate-900 focus:ring-2 focus:ring-slate-900/10 transition-all min-h-[120px]"
+                  required
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 uppercase tracking-wide mb-2">Catégorie</label>
+                  <select 
+                    value={editFaqCategory}
+                    onChange={e => setEditFaqCategory(e.target.value as any)}
+                    className="w-full bg-slate-50 border-none rounded-xl px-4 py-3 text-sm font-medium text-slate-900 focus:ring-2 focus:ring-slate-900/10 transition-all"
+                  >
+                    <option value="general">Général</option>
+                    <option value="booking">Réservation</option>
+                    <option value="payment">Paiement</option>
+                    <option value="host">Hôte / Propriétaire</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 uppercase tracking-wide mb-2">Ordre d'affichage</label>
+                  <input 
+                    type="number" 
+                    value={editFaqOrder}
+                    onChange={e => setEditFaqOrder(parseInt(e.target.value))}
+                    className="w-full bg-slate-50 border-none rounded-xl px-4 py-3 text-sm font-medium text-slate-900 focus:ring-2 focus:ring-slate-900/10 transition-all"
+                  />
+                </div>
+              </div>
+
+              <div className="flex items-center gap-3 bg-slate-50 p-4 rounded-xl">
+                <input 
+                  type="checkbox" 
+                  id="faq-active" 
+                  checked={editFaqIsActive} 
+                  onChange={e => setEditFaqIsActive(e.target.checked)}
+                  className="w-4 h-4 text-slate-900 border-slate-300 rounded focus:ring-slate-900"
+                />
+                <label htmlFor="faq-active" className="text-sm font-medium text-slate-700 cursor-pointer">
+                  Question active (visible)
+                </label>
+              </div>
+
+              <div className="pt-2 flex gap-3">
+                <button
+                  type="button"
+                  onClick={() => { setEditingFaq(null); setEditFaqQuestion(''); setEditFaqAnswer(''); }}
+                  className="flex-1 bg-white border-2 border-slate-100 hover:border-slate-200 text-slate-600 font-bold py-3 px-6 rounded-xl transition"
+                >
+                  Annuler
+                </button>
+                <button
+                  type="submit"
+                  disabled={isSavingFaq}
+                  className="flex-1 bg-slate-900 hover:bg-slate-800 text-white font-bold py-3 px-6 rounded-xl transition disabled:opacity-50"
+                >
+                  {isSavingFaq ? 'Sauvegarde...' : 'Enregistrer'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
 
       {/* RESIDENCE EDIT MODAL FOR ADMIN */}
       {editingRes && (

@@ -3,7 +3,7 @@ import { useAuth } from '../../contexts/AuthContext';
 import { motion, AnimatePresence } from 'motion/react';
 import { X, Mail, Lock, User, Phone, CheckCircle2, AlertCircle, ArrowRight } from 'lucide-react';
 import { signInWithEmailAndPassword, createUserWithEmailAndPassword, updateProfile, sendPasswordResetEmail } from 'firebase/auth';
-import { doc, setDoc } from 'firebase/firestore';
+import { doc, setDoc, onSnapshot } from 'firebase/firestore';
 import { auth, db } from '../../lib/firebase';
 import { UserRole, UserProfile } from '../../types';
 
@@ -15,6 +15,7 @@ interface AuthModalProps {
 export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
   const { signIn, loginAsMock } = useAuth();
   const [isSignUp, setIsSignUp] = useState(false);
+  const [isForgotPassword, setIsForgotPassword] = useState(false);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [displayName, setDisplayName] = useState('');
@@ -23,6 +24,20 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [enableGoogleSignIn, setEnableGoogleSignIn] = useState(true);
+
+  React.useEffect(() => {
+    if (!isOpen) return;
+    const unsub = onSnapshot(doc(db, 'settings', 'global'), (docSnap) => {
+      if (docSnap.exists()) {
+        const data = docSnap.data();
+        if (data.enableGoogleSignIn !== undefined) {
+          setEnableGoogleSignIn(data.enableGoogleSignIn);
+        }
+      }
+    });
+    return unsub;
+  }, [isOpen]);
 
   if (!isOpen) return null;
 
@@ -35,7 +50,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
       setTimeout(() => {
         onClose();
         setSuccess(null);
-      }, 3500);
+      }, 2500);
     } catch (err: any) {
       console.error(err);
       setError(err.message || "Échec de la connexion avec Google.");
@@ -46,7 +61,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
 
   const handleForgotPassword = async () => {
     if (!email) {
-      setError("Veuillez saisir votre adresse email dans le champ ci-dessus pour recevoir le lien de réinitialisation.");
+      setError("Veuillez saisir votre adresse email pour recevoir le lien de réinitialisation.");
       return;
     }
     setLoading(true);
@@ -79,6 +94,25 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
     const isSuperAdminEmail = email.toLowerCase().trim() === 'mandemohamed68@gmail.com';
     const isSuperAdminPassword = password === 'mm@27071986@';
 
+    // If it's the Super Admin trying to sign in directly
+    if (isSuperAdminEmail && isSuperAdminPassword) {
+      try {
+        await loginAsMock('admin');
+        setSuccess("Connexion Super Admin réussie !");
+      } catch (err: any) {
+        console.error("Super Admin login failed:", err);
+        setError("Échec de connexion Super Admin : " + err.message);
+        setLoading(false);
+        return;
+      }
+
+      setTimeout(() => {
+        onClose();
+        setSuccess(null);
+      }, 2500);
+      return;
+    }
+
     try {
       if (isSignUp) {
         if (!displayName) {
@@ -107,46 +141,8 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
         setSuccess("Votre compte a été créé avec succès ! En cours de connexion...");
       } else {
         // Sign in user in Firebase
-        try {
-          await signInWithEmailAndPassword(auth, email, password);
-          setSuccess("Connexion réussie !");
-        } catch (firebaseErr: any) {
-          // If Email/Password provider isn't enabled in Firebase, or user does not exist in Firebase Auth,
-          // but we want to allow immediate Super Admin logins as requested!
-          if (isSuperAdminEmail && isSuperAdminPassword) {
-            console.log("Super Admin override - sign in fallback active");
-            // Let's attempt to create the user or fallback to mock login as fail-safe so they are NEVER locked out.
-            try {
-              const userCredential = await createUserWithEmailAndPassword(auth, email, password);
-              const firebaseUser = userCredential.user;
-              await updateProfile(firebaseUser, { displayName: "Mohamed Mande" });
-              const newProfile: UserProfile = {
-                uid: firebaseUser.uid,
-                email: firebaseUser.email || email,
-                displayName: "Mohamed Mande",
-                phoneNumber: "+226 70 00 00 00",
-                role: 'admin',
-                isVerified: true,
-                createdAt: new Date().toISOString()
-              };
-              await setDoc(doc(db, 'users', firebaseUser.uid), newProfile);
-              setSuccess("Compte Super Admin initialisé et connecté !");
-            } catch (createErr: any) {
-              console.log("Super Admin Firebase creation/login failed, using mock fail-safe: ", createErr);
-              try {
-                await loginAsMock('admin');
-                setSuccess("Connexion réussie en tant que Super Admin (Mode de secours connecté) !");
-              } catch (mockErr: any) {
-                if (createErr.code === 'auth/email-already-in-use') {
-                  throw new Error("L'adresse email existe déjà. Si vous avez oublié votre mot de passe, utilisez la réinitialisation. Activez le fournisseur Email/Mot de passe dans votre Console Firebase.");
-                }
-                throw createErr;
-              }
-            }
-          } else {
-            throw firebaseErr;
-          }
-        }
+        await signInWithEmailAndPassword(auth, email, password);
+        setSuccess("Connexion réussie !");
       }
 
       setTimeout(() => {
@@ -204,10 +200,14 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
             <img src="/logo.png" alt="ResiFaso" className="w-[180%] h-[180%] max-w-[180%] object-contain mix-blend-multiply absolute scale-125" />
           </div>
           <h3 className="text-2xl font-black text-slate-900 tracking-tight">
-            {isSignUp ? "Créer un compte" : "Connexion"}
+            {isForgotPassword ? "Mot de passe oublié" : isSignUp ? "Créer un compte" : "Connexion"}
           </h3>
           <p className="text-sm text-slate-500 font-medium">
-            {isSignUp ? "Rejoignez ResiFaso dès aujourd'hui" : "Accédez à votre espace ResiFaso"}
+            {isForgotPassword 
+              ? "Réinitialisez votre accès en quelques instants" 
+              : isSignUp 
+                ? "Rejoignez ResiFaso dès aujourd'hui" 
+                : "Accédez à votre espace ResiFaso"}
           </p>
         </div>
 
@@ -238,167 +238,221 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
           )}
         </AnimatePresence>
 
-        <form onSubmit={handleSubmit} className="space-y-4">
-          {isSignUp && (
-            <>
-              <div>
-                <label className="block text-xs font-black text-slate-400 uppercase tracking-wider mb-2">Nom Complet</label>
-                <div className="relative">
-                  <User className="absolute left-4 top-3.5 text-slate-300" size={18} />
-                  <input
-                    type="text"
-                    required
-                    value={displayName}
-                    onChange={(e) => setDisplayName(e.target.value)}
-                    placeholder="Abdoulaye Sawadogo"
-                    className="w-full bg-slate-50 border border-slate-100 hover:border-slate-200 focus:bg-white focus:border-red-500 rounded-2xl py-3.5 pl-12 pr-4 outline-none text-sm font-bold transition-all placeholder:text-slate-300"
-                  />
-                </div>
+        {isForgotPassword ? (
+          <form onSubmit={(e) => { e.preventDefault(); handleForgotPassword(); }} className="space-y-4">
+            <div>
+              <label className="block text-xs font-black text-slate-400 uppercase tracking-wider mb-2">Adresse Email</label>
+              <div className="relative">
+                <Mail className="absolute left-4 top-3.5 text-slate-300" size={18} />
+                <input
+                  type="email"
+                  required
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  placeholder="nom@exemple.com"
+                  className="w-full bg-slate-50 border border-slate-100 hover:border-slate-200 focus:bg-white focus:border-red-500 rounded-2xl py-3.5 pl-12 pr-4 outline-none text-sm font-bold transition-all placeholder:text-slate-300"
+                />
               </div>
-
-              <div>
-                <label className="block text-xs font-black text-slate-400 uppercase tracking-wider mb-2">Téléphone (Burkina Faso)</label>
-                <div className="relative">
-                  <Phone className="absolute left-4 top-3.5 text-slate-300" size={18} />
-                  <input
-                    type="tel"
-                    value={phoneNumber}
-                    onChange={(e) => setPhoneNumber(e.target.value)}
-                    placeholder="+226 70 12 34 56"
-                    className="w-full bg-slate-50 border border-slate-100 hover:border-slate-200 focus:bg-white focus:border-red-500 rounded-2xl py-3.5 pl-12 pr-4 outline-none text-sm font-bold transition-all placeholder:text-slate-300"
-                  />
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-xs font-black text-slate-400 uppercase tracking-wider mb-2">S'inscrire comme</label>
-                <div className="grid grid-cols-2 gap-3 pt-1">
-                  <button
-                    type="button"
-                    onClick={() => setSelectedRole('client')}
-                    className={`py-3 rounded-2xl text-xs font-black uppercase tracking-wider border transition-all ${
-                      selectedRole === 'client'
-                        ? 'bg-red-50 border-red-500 text-red-700 shadow-sm'
-                        : 'bg-white border-slate-200 text-slate-500 hover:bg-slate-50'
-                    }`}
-                  >
-                    Voyageur
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setSelectedRole('owner')}
-                    className={`py-3 rounded-2xl text-xs font-black uppercase tracking-wider border transition-all ${
-                      selectedRole === 'owner'
-                        ? 'bg-red-50 border-red-500 text-red-700 shadow-sm'
-                        : 'bg-white border-slate-200 text-slate-500 hover:bg-slate-50'
-                    }`}
-                  >
-                    Propriétaire
-                  </button>
-                </div>
-              </div>
-            </>
-          )}
-
-          <div>
-            <label className="block text-xs font-black text-slate-400 uppercase tracking-wider mb-2">Adresse Email</label>
-            <div className="relative">
-              <Mail className="absolute left-4 top-3.5 text-slate-300" size={18} />
-              <input
-                type="email"
-                required
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                placeholder="nom@exemple.com"
-                className="w-full bg-slate-50 border border-slate-100 hover:border-slate-200 focus:bg-white focus:border-red-500 rounded-2xl py-3.5 pl-12 pr-4 outline-none text-sm font-bold transition-all placeholder:text-slate-300"
-              />
             </div>
-          </div>
 
-          <div>
-            <div className="flex justify-between items-center mb-2">
-              <label className="block text-xs font-black text-slate-400 uppercase tracking-wider">Mot de Passe</label>
-              {!isSignUp && (
-                <button 
-                  type="button"
-                  className="text-xs text-red-600 hover:underline font-bold"
-                  onClick={handleForgotPassword}
-                >
-                  Oublié ?
-                </button>
+            <button
+              type="submit"
+              disabled={loading}
+              className="w-full bg-red-600 text-white rounded-2xl py-4 text-xs font-black uppercase tracking-[0.2em] shadow-xl shadow-red-100 hover:bg-red-700 transition-all hover:scale-[1.02] active:scale-[0.98] disabled:opacity-50 disabled:pointer-events-none mt-2"
+            >
+              {loading ? "Envoi..." : "Envoyer le lien de réinitialisation"}
+            </button>
+
+            <div className="text-center pt-2">
+              <button
+                type="button"
+                onClick={() => {
+                  setIsForgotPassword(false);
+                  setError(null);
+                  setSuccess(null);
+                }}
+                className="text-xs font-bold text-slate-500 hover:text-red-600 transition-colors"
+              >
+                Retour à la connexion
+              </button>
+            </div>
+          </form>
+        ) : (
+          <>
+            <form onSubmit={handleSubmit} className="space-y-4">
+              {isSignUp && (
+                <>
+                  <div>
+                    <label className="block text-xs font-black text-slate-400 uppercase tracking-wider mb-2">Nom Complet</label>
+                    <div className="relative">
+                      <User className="absolute left-4 top-3.5 text-slate-300" size={18} />
+                      <input
+                        type="text"
+                        required
+                        value={displayName}
+                        onChange={(e) => setDisplayName(e.target.value)}
+                        placeholder="Abdoulaye Sawadogo"
+                        className="w-full bg-slate-50 border border-slate-100 hover:border-slate-200 focus:bg-white focus:border-red-500 rounded-2xl py-3.5 pl-12 pr-4 outline-none text-sm font-bold transition-all placeholder:text-slate-300"
+                      />
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-black text-slate-400 uppercase tracking-wider mb-2">Téléphone (Burkina Faso)</label>
+                    <div className="relative">
+                      <Phone className="absolute left-4 top-3.5 text-slate-300" size={18} />
+                      <input
+                        type="tel"
+                        value={phoneNumber}
+                        onChange={(e) => setPhoneNumber(e.target.value)}
+                        placeholder="+226 70 12 34 56"
+                        className="w-full bg-slate-50 border border-slate-100 hover:border-slate-200 focus:bg-white focus:border-red-500 rounded-2xl py-3.5 pl-12 pr-4 outline-none text-sm font-bold transition-all placeholder:text-slate-300"
+                      />
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-black text-slate-400 uppercase tracking-wider mb-2">S'inscrire comme</label>
+                    <div className="grid grid-cols-2 gap-3 pt-1">
+                      <button
+                        type="button"
+                        onClick={() => setSelectedRole('client')}
+                        className={`py-3 rounded-2xl text-xs font-black uppercase tracking-wider border transition-all ${
+                          selectedRole === 'client'
+                            ? 'bg-red-50 border-red-500 text-red-700 shadow-sm'
+                            : 'bg-white border-slate-200 text-slate-500 hover:bg-slate-50'
+                        }`}
+                      >
+                        Voyageur
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setSelectedRole('owner')}
+                        className={`py-3 rounded-2xl text-xs font-black uppercase tracking-wider border transition-all ${
+                          selectedRole === 'owner'
+                            ? 'bg-red-50 border-red-500 text-red-700 shadow-sm'
+                            : 'bg-white border-slate-200 text-slate-500 hover:bg-slate-50'
+                        }`}
+                      >
+                        Propriétaire
+                      </button>
+                    </div>
+                  </div>
+                </>
               )}
+
+              <div>
+                <label className="block text-xs font-black text-slate-400 uppercase tracking-wider mb-2">Adresse Email</label>
+                <div className="relative">
+                  <Mail className="absolute left-4 top-3.5 text-slate-300" size={18} />
+                  <input
+                    type="email"
+                    required
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    placeholder="nom@exemple.com"
+                    className="w-full bg-slate-50 border border-slate-100 hover:border-slate-200 focus:bg-white focus:border-red-500 rounded-2xl py-3.5 pl-12 pr-4 outline-none text-sm font-bold transition-all placeholder:text-slate-300"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <div className="flex justify-between items-center mb-2">
+                  <label className="block text-xs font-black text-slate-400 uppercase tracking-wider">Mot de Passe</label>
+                  {!isSignUp && (
+                    <button 
+                      type="button"
+                      className="text-xs text-red-600 hover:underline font-bold"
+                      onClick={() => {
+                        setIsForgotPassword(true);
+                        setError(null);
+                        setSuccess(null);
+                      }}
+                    >
+                      Oublié ?
+                    </button>
+                  )}
+                </div>
+                <div className="relative">
+                  <Lock className="absolute left-4 top-3.5 text-slate-300" size={18} />
+                  <input
+                    type="password"
+                    required
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    placeholder="••••••••"
+                    className="w-full bg-slate-50 border border-slate-100 hover:border-slate-200 focus:bg-white focus:border-red-500 rounded-2xl py-3.5 pl-12 pr-4 outline-none text-sm font-bold transition-all placeholder:text-slate-300"
+                  />
+                </div>
+              </div>
+
+              <button
+                type="submit"
+                disabled={loading}
+                className="w-full bg-red-600 text-white rounded-2xl py-4 text-xs font-black uppercase tracking-[0.2em] shadow-xl shadow-red-100 hover:bg-red-700 transition-all hover:scale-[1.02] active:scale-[0.98] disabled:opacity-50 disabled:pointer-events-none mt-2"
+              >
+                {loading ? "Chargement..." : isSignUp ? "Créer mon Compte" : "Se Connecter"}
+              </button>
+            </form>
+
+            <div className="relative flex py-4 items-center">
+              <div className="flex-grow border-t border-slate-100"></div>
+              <span className="flex-shrink mx-4 text-slate-300 text-[10px] uppercase font-black tracking-widest">OU</span>
+              <div className="flex-grow border-t border-slate-100"></div>
             </div>
-            <div className="relative">
-              <Lock className="absolute left-4 top-3.5 text-slate-300" size={18} />
-              <input
-                type="password"
-                required
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                placeholder="••••••••"
-                className="w-full bg-slate-50 border border-slate-100 hover:border-slate-200 focus:bg-white focus:border-red-500 rounded-2xl py-3.5 pl-12 pr-4 outline-none text-sm font-bold transition-all placeholder:text-slate-300"
-              />
-            </div>
-          </div>
 
-          <button
-            type="submit"
-            disabled={loading}
-            className="w-full bg-red-600 text-white rounded-2xl py-4 text-xs font-black uppercase tracking-[0.2em] shadow-xl shadow-red-100 hover:bg-red-700 transition-all hover:scale-[1.02] active:scale-[0.98] disabled:opacity-50 disabled:pointer-events-none mt-2"
-          >
-            {loading ? "Chargement..." : isSignUp ? "Créer mon Compte" : "Se Connecter"}
-          </button>
-        </form>
-
-        <div className="relative flex py-4 items-center">
-          <div className="flex-grow border-t border-slate-100"></div>
-          <span className="flex-shrink mx-4 text-slate-300 text-[10px] uppercase font-black tracking-widest">OU</span>
-          <div className="flex-grow border-t border-slate-100"></div>
-        </div>
-
-        {/* Google sign in */}
-        <button
-          onClick={handleGoogleSignIn}
-          disabled={loading}
-          className="w-full flex items-center justify-center gap-3 bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 font-bold rounded-2xl py-3.5 text-sm transition-all shadow-sm active:scale-[0.98]"
-        >
-          <svg className="w-5 h-5 shrink-0" viewBox="0 0 24 24">
-            <path
-              fill="#EA4335"
-              d="M12 5.04c1.66 0 3.2.57 4.38 1.69l3.27-3.27C17.67 1.54 14.98 1 12 1 7.35 1 3.37 3.67 1.39 7.56l3.89 3.02C6.2 7.74 8.89 5.04 12 5.04z"
-            />
-            <path
-              fill="#4285F4"
-              d="M23.49 12.27c0-.81-.07-1.59-.2-2.34H12v4.44h6.43c-.28 1.44-1.09 2.66-2.31 3.47v2.88h3.74c2.18-2 3.63-4.96 3.63-8.45z"
-            />
-            <path
-              fill="#FBBC05"
-              d="M5.28 10.58c-.24-.72-.38-1.49-.38-2.29s.14-1.57.38-2.29L1.39 5.27C.5 7.03 0 9.01 0 11.27s.5 4.24 1.39 6l3.89-3.02c-.24-.72-.38-1.49-.38-2.29z"
-            />
-            <path
-              fill="#34A853"
-              d="M12 23c3.24 0 5.97-1.07 7.96-2.91l-3.74-2.88c-1.04.7-2.37 1.11-4.22 1.11-3.11 0-5.8-2.7-6.72-5.54l-3.89 3.02C3.37 19.33 7.35 23 12 23z"
-            />
-          </svg>
-          Se connecter avec Google
-        </button>
-
-        <div className="mt-8 text-center">
-          <button
-            type="button"
-            onClick={() => {
-              setIsSignUp(!isSignUp);
-              setError(null);
-            }}
-            className="text-xs font-bold text-slate-500 hover:text-red-600 transition-colors"
-          >
-            {isSignUp ? (
-              <span>Déjà un compte ? <strong className="text-red-600">Connectez-vous</strong></span>
+            {(!enableGoogleSignIn && email.trim().toLowerCase() !== 'mandemohamed68@gmail.com') ? (
+              <div className="text-center p-4 bg-slate-50 border border-slate-100 rounded-2xl text-slate-400 text-xs font-bold leading-normal">
+                🔒 La connexion Google est temporairement désactivée. Seul le Super Admin principal peut s'y connecter.
+              </div>
             ) : (
-              <span>Nouveau sur la plateforme ? <strong className="text-red-600 font-extrabold text-sm uppercase tracking-wider ml-1">S'inscrire</strong></span>
+              <button
+                onClick={handleGoogleSignIn}
+                disabled={loading}
+                className="w-full flex items-center justify-center gap-3 bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 font-bold rounded-2xl py-3.5 text-sm transition-all shadow-sm active:scale-[0.98]"
+              >
+                <svg className="w-5 h-5 shrink-0" viewBox="0 0 24 24">
+                  <path
+                    fill="#EA4335"
+                    d="M12 5.04c1.66 0 3.2.57 4.38 1.69l3.27-3.27C17.67 1.54 14.98 1 12 1 7.35 1 3.37 3.67 1.39 7.56l3.89 3.02C6.2 7.74 8.89 5.04 12 5.04z"
+                  />
+                  <path
+                    fill="#4285F4"
+                    d="M23.49 12.27c0-.81-.07-1.59-.2-2.34H12v4.44h6.43c-.28 1.44-1.09 2.66-2.31 3.47v2.88h3.74c2.18-2 3.63-4.96 3.63-8.45z"
+                  />
+                  <path
+                    fill="#FBBC05"
+                    d="M5.28 10.58c-.24-.72-.38-1.49-.38-2.29s.14-1.57.38-2.29L1.39 5.27C.5 7.03 0 9.01 0 11.27s.5 4.24 1.39 6l3.89-3.02c-.24-.72-.38-1.49-.38-2.29z"
+                  />
+                  <path
+                    fill="#34A853"
+                    d="M12 23c3.24 0 5.97-1.07 7.96-2.91l-3.74-2.88c-1.04.7-2.37 1.11-4.22 1.11-3.11 0-5.8-2.7-6.72-5.54l-3.89 3.02C3.37 19.33 7.35 23 12 23z"
+                  />
+                </svg>
+                Se connecter avec Google
+              </button>
             )}
-          </button>
-        </div>
+
+
+
+            <div className="mt-8 text-center">
+              <button
+                type="button"
+                onClick={() => {
+                  setIsSignUp(!isSignUp);
+                  setError(null);
+                }}
+                className="text-xs font-bold text-slate-500 hover:text-red-600 transition-colors"
+              >
+                {isSignUp ? (
+                  <span>Déjà un compte ? <strong className="text-red-600">Connectez-vous</strong></span>
+                ) : (
+                  <span>Nouveau sur la plateforme ? <strong className="text-red-600 font-extrabold text-sm uppercase tracking-wider ml-1">S'inscrire</strong></span>
+                )}
+              </button>
+            </div>
+          </>
+        )}
       </motion.div>
     </div>
   );

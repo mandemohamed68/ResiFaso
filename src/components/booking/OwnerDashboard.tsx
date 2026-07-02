@@ -44,6 +44,9 @@ const DefaultIcon = L.icon({
 
 L.Marker.prototype.options.icon = DefaultIcon;
 
+const MapContainerAny = MapContainer as any;
+const TileLayerAny = TileLayer as any;
+
 function LocationMarker({ position, onChange }: { position: { lat: number, lng: number }, onChange: (pos: { lat: number, lng: number }) => void }) {
   useMapEvents({
     click(e) {
@@ -2582,13 +2585,13 @@ export const OwnerDashboard: React.FC<{ isTestMode?: boolean; onBackToTraveler?:
                         </div>
                       </div>
                       <div className="h-[250px] rounded-2xl overflow-hidden border border-slate-100 shadow-inner z-0">
-                        <MapContainer center={[coordinates.lat, coordinates.lng]} zoom={13} style={{ height: '100%', width: '100%' }}>
-                          <TileLayer
+                        <MapContainerAny center={[coordinates.lat, coordinates.lng]} zoom={13} style={{ height: '100%', width: '100%' }}>
+                          <TileLayerAny
                             attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
                             url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
                           />
                           <LocationMarker position={coordinates} onChange={handleLocationPick} />
-                        </MapContainer>
+                        </MapContainerAny>
                       </div>
                       <p className="text-[9px] text-slate-400 font-medium italic">Latitude: {coordinates.lat.toFixed(6)}, Longitude: {coordinates.lng.toFixed(6)}</p>
                     </div>
