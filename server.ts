@@ -13,7 +13,7 @@ dotenv.config();
 // Safe detection of __dirname and __filename for both CJS and ESM
 const currentFilename = typeof __filename !== "undefined" 
   ? __filename 
-  : (typeof import.meta !== "undefined" && import.meta.url ? fileURLToPath(import.meta.url) : "");
+  : "";
 
 const currentDirname = typeof __dirname !== "undefined" 
   ? __dirname 

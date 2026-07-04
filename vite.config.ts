@@ -5,6 +5,7 @@ import {defineConfig} from 'vite';
 
 export default defineConfig(() => {
   return {
+    base: './',
     define: {
       'import.meta.env.VITE_APP_URL': JSON.stringify(process.env.APP_URL || ''),
     },

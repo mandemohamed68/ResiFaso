@@ -3,8 +3,7 @@
   "appName": "ResiFaso",
   "webDir": "dist",
   "server": {
-    "url": "http://167.172.39.172:2020",
-    "cleartext": true
+    "androidScheme": "https"
   },
   "plugins": {
     "SplashScreen": {

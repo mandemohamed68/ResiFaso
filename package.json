@@ -11,6 +11,7 @@
     "lint": "tsc --noEmit",
     "db:import": "tsx import_db.ts",
     "mobile:build": "vite build && npx cap sync",
+    "mobile:assets": "node prepare_assets.cjs && npx @capacitor/assets generate",
     "mobile:add": "npx cap add android",
     "mobile:open": "npx cap open android"
   },
