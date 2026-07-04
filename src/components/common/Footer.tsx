@@ -1,6 +1,4 @@
 import React, { useEffect, useState } from 'react';
-import { db } from '../../lib/firebase';
-import { doc, onSnapshot } from 'firebase/firestore';
 
 interface FooterProps {
   onNavigate?: (view: 'tos' | 'privacy' | 'home' | 'faq' | 'contact') => void;
@@ -10,12 +8,18 @@ export const Footer: React.FC<FooterProps> = ({ onNavigate }) => {
   const [footerContent, setFooterContent] = useState<string>("© 2026 ResiFaso. Tous droits réservés.");
 
   useEffect(() => {
-    const unsub = onSnapshot(doc(db, 'settings', 'global'), (docSnap) => {
-      if (docSnap.exists() && docSnap.data().footerContent) {
-        setFooterContent(docSnap.data().footerContent);
+    const fetchSettings = async () => {
+      try {
+        const response = await fetch('/api/settings/global');
+        if (response.ok) {
+          const data = await response.json();
+          if (data.footerContent) setFooterContent(data.footerContent);
+        }
+      } catch (err) {
+        console.error("Error fetching footer settings:", err);
       }
-    });
-    return () => unsub();
+    };
+    fetchSettings();
   }, []);
 
   return (

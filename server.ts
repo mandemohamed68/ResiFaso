@@ -5,10 +5,20 @@ import { fileURLToPath } from "url";
 import dotenv from "dotenv";
 import { initializeApp, cert, getApps } from 'firebase-admin/app';
 import { getFirestore } from 'firebase-admin/firestore';
+import { getAuth } from 'firebase-admin/auth';
+import nodemailer from "nodemailer";
 import fs from "fs";
+import bcrypt from "bcrypt";
+import jwt from "jsonwebtoken";
 import { executeSql } from './src/db/index';
+import { initDatabase } from './src/db/init';
+import { authenticateToken, AuthRequest } from './src/lib/auth-middleware';
+import * as queries from './src/db/queries';
 
 dotenv.config();
+
+const JWT_SECRET = process.env.JWT_SECRET || 'super-secret-key-change-me';
+const DB_TYPE = process.env.DB_TYPE || 'sqlite';
 
 // Safe detection of __dirname and __filename for both CJS and ESM
 const currentFilename = typeof __filename !== "undefined" 
@@ -56,7 +66,7 @@ const SAPPAY_BASE_CHECKOUT_PROD = "https://api.prod.sappay.net/api/checkout";
 
 // Dynamically fetch administrator-configured Sappay credentials
 async function getSappayCredentials() {
-  if (adminDb) {
+  if (DB_TYPE === 'firebase' && adminDb) {
     try {
       const docSnap = await adminDb.collection("settings").doc("global").get();
       if (docSnap.exists) {
@@ -66,17 +76,27 @@ async function getSappayCredentials() {
           clientSecret: data?.sappayClientSecret || process.env.SAPPAY_CLIENT_SECRET || "",
           username: data?.sappayUsername || process.env.SAPPAY_USERNAME || "",
           password: data?.sappayPassword || process.env.SAPPAY_PASSWORD || "",
-          // Default to false (Production) for Sappay integration
           isTestMode: data?.isTestMode !== undefined ? data.isTestMode : false
         };
       }
     } catch (e: any) {
-      // Quietly log error once and avoid re-logging if it's a permission issue
-      if (e.message?.includes("PERMISSION_DENIED")) {
-        console.log("Sappay: Firestore permission denied, using environment defaults.");
-      } else {
-        console.warn("Sappay: Error reading configuration:", e.message);
+      console.warn("Sappay: Error reading Firebase configuration:", e.message);
+    }
+  } else if (DB_TYPE !== 'firebase') {
+    try {
+      const results = await executeSql("SELECT value FROM settings WHERE key = 'global'");
+      if (results && results.length > 0) {
+        const data = JSON.parse(results[0].value);
+        return {
+          clientId: data?.sappayClientId || process.env.SAPPAY_CLIENT_ID || "",
+          clientSecret: data?.sappayClientSecret || process.env.SAPPAY_CLIENT_SECRET || "",
+          username: data?.sappayUsername || process.env.SAPPAY_USERNAME || "",
+          password: data?.sappayPassword || process.env.SAPPAY_PASSWORD || "",
+          isTestMode: data?.isTestMode !== undefined ? data.isTestMode : false
+        };
       }
+    } catch (e: any) {
+      console.warn("Sappay: Error reading SQL configuration:", e.message);
     }
   }
   return {
@@ -175,6 +195,15 @@ async function getSappayToken(): Promise<string> {
 }
 
 async function startServer() {
+  // Initialize SQL database if requested
+  if (DB_TYPE !== 'firebase') {
+    try {
+      await initDatabase();
+    } catch (err) {
+      console.error("Database initialization failed:", err);
+    }
+  }
+
   const app = express();
   const PORT = Number(process.env.PORT) || 3000;
 
@@ -190,6 +219,439 @@ async function startServer() {
   });
 
   app.use(express.json());
+
+  // --- CUSTOM AUTH SYSTEM (SQL) ---
+  app.post("/api/auth/register", async (req, res) => {
+    const { email, password, displayName } = req.body;
+    if (!email || !password) return res.status(400).json({ error: "Email et mot de passe requis" });
+
+    try {
+      if (DB_TYPE === 'firebase') {
+        return res.status(400).json({ error: "L'enregistrement direct n'est pas supporté en mode Firebase." });
+      }
+
+      const existing = await executeSql("SELECT uid FROM users WHERE email = ?", [email]);
+      if (existing && existing.length > 0) return res.status(400).json({ error: "Cet email est déjà utilisé" });
+
+      const hashedPassword = await bcrypt.hash(password, 10);
+      const uid = 'u_' + Math.random().toString(36).substr(2, 9);
+      const role = email === 'mandemohamed68@gmail.com' ? 'admin' : 'client';
+
+      await executeSql(
+        "INSERT INTO users (uid, email, password_hash, display_name, role) VALUES (?, ?, ?, ?, ?)",
+        [uid, email, hashedPassword, displayName || 'Voyageur', role]
+      );
+
+      const token = jwt.sign({ uid, email, role }, JWT_SECRET, { expiresIn: '30d' });
+      res.json({ token, user: { uid, email, displayName: displayName || 'Voyageur', role } });
+    } catch (err: any) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  app.post("/api/auth/login", async (req, res) => {
+    const { email, password } = req.body;
+    try {
+      if (DB_TYPE === 'firebase') {
+        return res.status(400).json({ error: "L'authentification directe n'est pas supportée en mode Firebase." });
+      }
+
+      const users = await executeSql("SELECT * FROM users WHERE email = ?", [email]);
+      if (!users || users.length === 0) return res.status(401).json({ error: "Identifiants invalides" });
+
+      const user = users[0];
+      if (!user.password_hash) return res.status(401).json({ error: "Compte sans mot de passe local. Utilisez l'auth sociale si configurée." });
+
+      const match = await bcrypt.compare(password, user.password_hash);
+      if (!match) return res.status(401).json({ error: "Identifiants invalides" });
+
+      const token = jwt.sign({ uid: user.uid, email: user.email, role: user.role }, JWT_SECRET, { expiresIn: '30d' });
+      res.json({ token, user: { uid: user.uid, email: user.email, displayName: user.display_name, role: user.role } });
+    } catch (err: any) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  app.get("/api/auth/me", authenticateToken, async (req: AuthRequest, res) => {
+    try {
+      if (DB_TYPE === 'firebase') return res.status(400).json({ error: "Non supporté en mode Firebase" });
+      const users = await executeSql("SELECT uid, email, display_name as displayName, role, photo_url as photoUrl, is_verified as isVerified FROM users WHERE uid = ?", [req.user?.uid]);
+      if (!users || users.length === 0) return res.status(404).json({ error: "Utilisateur non trouvé" });
+      res.json(users[0]);
+    } catch (err: any) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  // --- GENERIC DATA API (SQL) ---
+  app.get("/api/residences", async (req, res) => {
+    try {
+      const list = await queries.getAllResidences();
+      res.json(list);
+    } catch (err: any) { res.status(500).json({ error: err.message }); }
+  });
+
+  app.get("/api/residences/:id", async (req, res) => {
+    try {
+      const item = await queries.getResidenceById(req.params.id);
+      if (!item) return res.status(404).json({ error: "Non trouvé" });
+      res.json(item);
+    } catch (err: any) { res.status(500).json({ error: err.message }); }
+  });
+
+  app.get("/api/settings/:key", async (req, res) => {
+    try {
+      const data = await queries.getSettings(req.params.key);
+      res.json(data);
+    } catch (err: any) { res.status(500).json({ error: err.message }); }
+  });
+
+  app.post("/api/settings/:key", authenticateToken, async (req: AuthRequest, res) => {
+    if (req.user?.role !== 'admin') return res.status(403).json({ error: "Réservé aux admins" });
+    try {
+      await queries.saveSettings(req.params.key, req.body);
+      res.json({ success: true });
+    } catch (err: any) { res.status(500).json({ error: err.message }); }
+  });
+
+  app.get("/api/ads", async (req, res) => {
+    try {
+      const list = await queries.getAllAds();
+      res.json(list);
+    } catch (err: any) { res.status(500).json({ error: err.message }); }
+  });
+
+  app.get("/api/notifications", authenticateToken, async (req: AuthRequest, res) => {
+    try {
+      const list = await executeSql("SELECT * FROM notifications WHERE user_id = ? ORDER BY created_at DESC", [req.user?.uid]);
+      res.json(list);
+    } catch (err: any) { res.status(500).json({ error: err.message }); }
+  });
+
+  app.post("/api/notifications/:id/read", authenticateToken, async (req: AuthRequest, res) => {
+    try {
+      await executeSql("UPDATE notifications SET is_read = 1 WHERE id = ? AND user_id = ?", [req.params.id, req.user?.uid]);
+      res.json({ success: true });
+    } catch (err: any) { res.status(500).json({ error: err.message }); }
+  });
+
+  app.post("/api/notifications", authenticateToken, async (req: AuthRequest, res) => {
+    try {
+      const notif = req.body;
+      const id = `notif_${Date.now()}`;
+      await executeSql(`
+        INSERT INTO notifications (id, user_id, title, message, type, is_read)
+        VALUES (?, ?, ?, ?, ?, ?)
+      `, [id, notif.userId, notif.title, notif.message, notif.type, 0]);
+      res.json({ id, ...notif, is_read: 0 });
+    } catch (err: any) { res.status(500).json({ error: err.message }); }
+  });
+
+  // Messaging API
+  app.post("/api/conversations", authenticateToken, async (req: AuthRequest, res) => {
+    try {
+      const { participants, relatedId } = req.body;
+      // Check if conversation exists
+      const existing = await executeSql("SELECT * FROM conversations WHERE participants LIKE ?", [`%${participants[0]}%`]);
+      const conv = existing.find((c: any) => {
+        const p = JSON.parse(c.participants);
+        return p.length === participants.length && participants.every((id: string) => p.includes(id));
+      });
+
+      if (conv) {
+        return res.json({ ...conv, participants: JSON.parse(conv.participants) });
+      }
+
+      const id = `conv_${Date.now()}`;
+      await executeSql(`
+        INSERT INTO conversations (id, participants, related_id)
+        VALUES (?, ?, ?)
+      `, [id, JSON.stringify(participants), relatedId || null]);
+      res.json({ id, participants, related_id: relatedId || null });
+    } catch (err: any) { res.status(500).json({ error: err.message }); }
+  });
+
+  app.post("/api/conversations/:id/messages", authenticateToken, async (req: AuthRequest, res) => {
+    try {
+      const { senderId, text } = req.body;
+      const id = `msg_${Date.now()}`;
+      await executeSql(`
+        INSERT INTO messages (id, conversation_id, sender_id, text)
+        VALUES (?, ?, ?, ?)
+      `, [id, req.params.id, senderId, text]);
+      
+      await executeSql("UPDATE conversations SET last_message = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?", [text, req.params.id]);
+      
+      res.json({ id, conversation_id: req.params.id, senderId, text, created_at: new Date().toISOString() });
+    } catch (err: any) { res.status(500).json({ error: err.message }); }
+  });
+
+  app.get("/api/conversations/:id/messages", authenticateToken, async (req: AuthRequest, res) => {
+    try {
+      const list = await executeSql("SELECT * FROM messages WHERE conversation_id = ? ORDER BY created_at ASC", [req.params.id]);
+      res.json(list);
+    } catch (err: any) { res.status(500).json({ error: err.message }); }
+  });
+
+  // Withdrawals API
+  app.get("/api/withdrawals", authenticateToken, async (req: AuthRequest, res) => {
+    try {
+      let query = "SELECT * FROM withdrawals";
+      let params: any[] = [];
+      if (req.user?.role !== 'admin') {
+        query += " WHERE owner_id = ?";
+        params.push(req.user?.uid);
+      }
+      query += " ORDER BY created_at DESC";
+      const list = await executeSql(query, params);
+      res.json(list);
+    } catch (err: any) { res.status(500).json({ error: err.message }); }
+  });
+
+  app.post("/api/withdrawals", authenticateToken, async (req: AuthRequest, res) => {
+    try {
+      const data = req.body;
+      const id = `with_${Date.now()}`;
+      await executeSql(`
+        INSERT INTO withdrawals (id, owner_id, amount, phone, provider, status)
+        VALUES (?, ?, ?, ?, ?, ?)
+      `, [id, req.user?.uid, data.amount, data.phone, data.provider, 'pending']);
+      res.json({ id, ...data, status: 'pending' });
+    } catch (err: any) { res.status(500).json({ error: err.message }); }
+  });
+
+  app.patch("/api/withdrawals/:id", authenticateToken, async (req: AuthRequest, res) => {
+    if (req.user?.role !== 'admin') return res.status(403).json({ error: "Interdit" });
+    try {
+      const { status, approvedAt } = req.body;
+      await executeSql("UPDATE withdrawals SET status = ?, approved_at = ? WHERE id = ?", [status, approvedAt || null, req.params.id]);
+      res.json({ success: true });
+    } catch (err: any) { res.status(500).json({ error: err.message }); }
+  });
+
+  app.delete("/api/residences/:id", authenticateToken, async (req: AuthRequest, res) => {
+    if (req.user?.role !== 'admin' && req.user?.role !== 'owner') return res.status(403).json({ error: "Interdit" });
+    try {
+      await queries.deleteResidence(req.params.id);
+      res.json({ success: true });
+    } catch (err: any) { res.status(500).json({ error: err.message }); }
+  });
+
+  app.put("/api/residences/:id", authenticateToken, async (req: AuthRequest, res) => {
+    try {
+      await queries.updateResidence(req.params.id, req.body);
+      res.json({ success: true });
+    } catch (err: any) { res.status(500).json({ error: err.message }); }
+  });
+
+  app.post("/api/residences", authenticateToken, async (req: AuthRequest, res) => {
+    try {
+      const id = `res_${Date.now()}`;
+      await queries.createResidence({ id, ...req.body, ownerId: req.user?.uid });
+      res.json({ id });
+    } catch (err: any) { res.status(500).json({ error: err.message }); }
+  });
+
+  app.patch("/api/bookings/:id", authenticateToken, async (req: AuthRequest, res) => {
+    try {
+      await queries.updateBookingStatus(req.params.id, req.body);
+      res.json({ success: true });
+    } catch (err: any) { res.status(500).json({ error: err.message }); }
+  });
+
+  app.put("/api/users/:uid", authenticateToken, async (req: AuthRequest, res) => {
+    if (req.user?.uid !== req.params.uid && req.user?.role !== 'admin') return res.status(403).json({ error: "Interdit" });
+    try {
+      await queries.updateUserProfile(req.params.uid, req.body);
+      res.json({ success: true });
+    } catch (err: any) { res.status(500).json({ error: err.message }); }
+  });
+
+  app.post("/api/admin/reset-db", authenticateToken, async (req: AuthRequest, res) => {
+    if (req.user?.role !== 'admin') return res.status(403).json({ error: "Interdit" });
+    try {
+      // Hard reset logic
+      await executeSql("DELETE FROM bookings");
+      await executeSql("DELETE FROM reviews");
+      await executeSql("DELETE FROM notifications");
+      await executeSql("DELETE FROM messages");
+      await executeSql("DELETE FROM conversations");
+      // Reseed if needed? Or just empty?
+      res.json({ success: true });
+    } catch (err: any) { res.status(500).json({ error: err.message }); }
+  });
+
+  app.get("/api/users", authenticateToken, async (req: AuthRequest, res) => {
+    if (req.user?.role !== 'admin') return res.status(403).json({ error: "Interdit" });
+    try {
+      const list = await queries.getAllUsers();
+      res.json(list);
+    } catch (err: any) { res.status(500).json({ error: err.message }); }
+  });
+
+  app.get("/api/bookings", authenticateToken, async (req: AuthRequest, res) => {
+    try {
+      const field = req.query.role === 'owner' ? 'owner_id' : 'client_id';
+      const list = await executeSql(`SELECT * FROM bookings WHERE ${field} = ? ORDER BY created_at DESC`, [req.user?.uid]);
+      res.json(list);
+    } catch (err: any) { res.status(500).json({ error: err.message }); }
+  });
+
+  app.post("/api/bookings", authenticateToken, async (req: AuthRequest, res) => {
+    try {
+      const booking = req.body;
+      const id = `book_${Date.now()}`;
+      await executeSql(`
+        INSERT INTO bookings (id, residence_id, client_id, owner_id, check_in, check_out, total_price, booking_status)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+      `, [id, booking.residenceId, req.user?.uid, booking.ownerId, booking.checkIn, booking.checkOut, booking.totalPrice, 'pending']);
+      res.json({ id, ...booking, booking_status: 'pending' });
+    } catch (err: any) { res.status(500).json({ error: err.message }); }
+  });
+
+  app.get("/api/residences/:id/bookings", async (req, res) => {
+    try {
+      const list = await executeSql("SELECT * FROM bookings WHERE residence_id = ? AND booking_status IN ('confirmed', 'pending')", [req.params.id]);
+      res.json(list);
+    } catch (err: any) { res.status(500).json({ error: err.message }); }
+  });
+
+  // Auth & Email endpoints
+  app.post("/api/auth/forgot-password", async (req, res) => {
+    const { email } = req.body;
+    if (!email) return res.status(400).json({ error: "Email requis" });
+
+    try {
+      let userExists = false;
+      let emailSettings: any = null;
+
+      if (DB_TYPE === 'firebase') {
+        if (!adminDb) throw new Error("Base de données non initialisée");
+        const usersSnap = await adminDb.collection("users").where("email", "==", email).get();
+        userExists = !usersSnap.empty;
+        const settingsSnap = await adminDb.collection("settings").doc("email").get();
+        if (settingsSnap.exists) emailSettings = settingsSnap.data();
+      } else {
+        const users = await executeSql("SELECT * FROM users WHERE email = ?", [email]);
+        userExists = users.length > 0;
+        const settings = await executeSql("SELECT value FROM settings WHERE key = 'email'");
+        if (settings.length > 0) emailSettings = JSON.parse(settings[0].value);
+      }
+
+      if (!userExists) {
+        return res.status(404).json({ error: "Aucun utilisateur trouvé avec cet email" });
+      }
+
+      if (!emailSettings || !emailSettings.smtpHost) {
+        return res.status(500).json({ error: "Le service d'envoi d'email n'est pas configuré par l'administrateur." });
+      }
+
+      let resetLink = "";
+      if (DB_TYPE === 'firebase') {
+        resetLink = await getAuth().generatePasswordResetLink(email);
+      } else {
+        const token = Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
+        const expiresAt = new Date(Date.now() + 3600000).toISOString(); // 1 hour
+        await executeSql("INSERT INTO password_resets (email, token, expires_at) VALUES (?, ?, ?) ON CONFLICT(email) DO UPDATE SET token = ?, expires_at = ?", [email, token, expiresAt, token, expiresAt]);
+        resetLink = `${req.headers.origin}?view=reset-password&email=${email}&token=${token}`;
+      }
+
+      // Create transporter
+      const transporter = nodemailer.createTransport({
+        host: emailSettings.smtpHost,
+        port: Number(emailSettings.smtpPort),
+        secure: emailSettings.smtpSecure,
+        auth: {
+          user: emailSettings.smtpUser,
+          pass: emailSettings.smtpPass,
+        },
+      });
+
+      // Send email
+      await transporter.sendMail({
+        from: `"${emailSettings.fromName}" <${emailSettings.fromEmail}>`,
+        to: email,
+        subject: "Réinitialisation de votre mot de passe - ResiFaso",
+        html: `
+          <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #eee; border-radius: 10px;">
+            <h2 style="color: #e11d48; text-align: center;">ResiFaso</h2>
+            <p>Bonjour,</p>
+            <p>Vous avez demandé la réinitialisation de votre mot de passe pour votre compte ResiFaso.</p>
+            <p>Cliquez sur le bouton ci-dessous pour choisir un nouveau mot de passe :</p>
+            <div style="text-align: center; margin: 30px 0;">
+              <a href="${resetLink}" style="background-color: #e11d48; color: white; padding: 12px 24px; text-decoration: none; border-radius: 8px; font-weight: bold;">Réinitialiser mon mot de passe</a>
+            </div>
+            <p>Si vous n'avez pas demandé ce changement, vous pouvez ignorer cet email en toute sécurité.</p>
+            <p>Ce lien expirera bientôt.</p>
+            <hr style="border: none; border-top: 1px solid #eee; margin: 20px 0;" />
+            <p style="font-size: 12px; color: #666; text-align: center;">
+              &copy; 2026 ResiFaso. Burkina Faso.
+            </p>
+          </div>
+        `,
+      });
+
+      res.json({ success: true });
+    } catch (error: any) {
+      console.error("Forgot password error:", error);
+      res.status(500).json({ error: error.message || "Erreur lors de l'envoi de l'email" });
+    }
+  });
+
+  app.post("/api/auth/reset-password", async (req, res) => {
+    const { email, token, newPassword } = req.body;
+    try {
+      if (DB_TYPE === 'firebase') {
+        return res.status(400).json({ error: "Reset password for Firebase should be handled on client via reset link" });
+      } else {
+        const resets = await executeSql("SELECT * FROM password_resets WHERE email = ? AND token = ?", [email, token]);
+        if (resets.length === 0) return res.status(400).json({ error: "Lien invalide ou expiré" });
+        
+        const reset = resets[0];
+        if (new Date(reset.expires_at) < new Date()) {
+          return res.status(400).json({ error: "Lien expiré" });
+        }
+
+        const hashedPassword = await bcrypt.hash(newPassword, 10);
+        await executeSql("UPDATE users SET password = ? WHERE email = ?", [hashedPassword, email]);
+        await executeSql("DELETE FROM password_resets WHERE email = ?", [email]);
+        
+        res.json({ success: true });
+      }
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.get("/api/admin/email-settings", async (req, res) => {
+    try {
+      if (DB_TYPE === 'firebase') {
+        if (!adminDb) throw new Error("Base de données non initialisée");
+        const docSnap = await adminDb.collection("settings").doc("email").get();
+        return res.json(docSnap.exists ? docSnap.data() : {});
+      } else {
+        const results = await executeSql("SELECT value FROM settings WHERE key = 'email'");
+        return res.json(results.length > 0 ? JSON.parse(results[0].value) : {});
+      }
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.post("/api/admin/email-settings", async (req, res) => {
+    try {
+      const settings = req.body;
+      if (DB_TYPE === 'firebase') {
+        if (!adminDb) throw new Error("Base de données non initialisée");
+        await adminDb.collection("settings").doc("email").set(settings, { merge: true });
+      } else {
+        await executeSql("INSERT INTO settings (key, value) VALUES ('email', ?) ON CONFLICT(key) DO UPDATE SET value = ?", [JSON.stringify(settings), JSON.stringify(settings)]);
+      }
+      res.json({ success: true });
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
 
   // Sappay API Gateway Proxy: INIT invoice
   app.post("/api/payment/sappay/init", async (req, res) => {
@@ -886,6 +1348,9 @@ async function startServer() {
       res.status(500).json({ error: err.message });
     }
   });
+
+  // Serve public folder statically
+  app.use(express.static(path.join(process.cwd(), 'public')));
 
   // Vite middleware for development
   if (process.env.NODE_ENV !== "production") {

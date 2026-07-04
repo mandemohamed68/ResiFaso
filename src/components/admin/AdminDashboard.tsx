@@ -30,7 +30,7 @@ const DEFAULT_CONTACT_SETTINGS: ContactSettings = {
 
 export const AdminDashboard: React.FC<{ onBackToTraveler?: () => void }> = ({ onBackToTraveler }) => {
   const { user } = useAuth();
-  const [activeTab, setActiveTab] = useState<'overview' | 'alerts' | 'listings' | 'users' | 'bookings' | 'revenue' | 'reviews' | 'reports' | 'settings' | 'logs' | 'ads' | 'withdrawals' | 'locations' | 'flash-info' | 'faq' | 'contact'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'alerts' | 'listings' | 'users' | 'bookings' | 'revenue' | 'reviews' | 'reports' | 'settings' | 'logs' | 'ads' | 'withdrawals' | 'locations' | 'flash-info' | 'faq' | 'contact' | 'email'>('overview');
   
   // Contact page & messages states
   const [contactSettings, setContactSettings] = useState<ContactSettings>(DEFAULT_CONTACT_SETTINGS);
@@ -82,7 +82,6 @@ export const AdminDashboard: React.FC<{ onBackToTraveler?: () => void }> = ({ on
   const [footerContent, setFooterContent] = useState('© 2026 ResiFaso. Tous droits réservés.');
   const [commissionRate, setCommissionRate] = useState(10); // Default Commission rate
   const [isGlobalTestMode, setIsGlobalTestMode] = useState(false); // Default to PRODUCTION now as requested
-  const [enableGoogleSignIn, setEnableGoogleSignIn] = useState(true);
   const [sappayClientId, setSappayClientId] = useState('IJIJhhArSLVJNIs2ylGwowxTCqm5t5br92lAPlgF');
   const [sappayClientSecret, setSappayClientSecret] = useState('7qrVeDjSmDQjHksFyzKriidK3iuSo3RK6h5voHnbXAAPZvQEQnF9LIPzjqOcg4POqmikuUoJ7ynI565leEzbFhSnKZynwCLVOChma3y7vesLBRwaoyixtLcknd4g6Rdm');
   const [sappayUsername, setSappayUsername] = useState('mandemohamed68@gmail.com');
@@ -97,6 +96,18 @@ export const AdminDashboard: React.FC<{ onBackToTraveler?: () => void }> = ({ on
   const [editingBookingId, setEditingBookingId] = useState<string | null>(null);
   const [tempBookingStatus, setTempBookingStatus] = useState<BookingStatus>('pending');
   const [tempPaymentStatus, setTempPaymentStatus] = useState<PaymentStatus>('pending');
+
+  // Email Settings State
+  const [emailSettings, setEmailSettings] = useState({
+    smtpHost: '',
+    smtpPort: 465,
+    smtpSecure: true,
+    smtpUser: '',
+    smtpPass: '',
+    fromName: 'ResiFaso',
+    fromEmail: 'noreply@resifaso.com'
+  });
+  const [isSavingEmailSettings, setIsSavingEmailSettings] = useState(false);
 
   // Live Audit Logs Console state
   const [actionLogs, setActionLogs] = useState<string[]>([
@@ -146,6 +157,26 @@ export const AdminDashboard: React.FC<{ onBackToTraveler?: () => void }> = ({ on
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }, [activeTab]);
 
+  useEffect(() => {
+    if (!user) return;
+    
+    const fetchEmailSettings = async () => {
+      try {
+        const response = await fetch('/api/admin/email-settings');
+        if (response.ok) {
+          const data = await response.json();
+          if (data && Object.keys(data).length > 0) {
+            setEmailSettings(prev => ({ ...prev, ...data }));
+          }
+        }
+      } catch (err) {
+        console.error("Failed to fetch email settings:", err);
+      }
+    };
+    
+    fetchEmailSettings();
+  }, [user]);
+
   // Real-time listener for residences, users, bookings, reviews and global settings
   useEffect(() => {
     if (!user) return;
@@ -193,7 +224,6 @@ export const AdminDashboard: React.FC<{ onBackToTraveler?: () => void }> = ({ on
         if (data.platformName) setPlatformName(data.platformName);
         if (data.footerContent) setFooterContent(data.footerContent);
         if (data.commissionRate !== undefined) setCommissionRate(data.commissionRate);
-        if (data.enableGoogleSignIn !== undefined) setEnableGoogleSignIn(data.enableGoogleSignIn);
 
         if (data.isTestMode !== undefined) setIsGlobalTestMode(data.isTestMode);
         if (data.enablePhoneCalls !== undefined) setEnablePhoneCalls(data.enablePhoneCalls);
@@ -859,7 +889,6 @@ export const AdminDashboard: React.FC<{ onBackToTraveler?: () => void }> = ({ on
         platformName: platformName,
         footerContent: footerContent,
         commissionRate: commissionRate,
-        enableGoogleSignIn: enableGoogleSignIn,
         isTestMode: isGlobalTestMode,
         sappayClientId: sappayClientId,
         sappayClientSecret: sappayClientSecret,
@@ -902,7 +931,7 @@ export const AdminDashboard: React.FC<{ onBackToTraveler?: () => void }> = ({ on
       return `'${String(val).replace(/'/g, "''")}'`;
     };
 
-    let sql = `-- Dump Complet pour ${format === 'mariadb' ? 'MariaDB / MySQL' : 'SQLite'}\n`;
+    let sql = `-- Dump Complet pour SQLite\n`;
     sql += `-- Généré le ${new Date().toISOString()}\n`;
     sql += `-- Contient toutes les tables, données et images (URLs de stockage)\n\n`;
 
@@ -918,11 +947,11 @@ export const AdminDashboard: React.FC<{ onBackToTraveler?: () => void }> = ({ on
     sql += `  is_verified BOOLEAN DEFAULT FALSE,\n`;
     sql += `  is_suspended BOOLEAN DEFAULT FALSE,\n`;
     sql += `  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP\n`;
-    if (format === "mariadb") { sql += `) PARTITION BY KEY(id) PARTITIONS 4;\n\n`; } else { sql += `);\n\n`; }
+    sql += `);\n\n`;
 
     if (users.length > 0) {
       users.forEach(u => {
-        sql += `INSERT ${format === 'mariadb' ? 'IGNORE ' : 'OR IGNORE '}INTO users (id, email, display_name, phone_number, photo_url, role, is_verified, is_suspended, created_at) VALUES (\n`;
+        sql += `INSERT OR IGNORE INTO users (id, email, display_name, phone_number, photo_url, role, is_verified, is_suspended, created_at) VALUES (\n`;
         sql += `  ${escapeSql(u.uid)},\n`;
         sql += `  ${escapeSql(u.email)},\n`;
         sql += `  ${escapeSql(u.displayName)},\n`;
@@ -967,11 +996,11 @@ export const AdminDashboard: React.FC<{ onBackToTraveler?: () => void }> = ({ on
     sql += `  promo_price DECIMAL(10, 2),\n`;
     sql += `  rejection_reason TEXT,\n`;
     sql += `  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP\n`;
-    if (format === "mariadb") { sql += `) PARTITION BY KEY(id) PARTITIONS 4;\n\n`; } else { sql += `);\n\n`; }
+    sql += `);\n\n`;
 
     if (residences.length > 0) {
       residences.forEach(r => {
-        sql += `INSERT ${format === 'mariadb' ? 'IGNORE ' : 'OR IGNORE '}INTO residences (id, owner_id, title, description, type, price_per_night, advance_percentage, cleaning_fee, service_fee, city, neighborhood, street, capacity, bedrooms, beds, bathrooms, rooms, status, availability_status, promoted, weekly_discount, monthly_discount, promo_price, rejection_reason, created_at) VALUES (\n`;
+        sql += `INSERT OR IGNORE INTO residences (id, owner_id, title, description, type, price_per_night, advance_percentage, cleaning_fee, service_fee, city, neighborhood, street, capacity, bedrooms, beds, bathrooms, rooms, status, availability_status, promoted, weekly_discount, monthly_discount, promo_price, rejection_reason, created_at) VALUES (\n`;
         sql += `  ${escapeSql(r.id)},\n`;
         sql += `  ${escapeSql(r.ownerId)},\n`;
         sql += `  ${escapeSql(r.title)},\n`;
@@ -1007,13 +1036,13 @@ export const AdminDashboard: React.FC<{ onBackToTraveler?: () => void }> = ({ on
     sql += `  residence_id VARCHAR(128),\n`;
     sql += `  amenity VARCHAR(100),\n`;
     sql += `  PRIMARY KEY (residence_id, amenity)\n`;
-    if (format === "mariadb") { sql += `) PARTITION BY KEY(residence_id) PARTITIONS 4;\n\n`; } else { sql += `);\n\n`; }
+    sql += `);\n\n`;
 
     if (residences.length > 0) {
       residences.forEach(r => {
         if (r.amenities && Array.isArray(r.amenities)) {
           r.amenities.forEach(a => {
-            sql += `INSERT ${format === 'mariadb' ? 'IGNORE ' : 'OR IGNORE '}INTO residence_amenities (residence_id, amenity) VALUES (${escapeSql(r.id)}, ${escapeSql(a)});\n`;
+            sql += `INSERT OR IGNORE INTO residence_amenities (residence_id, amenity) VALUES (${escapeSql(r.id)}, ${escapeSql(a)});\n`;
           });
         }
       });
@@ -1025,13 +1054,13 @@ export const AdminDashboard: React.FC<{ onBackToTraveler?: () => void }> = ({ on
     sql += `  id INT AUTO_INCREMENT PRIMARY KEY,\n`;
     sql += `  residence_id VARCHAR(128),\n`;
     sql += `  image_url TEXT NOT NULL\n`;
-    if (format === "mariadb") { sql += `) PARTITION BY KEY(id) PARTITIONS 4;\n\n`; } else { sql += `);\n\n`; }
+    sql += `);\n\n`;
 
     if (residences.length > 0) {
       residences.forEach(r => {
         if (r.images && Array.isArray(r.images)) {
           r.images.forEach(img => {
-            sql += `INSERT ${format === 'mariadb' ? 'IGNORE ' : 'OR IGNORE '}INTO residence_images (residence_id, image_url) VALUES (${escapeSql(r.id)}, ${escapeSql(img)});\n`;
+            sql += `INSERT OR IGNORE INTO residence_images (residence_id, image_url) VALUES (${escapeSql(r.id)}, ${escapeSql(img)});\n`;
           });
         }
       });
@@ -1065,11 +1094,11 @@ export const AdminDashboard: React.FC<{ onBackToTraveler?: () => void }> = ({ on
     sql += `  checked_in_at TIMESTAMP NULL,\n`;
     sql += `  checked_out_at TIMESTAMP NULL,\n`;
     sql += `  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP\n`;
-    if (format === "mariadb") { sql += `) PARTITION BY KEY(id) PARTITIONS 4;\n\n`; } else { sql += `);\n\n`; }
+    sql += `);\n\n`;
 
     if (bookings.length > 0) {
       bookings.forEach(b => {
-        sql += `INSERT ${format === 'mariadb' ? 'IGNORE ' : 'OR IGNORE '}INTO bookings (id, residence_id, client_id, owner_id, check_in, check_out, guests, total_price, advance_paid, payment_status, booking_status, transaction_id, cancelled_by, cancellation_reason, cancelled_at, refund_status, refund_amount, refund_phone, refund_provider, refund_processed_at, stay_status, checked_in_at, checked_out_at, created_at) VALUES (\n`;
+        sql += `INSERT OR IGNORE INTO bookings (id, residence_id, client_id, owner_id, check_in, check_out, guests, total_price, advance_paid, payment_status, booking_status, transaction_id, cancelled_by, cancellation_reason, cancelled_at, refund_status, refund_amount, refund_phone, refund_provider, refund_processed_at, stay_status, checked_in_at, checked_out_at, created_at) VALUES (\n`;
         sql += `  ${escapeSql(b.id)},\n`;
         sql += `  ${escapeSql(b.residenceId)},\n`;
         sql += `  ${escapeSql(b.clientId)},\n`;
@@ -1109,11 +1138,11 @@ export const AdminDashboard: React.FC<{ onBackToTraveler?: () => void }> = ({ on
     sql += `  rating INT NOT NULL,\n`;
     sql += `  comment TEXT,\n`;
     sql += `  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP\n`;
-    if (format === "mariadb") { sql += `) PARTITION BY KEY(id) PARTITIONS 4;\n\n`; } else { sql += `);\n\n`; }
+    sql += `);\n\n`;
 
     if (reviews.length > 0) {
       reviews.forEach(rv => {
-        sql += `INSERT ${format === 'mariadb' ? 'IGNORE ' : 'OR IGNORE '}INTO reviews (id, booking_id, residence_id, client_id, rating, comment, created_at) VALUES (\n`;
+        sql += `INSERT OR IGNORE INTO reviews (id, booking_id, residence_id, client_id, rating, comment, created_at) VALUES (\n`;
         sql += `  ${escapeSql(rv.id)},\n`;
         sql += `  ${escapeSql(rv.bookingId)},\n`;
         sql += `  ${escapeSql(rv.residenceId)},\n`;
@@ -1137,11 +1166,11 @@ export const AdminDashboard: React.FC<{ onBackToTraveler?: () => void }> = ({ on
     sql += `  status VARCHAR(50) DEFAULT 'pending',\n`;
     sql += `  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,\n`;
     sql += `  approved_at TIMESTAMP NULL\n`;
-    if (format === "mariadb") { sql += `) PARTITION BY KEY(id) PARTITIONS 4;\n\n`; } else { sql += `);\n\n`; }
+    sql += `);\n\n`;
 
     if (withdrawals.length > 0) {
       withdrawals.forEach(w => {
-        sql += `INSERT ${format === 'mariadb' ? 'IGNORE ' : 'OR IGNORE '}INTO withdrawals (id, owner_id, amount, phone, provider, status, created_at, approved_at) VALUES (\n`;
+        sql += `INSERT OR IGNORE INTO withdrawals (id, owner_id, amount, phone, provider, status, created_at, approved_at) VALUES (\n`;
         sql += `  ${escapeSql(w.id)},\n`;
         sql += `  ${escapeSql(w.ownerId)},\n`;
         sql += `  ${escapeSql(w.amount)},\n`;
@@ -1168,11 +1197,11 @@ export const AdminDashboard: React.FC<{ onBackToTraveler?: () => void }> = ({ on
     sql += `  start_at TIMESTAMP NULL,\n`;
     sql += `  end_at TIMESTAMP NULL,\n`;
     sql += `  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP\n`;
-    if (format === "mariadb") { sql += `) PARTITION BY KEY(id) PARTITIONS 2;\n\n`; } else { sql += `);\n\n`; }
+    sql += `);\n\n`;
 
     if (ads.length > 0) {
       ads.forEach(ad => {
-        sql += `INSERT ${format === 'mariadb' ? 'IGNORE ' : 'OR IGNORE '}INTO advertisements (id, title, description, image_url, link_url, is_active, frequency_seconds, start_at, end_at, created_at) VALUES (\n`;
+        sql += `INSERT OR IGNORE INTO advertisements (id, title, description, image_url, link_url, is_active, frequency_seconds, start_at, end_at, created_at) VALUES (\n`;
         sql += `  ${escapeSql(ad.id)},\n`;
         sql += `  ${escapeSql(ad.title)},\n`;
         sql += `  ${escapeSql(ad.description)},\n`;
@@ -1421,6 +1450,7 @@ export const AdminDashboard: React.FC<{ onBackToTraveler?: () => void }> = ({ on
               items: [
                 { id: 'reports', label: 'Rapports d\'Audit', icon: FileText },
                 { id: 'settings', label: 'Paramètres', icon: Settings },
+                { id: 'email', label: 'Config Email (SMTP)', icon: Mail },
                 { id: 'logs', label: 'Logs en Temps Réel', icon: Activity },
                 { id: 'faq', label: 'Gestion FAQ', icon: MessageSquare },
                 { id: 'contact', label: 'Gestion Contact', icon: Mail, badge: contactMessages.filter(m => m.status === 'unread').length, badgeColor: 'bg-[#EF2B2D]' },
@@ -2663,6 +2693,151 @@ export const AdminDashboard: React.FC<{ onBackToTraveler?: () => void }> = ({ on
           </div>
         )}
 
+        {/* TAB 13: EMAIL CONFIGURATION (SMTP) */}
+        {activeTab === 'email' && (
+          <div className="space-y-6 animate-in fade-in max-w-2xl">
+            <div>
+              <h2 className="text-3xl font-black text-slate-900 tracking-tight leading-none mb-1">Configuration Email (SMTP)</h2>
+              <p className="text-slate-500 font-medium text-sm">Paramétrez le serveur d'envoi d'emails pour les réinitialisations de mot de passe et notifications.</p>
+            </div>
+
+            <form 
+              onSubmit={async (e) => {
+                e.preventDefault();
+                setIsSavingEmailSettings(true);
+                try {
+                  const response = await fetch('/api/admin/email-settings', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(emailSettings)
+                  });
+                  if (response.ok) {
+                    triggerSuccess("Paramètres email enregistrés avec succès !");
+                    logAction("Mise à jour des paramètres SMTP de la plateforme.");
+                  } else {
+                    throw new Error("Erreur serveur lors de la sauvegarde.");
+                  }
+                } catch (err) {
+                  console.error(err);
+                  alert("Une erreur est survenue lors de l'enregistrement.");
+                } finally {
+                  setIsSavingEmailSettings(false);
+                }
+              }} 
+              className="bg-white border border-slate-200 rounded-[32px] p-8 shadow-sm space-y-6"
+            >
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                  <label className="block text-[10px] font-black text-slate-400 uppercase tracking-wide mb-2">Hôte SMTP</label>
+                  <input
+                    type="text"
+                    required
+                    value={emailSettings.smtpHost}
+                    onChange={(e) => setEmailSettings({ ...emailSettings, smtpHost: e.target.value })}
+                    className="w-full bg-slate-50 border border-slate-200 rounded-2xl px-4 py-3 text-sm font-bold outline-none focus:ring-2 focus:ring-red-500"
+                    placeholder="smtp.gmail.com"
+                  />
+                </div>
+                <div>
+                  <label className="block text-[10px] font-black text-slate-400 uppercase tracking-wide mb-2">Port SMTP</label>
+                  <input
+                    type="number"
+                    required
+                    value={emailSettings.smtpPort}
+                    onChange={(e) => setEmailSettings({ ...emailSettings, smtpPort: Number(e.target.value) })}
+                    className="w-full bg-slate-50 border border-slate-200 rounded-2xl px-4 py-3 text-sm font-bold outline-none focus:ring-2 focus:ring-red-500"
+                    placeholder="465"
+                  />
+                </div>
+              </div>
+
+              <div className="flex items-center justify-between p-4 bg-slate-50 rounded-2xl border border-slate-100">
+                <div>
+                  <h4 className="text-xs font-black text-slate-800 uppercase tracking-wider mb-1">Connexion Sécurisée (SSL/TLS)</h4>
+                  <p className="text-[10px] text-slate-500 font-medium">Activez cette option pour la plupart des serveurs modernes (Port 465).</p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setEmailSettings({ ...emailSettings, smtpSecure: !emailSettings.smtpSecure })}
+                  className={cn(
+                    "relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-red-500",
+                    emailSettings.smtpSecure ? "bg-red-600" : "bg-slate-200"
+                  )}
+                >
+                  <span
+                    className={cn(
+                      "pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out",
+                      emailSettings.smtpSecure ? "translate-x-5" : "translate-x-0"
+                    )}
+                  />
+                </button>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                  <label className="block text-[10px] font-black text-slate-400 uppercase tracking-wide mb-2">Utilisateur / Login SMTP</label>
+                  <input
+                    type="text"
+                    required
+                    value={emailSettings.smtpUser}
+                    onChange={(e) => setEmailSettings({ ...emailSettings, smtpUser: e.target.value })}
+                    className="w-full bg-slate-50 border border-slate-200 rounded-2xl px-4 py-3 text-sm font-bold outline-none focus:ring-2 focus:ring-red-500"
+                    placeholder="votre-email@domaine.com"
+                  />
+                </div>
+                <div>
+                  <label className="block text-[10px] font-black text-slate-400 uppercase tracking-wide mb-2">Mot de Passe SMTP</label>
+                  <input
+                    type="password"
+                    required
+                    value={emailSettings.smtpPass}
+                    onChange={(e) => setEmailSettings({ ...emailSettings, smtpPass: e.target.value })}
+                    className="w-full bg-slate-50 border border-slate-200 rounded-2xl px-4 py-3 text-sm font-bold outline-none focus:ring-2 focus:ring-red-500"
+                    placeholder="••••••••••••"
+                  />
+                </div>
+              </div>
+
+              <hr className="border-slate-100" />
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                  <label className="block text-[10px] font-black text-slate-400 uppercase tracking-wide mb-2">Nom de l'expéditeur</label>
+                  <input
+                    type="text"
+                    required
+                    value={emailSettings.fromName}
+                    onChange={(e) => setEmailSettings({ ...emailSettings, fromName: e.target.value })}
+                    className="w-full bg-slate-50 border border-slate-200 rounded-2xl px-4 py-3 text-sm font-bold outline-none focus:ring-2 focus:ring-red-500"
+                    placeholder="ResiFaso Support"
+                  />
+                </div>
+                <div>
+                  <label className="block text-[10px] font-black text-slate-400 uppercase tracking-wide mb-2">Email de l'expéditeur</label>
+                  <input
+                    type="email"
+                    required
+                    value={emailSettings.fromEmail}
+                    onChange={(e) => setEmailSettings({ ...emailSettings, fromEmail: e.target.value })}
+                    className="w-full bg-slate-50 border border-slate-200 rounded-2xl px-4 py-3 text-sm font-bold outline-none focus:ring-2 focus:ring-red-500"
+                    placeholder="support@resifaso.com"
+                  />
+                </div>
+              </div>
+
+              <div className="pt-4">
+                <button
+                  type="submit"
+                  disabled={isSavingEmailSettings}
+                  className="w-full bg-slate-900 text-white px-6 py-4 rounded-2xl text-xs font-black uppercase tracking-widest hover:bg-slate-800 transition shadow-lg shadow-slate-200 flex items-center justify-center gap-2"
+                >
+                  {isSavingEmailSettings ? 'Enregistrement...' : 'Enregistrer la Configuration SMTP'}
+                </button>
+              </div>
+            </form>
+          </div>
+        )}
+
         {/* TAB 9: PARAMETRES & SYSTEME CONFIG */}
         {activeTab === 'settings' && (
           <div className="space-y-6 animate-in fade-in" id="settings-tab-container-dashboard">
@@ -2801,52 +2976,6 @@ export const AdminDashboard: React.FC<{ onBackToTraveler?: () => void }> = ({ on
                     className={cn(
                       "pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out",
                       isGlobalTestMode ? "translate-x-5" : "translate-x-0"
-                    )}
-                  />
-                </button>
-              </div>
-
-              {/* INTERRUPTEUR GOOGLE SIGN IN */}
-              <div className={cn(
-                "p-6 rounded-2xl border shadow-sm flex items-center justify-between transition-all mt-4",
-                enableGoogleSignIn ? "bg-blue-50 border-blue-100" : "bg-slate-50 border-slate-100"
-              )}>
-                <div className="pr-4">
-                  <div className="flex items-center gap-2 mb-1">
-                    <h4 className={cn(
-                      "text-sm font-black uppercase tracking-wider",
-                      enableGoogleSignIn ? "text-blue-800" : "text-slate-800"
-                    )}>
-                      {enableGoogleSignIn ? "Connexion Google Activée" : "Connexion Google Désactivée"}
-                    </h4>
-                  </div>
-                  <p className={cn(
-                    "text-xs font-medium leading-normal",
-                    enableGoogleSignIn ? "text-blue-600/70" : "text-slate-500"
-                  )}>
-                    {enableGoogleSignIn 
-                      ? "Les utilisateurs peuvent se connecter avec leur compte Google."
-                      : "La connexion Google est restreinte aux administrateurs."}
-                  </p>
-                </div>
-                <button
-                  type="button"
-                  onClick={() => {
-                    if (!isCurrentUserSU) {
-                      alert("Action réservée au Super Administrateur.");
-                      return;
-                    }
-                    setEnableGoogleSignIn(!enableGoogleSignIn);
-                  }}
-                  className={cn(
-                    "relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2",
-                    enableGoogleSignIn ? "bg-blue-600 focus:ring-blue-500" : "bg-slate-300 focus:ring-slate-500"
-                  )}
-                >
-                  <span
-                    className={cn(
-                      "pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out",
-                      enableGoogleSignIn ? "translate-x-5" : "translate-x-0"
                     )}
                   />
                 </button>

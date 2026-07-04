@@ -4,7 +4,7 @@ import { useAuth } from '../../contexts/AuthContext';
 import { 
   getOwnerResidences, 
   getOwnerBookings, 
-  addResidence, 
+  createResidence, 
   updateResidence, 
   updateBookingStatus, 
   deleteResidence,
@@ -1435,7 +1435,7 @@ export const OwnerDashboard: React.FC<{ isTestMode?: boolean; onBackToTraveler?:
         triggerSuccess("Votre résidence a été modifiée avec succès !");
       } else {
         newResidence.status = isTestMode ? 'published' : 'pending';
-        await addResidence(newResidence);
+        await createResidence(newResidence);
         if (isTestMode) {
           triggerSuccess("Votre résidence a été publiée avec succès !");
         } else {

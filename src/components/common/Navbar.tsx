@@ -10,8 +10,6 @@ import {
 import { cn } from '../../lib/utils';
 import { UserRole } from '../../types';
 import { AuthModal } from './AuthModal';
-import { db } from '../../lib/firebase';
-import { collection, query, where, onSnapshot, doc, updateDoc } from 'firebase/firestore';
 
 export const Navbar: React.FC<{ 
   onNavigate: (view: any) => void;
@@ -28,46 +26,61 @@ export const Navbar: React.FC<{
   const [notifications, setNotifications] = useState<any[]>([]);
   const [isNotifOpen, setIsNotifOpen] = useState(false);
 
-  useEffect(() => {
-    if (!user) {
-      setNotifications([]);
-      return;
-    }
-    const q = query(
-      collection(db, 'notifications'),
-      where('userId', '==', user.uid)
-    );
-    const unsub = onSnapshot(q, (snap) => {
-      const list: any[] = [];
-      snap.forEach(docSnap => {
-        list.push({ id: docSnap.id, ...docSnap.data() });
-      });
-      // Sort on client side
-      list.sort((a, b) => b.createdAt.localeCompare(a.createdAt));
-      setNotifications(list);
-    }, (error) => console.error("Error loading navbar live notifications:", error));
+  const fetchNotifications = async () => {
+    if (!user) return;
+    const token = localStorage.getItem('auth_token');
+    if (!token) return;
 
-    return () => unsub();
+    try {
+      const response = await fetch('/api/notifications', {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      if (response.ok) {
+        const data = await response.json();
+        setNotifications(data);
+      }
+    } catch (err) {
+      console.error("Error loading notifications:", err);
+    }
+  };
+
+  useEffect(() => {
+    fetchNotifications();
+    // Poll every 30 seconds for new notifications
+    const interval = setInterval(fetchNotifications, 30000);
+    return () => clearInterval(interval);
   }, [user]);
 
   const handleMarkAsRead = async (id: string) => {
+    const token = localStorage.getItem('auth_token');
     try {
-      await updateDoc(doc(db, 'notifications', id), { isRead: true });
+      const response = await fetch(`/api/notifications/${id}/read`, {
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      if (response.ok) {
+        setNotifications(prev => prev.map(n => n.id === id ? { ...n, is_read: 1 } : n));
+      }
     } catch (err) {
       console.error(err);
     }
   };
 
   const handleMarkAllAsRead = async () => {
+    const token = localStorage.getItem('auth_token');
     try {
-      const unread = notifications.filter(n => !n.isRead);
-      await Promise.all(unread.map(n => updateDoc(doc(db, 'notifications', n.id), { isRead: true })));
+      const unread = notifications.filter(n => !n.is_read);
+      await Promise.all(unread.map(n => fetch(`/api/notifications/${n.id}/read`, {
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${token}` }
+      })));
+      setNotifications(prev => prev.map(n => ({ ...n, is_read: 1 })));
     } catch (err) {
       console.error(err);
     }
   };
 
-  const unreadCount = notifications.filter(n => !n.isRead).length;
+  const unreadCount = notifications.filter(n => !n.is_read).length;
 
   const roleLabels: Record<UserRole, string> = {
     client: 'Voyageur',
@@ -84,7 +97,7 @@ export const Navbar: React.FC<{
           className="flex items-center cursor-pointer group hover:opacity-90 transition-opacity"
         >
           <div className="w-40 h-16 sm:w-56 sm:h-20 flex items-center justify-start group-hover:scale-105 transition-transform overflow-visible relative">
-            <img src="/logo.png" alt="ResiFaso" className="w-full h-full object-contain mix-blend-multiply brightness-[1.15] contrast-[1.25] scale-125 origin-left" />
+            <img src="/logoresifaso.png" alt="ResiFaso" className="w-full h-full object-contain scale-125 origin-left" />
           </div>
         </div>
 

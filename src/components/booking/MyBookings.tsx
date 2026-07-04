@@ -1,7 +1,7 @@
 import { formatCurrency } from '../../utils/currency';
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
-import { getClientBookings, updateBookingStatus, AppNotification, sendNotification } from '../../lib/db';
+import { getClientBookings, updateBookingStatus, sendNotification } from '../../lib/db';
 import { Booking, Residence } from '../../types';
 import { MOCK_RESIDENCES } from '../../mockData';
 import { motion, AnimatePresence } from 'motion/react';

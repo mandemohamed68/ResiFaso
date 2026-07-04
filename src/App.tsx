@@ -29,12 +29,11 @@ import {
   updateBookingStatus,
   sendNotification
 } from './lib/db';
-import { db } from './lib/firebase';
-import { collection, query, where, onSnapshot, getDocs, doc, updateDoc } from 'firebase/firestore';
 import { ProfileSettings } from './components/profile/ProfileSettings';
 import { LegalPage } from './components/legal/LegalPage';
 import { FAQPage } from './components/legal/FAQPage';
 import { ContactPage } from './components/legal/ContactPage';
+import { ResetPassword } from './components/auth/ResetPassword';
 import { Footer } from './components/common/Footer';
 import { BURKINA_LOCATIONS } from './constants/locations';
 import { GlobalModal } from './components/common/GlobalModal';
@@ -44,8 +43,17 @@ function AppContent() {
   const { currentRole, setCurrentRole } = useRole();
   const { addToast } = useToast();
   
-  const [view, setView] = useState<'home' | 'search' | 'details' | 'admin' | 'bookings' | 'owner-dashboard' | 'profile' | 'messages' | 'favorites' | 'tos' | 'privacy' | 'faq' | 'contact' | 'guide'>('home');
+  const [view, setView] = useState<'home' | 'search' | 'details' | 'admin' | 'bookings' | 'owner-dashboard' | 'profile' | 'messages' | 'favorites' | 'tos' | 'privacy' | 'faq' | 'contact' | 'guide' | 'reset-password'>('home');
   const [selectedResidence, setSelectedResidence] = useState<Residence | null>(null);
+
+  // URL parsing for views (like reset-password)
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const viewParam = params.get('view');
+    if (viewParam === 'reset-password') {
+      setView('reset-password');
+    }
+  }, []);
   const [isPaymentOpen, setIsPaymentOpen] = useState(false);
   const [activeBookingForPayment, setActiveBookingForPayment] = useState<any>(null);
   const [isAuthOpen, setIsAuthOpen] = useState(false);
@@ -117,77 +125,52 @@ function AppContent() {
     amenities: string[];
   } | null>(null);
 
-  // Synchroniser le Mode Test avec les Paramètres Globaux (Firestore)
+  // Synchroniser le Mode Test avec les Paramètres Globaux (API)
   useEffect(() => {
-    const unsubSettings = onSnapshot(doc(db, 'settings', 'global'), (docSnap) => {
-      if (docSnap.exists()) {
-        const data = docSnap.data();
-        if (data.isTestMode !== undefined) {
-          setIsTestMode(data.isTestMode);
+    const fetchSettings = async () => {
+      try {
+        const response = await fetch('/api/settings/global');
+        if (response.ok) {
+          const data = await response.json();
+          if (data.isTestMode !== undefined) setIsTestMode(data.isTestMode);
+          if (data.commissionRate !== undefined) setCommissionRate(data.commissionRate);
+          if (data.enablePhoneCalls !== undefined) setEnablePhoneCalls(data.enablePhoneCalls);
+          if (data.enableWhatsApp !== undefined) setEnableWhatsApp(data.enableWhatsApp);
+          if (data.announcement) {
+            setGlobalAnnouncement({
+              text: data.announcement.text || '',
+              type: data.announcement.type || 'info',
+              active: !!data.announcement.active
+            });
+            setIsAnnouncementDismissed(false);
+          }
         }
-        if (data.commissionRate !== undefined) {
-          setCommissionRate(data.commissionRate);
-        }
-        if (data.enablePhoneCalls !== undefined) {
-          setEnablePhoneCalls(data.enablePhoneCalls);
-        } else {
-          setEnablePhoneCalls(true);
-        }
-        if (data.enableWhatsApp !== undefined) {
-          setEnableWhatsApp(data.enableWhatsApp);
-        } else {
-          setEnableWhatsApp(true);
-        }
-        if (data.announcement) {
-          setGlobalAnnouncement({
-            text: data.announcement.text || '',
-            type: data.announcement.type || 'info',
-            active: !!data.announcement.active
-          });
-          // Si le message change ou est réactivé, on réinitialise l'état masqué
-          setIsAnnouncementDismissed(false);
-        } else {
-          setGlobalAnnouncement(null);
-        }
+      } catch (err) {
+        console.error("Error fetching global settings:", err);
       }
-    }, (err) => console.error("Error subscribing to global testMode in App.tsx:", err));
-    return () => unsubSettings();
+    };
+    fetchSettings();
   }, []);
 
-  // Auto-seed and monitor published residences in real-time
+  // Fetch residences from API
   useEffect(() => {
-    let unsubscribe: () => void;
-
-    async function initAndListen() {
+    const fetchResidences = async () => {
       try {
         setLoading(true);
-        // Ensure standard sample residences exist on pristine databases
-        await seedDatabaseIfNeeded();
-
-        // Listen for all published residences in real-time
-        const q = query(collection(db, 'residences'), where('status', '==', 'published'));
-        unsubscribe = onSnapshot(q, (snapshot) => {
-          const list: Residence[] = [];
-          snapshot.forEach(docSnap => {
-            list.push({ id: docSnap.id, ...docSnap.data() } as Residence);
-          });
-          setResidences(list);
-          setLoading(false);
-        }, (error) => {
-          console.error("SNAPSHOT_ERROR residences in App.tsx:", error.code, error.message);
-          setLoading(false);
-        });
+        const response = await fetch('/api/residences');
+        if (response.ok) {
+          const data = await response.json();
+          // Filter published only if needed (backend should ideally handle this)
+          const published = data.filter((r: any) => r.status === 'published');
+          setResidences(published);
+        }
       } catch (err) {
-        console.error("Database initialization failed:", err);
+        console.error("Error loading residences:", err);
+      } finally {
         setLoading(false);
       }
-    }
-
-    initAndListen();
-
-    return () => {
-      if (unsubscribe) unsubscribe();
     };
+    fetchResidences();
   }, []);
 
   const handleResidenceClick = (residence: Residence) => {
@@ -202,20 +185,18 @@ function AppContent() {
       setSelectedResidenceBookings([]);
       return;
     }
-    const q = query(
-      collection(db, 'bookings'),
-      where('residenceId', '==', selectedResidence.id),
-      where('bookingStatus', 'in', ['confirmed', 'pending'])
-    );
-    const unsub = onSnapshot(q, (snapshot) => {
-      const list: any[] = [];
-      snapshot.forEach(docSnap => {
-        list.push({ id: docSnap.id, ...docSnap.data() });
-      });
-      setSelectedResidenceBookings(list);
-    }, (err) => console.log("Error loading selectedResidence Bookings:", err));
-
-    return () => unsub();
+    const fetchSelectedBookings = async () => {
+      try {
+        const response = await fetch(`/api/residences/${selectedResidence.id}/bookings`);
+        if (response.ok) {
+          const data = await response.json();
+          setSelectedResidenceBookings(data);
+        }
+      } catch (err) {
+        console.error("Error loading selectedResidence Bookings:", err);
+      }
+    };
+    fetchSelectedBookings();
   }, [selectedResidence]);
 
   const handleBackToList = () => {
@@ -402,14 +383,9 @@ function AppContent() {
 
     try {
       // 1. Check for availability conflicts
-      const bookingsRef = collection(db, 'bookings');
-      const q = query(
-        bookingsRef, 
-        where('residenceId', '==', selectedResidence.id),
-        where('bookingStatus', '==', 'confirmed')
-      );
-      const snapshot = await getDocs(q);
-      const confirmedBookings = snapshot.docs.map(d => d.data());
+      const response = await fetch(`/api/residences/${selectedResidence.id}/bookings`);
+      if (!response.ok) throw new Error("Erreur lors de la vérification de disponibilité");
+      const confirmedBookings = await response.json();
 
       const dStart = new Date(checkIn);
       const dEnd = new Date(checkOut);
@@ -1415,6 +1391,11 @@ function AppContent() {
           {view === 'faq' && (
             <motion.div key="faq" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
               <FAQPage />
+            </motion.div>
+          )}
+          {view === 'reset-password' && (
+            <motion.div key="reset-password" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
+              <ResetPassword onNavigate={handleNavigate} />
             </motion.div>
           )}
           {view === 'contact' && (
