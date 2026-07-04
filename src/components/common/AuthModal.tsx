@@ -10,9 +10,10 @@ import { UserRole, UserProfile } from '../../types';
 interface AuthModalProps {
   isOpen: boolean;
   onClose: () => void;
+  onNavigate?: (view: string) => void;
 }
 
-export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
+export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onNavigate }) => {
   const { signIn, loginAsMock } = useAuth();
   const [isSignUp, setIsSignUp] = useState(false);
   const [isForgotPassword, setIsForgotPassword] = useState(false);
@@ -25,6 +26,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
   const [success, setSuccess] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [enableGoogleSignIn, setEnableGoogleSignIn] = useState(true);
+  const [acceptTerms, setAcceptTerms] = useState(false);
 
   React.useEffect(() => {
     if (!isOpen) return;
@@ -115,6 +117,9 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
 
     try {
       if (isSignUp) {
+        if (!acceptTerms) {
+          throw new Error("Vous devez accepter les conditions d'utilisation et la politique de confidentialité pour continuer.");
+        }
         if (!displayName) {
           throw new Error("Veuillez saisir votre nom complet.");
         }
@@ -196,8 +201,8 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
         </button>
 
         <div className="mb-6 text-center">
-          <div className="inline-flex w-32 h-32 items-center justify-center mb-2 overflow-visible relative">
-            <img src="/logo.png" alt="ResiFaso" className="w-[180%] h-[180%] max-w-[180%] object-contain mix-blend-multiply absolute scale-125" />
+          <div className="inline-flex w-40 h-20 sm:w-56 sm:h-28 items-center justify-center mb-4 overflow-visible relative">
+            <img src="/logo.png" alt="ResiFaso" className="w-full h-full object-contain mix-blend-multiply brightness-[1.15] contrast-[1.25] scale-125" />
           </div>
           <h3 className="text-2xl font-black text-slate-900 tracking-tight">
             {isForgotPassword ? "Mot de passe oublié" : isSignUp ? "Créer un compte" : "Connexion"}
@@ -385,6 +390,21 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
                   />
                 </div>
               </div>
+
+              {isSignUp && (
+                <div className="flex items-start gap-2 mt-2">
+                  <input
+                    type="checkbox"
+                    id="terms"
+                    checked={acceptTerms}
+                    onChange={(e) => setAcceptTerms(e.target.checked)}
+                    className="mt-1 w-4 h-4 text-red-600 rounded focus:ring-red-500 border-slate-300 cursor-pointer"
+                  />
+                  <label htmlFor="terms" className="text-xs text-slate-500 font-medium leading-tight">
+                    J'accepte les <button type="button" onClick={() => { onClose(); onNavigate?.('tos'); }} className="text-red-600 hover:underline">conditions d'utilisation</button>, la <button type="button" onClick={() => { onClose(); onNavigate?.('privacy'); }} className="text-red-600 hover:underline">politique de confidentialité</button> et j'ai lu le <button type="button" onClick={() => { onClose(); onNavigate?.('guide'); }} className="text-red-600 hover:underline">mode d'emploi</button>.
+                  </label>
+                </div>
+              )}
 
               <button
                 type="submit"

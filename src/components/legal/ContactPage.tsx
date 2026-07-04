@@ -48,6 +48,11 @@ export const ContactPage: React.FC<ContactPageProps> = ({ onBack, onNavigateToFa
           hours: data.hours || DEFAULT_SETTINGS.hours,
           facebookUrl: data.facebookUrl || DEFAULT_SETTINGS.facebookUrl,
           whatsappNumber: data.whatsappNumber || DEFAULT_SETTINGS.whatsappNumber,
+          isEmailEnabled: data.isEmailEnabled !== false,
+          isPhoneEnabled: data.isPhoneEnabled !== false,
+          isWhatsappEnabled: data.isWhatsappEnabled !== false,
+          isFacebookEnabled: data.isFacebookEnabled !== false,
+          isAddressEnabled: data.isAddressEnabled !== false,
         });
       }
     });
@@ -138,37 +143,43 @@ export const ContactPage: React.FC<ContactPageProps> = ({ onBack, onNavigateToFa
               <h2 className="text-lg font-black text-slate-900 tracking-tight">Coordonnées</h2>
               
               <div className="space-y-4">
-                <div className="flex items-start gap-4">
-                  <span className="p-3 bg-red-50 text-[#EF2B2D] rounded-2xl shrink-0">
-                    <Phone size={18} />
-                  </span>
-                  <div>
-                    <h4 className="text-xs font-black text-slate-400 uppercase tracking-wider">Téléphone</h4>
-                    <p className="text-slate-900 font-bold mt-0.5">{settings.phone}</p>
+                {settings.isPhoneEnabled !== false && (
+                  <div className="flex items-start gap-4">
+                    <span className="p-3 bg-red-50 text-[#EF2B2D] rounded-2xl shrink-0">
+                      <Phone size={18} />
+                    </span>
+                    <div>
+                      <h4 className="text-xs font-black text-slate-400 uppercase tracking-wider">Téléphone</h4>
+                      <p className="text-slate-900 font-bold mt-0.5">{settings.phone}</p>
+                    </div>
                   </div>
-                </div>
+                )}
 
-                <div className="flex items-start gap-4">
-                  <span className="p-3 bg-red-50 text-[#EF2B2D] rounded-2xl shrink-0">
-                    <Mail size={18} />
-                  </span>
-                  <div>
-                    <h4 className="text-xs font-black text-slate-400 uppercase tracking-wider">Email</h4>
-                    <a href={`mailto:${settings.email}`} className="text-slate-900 hover:text-red-500 font-bold mt-0.5 block transition-colors">
-                      {settings.email}
-                    </a>
+                {settings.isEmailEnabled !== false && (
+                  <div className="flex items-start gap-4">
+                    <span className="p-3 bg-red-50 text-[#EF2B2D] rounded-2xl shrink-0">
+                      <Mail size={18} />
+                    </span>
+                    <div>
+                      <h4 className="text-xs font-black text-slate-400 uppercase tracking-wider">Email</h4>
+                      <a href={`mailto:${settings.email}`} className="text-slate-900 hover:text-red-500 font-bold mt-0.5 block transition-colors">
+                        {settings.email}
+                      </a>
+                    </div>
                   </div>
-                </div>
+                )}
 
-                <div className="flex items-start gap-4">
-                  <span className="p-3 bg-red-50 text-[#EF2B2D] rounded-2xl shrink-0">
-                    <MapPin size={18} />
-                  </span>
-                  <div>
-                    <h4 className="text-xs font-black text-slate-400 uppercase tracking-wider">Adresse</h4>
-                    <p className="text-slate-900 font-bold mt-0.5">{settings.address}</p>
+                {settings.isAddressEnabled !== false && (
+                  <div className="flex items-start gap-4">
+                    <span className="p-3 bg-red-50 text-[#EF2B2D] rounded-2xl shrink-0">
+                      <MapPin size={18} />
+                    </span>
+                    <div>
+                      <h4 className="text-xs font-black text-slate-400 uppercase tracking-wider">Adresse</h4>
+                      <p className="text-slate-900 font-bold mt-0.5">{settings.address}</p>
+                    </div>
                   </div>
-                </div>
+                )}
 
                 <div className="flex items-start gap-4">
                   <span className="p-3 bg-red-50 text-[#EF2B2D] rounded-2xl shrink-0">
@@ -183,7 +194,7 @@ export const ContactPage: React.FC<ContactPageProps> = ({ onBack, onNavigateToFa
 
               {/* Social Channels / Actionable shortcuts */}
               <div className="pt-6 border-t border-slate-100 flex flex-wrap gap-3">
-                {settings.facebookUrl && (
+                {settings.facebookUrl && settings.isFacebookEnabled !== false && (
                   <a
                     href={settings.facebookUrl}
                     target="_blank"
@@ -194,7 +205,7 @@ export const ContactPage: React.FC<ContactPageProps> = ({ onBack, onNavigateToFa
                     Facebook
                   </a>
                 )}
-                {settings.whatsappNumber && (
+                {settings.whatsappNumber && settings.isWhatsappEnabled !== false && (
                   <a
                     href={`https://wa.me/${settings.whatsappNumber.replace(/[\s+]/g, '')}`}
                     target="_blank"

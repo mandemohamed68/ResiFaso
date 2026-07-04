@@ -44,7 +44,7 @@ function AppContent() {
   const { currentRole, setCurrentRole } = useRole();
   const { addToast } = useToast();
   
-  const [view, setView] = useState<'home' | 'search' | 'details' | 'admin' | 'bookings' | 'owner-dashboard' | 'profile' | 'messages' | 'favorites' | 'tos' | 'privacy' | 'faq' | 'contact'>('home');
+  const [view, setView] = useState<'home' | 'search' | 'details' | 'admin' | 'bookings' | 'owner-dashboard' | 'profile' | 'messages' | 'favorites' | 'tos' | 'privacy' | 'faq' | 'contact' | 'guide'>('home');
   const [selectedResidence, setSelectedResidence] = useState<Residence | null>(null);
   const [isPaymentOpen, setIsPaymentOpen] = useState(false);
   const [activeBookingForPayment, setActiveBookingForPayment] = useState<any>(null);
@@ -1407,6 +1407,11 @@ function AppContent() {
               <LegalPage type="privacy" />
             </motion.div>
           )}
+          {view === 'guide' && (
+            <motion.div key="guide" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
+              <LegalPage type="guide" />
+            </motion.div>
+          )}
           {view === 'faq' && (
             <motion.div key="faq" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
               <FAQPage />
@@ -1423,7 +1428,7 @@ function AppContent() {
       <Footer onNavigate={(v) => handleNavigate(v)} />
 
       {/* Account Login panel triggers */}
-      <AuthModal isOpen={isAuthOpen} onClose={() => setIsAuthOpen(false)} />
+      <AuthModal isOpen={isAuthOpen} onClose={() => setIsAuthOpen(false)} onNavigate={handleNavigate} />
       
       <GlobalModal
         isOpen={modalConfig.isOpen}

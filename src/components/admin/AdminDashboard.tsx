@@ -3801,6 +3801,63 @@ export const AdminDashboard: React.FC<{ onBackToTraveler?: () => void }> = ({ on
                       </div>
                     </div>
 
+                    <div className="pt-4 border-t border-slate-100 space-y-4">
+                      <h4 className="text-xs font-black text-slate-900 tracking-tight">Éléments Visibles (Support)</h4>
+                      <p className="text-[10px] text-slate-400 font-medium leading-relaxed">Cochez les informations que vous souhaitez afficher sur la page Support.</p>
+                      
+                      <div className="grid grid-cols-2 gap-4">
+                        <label className="flex items-center gap-2 cursor-pointer">
+                          <input 
+                            type="checkbox" 
+                            checked={contactSettings.isEmailEnabled !== false}
+                            onChange={(e) => setContactSettings(prev => ({ ...prev, isEmailEnabled: e.target.checked }))}
+                            className="w-4 h-4 text-red-600 rounded focus:ring-red-500"
+                          />
+                          <span className="text-xs font-bold text-slate-700">Email</span>
+                        </label>
+                        
+                        <label className="flex items-center gap-2 cursor-pointer">
+                          <input 
+                            type="checkbox" 
+                            checked={contactSettings.isPhoneEnabled !== false}
+                            onChange={(e) => setContactSettings(prev => ({ ...prev, isPhoneEnabled: e.target.checked }))}
+                            className="w-4 h-4 text-red-600 rounded focus:ring-red-500"
+                          />
+                          <span className="text-xs font-bold text-slate-700">Téléphone</span>
+                        </label>
+
+                        <label className="flex items-center gap-2 cursor-pointer">
+                          <input 
+                            type="checkbox" 
+                            checked={contactSettings.isWhatsappEnabled !== false}
+                            onChange={(e) => setContactSettings(prev => ({ ...prev, isWhatsappEnabled: e.target.checked }))}
+                            className="w-4 h-4 text-red-600 rounded focus:ring-red-500"
+                          />
+                          <span className="text-xs font-bold text-slate-700">WhatsApp</span>
+                        </label>
+
+                        <label className="flex items-center gap-2 cursor-pointer">
+                          <input 
+                            type="checkbox" 
+                            checked={contactSettings.isFacebookEnabled !== false}
+                            onChange={(e) => setContactSettings(prev => ({ ...prev, isFacebookEnabled: e.target.checked }))}
+                            className="w-4 h-4 text-red-600 rounded focus:ring-red-500"
+                          />
+                          <span className="text-xs font-bold text-slate-700">Facebook</span>
+                        </label>
+                        
+                        <label className="flex items-center gap-2 cursor-pointer">
+                          <input 
+                            type="checkbox" 
+                            checked={contactSettings.isAddressEnabled !== false}
+                            onChange={(e) => setContactSettings(prev => ({ ...prev, isAddressEnabled: e.target.checked }))}
+                            className="w-4 h-4 text-red-600 rounded focus:ring-red-500"
+                          />
+                          <span className="text-xs font-bold text-slate-700">Adresse Physique</span>
+                        </label>
+                      </div>
+                    </div>
+
                     <button
                       type="submit"
                       disabled={isSavingContactSettings}

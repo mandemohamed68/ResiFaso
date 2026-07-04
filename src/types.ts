@@ -201,6 +201,11 @@ export interface ContactSettings {
   hours: string;
   facebookUrl?: string;
   whatsappNumber?: string;
+  isEmailEnabled?: boolean;
+  isPhoneEnabled?: boolean;
+  isWhatsappEnabled?: boolean;
+  isFacebookEnabled?: boolean;
+  isAddressEnabled?: boolean;
 }
 
 

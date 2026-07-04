@@ -5,7 +5,7 @@ import { useToast } from '../../contexts/ToastContext';
 import { 
   Home, Search, Heart, User, LogOut, Shield, Briefcase, 
   LayoutDashboard, MessageSquare, Bell, ShieldAlert, CalendarCheck, Check, Sun, Moon,
-  Info, AlertTriangle, CheckCircle2, AlertCircle, Clock
+  Info, AlertTriangle, CheckCircle2, AlertCircle, Clock, HelpCircle
 } from 'lucide-react';
 import { cn } from '../../lib/utils';
 import { UserRole } from '../../types';
@@ -81,15 +81,10 @@ export const Navbar: React.FC<{
         {/* Logo */}
         <div 
           onClick={() => onNavigate('home')} 
-          className="flex items-center gap-1 sm:gap-2 cursor-pointer group hover:opacity-90 transition-opacity"
+          className="flex items-center cursor-pointer group hover:opacity-90 transition-opacity"
         >
-          <div className="w-14 h-14 sm:w-16 sm:h-16 flex items-center justify-center group-hover:scale-105 transition-transform overflow-visible relative">
-            <img src="/logo.png" alt="ResiFaso" className="w-[200%] max-w-[200%] h-[200%] object-contain mix-blend-multiply scale-150 absolute" />
-          </div>
-          <div className="flex flex-col z-10 pl-4 sm:pl-8">
-            <span className="hidden sm:block font-black text-2xl tracking-tight text-slate-900 leading-none">
-              ResiFaso<span className="text-red-600 text-3xl leading-[0]">.</span>
-            </span>
+          <div className="w-40 h-16 sm:w-56 sm:h-20 flex items-center justify-start group-hover:scale-105 transition-transform overflow-visible relative">
+            <img src="/logo.png" alt="ResiFaso" className="w-full h-full object-contain mix-blend-multiply brightness-[1.15] contrast-[1.25] scale-125 origin-left" />
           </div>
         </div>
 
@@ -409,9 +404,14 @@ export const Navbar: React.FC<{
             <span className="text-[9px] font-bold uppercase tracking-wider">Admin</span>
           </button>
         )}
+
+        <button onClick={() => onNavigate('contact')} className="flex flex-col items-center gap-1 text-slate-500 hover:text-orange-600 cursor-pointer">
+          <HelpCircle size={20} />
+          <span className="text-[9px] font-bold uppercase tracking-wider">Support</span>
+        </button>
       </div>
 
-      <AuthModal isOpen={isAuthOpen} onClose={() => setIsAuthOpen(false)} />
+      <AuthModal isOpen={isAuthOpen} onClose={() => setIsAuthOpen(false)} onNavigate={onNavigate} />
     </nav>
   );
 };

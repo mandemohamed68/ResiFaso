@@ -22,7 +22,41 @@ const LegalSection: React.FC<LegalSectionProps> = ({ title, icon: Icon, children
   </section>
 );
 
-export const LegalPage: React.FC<{ type: 'tos' | 'privacy' }> = ({ type }) => {
+export const LegalPage: React.FC<{ type: 'tos' | 'privacy' | 'guide' }> = ({ type }) => {
+  if (type === 'guide') {
+    return (
+      <div className="max-w-4xl mx-auto px-6 py-12">
+        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
+          <header className="mb-16 text-center">
+            <h1 className="text-4xl font-black text-slate-900 mb-4 tracking-tighter">Mode d'Emploi ResiFaso</h1>
+            <p className="text-slate-500 font-bold uppercase tracking-[0.2em] text-xs">Guide pas-à-pas pour Voyageurs et Hôtes</p>
+          </header>
+
+          <LegalSection title="1. Pour les Voyageurs (Clients)" icon={UserCheck}>
+            <ul className="list-decimal pl-5 space-y-4">
+              <li><strong>Créer un compte :</strong> Cliquez sur "S'inscrire", choisissez le rôle "Voyageur", remplissez vos informations et acceptez les conditions.</li>
+              <li><strong>Rechercher un logement :</strong> Utilisez la barre de recherche sur la page d'accueil pour filtrer par ville, quartier ou type de logement.</li>
+              <li><strong>Réserver :</strong> Sur la page d'un logement, sélectionnez vos dates. Le système calculera automatiquement le prix. Cliquez sur "Réserver".</li>
+              <li><strong>Payer l'acompte :</strong> Pour valider votre réservation, payez l'acompte demandé (Mobile Money ou carte). Le reste sera payé plus tard.</li>
+              <li><strong>Communiquer avec l'Hôte :</strong> Une fois la réservation confirmée, vous pouvez utiliser la messagerie intégrée pour discuter avec l'hôte.</li>
+              <li><strong>Profiter du séjour :</strong> Respectez le règlement intérieur. À la fin, n'hésitez pas à laisser un avis !</li>
+            </ul>
+          </LegalSection>
+
+          <LegalSection title="2. Pour les Hôtes (Propriétaires)" icon={Shield}>
+            <ul className="list-decimal pl-5 space-y-4">
+              <li><strong>Créer un compte :</strong> Inscrivez-vous en tant que "Propriétaire". Accédez ensuite à votre tableau de bord Hôte.</li>
+              <li><strong>Ajouter une annonce :</strong> Cliquez sur "Nouvelle Résidence", remplissez les détails (titre, prix, photos, équipements, conditions d'annulation).</li>
+              <li><strong>Gérer les réservations :</strong> Suivez vos demandes de réservation. Si le paiement automatique est activé, les réservations payées sont directement confirmées.</li>
+              <li><strong>Retirer ses gains :</strong> Allez dans la section "Portefeuille", vérifiez votre solde et demandez un retrait vers votre numéro Mobile Money.</li>
+              <li><strong>Paramétrer les annulations :</strong> Définissez vos frais d'annulation dans vos annonces pour vous protéger en cas de désistement.</li>
+            </ul>
+          </LegalSection>
+        </motion.div>
+      </div>
+    );
+  }
+
   if (type === 'tos') {
     return (
       <div className="max-w-4xl mx-auto px-6 py-12">

@@ -3,7 +3,7 @@
   "appName": "ResiFaso",
   "webDir": "dist",
   "server": {
-    "url": "http://41.78.54.60:5000",
+    "url": "http://167.172.39.172:2020",
     "cleartext": true
   },
   "plugins": {
