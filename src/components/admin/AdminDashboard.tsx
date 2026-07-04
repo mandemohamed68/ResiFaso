@@ -885,7 +885,13 @@ export const AdminDashboard: React.FC<{ onBackToTraveler?: () => void }> = ({ on
   };
 
   const handleExportDatabase = async (format: 'mariadb' | 'sqlite') => {
-    triggerSuccess("Génération du dump complet en cours... Veuillez patienter.");
+    if (format === 'mariadb') {
+      triggerSuccess("Génération du dump complet MariaDB sur le serveur... Le téléchargement va démarrer.");
+      window.location.href = '/api/db/generate-dump';
+      return;
+    }
+
+    triggerSuccess("Génération du dump SQLite en cours... Veuillez patienter.");
     
     const escapeSql = (val: any) => {
       if (val === undefined || val === null) return "NULL";
@@ -903,29 +909,29 @@ export const AdminDashboard: React.FC<{ onBackToTraveler?: () => void }> = ({ on
     // 1. Users
     sql += `-- Structure de la table users\n`;
     sql += `CREATE TABLE IF NOT EXISTS users (\n`;
-    sql += `  uid VARCHAR(255) PRIMARY KEY,\n`;
-    sql += `  email VARCHAR(255),\n`;
-    sql += `  displayName VARCHAR(255),\n`;
-    sql += `  phoneNumber VARCHAR(100),\n`;
-    sql += `  photoURL TEXT,\n`;
-    sql += `  role VARCHAR(50),\n`;
-    sql += `  isVerified TINYINT(1) DEFAULT 0,\n`;
-    sql += `  isSuspended TINYINT(1) DEFAULT 0,\n`;
-    sql += `  createdAt VARCHAR(100)\n`;
-    sql += `);\n\n`;
+    sql += `  id VARCHAR(128) PRIMARY KEY,\n`;
+    sql += `  email VARCHAR(255) NOT NULL UNIQUE,\n`;
+    sql += `  display_name VARCHAR(255) NOT NULL,\n`;
+    sql += `  phone_number VARCHAR(50),\n`;
+    sql += `  photo_url TEXT,\n`;
+    sql += `  role VARCHAR(50) DEFAULT 'client',\n`;
+    sql += `  is_verified BOOLEAN DEFAULT FALSE,\n`;
+    sql += `  is_suspended BOOLEAN DEFAULT FALSE,\n`;
+    sql += `  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP\n`;
+    if (format === "mariadb") { sql += `) PARTITION BY KEY(id) PARTITIONS 4;\n\n`; } else { sql += `);\n\n`; }
 
     if (users.length > 0) {
       users.forEach(u => {
-        sql += `INSERT ${format === 'mariadb' ? 'IGNORE ' : 'OR IGNORE '}INTO users (uid, email, displayName, phoneNumber, photoURL, role, isVerified, isSuspended, createdAt) VALUES (\n`;
+        sql += `INSERT ${format === 'mariadb' ? 'IGNORE ' : 'OR IGNORE '}INTO users (id, email, display_name, phone_number, photo_url, role, is_verified, is_suspended, created_at) VALUES (\n`;
         sql += `  ${escapeSql(u.uid)},\n`;
         sql += `  ${escapeSql(u.email)},\n`;
         sql += `  ${escapeSql(u.displayName)},\n`;
         sql += `  ${escapeSql(u.phoneNumber)},\n`;
         sql += `  ${escapeSql(u.photoURL)},\n`;
-        sql += `  ${escapeSql(u.role)},\n`;
-        sql += `  ${escapeSql(u.isVerified)},\n`;
-        sql += `  ${escapeSql(u.isSuspended)},\n`;
-        sql += `  ${escapeSql(u.createdAt || new Date().toISOString())}\n`;
+        sql += `  ${escapeSql(u.role || 'client')},\n`;
+        sql += `  ${escapeSql(u.isVerified || false)},\n`;
+        sql += `  ${escapeSql(u.isSuspended || false)},\n`;
+        sql += `  ${escapeSql(u.createdAt ? new Date(u.createdAt).toISOString().replace('T', ' ').substring(0, 19) : new Date().toISOString().replace('T', ' ').substring(0, 19))}\n`;
         sql += `);\n`;
       });
       sql += '\n';
@@ -934,78 +940,100 @@ export const AdminDashboard: React.FC<{ onBackToTraveler?: () => void }> = ({ on
     // 2. Residences
     sql += `-- Structure de la table residences\n`;
     sql += `CREATE TABLE IF NOT EXISTS residences (\n`;
-    sql += `  id VARCHAR(255) PRIMARY KEY,\n`;
-    sql += `  ownerId VARCHAR(255),\n`;
-    sql += `  title VARCHAR(255),\n`;
+    sql += `  id VARCHAR(128) PRIMARY KEY,\n`;
+    sql += `  owner_id VARCHAR(128) NOT NULL,\n`;
+    sql += `  title VARCHAR(255) NOT NULL,\n`;
     sql += `  description TEXT,\n`;
-    sql += `  type VARCHAR(100),\n`;
-    sql += `  pricePerNight DECIMAL(10,2),\n`;
-    sql += `  advancePercentage DECIMAL(5,2),\n`;
-    sql += `  cleaningFee DECIMAL(10,2),\n`;
-    sql += `  serviceFee DECIMAL(10,2),\n`;
-    sql += `  city VARCHAR(255),\n`;
-    sql += `  neighborhood VARCHAR(255),\n`;
+    sql += `  type VARCHAR(100) NOT NULL,\n`;
+    sql += `  price_per_night DECIMAL(10, 2) NOT NULL,\n`;
+    sql += `  advance_percentage INT DEFAULT 0,\n`;
+    sql += `  cleaning_fee DECIMAL(10, 2) DEFAULT 0,\n`;
+    sql += `  service_fee DECIMAL(10, 2) DEFAULT 0,\n`;
+    sql += `  city VARCHAR(100),\n`;
+    sql += `  neighborhood VARCHAR(100),\n`;
     sql += `  street VARCHAR(255),\n`;
-    sql += `  capacity INT,\n`;
-    sql += `  bedrooms INT,\n`;
-    sql += `  beds INT,\n`;
-    sql += `  bathrooms INT,\n`;
-    sql += `  rooms INT,\n`;
-    sql += `  rating DECIMAL(3,2),\n`;
-    sql += `  reviewCount INT,\n`;
-    sql += `  ownerPhone VARCHAR(100),\n`;
-    sql += `  status VARCHAR(100),\n`;
-    sql += `  ownerName VARCHAR(255),\n`;
-    sql += `  createdAt VARCHAR(100),\n`;
-    sql += `  promoted TINYINT(1) DEFAULT 0,\n`;
-    sql += `  weeklyDiscount DECIMAL(5,2),\n`;
-    sql += `  monthlyDiscount DECIMAL(5,2),\n`;
-    sql += `  promoPrice DECIMAL(10,2),\n`;
-    sql += `  rejectionReason TEXT,\n`;
-    sql += `  images TEXT,\n`;
-    sql += `  amenities TEXT,\n`;
-    sql += `  pricingTiers TEXT,\n`;
-    sql += `  waterIncluded TINYINT(1) DEFAULT 0,\n`;
-    sql += `  electricityIncluded TINYINT(1) DEFAULT 0\n`;
-    sql += `);\n\n`;
+    sql += `  lat DECIMAL(10, 8),\n`;
+    sql += `  lng DECIMAL(11, 8),\n`;
+    sql += `  capacity INT DEFAULT 1,\n`;
+    sql += `  bedrooms INT DEFAULT 1,\n`;
+    sql += `  beds INT DEFAULT 1,\n`;
+    sql += `  bathrooms INT DEFAULT 1,\n`;
+    sql += `  rooms INT DEFAULT 1,\n`;
+    sql += `  status VARCHAR(50) DEFAULT 'pending',\n`;
+    sql += `  availability_status VARCHAR(50) DEFAULT 'available',\n`;
+    sql += `  promoted BOOLEAN DEFAULT FALSE,\n`;
+    sql += `  weekly_discount INT DEFAULT 0,\n`;
+    sql += `  monthly_discount INT DEFAULT 0,\n`;
+    sql += `  promo_price DECIMAL(10, 2),\n`;
+    sql += `  rejection_reason TEXT,\n`;
+    sql += `  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP\n`;
+    if (format === "mariadb") { sql += `) PARTITION BY KEY(id) PARTITIONS 4;\n\n`; } else { sql += `);\n\n`; }
 
     if (residences.length > 0) {
       residences.forEach(r => {
-        sql += `INSERT ${format === 'mariadb' ? 'IGNORE ' : 'OR IGNORE '}INTO residences (id, ownerId, title, description, type, pricePerNight, advancePercentage, cleaningFee, serviceFee, city, neighborhood, street, capacity, bedrooms, beds, bathrooms, rooms, rating, reviewCount, ownerPhone, status, ownerName, createdAt, promoted, weeklyDiscount, monthlyDiscount, promoPrice, rejectionReason, images, amenities, pricingTiers, waterIncluded, electricityIncluded) VALUES (\n`;
+        sql += `INSERT ${format === 'mariadb' ? 'IGNORE ' : 'OR IGNORE '}INTO residences (id, owner_id, title, description, type, price_per_night, advance_percentage, cleaning_fee, service_fee, city, neighborhood, street, capacity, bedrooms, beds, bathrooms, rooms, status, availability_status, promoted, weekly_discount, monthly_discount, promo_price, rejection_reason, created_at) VALUES (\n`;
         sql += `  ${escapeSql(r.id)},\n`;
         sql += `  ${escapeSql(r.ownerId)},\n`;
         sql += `  ${escapeSql(r.title)},\n`;
         sql += `  ${escapeSql(r.description)},\n`;
-        sql += `  ${escapeSql(r.type)},\n`;
+        sql += `  ${escapeSql(r.type || 'appartement')},\n`;
         sql += `  ${escapeSql(r.pricePerNight || r.price || 0)},\n`;
-        sql += `  ${escapeSql(r.advancePercentage)},\n`;
-        sql += `  ${escapeSql(r.cleaningFee)},\n`;
-        sql += `  ${escapeSql(r.serviceFee)},\n`;
+        sql += `  ${escapeSql(r.advancePercentage || 0)},\n`;
+        sql += `  ${escapeSql(r.cleaningFee || 0)},\n`;
+        sql += `  ${escapeSql(r.serviceFee || 0)},\n`;
         sql += `  ${escapeSql(r.address?.city || r.city || '')},\n`;
         sql += `  ${escapeSql(r.address?.neighborhood || r.neighborhood || '')},\n`;
         sql += `  ${escapeSql(r.address?.street || '')},\n`;
-        sql += `  ${escapeSql(r.capacity)},\n`;
-        sql += `  ${escapeSql(r.bedrooms)},\n`;
-        sql += `  ${escapeSql(r.beds)},\n`;
-        sql += `  ${escapeSql(r.bathrooms)},\n`;
-        sql += `  ${escapeSql(r.rooms)},\n`;
-        sql += `  ${escapeSql(r.rating || 0)},\n`;
-        sql += `  ${escapeSql(r.reviewCount || 0)},\n`;
-        sql += `  ${escapeSql(r.ownerPhone)},\n`;
-        sql += `  ${escapeSql(r.status)},\n`;
-        sql += `  ${escapeSql(r.ownerName || '')},\n`;
-        sql += `  ${escapeSql(r.createdAt || new Date().toISOString())},\n`;
-        sql += `  ${escapeSql(r.promoted)},\n`;
-        sql += `  ${escapeSql(r.weeklyDiscount)},\n`;
-        sql += `  ${escapeSql(r.monthlyDiscount)},\n`;
-        sql += `  ${escapeSql(r.promoPrice)},\n`;
-        sql += `  ${escapeSql(r.rejectionReason)},\n`;
-        sql += `  ${escapeSql(r.images)},\n`;
-        sql += `  ${escapeSql(r.amenities)},\n`;
-        sql += `  ${escapeSql(r.pricingTiers)},\n`;
-        sql += `  ${escapeSql(r.utilitiesIncluded?.water)},\n`;
-        sql += `  ${escapeSql(r.utilitiesIncluded?.electricity)}\n`;
+        sql += `  ${escapeSql(r.capacity || 1)},\n`;
+        sql += `  ${escapeSql(r.bedrooms || 1)},\n`;
+        sql += `  ${escapeSql(r.beds || 1)},\n`;
+        sql += `  ${escapeSql(r.bathrooms || 1)},\n`;
+        sql += `  ${escapeSql(r.rooms || 1)},\n`;
+        sql += `  ${escapeSql(r.status || 'pending')},\n`;
+        sql += `  ${escapeSql(r.availabilityStatus || 'available')},\n`;
+        sql += `  ${escapeSql(r.promoted ? 1 : 0)},\n`;
+        sql += `  ${escapeSql(r.weeklyDiscount || 0)},\n`;
+        sql += `  ${escapeSql(r.monthlyDiscount || 0)},\n`;
+        sql += `  ${escapeSql(r.promoPrice || null)},\n`;
+        sql += `  ${escapeSql(r.rejectionReason || null)},\n`;
+        sql += `  ${escapeSql(r.createdAt ? new Date(r.createdAt).toISOString().replace('T', ' ').substring(0, 19) : new Date().toISOString().replace('T', ' ').substring(0, 19))}\n`;
         sql += `);\n`;
+      });
+      sql += '\n';
+    }
+
+    // Amenities
+    sql += `CREATE TABLE IF NOT EXISTS residence_amenities (\n`;
+    sql += `  residence_id VARCHAR(128),\n`;
+    sql += `  amenity VARCHAR(100),\n`;
+    sql += `  PRIMARY KEY (residence_id, amenity)\n`;
+    if (format === "mariadb") { sql += `) PARTITION BY KEY(residence_id) PARTITIONS 4;\n\n`; } else { sql += `);\n\n`; }
+
+    if (residences.length > 0) {
+      residences.forEach(r => {
+        if (r.amenities && Array.isArray(r.amenities)) {
+          r.amenities.forEach(a => {
+            sql += `INSERT ${format === 'mariadb' ? 'IGNORE ' : 'OR IGNORE '}INTO residence_amenities (residence_id, amenity) VALUES (${escapeSql(r.id)}, ${escapeSql(a)});\n`;
+          });
+        }
+      });
+      sql += '\n';
+    }
+
+    // Images
+    sql += `CREATE TABLE IF NOT EXISTS residence_images (\n`;
+    sql += `  id INT AUTO_INCREMENT PRIMARY KEY,\n`;
+    sql += `  residence_id VARCHAR(128),\n`;
+    sql += `  image_url TEXT NOT NULL\n`;
+    if (format === "mariadb") { sql += `) PARTITION BY KEY(id) PARTITIONS 4;\n\n`; } else { sql += `);\n\n`; }
+
+    if (residences.length > 0) {
+      residences.forEach(r => {
+        if (r.images && Array.isArray(r.images)) {
+          r.images.forEach(img => {
+            sql += `INSERT ${format === 'mariadb' ? 'IGNORE ' : 'OR IGNORE '}INTO residence_images (residence_id, image_url) VALUES (${escapeSql(r.id)}, ${escapeSql(img)});\n`;
+          });
+        }
       });
       sql += '\n';
     }
@@ -1013,59 +1041,59 @@ export const AdminDashboard: React.FC<{ onBackToTraveler?: () => void }> = ({ on
     // 3. Bookings
     sql += `-- Structure de la table bookings\n`;
     sql += `CREATE TABLE IF NOT EXISTS bookings (\n`;
-    sql += `  id VARCHAR(255) PRIMARY KEY,\n`;
-    sql += `  residenceId VARCHAR(255),\n`;
-    sql += `  clientId VARCHAR(255),\n`;
-    sql += `  ownerId VARCHAR(255),\n`;
-    sql += `  checkIn VARCHAR(100),\n`;
-    sql += `  checkOut VARCHAR(100),\n`;
-    sql += `  guests INT,\n`;
-    sql += `  totalPrice DECIMAL(10,2),\n`;
-    sql += `  advancePaid DECIMAL(10,2),\n`;
-    sql += `  paymentStatus VARCHAR(50),\n`;
-    sql += `  bookingStatus VARCHAR(50),\n`;
-    sql += `  transactionId VARCHAR(255),\n`;
-    sql += `  createdAt VARCHAR(100),\n`;
-    sql += `  cancelledBy VARCHAR(50),\n`;
-    sql += `  cancellationReason TEXT,\n`;
-    sql += `  cancelledAt VARCHAR(100),\n`;
-    sql += `  refundStatus VARCHAR(50),\n`;
-    sql += `  refundAmount DECIMAL(10,2),\n`;
-    sql += `  refundPhone VARCHAR(100),\n`;
-    sql += `  refundProvider VARCHAR(50),\n`;
-    sql += `  refundProcessedAt VARCHAR(100),\n`;
-    sql += `  stayStatus VARCHAR(50),\n`;
-    sql += `  checkedInAt VARCHAR(100),\n`;
-    sql += `  checkedOutAt VARCHAR(100)\n`;
-    sql += `);\n\n`;
+    sql += `  id VARCHAR(128) PRIMARY KEY,\n`;
+    sql += `  residence_id VARCHAR(128) NOT NULL,\n`;
+    sql += `  client_id VARCHAR(128) NOT NULL,\n`;
+    sql += `  owner_id VARCHAR(128) NOT NULL,\n`;
+    sql += `  check_in DATE NOT NULL,\n`;
+    sql += `  check_out DATE NOT NULL,\n`;
+    sql += `  guests INT DEFAULT 1,\n`;
+    sql += `  total_price DECIMAL(10, 2) NOT NULL,\n`;
+    sql += `  advance_paid DECIMAL(10, 2) DEFAULT 0,\n`;
+    sql += `  payment_status VARCHAR(50) DEFAULT 'pending',\n`;
+    sql += `  booking_status VARCHAR(50) DEFAULT 'pending',\n`;
+    sql += `  transaction_id VARCHAR(255),\n`;
+    sql += `  cancelled_by VARCHAR(50) NULL,\n`;
+    sql += `  cancellation_reason TEXT NULL,\n`;
+    sql += `  cancelled_at TIMESTAMP NULL,\n`;
+    sql += `  refund_status VARCHAR(50) DEFAULT 'none',\n`;
+    sql += `  refund_amount DECIMAL(10, 2) DEFAULT 0,\n`;
+    sql += `  refund_phone VARCHAR(50) NULL,\n`;
+    sql += `  refund_provider VARCHAR(50) NULL,\n`;
+    sql += `  refund_processed_at TIMESTAMP NULL,\n`;
+    sql += `  stay_status VARCHAR(50) DEFAULT 'pending',\n`;
+    sql += `  checked_in_at TIMESTAMP NULL,\n`;
+    sql += `  checked_out_at TIMESTAMP NULL,\n`;
+    sql += `  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP\n`;
+    if (format === "mariadb") { sql += `) PARTITION BY KEY(id) PARTITIONS 4;\n\n`; } else { sql += `);\n\n`; }
 
     if (bookings.length > 0) {
       bookings.forEach(b => {
-        sql += `INSERT ${format === 'mariadb' ? 'IGNORE ' : 'OR IGNORE '}INTO bookings (id, residenceId, clientId, ownerId, checkIn, checkOut, guests, totalPrice, advancePaid, paymentStatus, bookingStatus, transactionId, createdAt, cancelledBy, cancellationReason, cancelledAt, refundStatus, refundAmount, refundPhone, refundProvider, refundProcessedAt, stayStatus, checkedInAt, checkedOutAt) VALUES (\n`;
+        sql += `INSERT ${format === 'mariadb' ? 'IGNORE ' : 'OR IGNORE '}INTO bookings (id, residence_id, client_id, owner_id, check_in, check_out, guests, total_price, advance_paid, payment_status, booking_status, transaction_id, cancelled_by, cancellation_reason, cancelled_at, refund_status, refund_amount, refund_phone, refund_provider, refund_processed_at, stay_status, checked_in_at, checked_out_at, created_at) VALUES (\n`;
         sql += `  ${escapeSql(b.id)},\n`;
         sql += `  ${escapeSql(b.residenceId)},\n`;
-        sql += `  ${escapeSql(b.clientId || b.travelerId || '')},\n`;
+        sql += `  ${escapeSql(b.clientId)},\n`;
         sql += `  ${escapeSql(b.ownerId)},\n`;
-        sql += `  ${escapeSql(b.checkIn)},\n`;
-        sql += `  ${escapeSql(b.checkOut)},\n`;
+        sql += `  ${escapeSql(b.checkIn ? b.checkIn.substring(0, 10) : '2023-01-01')},\n`;
+        sql += `  ${escapeSql(b.checkOut ? b.checkOut.substring(0, 10) : '2023-01-02')},\n`;
         sql += `  ${escapeSql(b.guests || 1)},\n`;
-        sql += `  ${escapeSql(b.totalPrice || b.totalAmount || 0)},\n`;
+        sql += `  ${escapeSql(b.totalPrice || 0)},\n`;
         sql += `  ${escapeSql(b.advancePaid || 0)},\n`;
-        sql += `  ${escapeSql(b.paymentStatus)},\n`;
+        sql += `  ${escapeSql(b.paymentStatus || 'pending')},\n`;
         sql += `  ${escapeSql(b.bookingStatus || b.status || 'pending')},\n`;
-        sql += `  ${escapeSql(b.transactionId)},\n`;
-        sql += `  ${escapeSql(b.createdAt || new Date().toISOString())},\n`;
-        sql += `  ${escapeSql(b.cancelledBy)},\n`;
-        sql += `  ${escapeSql(b.cancellationReason)},\n`;
-        sql += `  ${escapeSql(b.cancelledAt)},\n`;
-        sql += `  ${escapeSql(b.refundStatus)},\n`;
-        sql += `  ${escapeSql(b.refundAmount)},\n`;
-        sql += `  ${escapeSql(b.refundPhone)},\n`;
-        sql += `  ${escapeSql(b.refundProvider)},\n`;
-        sql += `  ${escapeSql(b.refundProcessedAt)},\n`;
-        sql += `  ${escapeSql(b.stayStatus)},\n`;
-        sql += `  ${escapeSql(b.checkedInAt)},\n`;
-        sql += `  ${escapeSql(b.checkedOutAt)}\n`;
+        sql += `  ${escapeSql(b.transactionId || null)},\n`;
+        sql += `  ${escapeSql(b.cancelledBy || null)},\n`;
+        sql += `  ${escapeSql(b.cancellationReason || null)},\n`;
+        sql += `  ${escapeSql(b.cancelledAt ? new Date(b.cancelledAt).toISOString().replace('T', ' ').substring(0, 19) : null)},\n`;
+        sql += `  ${escapeSql(b.refundStatus || 'none')},\n`;
+        sql += `  ${escapeSql(b.refundAmount || 0)},\n`;
+        sql += `  ${escapeSql(b.refundPhone || null)},\n`;
+        sql += `  ${escapeSql(b.refundProvider || null)},\n`;
+        sql += `  ${escapeSql(b.refundProcessedAt ? new Date(b.refundProcessedAt).toISOString().replace('T', ' ').substring(0, 19) : null)},\n`;
+        sql += `  ${escapeSql(b.stayStatus || 'pending')},\n`;
+        sql += `  ${escapeSql(b.checkedInAt ? new Date(b.checkedInAt).toISOString().replace('T', ' ').substring(0, 19) : null)},\n`;
+        sql += `  ${escapeSql(b.checkedOutAt ? new Date(b.checkedOutAt).toISOString().replace('T', ' ').substring(0, 19) : null)},\n`;
+        sql += `  ${escapeSql(b.createdAt ? new Date(b.createdAt).toISOString().replace('T', ' ').substring(0, 19) : new Date().toISOString().replace('T', ' ').substring(0, 19))}\n`;
         sql += `);\n`;
       });
       sql += '\n';
@@ -1074,237 +1102,90 @@ export const AdminDashboard: React.FC<{ onBackToTraveler?: () => void }> = ({ on
     // 4. Reviews
     sql += `-- Structure de la table reviews\n`;
     sql += `CREATE TABLE IF NOT EXISTS reviews (\n`;
-    sql += `  id VARCHAR(255) PRIMARY KEY,\n`;
-    sql += `  bookingId VARCHAR(255),\n`;
-    sql += `  residenceId VARCHAR(255),\n`;
-    sql += `  clientId VARCHAR(255),\n`;
-    sql += `  rating DECIMAL(3,2),\n`;
+    sql += `  id VARCHAR(128) PRIMARY KEY,\n`;
+    sql += `  booking_id VARCHAR(128) NOT NULL,\n`;
+    sql += `  residence_id VARCHAR(128) NOT NULL,\n`;
+    sql += `  client_id VARCHAR(128) NOT NULL,\n`;
+    sql += `  rating INT NOT NULL,\n`;
     sql += `  comment TEXT,\n`;
-    sql += `  createdAt VARCHAR(100)\n`;
-    sql += `);\n\n`;
+    sql += `  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP\n`;
+    if (format === "mariadb") { sql += `) PARTITION BY KEY(id) PARTITIONS 4;\n\n`; } else { sql += `);\n\n`; }
 
     if (reviews.length > 0) {
       reviews.forEach(rv => {
-        sql += `INSERT ${format === 'mariadb' ? 'IGNORE ' : 'OR IGNORE '}INTO reviews (id, bookingId, residenceId, clientId, rating, comment, createdAt) VALUES (\n`;
+        sql += `INSERT ${format === 'mariadb' ? 'IGNORE ' : 'OR IGNORE '}INTO reviews (id, booking_id, residence_id, client_id, rating, comment, created_at) VALUES (\n`;
         sql += `  ${escapeSql(rv.id)},\n`;
         sql += `  ${escapeSql(rv.bookingId)},\n`;
         sql += `  ${escapeSql(rv.residenceId)},\n`;
         sql += `  ${escapeSql(rv.clientId)},\n`;
         sql += `  ${escapeSql(rv.rating)},\n`;
         sql += `  ${escapeSql(rv.comment)},\n`;
-        sql += `  ${escapeSql(rv.createdAt || new Date().toISOString())}\n`;
+        sql += `  ${escapeSql(rv.createdAt ? new Date(rv.createdAt).toISOString().replace('T', ' ').substring(0, 19) : new Date().toISOString().replace('T', ' ').substring(0, 19))}\n`;
         sql += `);\n`;
       });
       sql += '\n';
     }
 
-    // 5. Ads
-    sql += `-- Structure de la table ads\n`;
-    sql += `CREATE TABLE IF NOT EXISTS ads (\n`;
-    sql += `  id VARCHAR(255) PRIMARY KEY,\n`;
-    sql += `  imageUrl TEXT,\n`;
-    sql += `  title VARCHAR(255),\n`;
-    sql += `  description TEXT,\n`;
-    sql += `  linkUrl TEXT,\n`;
-    sql += `  isActive TINYINT(1) DEFAULT 1,\n`;
-    sql += `  frequencySeconds INT,\n`;
-    sql += `  createdAt VARCHAR(100)\n`;
-    sql += `);\n\n`;
-
-    if (ads.length > 0) {
-      ads.forEach(ad => {
-        sql += `INSERT ${format === 'mariadb' ? 'IGNORE ' : 'OR IGNORE '}INTO ads (id, imageUrl, title, description, linkUrl, isActive, frequencySeconds, createdAt) VALUES (\n`;
-        sql += `  ${escapeSql(ad.id)},\n`;
-        sql += `  ${escapeSql(ad.imageUrl)},\n`;
-        sql += `  ${escapeSql(ad.title)},\n`;
-        sql += `  ${escapeSql(ad.description)},\n`;
-        sql += `  ${escapeSql(ad.linkUrl)},\n`;
-        sql += `  ${escapeSql(ad.isActive)},\n`;
-        sql += `  ${escapeSql(ad.frequencySeconds || 10)},\n`;
-        sql += `  ${escapeSql(ad.createdAt || new Date().toISOString())}\n`;
-        sql += `);\n`;
-      });
-      sql += '\n';
-    }
-
-    // 6. Withdrawals
+    // 5. Withdrawals
     sql += `-- Structure de la table withdrawals\n`;
     sql += `CREATE TABLE IF NOT EXISTS withdrawals (\n`;
-    sql += `  id VARCHAR(255) PRIMARY KEY,\n`;
-    sql += `  ownerId VARCHAR(255),\n`;
-    sql += `  ownerName VARCHAR(255),\n`;
-    sql += `  ownerEmail VARCHAR(255),\n`;
-    sql += `  amount DECIMAL(10,2),\n`;
-    sql += `  phone VARCHAR(100),\n`;
-    sql += `  provider VARCHAR(50),\n`;
-    sql += `  status VARCHAR(50),\n`;
-    sql += `  createdAt VARCHAR(100),\n`;
-    sql += `  approvedAt VARCHAR(100)\n`;
-    sql += `);\n\n`;
+    sql += `  id VARCHAR(128) PRIMARY KEY,\n`;
+    sql += `  owner_id VARCHAR(128) NOT NULL,\n`;
+    sql += `  amount DECIMAL(10, 2) NOT NULL,\n`;
+    sql += `  phone VARCHAR(50) NOT NULL,\n`;
+    sql += `  provider VARCHAR(50) NOT NULL,\n`;
+    sql += `  status VARCHAR(50) DEFAULT 'pending',\n`;
+    sql += `  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,\n`;
+    sql += `  approved_at TIMESTAMP NULL\n`;
+    if (format === "mariadb") { sql += `) PARTITION BY KEY(id) PARTITIONS 4;\n\n`; } else { sql += `);\n\n`; }
 
     if (withdrawals.length > 0) {
       withdrawals.forEach(w => {
-        sql += `INSERT ${format === 'mariadb' ? 'IGNORE ' : 'OR IGNORE '}INTO withdrawals (id, ownerId, ownerName, ownerEmail, amount, phone, provider, status, createdAt, approvedAt) VALUES (\n`;
+        sql += `INSERT ${format === 'mariadb' ? 'IGNORE ' : 'OR IGNORE '}INTO withdrawals (id, owner_id, amount, phone, provider, status, created_at, approved_at) VALUES (\n`;
         sql += `  ${escapeSql(w.id)},\n`;
         sql += `  ${escapeSql(w.ownerId)},\n`;
-        sql += `  ${escapeSql(w.ownerName)},\n`;
-        sql += `  ${escapeSql(w.ownerEmail)},\n`;
         sql += `  ${escapeSql(w.amount)},\n`;
         sql += `  ${escapeSql(w.phone)},\n`;
         sql += `  ${escapeSql(w.provider)},\n`;
         sql += `  ${escapeSql(w.status)},\n`;
-        sql += `  ${escapeSql(w.createdAt || new Date().toISOString())},\n`;
-        sql += `  ${escapeSql(w.approvedAt || null)}\n`;
+        sql += `  ${escapeSql(w.createdAt ? new Date(w.createdAt).toISOString().replace('T', ' ').substring(0, 19) : new Date().toISOString().replace('T', ' ').substring(0, 19))},\n`;
+        sql += `  ${escapeSql(w.approvedAt ? new Date(w.approvedAt).toISOString().replace('T', ' ').substring(0, 19) : null)}\n`;
         sql += `);\n`;
       });
       sql += '\n';
     }
 
-    // 7. FAQs
-    sql += `-- Structure de la table faqs\n`;
-    sql += `CREATE TABLE IF NOT EXISTS faqs (\n`;
-    sql += `  id VARCHAR(255) PRIMARY KEY,\n`;
-    sql += `  question TEXT,\n`;
-    sql += `  answer TEXT,\n`;
-    sql += `  category VARCHAR(50),\n`;
-    sql += `  \`order\` INT,\n`;
-    sql += `  isActive TINYINT(1) DEFAULT 1,\n`;
-    sql += `  createdAt VARCHAR(100),\n`;
-    sql += `  updatedAt VARCHAR(100)\n`;
-    sql += `);\n\n`;
+    // 6. Advertisements
+    sql += `-- Structure de la table ads\n`;
+    sql += `CREATE TABLE IF NOT EXISTS advertisements (\n`;
+    sql += `  id VARCHAR(128) PRIMARY KEY,\n`;
+    sql += `  title VARCHAR(255) NOT NULL,\n`;
+    sql += `  description TEXT,\n`;
+    sql += `  image_url TEXT NOT NULL,\n`;
+    sql += `  link_url TEXT,\n`;
+    sql += `  is_active BOOLEAN DEFAULT TRUE,\n`;
+    sql += `  frequency_seconds INT DEFAULT 30,\n`;
+    sql += `  start_at TIMESTAMP NULL,\n`;
+    sql += `  end_at TIMESTAMP NULL,\n`;
+    sql += `  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP\n`;
+    if (format === "mariadb") { sql += `) PARTITION BY KEY(id) PARTITIONS 2;\n\n`; } else { sql += `);\n\n`; }
 
-    if (faqs.length > 0) {
-      faqs.forEach(f => {
-        sql += `INSERT ${format === 'mariadb' ? 'IGNORE ' : 'OR IGNORE '}INTO faqs (id, question, answer, category, \`order\`, isActive, createdAt, updatedAt) VALUES (\n`;
-        sql += `  ${escapeSql(f.id)},\n`;
-        sql += `  ${escapeSql(f.question)},\n`;
-        sql += `  ${escapeSql(f.answer)},\n`;
-        sql += `  ${escapeSql(f.category)},\n`;
-        sql += `  ${escapeSql(f.order)},\n`;
-        sql += `  ${escapeSql(f.isActive)},\n`;
-        sql += `  ${escapeSql(f.createdAt || new Date().toISOString())},\n`;
-        sql += `  ${escapeSql(f.updatedAt || new Date().toISOString())}\n`;
+    if (ads.length > 0) {
+      ads.forEach(ad => {
+        sql += `INSERT ${format === 'mariadb' ? 'IGNORE ' : 'OR IGNORE '}INTO advertisements (id, title, description, image_url, link_url, is_active, frequency_seconds, start_at, end_at, created_at) VALUES (\n`;
+        sql += `  ${escapeSql(ad.id)},\n`;
+        sql += `  ${escapeSql(ad.title)},\n`;
+        sql += `  ${escapeSql(ad.description)},\n`;
+        sql += `  ${escapeSql(ad.imageUrl)},\n`;
+        sql += `  ${escapeSql(ad.linkUrl)},\n`;
+        sql += `  ${escapeSql(ad.isActive !== false ? 1 : 0)},\n`;
+        sql += `  ${escapeSql(ad.frequencySeconds || 30)},\n`;
+        sql += `  ${escapeSql(ad.startAt ? new Date(ad.startAt).toISOString().replace('T', ' ').substring(0, 19) : null)},\n`;
+        sql += `  ${escapeSql(ad.endAt ? new Date(ad.endAt).toISOString().replace('T', ' ').substring(0, 19) : null)},\n`;
+        sql += `  ${escapeSql(ad.createdAt ? new Date(ad.createdAt).toISOString().replace('T', ' ').substring(0, 19) : new Date().toISOString().replace('T', ' ').substring(0, 19))}\n`;
         sql += `);\n`;
       });
       sql += '\n';
-    }
-
-    // 8. Fetch and Dump Conversations and Messages dynamically from Firestore
-    try {
-      const conversationsSnap = await getDocs(collection(db, 'conversations'));
-      if (!conversationsSnap.empty) {
-        sql += `-- Structure de la table conversations\n`;
-        sql += `CREATE TABLE IF NOT EXISTS conversations (\n`;
-        sql += `  id VARCHAR(255) PRIMARY KEY,\n`;
-        sql += `  participants TEXT,\n`;
-        sql += `  lastMessage TEXT,\n`;
-        sql += `  updatedAt VARCHAR(100),\n`;
-        sql += `  relatedId VARCHAR(255)\n`;
-        sql += `);\n\n`;
-
-        sql += `-- Structure de la table messages\n`;
-        sql += `CREATE TABLE IF NOT EXISTS messages (\n`;
-        sql += `  id VARCHAR(255) PRIMARY KEY,\n`;
-        sql += `  conversationId VARCHAR(255),\n`;
-        sql += `  senderId VARCHAR(255),\n`;
-        sql += `  text TEXT,\n`;
-        sql += `  createdAt VARCHAR(100),\n`;
-        sql += `  isRead TINYINT(1) DEFAULT 0\n`;
-        sql += `);\n\n`;
-
-        for (const convDoc of conversationsSnap.docs) {
-          const conv = convDoc.data();
-          sql += `INSERT ${format === 'mariadb' ? 'IGNORE ' : 'OR IGNORE '}INTO conversations (id, participants, lastMessage, updatedAt, relatedId) VALUES (\n`;
-          sql += `  ${escapeSql(convDoc.id)},\n`;
-          sql += `  ${escapeSql(conv.participants)},\n`;
-          sql += `  ${escapeSql(conv.lastMessage)},\n`;
-          sql += `  ${escapeSql(conv.updatedAt || new Date().toISOString())},\n`;
-          sql += `  ${escapeSql(conv.relatedId)}\n`;
-          sql += `);\n`;
-
-          try {
-            const msgSnap = await getDocs(collection(db, 'conversations', convDoc.id, 'messages'));
-            msgSnap.forEach(msgDoc => {
-              const msg = msgDoc.data();
-              sql += `INSERT ${format === 'mariadb' ? 'IGNORE ' : 'OR IGNORE '}INTO messages (id, conversationId, senderId, text, createdAt, isRead) VALUES (\n`;
-              sql += `  ${escapeSql(msgDoc.id)},\n`;
-              sql += `  ${escapeSql(convDoc.id)},\n`;
-              sql += `  ${escapeSql(msg.senderId)},\n`;
-              sql += `  ${escapeSql(msg.text)},\n`;
-              sql += `  ${escapeSql(msg.createdAt || new Date().toISOString())},\n`;
-              sql += `  ${escapeSql(msg.isRead)}\n`;
-              sql += `);\n`;
-            });
-          } catch (err) {
-            console.warn("Could not load messages for conversation " + convDoc.id, err);
-          }
-        }
-        sql += '\n';
-      }
-    } catch (e) {
-      console.warn("Could not load conversations for database dump:", e);
-    }
-
-    // 9. Fetch and Dump Notifications dynamically from Firestore
-    try {
-      const notificationsSnap = await getDocs(collection(db, 'notifications'));
-      if (!notificationsSnap.empty) {
-        sql += `-- Structure de la table notifications\n`;
-        sql += `CREATE TABLE IF NOT EXISTS notifications (\n`;
-        sql += `  id VARCHAR(255) PRIMARY KEY,\n`;
-        sql += `  userId VARCHAR(255),\n`;
-        sql += `  title VARCHAR(255),\n`;
-        sql += `  message TEXT,\n`;
-        sql += `  type VARCHAR(50),\n`;
-        sql += `  isRead TINYINT(1) DEFAULT 0,\n`;
-        sql += `  createdAt VARCHAR(100),\n`;
-        sql += `  relatedId VARCHAR(255)\n`;
-        sql += `);\n\n`;
-
-        notificationsSnap.forEach(notDoc => {
-          const n = notDoc.data();
-          sql += `INSERT ${format === 'mariadb' ? 'IGNORE ' : 'OR IGNORE '}INTO notifications (id, userId, title, message, type, isRead, createdAt, relatedId) VALUES (\n`;
-          sql += `  ${escapeSql(notDoc.id)},\n`;
-          sql += `  ${escapeSql(n.userId || n.ownerId || '')},\n`;
-          sql += `  ${escapeSql(n.title)},\n`;
-          sql += `  ${escapeSql(n.message || n.text || '')},\n`;
-          sql += `  ${escapeSql(n.type || 'info')},\n`;
-          sql += `  ${escapeSql(n.isRead)},\n`;
-          sql += `  ${escapeSql(n.createdAt || new Date().toISOString())},\n`;
-          sql += `  ${escapeSql(n.relatedId || '')}\n`;
-          sql += `);\n`;
-        });
-        sql += '\n';
-      }
-    } catch (e) {
-      console.warn("Could not load notifications for database dump:", e);
-    }
-
-    // 10. Fetch and Dump Locations dynamically from Firestore
-    try {
-      const locationsSnap = await getDocs(collection(db, 'locations'));
-      if (!locationsSnap.empty) {
-        sql += `-- Structure de la table locations\n`;
-        sql += `CREATE TABLE IF NOT EXISTS locations (\n`;
-        sql += `  id VARCHAR(255) PRIMARY KEY,\n`;
-        sql += `  city VARCHAR(255),\n`;
-        sql += `  neighborhoods TEXT,\n`;
-        sql += `  createdAt VARCHAR(100)\n`;
-        sql += `);\n\n`;
-
-        locationsSnap.forEach(locDoc => {
-          const l = locDoc.data();
-          sql += `INSERT ${format === 'mariadb' ? 'IGNORE ' : 'OR IGNORE '}INTO locations (id, city, neighborhoods, createdAt) VALUES (\n`;
-          sql += `  ${escapeSql(locDoc.id)},\n`;
-          sql += `  ${escapeSql(l.city)},\n`;
-          sql += `  ${escapeSql(l.neighborhoods)},\n`;
-          sql += `  ${escapeSql(l.createdAt || new Date().toISOString())}\n`;
-          sql += `);\n`;
-        });
-        sql += '\n';
-      }
-    } catch (e) {
-      console.warn("Could not load locations for database dump:", e);
     }
 
     const blob = new Blob([sql], { type: 'text/plain' });

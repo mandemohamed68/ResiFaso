@@ -77,12 +77,13 @@ FLUSH PRIVILEGES;
 EXIT;
 ```
 
-4. **Importer le schéma SQL :**
-Prenez le fichier `resifaso_schema.sql` (qui se trouve à la racine du projet) et importez-le dans MariaDB :
+4. **Importer le schéma et les données SQL :**
+Utilisez le fichier `resifaso_dump_exported.sql` (qui contient TOUTES les données actuelles : utilisateurs, résidences, images, réservations) et importez-le dans MariaDB :
 ```bash
-# Assurez-vous d'avoir transféré le fichier sur votre serveur, par exemple dans /tmp
-mysql -u resifaso_user -p resifaso_db < /chemin/vers/le/fichier/resifaso_schema.sql
+# Assurez-vous d'avoir transféré le fichier sur votre serveur
+mysql -u resifaso_user -p resifaso_db < resifaso_dump_exported.sql
 ```
+*Note : Vous pouvez générer un nouveau dump à tout moment depuis l'interface Admin > Maintenance.*
 
 ---
 

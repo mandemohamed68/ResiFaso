@@ -15,7 +15,7 @@ CREATE TABLE IF NOT EXISTS users (
   is_verified BOOLEAN DEFAULT FALSE,
   is_suspended BOOLEAN DEFAULT FALSE,
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-);
+) PARTITION BY KEY(id) PARTITIONS 4;
 
 -- 2. Table Résidences
 CREATE TABLE IF NOT EXISTS residences (
@@ -55,7 +55,7 @@ CREATE TABLE IF NOT EXISTS residences (
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   
   FOREIGN KEY (owner_id) REFERENCES users(id) ON DELETE CASCADE
-);
+) PARTITION BY KEY(id) PARTITIONS 4;
 
 -- Table des commodités (Amenities) associées aux résidences
 CREATE TABLE IF NOT EXISTS residence_amenities (
@@ -63,7 +63,7 @@ CREATE TABLE IF NOT EXISTS residence_amenities (
   amenity VARCHAR(100),
   PRIMARY KEY (residence_id, amenity),
   FOREIGN KEY (residence_id) REFERENCES residences(id) ON DELETE CASCADE
-);
+) PARTITION BY KEY(residence_id) PARTITIONS 4;
 
 -- Table des images des résidences
 CREATE TABLE IF NOT EXISTS residence_images (
@@ -71,7 +71,7 @@ CREATE TABLE IF NOT EXISTS residence_images (
   residence_id VARCHAR(128),
   image_url TEXT NOT NULL,
   FOREIGN KEY (residence_id) REFERENCES residences(id) ON DELETE CASCADE
-);
+) PARTITION BY KEY(id) PARTITIONS 4;
 
 -- 3. Table Réservations (Bookings)
 CREATE TABLE IF NOT EXISTS bookings (
@@ -109,7 +109,7 @@ CREATE TABLE IF NOT EXISTS bookings (
   FOREIGN KEY (residence_id) REFERENCES residences(id),
   FOREIGN KEY (client_id) REFERENCES users(id),
   FOREIGN KEY (owner_id) REFERENCES users(id)
-);
+) PARTITION BY KEY(id) PARTITIONS 4;
 
 -- 4. Table Avis (Reviews)
 CREATE TABLE IF NOT EXISTS reviews (
@@ -124,7 +124,7 @@ CREATE TABLE IF NOT EXISTS reviews (
   FOREIGN KEY (booking_id) REFERENCES bookings(id),
   FOREIGN KEY (residence_id) REFERENCES residences(id),
   FOREIGN KEY (client_id) REFERENCES users(id)
-);
+) PARTITION BY KEY(id) PARTITIONS 4;
 
 -- 5. Table Retraits (Withdrawal Requests)
 CREATE TABLE IF NOT EXISTS withdrawals (
@@ -139,7 +139,7 @@ CREATE TABLE IF NOT EXISTS withdrawals (
   approved_at TIMESTAMP NULL,
   
   FOREIGN KEY (owner_id) REFERENCES users(id)
-);
+) PARTITION BY KEY(id) PARTITIONS 4;
 
 -- 6. Table Publicités (Advertisements)
 CREATE TABLE IF NOT EXISTS advertisements (
@@ -153,7 +153,7 @@ CREATE TABLE IF NOT EXISTS advertisements (
   start_at TIMESTAMP NULL,
   end_at TIMESTAMP NULL,
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-);
+) PARTITION BY KEY(id) PARTITIONS 2;
 
 -- Index pour optimiser les requêtes fréquentes
 CREATE INDEX idx_residences_status ON residences(status, availability_status);
