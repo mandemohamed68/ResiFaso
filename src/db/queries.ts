@@ -35,12 +35,17 @@ export const getResidenceById = async (id: string) => {
 
 // Settings
 export const getSettings = async (key: string) => {
-  const results = await executeSql("SELECT value FROM settings WHERE key = ?", [key]);
+  const results = await executeSql("SELECT value FROM settings WHERE `key` = ?", [key]);
   return results.length > 0 ? JSON.parse(results[0].value) : {};
 };
 
 export const saveSettings = async (key: string, value: any) => {
-  await executeSql("INSERT INTO settings (key, value) VALUES (?, ?) ON CONFLICT(key) DO UPDATE SET value = ?", [key, JSON.stringify(value), JSON.stringify(value)]);
+  const dbType = process.env.DB_TYPE || 'firebase';
+  if (dbType === 'mariadb') {
+    await executeSql("INSERT INTO settings (`key`, value) VALUES (?, ?) ON DUPLICATE KEY UPDATE value = ?", [key, JSON.stringify(value), JSON.stringify(value)]);
+  } else {
+    await executeSql("INSERT INTO settings (`key`, value) VALUES (?, ?) ON CONFLICT(`key`) DO UPDATE SET value = ?", [key, JSON.stringify(value), JSON.stringify(value)]);
+  }
 };
 
 // Ads
