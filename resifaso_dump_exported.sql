@@ -1,5 +1,5 @@
 -- Dump Complet pour MariaDB / MySQL
--- Généré le 2026-07-04T14:56:13.434Z
+-- Généré le 2026-07-04T15:15:29.850Z
 -- Contient toutes les tables, données et images (URLs de stockage)
 
 CREATE TABLE IF NOT EXISTS users (
@@ -84,6 +84,8 @@ INSERT IGNORE INTO users (id, email, display_name, phone_number, photo_url, role
 CREATE TABLE IF NOT EXISTS residences (
   id VARCHAR(128) PRIMARY KEY,
   owner_id VARCHAR(128) NOT NULL,
+  owner_name VARCHAR(255),
+  owner_phone VARCHAR(50),
   title VARCHAR(255) NOT NULL,
   description TEXT,
   type VARCHAR(100) NOT NULL,
@@ -111,9 +113,11 @@ CREATE TABLE IF NOT EXISTS residences (
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 ) PARTITION BY KEY(id) PARTITIONS 4;
 
-INSERT IGNORE INTO residences (id, owner_id, title, description, type, price_per_night, advance_percentage, cleaning_fee, service_fee, city, neighborhood, street, lat, lng, capacity, bedrooms, beds, bathrooms, rooms, status, availability_status, promoted, weekly_discount, monthly_discount, promo_price, rejection_reason, created_at) VALUES (
+INSERT IGNORE INTO residences (id, owner_id, owner_name, owner_phone, title, description, type, price_per_night, advance_percentage, cleaning_fee, service_fee, city, neighborhood, street, lat, lng, capacity, bedrooms, beds, bathrooms, rooms, status, availability_status, promoted, weekly_discount, monthly_discount, promo_price, rejection_reason, created_at) VALUES (
   '6nHE1IcoG5OG9mABsZUR',
   'YTkvX1eVhlaveqoXLJFr8Qt7wmy1',
+  'mohamed mande',
+  '71708080',
   'Villa meuble',
   'desc',
   'chambre',
@@ -140,9 +144,11 @@ INSERT IGNORE INTO residences (id, owner_id, title, description, type, price_per
   NULL,
   '2026-07-01 14:31:22'
 );
-INSERT IGNORE INTO residences (id, owner_id, title, description, type, price_per_night, advance_percentage, cleaning_fee, service_fee, city, neighborhood, street, lat, lng, capacity, bedrooms, beds, bathrooms, rooms, status, availability_status, promoted, weekly_discount, monthly_discount, promo_price, rejection_reason, created_at) VALUES (
+INSERT IGNORE INTO residences (id, owner_id, owner_name, owner_phone, title, description, type, price_per_night, advance_percentage, cleaning_fee, service_fee, city, neighborhood, street, lat, lng, capacity, bedrooms, beds, bathrooms, rooms, status, availability_status, promoted, weekly_discount, monthly_discount, promo_price, rejection_reason, created_at) VALUES (
   'G0G95wPtwjCiIGZOEjg2',
   'YTkvX1eVhlaveqoXLJFr8Qt7wmy1',
+  'mohamed mande',
+  '71708080',
   'Villa de HOTE',
   'TOUT MEULBE',
   'appartement',
@@ -169,9 +175,11 @@ INSERT IGNORE INTO residences (id, owner_id, title, description, type, price_per
   NULL,
   '2026-07-01 16:10:37'
 );
-INSERT IGNORE INTO residences (id, owner_id, title, description, type, price_per_night, advance_percentage, cleaning_fee, service_fee, city, neighborhood, street, lat, lng, capacity, bedrooms, beds, bathrooms, rooms, status, availability_status, promoted, weekly_discount, monthly_discount, promo_price, rejection_reason, created_at) VALUES (
+INSERT IGNORE INTO residences (id, owner_id, owner_name, owner_phone, title, description, type, price_per_night, advance_percentage, cleaning_fee, service_fee, city, neighborhood, street, lat, lng, capacity, bedrooms, beds, bathrooms, rooms, status, availability_status, promoted, weekly_discount, monthly_discount, promo_price, rejection_reason, created_at) VALUES (
   'drSzDbc3XqWj7PMyIKsw',
   'YTkvX1eVhlaveqoXLJFr8Qt7wmy1',
+  'mohamed mande',
+  '79000481',
   'Residence Meuble ',
   'L’hébergement Ouedraogo Property Management se trouve à Ouagadougou, à respectivement 12 km, 13 km et 14 km de ces lieux d’intérêt : Musée national du Burkina Faso, Ouagadougou Municipal Stadium',
   'villa',
@@ -198,9 +206,11 @@ INSERT IGNORE INTO residences (id, owner_id, title, description, type, price_per
   NULL,
   '2026-06-03 10:52:23'
 );
-INSERT IGNORE INTO residences (id, owner_id, title, description, type, price_per_night, advance_percentage, cleaning_fee, service_fee, city, neighborhood, street, lat, lng, capacity, bedrooms, beds, bathrooms, rooms, status, availability_status, promoted, weekly_discount, monthly_discount, promo_price, rejection_reason, created_at) VALUES (
+INSERT IGNORE INTO residences (id, owner_id, owner_name, owner_phone, title, description, type, price_per_night, advance_percentage, cleaning_fee, service_fee, city, neighborhood, street, lat, lng, capacity, bedrooms, beds, bathrooms, rooms, status, availability_status, promoted, weekly_discount, monthly_discount, promo_price, rejection_reason, created_at) VALUES (
   'ix17aQRhTJcWBBTHceyq',
   'YTkvX1eVhlaveqoXLJFr8Qt7wmy1',
+  '',
+  '',
   'Residence Meuble ',
   'Puisque nous avons ajouté les menus « Messagerie », nous pourrions implémenter un véritable chat en temps réel utilisant votre base de données Firebase.',
   'villa',
@@ -227,9 +237,11 @@ INSERT IGNORE INTO residences (id, owner_id, title, description, type, price_per
   NULL,
   '2026-06-03 09:48:18'
 );
-INSERT IGNORE INTO residences (id, owner_id, title, description, type, price_per_night, advance_percentage, cleaning_fee, service_fee, city, neighborhood, street, lat, lng, capacity, bedrooms, beds, bathrooms, rooms, status, availability_status, promoted, weekly_discount, monthly_discount, promo_price, rejection_reason, created_at) VALUES (
+INSERT IGNORE INTO residences (id, owner_id, owner_name, owner_phone, title, description, type, price_per_night, advance_percentage, cleaning_fee, service_fee, city, neighborhood, street, lat, lng, capacity, bedrooms, beds, bathrooms, rooms, status, availability_status, promoted, weekly_discount, monthly_discount, promo_price, rejection_reason, created_at) VALUES (
   'oUhAM6KTJajRPGBvRuQP',
   'YTkvX1eVhlaveqoXLJFr8Qt7wmy1',
+  '',
+  '',
   'Residence Meuble',
   '4,8 km du centre
 L’hébergement Chambre salon Ouaga 2000 centre ville et sécurisé se trouve à Ouagadougou, à respectivement 5,4 km, 7 km et 7,8 km de ces lieux d’intérêt',
@@ -257,9 +269,11 @@ L’hébergement Chambre salon Ouaga 2000 centre ville et sécurisé se trouve �
   NULL,
   '2026-06-03 11:52:55'
 );
-INSERT IGNORE INTO residences (id, owner_id, title, description, type, price_per_night, advance_percentage, cleaning_fee, service_fee, city, neighborhood, street, lat, lng, capacity, bedrooms, beds, bathrooms, rooms, status, availability_status, promoted, weekly_discount, monthly_discount, promo_price, rejection_reason, created_at) VALUES (
+INSERT IGNORE INTO residences (id, owner_id, owner_name, owner_phone, title, description, type, price_per_night, advance_percentage, cleaning_fee, service_fee, city, neighborhood, street, lat, lng, capacity, bedrooms, beds, bathrooms, rooms, status, availability_status, promoted, weekly_discount, monthly_discount, promo_price, rejection_reason, created_at) VALUES (
   'res-1',
   'owner-1',
+  '',
+  '',
   'Appartement de Luxe à Ouaga 2000',
   'Magnifique appartement moderne situé dans le quartier chic de Ouaga 2000. Profitez du calme et du confort.',
   'appartement',
@@ -286,9 +300,11 @@ INSERT IGNORE INTO residences (id, owner_id, title, description, type, price_per
   NULL,
   '2026-06-02 18:34:09'
 );
-INSERT IGNORE INTO residences (id, owner_id, title, description, type, price_per_night, advance_percentage, cleaning_fee, service_fee, city, neighborhood, street, lat, lng, capacity, bedrooms, beds, bathrooms, rooms, status, availability_status, promoted, weekly_discount, monthly_discount, promo_price, rejection_reason, created_at) VALUES (
+INSERT IGNORE INTO residences (id, owner_id, owner_name, owner_phone, title, description, type, price_per_night, advance_percentage, cleaning_fee, service_fee, city, neighborhood, street, lat, lng, capacity, bedrooms, beds, bathrooms, rooms, status, availability_status, promoted, weekly_discount, monthly_discount, promo_price, rejection_reason, created_at) VALUES (
   'res-2',
   'owner-2',
+  '',
+  '',
   'Villa Paisible à Bobo Dioulasso',
   'Une villa spacieuse parfaite pour les séjours en famille ou entre amis à Sya.',
   'villa',
@@ -315,9 +331,11 @@ INSERT IGNORE INTO residences (id, owner_id, title, description, type, price_per
   NULL,
   '2026-06-02 18:34:09'
 );
-INSERT IGNORE INTO residences (id, owner_id, title, description, type, price_per_night, advance_percentage, cleaning_fee, service_fee, city, neighborhood, street, lat, lng, capacity, bedrooms, beds, bathrooms, rooms, status, availability_status, promoted, weekly_discount, monthly_discount, promo_price, rejection_reason, created_at) VALUES (
+INSERT IGNORE INTO residences (id, owner_id, owner_name, owner_phone, title, description, type, price_per_night, advance_percentage, cleaning_fee, service_fee, city, neighborhood, street, lat, lng, capacity, bedrooms, beds, bathrooms, rooms, status, availability_status, promoted, weekly_discount, monthly_discount, promo_price, rejection_reason, created_at) VALUES (
   'res-3',
   'owner-1',
+  '',
+  '',
   'Studio Cosy Center Ouaga',
   'Petit studio parfaitement situé au centre-ville pour vos déplacements d''affaires.',
   'appartement',
@@ -344,9 +362,11 @@ INSERT IGNORE INTO residences (id, owner_id, title, description, type, price_per
   NULL,
   '2026-06-02 18:34:09'
 );
-INSERT IGNORE INTO residences (id, owner_id, title, description, type, price_per_night, advance_percentage, cleaning_fee, service_fee, city, neighborhood, street, lat, lng, capacity, bedrooms, beds, bathrooms, rooms, status, availability_status, promoted, weekly_discount, monthly_discount, promo_price, rejection_reason, created_at) VALUES (
+INSERT IGNORE INTO residences (id, owner_id, owner_name, owner_phone, title, description, type, price_per_night, advance_percentage, cleaning_fee, service_fee, city, neighborhood, street, lat, lng, capacity, bedrooms, beds, bathrooms, rooms, status, availability_status, promoted, weekly_discount, monthly_discount, promo_price, rejection_reason, created_at) VALUES (
   'xUdmmXLDXpaPQLZy3dAR',
   'YTkvX1eVhlaveqoXLJFr8Qt7wmy1',
+  'mohamed mande',
+  '79000481',
   'Residence MEUBLE ',
   'L’hébergement Ouedraogo Property Management se trouve à Ouagadougou, à respectivement 12 km, 13 km et 14 km de ces lieux d’intérêt : Musée national du Burkina Faso, Ouagadougou Municipal Stadium',
   'chambre',
@@ -1059,6 +1079,8 @@ CREATE TABLE IF NOT EXISTS reviews (
 CREATE TABLE IF NOT EXISTS withdrawals (
   id VARCHAR(128) PRIMARY KEY,
   owner_id VARCHAR(128) NOT NULL,
+  owner_name VARCHAR(255),
+  owner_email VARCHAR(255),
   amount DECIMAL(10, 2) NOT NULL,
   phone VARCHAR(50) NOT NULL,
   provider VARCHAR(50) NOT NULL,
@@ -1067,9 +1089,11 @@ CREATE TABLE IF NOT EXISTS withdrawals (
   approved_at TIMESTAMP NULL
 ) PARTITION BY KEY(id) PARTITIONS 4;
 
-INSERT IGNORE INTO withdrawals (id, owner_id, amount, phone, provider, status, created_at, approved_at) VALUES (
+INSERT IGNORE INTO withdrawals (id, owner_id, owner_name, owner_email, amount, phone, provider, status, created_at, approved_at) VALUES (
   'xycgdKXQwr8MwzBNhZMJ',
   'YTkvX1eVhlaveqoXLJFr8Qt7wmy1',
+  'mohamed mande',
+  'mandemohamed68@gmail.com',
   25000,
   '65800508',
   'orange',

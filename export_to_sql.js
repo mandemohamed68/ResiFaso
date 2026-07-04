@@ -70,6 +70,8 @@ async function exportDatabase() {
     sql += `CREATE TABLE IF NOT EXISTS residences (\n`;
     sql += `  id VARCHAR(128) PRIMARY KEY,\n`;
     sql += `  owner_id VARCHAR(128) NOT NULL,\n`;
+    sql += `  owner_name VARCHAR(255),\n`;
+    sql += `  owner_phone VARCHAR(50),\n`;
     sql += `  title VARCHAR(255) NOT NULL,\n`;
     sql += `  description TEXT,\n`;
     sql += `  type VARCHAR(100) NOT NULL,\n`;
@@ -102,9 +104,11 @@ async function exportDatabase() {
 
     if (residences.length > 0) {
       residences.forEach(r => {
-        sql += `INSERT IGNORE INTO residences (id, owner_id, title, description, type, price_per_night, advance_percentage, cleaning_fee, service_fee, city, neighborhood, street, lat, lng, capacity, bedrooms, beds, bathrooms, rooms, status, availability_status, promoted, weekly_discount, monthly_discount, promo_price, rejection_reason, created_at) VALUES (\n`;
+        sql += `INSERT IGNORE INTO residences (id, owner_id, owner_name, owner_phone, title, description, type, price_per_night, advance_percentage, cleaning_fee, service_fee, city, neighborhood, street, lat, lng, capacity, bedrooms, beds, bathrooms, rooms, status, availability_status, promoted, weekly_discount, monthly_discount, promo_price, rejection_reason, created_at) VALUES (\n`;
         sql += `  ${escapeSql(r.id)},\n`;
         sql += `  ${escapeSql(r.ownerId || r.owner_id)},\n`;
+        sql += `  ${escapeSql(r.ownerName || r.owner_name || '')},\n`;
+        sql += `  ${escapeSql(r.ownerPhone || r.owner_phone || '')},\n`;
         sql += `  ${escapeSql(r.title)},\n`;
         sql += `  ${escapeSql(r.description)},\n`;
         sql += `  ${escapeSql(r.type || 'appartement')},\n`;
@@ -272,6 +276,8 @@ async function exportDatabase() {
     sql += `CREATE TABLE IF NOT EXISTS withdrawals (\n`;
     sql += `  id VARCHAR(128) PRIMARY KEY,\n`;
     sql += `  owner_id VARCHAR(128) NOT NULL,\n`;
+    sql += `  owner_name VARCHAR(255),\n`;
+    sql += `  owner_email VARCHAR(255),\n`;
     sql += `  amount DECIMAL(10, 2) NOT NULL,\n`;
     sql += `  phone VARCHAR(50) NOT NULL,\n`;
     sql += `  provider VARCHAR(50) NOT NULL,\n`;
@@ -285,9 +291,11 @@ async function exportDatabase() {
 
     if (withdrawals.length > 0) {
       withdrawals.forEach(w => {
-        sql += `INSERT IGNORE INTO withdrawals (id, owner_id, amount, phone, provider, status, created_at, approved_at) VALUES (\n`;
+        sql += `INSERT IGNORE INTO withdrawals (id, owner_id, owner_name, owner_email, amount, phone, provider, status, created_at, approved_at) VALUES (\n`;
         sql += `  ${escapeSql(w.id)},\n`;
         sql += `  ${escapeSql(w.ownerId || w.owner_id)},\n`;
+        sql += `  ${escapeSql(w.ownerName || w.owner_name || '')},\n`;
+        sql += `  ${escapeSql(w.ownerEmail || w.owner_email || '')},\n`;
         sql += `  ${escapeSql(w.amount)},\n`;
         sql += `  ${escapeSql(w.phone)},\n`;
         sql += `  ${escapeSql(w.provider)},\n`;
