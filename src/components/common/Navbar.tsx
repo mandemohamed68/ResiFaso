@@ -96,8 +96,8 @@ export const Navbar: React.FC<{
           onClick={() => onNavigate('home')} 
           className="flex items-center cursor-pointer group hover:opacity-90 transition-opacity"
         >
-          <div className="w-40 h-16 sm:w-56 sm:h-20 flex items-center justify-start group-hover:scale-105 transition-transform overflow-visible relative">
-            <img src="/logoresifaso.png" alt="ResiFaso" className="w-full h-full object-contain scale-125 origin-left" />
+          <div className="w-48 h-20 sm:w-72 sm:h-24 flex items-center justify-start group-hover:scale-105 transition-transform overflow-visible relative">
+            <img src="/src/assets/images/resifaso_logo_v2_1783180763979.jpg" alt="ResiFaso" className="w-full h-full object-contain scale-150 origin-left" referrerPolicy="no-referrer" />
           </div>
         </div>
 

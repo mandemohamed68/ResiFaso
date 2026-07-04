@@ -141,8 +141,8 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onNavigat
         </button>
 
         <div className="mb-6 text-center">
-          <div className="inline-flex w-40 h-20 sm:w-56 sm:h-28 items-center justify-center mb-4 overflow-visible relative">
-            <img src="/logoresifaso.png" alt="ResiFaso" className="w-full h-full object-contain scale-125" />
+          <div className="inline-flex w-48 h-24 sm:w-72 sm:h-32 items-center justify-center mb-4 overflow-visible relative">
+            <img src="/src/assets/images/resifaso_logo_v2_1783180763979.jpg" alt="ResiFaso" className="w-full h-full object-contain scale-150" referrerPolicy="no-referrer" />
           </div>
           <h3 className="text-2xl font-black text-slate-900 tracking-tight">
             {isForgotPassword ? "Mot de passe oublié" : isSignUp ? "Créer un compte" : "Connexion"}
