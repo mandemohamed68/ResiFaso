@@ -274,7 +274,7 @@ export const initDatabase = async () => {
           FOREIGN KEY(user_id) REFERENCES users(uid) ON DELETE CASCADE
         ) ENGINE=InnoDB
       `);
-      console.log("Table 'notifications' recréée avec succès.");
+      console.log("Table 'notifications' recréée avec succès et FK ajoutée.");
     } catch (err: any) {
       console.error("Erreur lors de la création de la table notifications:", err.message);
     }
