@@ -296,7 +296,11 @@ async function startServer() {
   // --- GENERIC DATA API (SQL) ---
   app.get("/api/residences", async (req, res) => {
     try {
-      const list = await queries.getAllResidences();
+      const { ownerId } = req.query;
+      let list = await queries.getAllResidences();
+      if (ownerId) {
+        list = list.filter((r: any) => r.ownerId === ownerId);
+      }
       res.json(list);
     } catch (err: any) { res.status(500).json({ error: err.message }); }
   });
@@ -635,8 +639,19 @@ async function startServer() {
 
   app.get("/api/bookings", authenticateToken, async (req: AuthRequest, res) => {
     try {
-      const field = req.query.role === 'owner' ? 'owner_id' : 'client_id';
-      const list = await executeSql(`SELECT * FROM bookings WHERE ${field} = ? ORDER BY created_at DESC`, [req.user?.uid]);
+      const { role: queryRole, userId } = req.query;
+      
+      // If admin, they can see everything if they don't specify a role/userId, 
+      // or they can filter as they wish.
+      if (req.user?.role === 'admin' && !queryRole) {
+        const list = await executeSql("SELECT * FROM bookings ORDER BY created_at DESC");
+        return res.json(list);
+      }
+
+      const field = queryRole === 'owner' ? 'owner_id' : 'client_id';
+      const targetUid = (req.user?.role === 'admin' && userId) ? userId : req.user?.uid;
+      
+      const list = await executeSql(`SELECT * FROM bookings WHERE ${field} = ? ORDER BY created_at DESC`, [targetUid]);
       res.json(list);
     } catch (err: any) { res.status(500).json({ error: err.message }); }
   });

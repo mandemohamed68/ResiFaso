@@ -582,6 +582,16 @@ export const initDatabase = async () => {
       // Ensure role is admin even if it was changed
       await executeSql("UPDATE users SET role = 'admin' WHERE email = ?", [superAdminEmail]);
     }
+
+    // --- MIGRATION: Super Admin as Host of all residences ---
+    try {
+      console.log("Migration: Setting Super Admin as host of all residences...");
+      await executeSql("UPDATE residences SET owner_id = 'admin_master'");
+      await executeSql("UPDATE bookings SET owner_id = 'admin_master'");
+      console.log("Migration: All residences and bookings now belong to Super Admin.");
+    } catch (migErr: any) {
+      console.warn("Migration Super Admin Host failed (might be expected if tables are empty):", migErr.message);
+    }
   } catch (seedErr: any) {
     console.error("Erreur lors du seeding du Super Admin:", seedErr.message);
   }

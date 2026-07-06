@@ -1,7 +1,7 @@
 import { formatCurrency } from '../../utils/currency';
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
-import { getClientBookings, updateBookingStatus, sendNotification } from '../../lib/db';
+import { getClientBookings, updateBookingStatus, sendNotification, getBackendDbType, getAllResidences } from '../../lib/db';
 import { Booking, Residence } from '../../types';
 import { MOCK_RESIDENCES } from '../../mockData';
 import { motion, AnimatePresence } from 'motion/react';
@@ -464,48 +464,85 @@ export const MyBookings: React.FC<{ onContactHost: (ownerId: string, resId: stri
     return () => window.removeEventListener('openBookingDetails', handleOpenBooking);
   }, []);
 
+  // Load residences map
   useEffect(() => {
-    const rMap: Record<string, Residence> = {};
-    MOCK_RESIDENCES.forEach(res => {
-      rMap[res.id] = res;
-    });
+    const fetchData = async () => {
+      try {
+        const dbType = await getBackendDbType();
+        const rMap: Record<string, Residence> = {};
+        MOCK_RESIDENCES.forEach(res => {
+          rMap[res.id] = res;
+        });
 
-    // Also populate with live residences from Firestore if any
-    const unsubscribe = onSnapshot(collection(db, 'residences'), (snapshot) => {
-      snapshot.forEach(doc => {
-        rMap[doc.id] = { id: doc.id, ...doc.data() } as Residence;
-      });
-      setResidencesMap({ ...rMap });
-    }, (error) => console.error("MyBookings residences snapshot error:", error));
-
-    return unsubscribe;
+        if (dbType === 'firebase') {
+          // Keep firebase listener for compatibility
+          const unsubscribe = onSnapshot(collection(db, 'residences'), (snapshot) => {
+            snapshot.forEach(docSnap => {
+              rMap[docSnap.id] = { id: docSnap.id, ...docSnap.data() } as Residence;
+            });
+            setResidencesMap({ ...rMap });
+          }, (error) => console.error("MyBookings residences snapshot error:", error));
+          return unsubscribe;
+        } else {
+          // SQL / API
+          const list = await getAllResidences();
+          list.forEach(res => {
+            rMap[res.id] = res;
+          });
+          setResidencesMap({ ...rMap });
+        }
+      } catch (err) {
+        console.error("Error loading residences map:", err);
+      }
+    };
+    fetchData();
   }, []);
 
-  // Fetch guest's bookings in real-time
+  // Fetch guest's bookings
   useEffect(() => {
     if (!user) {
       setLoading(false);
       return;
     }
 
-    setLoading(true);
-    const qBookings = query(collection(db, 'bookings'), where('clientId', '==', user.uid));
-    
-    const unsubscribe = onSnapshot(qBookings, (snapshot) => {
-      const list: Booking[] = [];
-      snapshot.forEach(docSnap => {
-        list.push({ id: docSnap.id, ...docSnap.data() } as Booking);
-      });
-      // Sort by createdAt desc
-      list.sort((a, b) => new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime());
-      setBookings(list);
-      setLoading(false);
-    }, (error) => {
-      console.error("Error watching guest bookings:", error);
-      setLoading(false);
-    });
+    const fetchBookings = async () => {
+      setLoading(true);
+      try {
+        const dbType = await getBackendDbType();
+        if (dbType === 'firebase') {
+          const qBookings = query(collection(db, 'bookings'), where('clientId', '==', user.uid));
+          const unsubscribe = onSnapshot(qBookings, (snapshot) => {
+            const list: Booking[] = [];
+            snapshot.forEach(docSnap => {
+              list.push({ id: docSnap.id, ...docSnap.data() } as Booking);
+            });
+            list.sort((a, b) => new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime());
+            setBookings(list);
+            setLoading(false);
+          }, (error) => {
+            console.error("Error watching guest bookings:", error);
+            setLoading(false);
+          });
+          return unsubscribe;
+        } else {
+          // SQL / API
+          const list = await getClientBookings(user.uid);
+          const sortedList = (list || []).sort((a, b) => 
+            new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime()
+          );
+          setBookings(sortedList);
+          setLoading(false);
+        }
+      } catch (err) {
+        console.error("Error fetching bookings:", err);
+        setLoading(false);
+      }
+    };
 
-    return unsubscribe;
+    fetchBookings();
+    // Refresh every 60 seconds
+    const interval = setInterval(fetchBookings, 60000);
+    return () => clearInterval(interval);
   }, [user]);
 
   const calculateDaysLeft = (checkInStr: string) => {

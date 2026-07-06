@@ -10,7 +10,10 @@ import {
   deleteResidence,
   sendNotification,
   createWithdrawalRequest,
-  getOwnerWithdrawals
+  getOwnerWithdrawals,
+  getBackendDbType,
+  getAllResidences,
+  getAllBookings
 } from '../../lib/db';
 import { CustomSelect } from '../common/CustomSelect';
 import { Message, Conversation, Residence, Booking, WithdrawalRequest, MobileMoneyProvider } from '../../types';
@@ -810,44 +813,72 @@ export const OwnerDashboard: React.FC<{ isTestMode?: boolean; onBackToTraveler?:
     'Wi-Fi', 'Climatisation', 'Piscine', 'Parking', 'Sécurité 24/7', 'Cuisine équipée', 'Jardin', 'Groupe Électrogène', 'Forage Eau'
   ];
 
-  // Fetch real-time data for owners
+  // Fetch data for owners
   useEffect(() => {
     if (!user) {
       setLoading(false);
       return;
     }
 
-    setLoading(true);
+    const fetchData = async () => {
+      setLoading(true);
+      try {
+        const dbType = await getBackendDbType();
+        
+        if (dbType === 'firebase') {
+          // Firebase logic (keep it for compatibility if needed, but we prefer API)
+          const qRes = query(collection(db, 'residences'), where('ownerId', '==', user.uid));
+          const unsubRes = onSnapshot(qRes, (snap) => {
+            const list: Residence[] = [];
+            snap.forEach(docSnap => {
+              list.push({ id: docSnap.id, ...docSnap.data() } as Residence);
+            });
+            setResidences(list);
+          });
 
-    // Watch Residences
-    const qRes = query(collection(db, 'residences'), where('ownerId', '==', user.uid));
-    const unsubRes = onSnapshot(qRes, (snap) => {
-      const list: Residence[] = [];
-      snap.forEach(docSnap => {
-        list.push({ id: docSnap.id, ...docSnap.data() } as Residence);
-      });
-      setResidences(list);
-    }, (error) => console.error("OwnerDashboard residences snapshot error:", error));
+          const qBook = query(collection(db, 'bookings'), where('ownerId', '==', user.uid));
+          const unsubBook = onSnapshot(qBook, (snap) => {
+            const list: Booking[] = [];
+            snap.forEach(docSnap => {
+              list.push({ id: docSnap.id, ...docSnap.data() } as Booking);
+            });
+            list.sort((a, b) => new Date(a.checkIn).getTime() - new Date(b.checkIn).getTime());
+            setBookings(list);
+            setLoading(false);
+          });
 
-    // Watch Bookings
-    const qBook = query(collection(db, 'bookings'), where('ownerId', '==', user.uid));
-    const unsubBook = onSnapshot(qBook, (snap) => {
-      const list: Booking[] = [];
-      snap.forEach(docSnap => {
-        list.push({ id: docSnap.id, ...docSnap.data() } as Booking);
-      });
-      // Sort by check-in date
-      list.sort((a, b) => new Date(a.checkIn).getTime() - new Date(b.checkIn).getTime());
-      setBookings(list);
-      setLoading(false);
-    }, () => {
-      setLoading(false);
-    });
-
-    return () => {
-      unsubRes();
-      unsubBook();
+          return () => {
+            unsubRes();
+            unsubBook();
+          };
+        } else {
+          // SQL / API Logic
+          // If admin, they might want to see EVERYTHING if they are the "Global Host"
+          const isAdmin = user.role === 'admin' || user.email === 'mandemohamed68@gmail.com';
+          
+          const [resList, bookList] = await Promise.all([
+            isAdmin ? getAllResidences() : getOwnerResidences(user.uid),
+            isAdmin ? getAllBookings() : getOwnerBookings(user.uid)
+          ]);
+          
+          setResidences(resList || []);
+          
+          const sortedBookings = (bookList || []).sort((a, b) => 
+            new Date(a.checkIn).getTime() - new Date(b.checkIn).getTime()
+          );
+          setBookings(sortedBookings);
+        }
+      } catch (err) {
+        console.error("Error fetching owner dashboard data:", err);
+      } finally {
+        setLoading(false);
+      }
     };
+
+    fetchData();
+    // Refresh every 60 seconds if not firebase
+    const interval = setInterval(fetchData, 60000);
+    return () => clearInterval(interval);
   }, [user]);
 
   // Fetch real-time conversations for owner
