@@ -97,7 +97,7 @@ export const Navbar: React.FC<{
           className="flex items-center cursor-pointer group hover:opacity-90 transition-opacity"
         >
           <div className="w-40 h-16 sm:w-48 sm:h-20 flex items-center justify-start group-hover:scale-105 transition-transform relative">
-            <img src="/src/assets/images/resifaso_logo_v2_1783180763979.jpg" alt="ResiFaso" className="w-full h-full object-contain" referrerPolicy="no-referrer" />
+            <img src="/logo.jpg" alt="ResiFaso" className="w-full h-full object-contain" referrerPolicy="no-referrer" />
           </div>
         </div>
 

@@ -216,7 +216,7 @@ function AppContent() {
 
   const calculateTotal = (res: Residence) => {
     const nights = calculateNights();
-    let pricePerNight = res.promoPrice || res.promo_price || res.pricePerNight || res.price_per_night;
+    let pricePerNight = res.promoPrice || res.promo_price || res.pricePerNight || res.price_per_night || 0;
     
     // Check tiered pricing (degressive)
     if (res.pricingTiers && res.pricingTiers.length > 0) {
@@ -237,15 +237,17 @@ function AppContent() {
       discount = res.weeklyDiscount;
     }
 
-    const base = (pricePerNight * nights) * (1 - discount / 100);
-    const cleaning = res.cleaningFee;
+    const base = (pricePerNight * nights) * (1 - (discount || 0) / 100);
+    const cleaning = res.cleaningFee || 0;
     const platformService = base * (commissionRate / 100); // Platform commission
     const extraService = res.serviceFee || 0; // Host controlled service fee
     return Math.round(base + cleaning + platformService + extraService);
   };
 
   const calculateAdvance = (res: Residence) => {
-    return Math.round(calculateTotal(res) * (res.advancePercentage / 100));
+    const total = calculateTotal(res);
+    const advancePercent = res.advancePercentage || 30;
+    return Math.round(total * (advancePercent / 100));
   };
 
   const handleSearchTrigger = (filters: typeof searchFilters) => {
@@ -1213,7 +1215,7 @@ function AppContent() {
                       </div>
                     </div>
 
-                    <div className="bg-orange-50 border border-orange-105 rounded-xl p-4 mb-6">
+                    <div className="bg-orange-50 border border-orange-100 rounded-xl p-4 mb-6">
                       <div className="flex items-center justify-between mb-2">
                         <span className="text-xs font-bold text-orange-800 uppercase tracking-tighter">Avance requise ({selectedResidence.advancePercentage}%)</span>
                         <span className="text-lg font-black text-orange-900 underline underline-offset-4">{formatCurrency(calculateAdvance(selectedResidence))} FCFA</span>
