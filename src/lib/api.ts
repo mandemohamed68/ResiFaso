@@ -1,4 +1,9 @@
 export function getApiUrl(): string {
+  const envUrl = import.meta.env.VITE_API_URL || import.meta.env.VITE_APP_URL;
+  if (envUrl && envUrl !== 'MY_APP_URL' && envUrl !== 'MY_API_URL') {
+    return envUrl.replace(/\/$/, '').replace(/\/api$/, '');
+  }
+
   const isCapacitor = typeof window !== 'undefined' && (
     // @ts-ignore
     window.Capacitor || 
@@ -8,10 +13,6 @@ export function getApiUrl(): string {
   );
   
   if (isCapacitor) {
-    const configUrl = import.meta.env.VITE_APP_URL;
-    if (configUrl && configUrl !== 'MY_APP_URL') {
-      return configUrl.replace(/\/$/, '');
-    }
     // Hardcoded fallback to the active hosted app URL
     return 'https://ais-pre-aeirvgp5kf4pmbaewxhixl-252816219526.europe-west1.run.app';
   }

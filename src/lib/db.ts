@@ -1,4 +1,5 @@
 import { UserProfile, Residence, Booking, Conversation, Message, WithdrawalRequest, WithdrawalStatus } from '../types';
+import { getApiUrl } from './api';
 
 export enum OperationType {
   CREATE = 'create',
@@ -18,7 +19,11 @@ const apiFetch = async (endpoint: string, options: any = {}) => {
     ...options.headers
   };
 
-  const response = await fetch(endpoint, { ...options, headers });
+  const baseUrl = getApiUrl();
+  const cleanEndpoint = endpoint.startsWith('/') ? endpoint : `/${endpoint}`;
+  const fullUrl = baseUrl ? `${baseUrl}${cleanEndpoint}` : cleanEndpoint;
+
+  const response = await fetch(fullUrl, { ...options, headers });
   if (!response.ok) {
     const errorData = await response.json().catch(() => ({}));
     throw new Error(errorData.error || `API Error: ${response.statusText}`);

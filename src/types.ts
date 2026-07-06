@@ -76,6 +76,13 @@ export interface Residence {
   price?: number;
   city?: string;
   neighborhood?: string;
+  price_per_night?: number;
+  weekly_discount?: number;
+  monthly_discount?: number;
+  promo_price?: number;
+  street?: string;
+  lat?: number;
+  lng?: number;
 }
 
 export type PaymentStatus = "pending" | "advance_paid" | "fully_paid" | "failed";
