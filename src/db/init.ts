@@ -22,6 +22,63 @@ export const initDatabase = async () => {
       )
     `);
 
+    // Ensure 'uid' column exists in MariaDB for compatibility with imported SQL dumps
+    try {
+      const columns = await executeSql(`
+        SELECT COLUMN_NAME 
+        FROM INFORMATION_SCHEMA.COLUMNS 
+        WHERE TABLE_SCHEMA = DATABASE() 
+          AND TABLE_NAME = 'users' 
+          AND COLUMN_NAME = 'uid'
+      `);
+      if (!columns || columns.length === 0) {
+        console.log("Migration MariaDB: La colonne 'uid' est manquante dans 'users'. Ajout en cours...");
+        
+        // Check if 'id' column exists to copy values from
+        const idColumns = await executeSql(`
+          SELECT COLUMN_NAME 
+          FROM INFORMATION_SCHEMA.COLUMNS 
+          WHERE TABLE_SCHEMA = DATABASE() 
+            AND TABLE_NAME = 'users' 
+            AND COLUMN_NAME = 'id'
+        `);
+        
+        if (idColumns && idColumns.length > 0) {
+          // Add 'uid' column
+          await executeSql("ALTER TABLE users ADD COLUMN uid VARCHAR(128) NULL");
+          // Copy 'id' values to 'uid'
+          await executeSql("UPDATE users SET uid = id WHERE uid IS NULL");
+          // Add unique constraint to make it referenceable by foreign keys
+          await executeSql("ALTER TABLE users ADD UNIQUE KEY (uid)");
+          console.log("Migration MariaDB: Colonne 'uid' ajoutée et synchronisée avec 'id' avec succès.");
+        } else {
+          // If neither 'uid' nor 'id' exists (should not happen), add 'uid'
+          await executeSql("ALTER TABLE users ADD COLUMN uid VARCHAR(128) PRIMARY KEY");
+        }
+      }
+    } catch (err: any) {
+      console.error("Erreur lors de la vérification/migration de la colonne 'uid' de la table 'users':", err.message);
+    }
+
+    // Ensure a trigger exists to keep 'id' and 'uid' in sync on insertion
+    try {
+      await executeSql(`
+        CREATE TRIGGER IF NOT EXISTS before_insert_users
+        BEFORE INSERT ON users
+        FOR EACH ROW
+        BEGIN
+          IF NEW.id IS NULL AND NEW.uid IS NOT NULL THEN
+            SET NEW.id = NEW.uid;
+          ELSEIF NEW.uid IS NULL AND NEW.id IS NOT NULL THEN
+            SET NEW.uid = NEW.id;
+          END IF;
+        END
+      `);
+      console.log("Migration MariaDB: Déclencheur before_insert_users opérationnel.");
+    } catch (err: any) {
+      console.warn("Avertissement: Impossible de créer ou vérifier le déclencheur before_insert_users (cela est normal si l'utilisateur de la base de données n'a pas les privilèges TRIGGER):", err.message);
+    }
+
     // Residences Table
     await executeSql(`
       CREATE TABLE IF NOT EXISTS residences (

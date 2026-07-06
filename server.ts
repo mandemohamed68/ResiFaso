@@ -317,10 +317,114 @@ async function startServer() {
     } catch (err: any) { res.status(500).json({ error: err.message }); }
   });
 
+  app.get("/api/admin/db-type", (req, res) => {
+    res.json({ dbType: DB_TYPE });
+  });
+
   app.get("/api/ads", async (req, res) => {
     try {
       const list = await queries.getAllAds();
       res.json(list);
+    } catch (err: any) { res.status(500).json({ error: err.message }); }
+  });
+
+  app.post("/api/ads", authenticateToken, async (req: AuthRequest, res) => {
+    if (req.user?.role !== 'admin') return res.status(403).json({ error: "Réservé aux admins" });
+    const { id, title, description, imageUrl, linkUrl, position, active } = req.body;
+    try {
+      const existing = await executeSql("SELECT id FROM advertisements WHERE id = ?", [id]);
+      if (existing.length > 0) {
+        await executeSql("UPDATE advertisements SET title = ?, description = ?, image_url = ?, link_url = ?, position = ?, active = ? WHERE id = ?", [title, description, imageUrl, linkUrl, position, active ? 1 : 0, id]);
+      } else {
+        await executeSql("INSERT INTO advertisements (id, title, description, image_url, link_url, position, active) VALUES (?, ?, ?, ?, ?, ?, ?)", [id, title, description, imageUrl, linkUrl, position, active ? 1 : 0]);
+      }
+      res.json({ success: true });
+    } catch (err: any) { res.status(500).json({ error: err.message }); }
+  });
+
+  app.delete("/api/ads/:id", authenticateToken, async (req: AuthRequest, res) => {
+    if (req.user?.role !== 'admin') return res.status(403).json({ error: "Réservé aux admins" });
+    try {
+      await executeSql("DELETE FROM advertisements WHERE id = ?", [req.params.id]);
+      res.json({ success: true });
+    } catch (err: any) { res.status(500).json({ error: err.message }); }
+  });
+
+  app.get("/api/faqs", async (req, res) => {
+    try {
+      const list = await executeSql("SELECT * FROM faqs ORDER BY `order` ASC");
+      res.json(list);
+    } catch (err: any) { res.status(500).json({ error: err.message }); }
+  });
+
+  app.post("/api/faqs", authenticateToken, async (req: AuthRequest, res) => {
+    if (req.user?.role !== 'admin') return res.status(403).json({ error: "Réservé aux admins" });
+    const { id, question, answer, category, order } = req.body;
+    try {
+      const existing = await executeSql("SELECT id FROM faqs WHERE id = ?", [id]);
+      if (existing.length > 0) {
+        await executeSql("UPDATE faqs SET question = ?, answer = ?, category = ?, `order` = ? WHERE id = ?", [question, answer, category, order, id]);
+      } else {
+        await executeSql("INSERT INTO faqs (id, question, answer, category, `order`) VALUES (?, ?, ?, ?, ?)", [id, question, answer, category, order]);
+      }
+      res.json({ success: true });
+    } catch (err: any) { res.status(500).json({ error: err.message }); }
+  });
+
+  app.delete("/api/faqs/:id", authenticateToken, async (req: AuthRequest, res) => {
+    if (req.user?.role !== 'admin') return res.status(403).json({ error: "Réservé aux admins" });
+    try {
+      await executeSql("DELETE FROM faqs WHERE id = ?", [req.params.id]);
+      res.json({ success: true });
+    } catch (err: any) { res.status(500).json({ error: err.message }); }
+  });
+
+  app.get("/api/contact-messages", authenticateToken, async (req: AuthRequest, res) => {
+    if (req.user?.role !== 'admin') return res.status(403).json({ error: "Réservé aux admins" });
+    try {
+      const list = await executeSql("SELECT * FROM contact_messages ORDER BY created_at DESC");
+      res.json(list);
+    } catch (err: any) { res.status(500).json({ error: err.message }); }
+  });
+
+  app.post("/api/contact-messages", async (req, res) => {
+    const { id, name, email, subject, message } = req.body;
+    const msgId = id || `msg_${Date.now()}`;
+    try {
+      await executeSql("INSERT INTO contact_messages (id, name, email, subject, message) VALUES (?, ?, ?, ?, ?)", [msgId, name, email, subject, message]);
+      res.json({ success: true, id: msgId });
+    } catch (err: any) { res.status(500).json({ error: err.message }); }
+  });
+
+  app.delete("/api/contact-messages/:id", authenticateToken, async (req: AuthRequest, res) => {
+    if (req.user?.role !== 'admin') return res.status(403).json({ error: "Réservé aux admins" });
+    try {
+      await executeSql("DELETE FROM contact_messages WHERE id = ?", [req.params.id]);
+      res.json({ success: true });
+    } catch (err: any) { res.status(500).json({ error: err.message }); }
+  });
+
+  app.put("/api/contact-messages/:id", authenticateToken, async (req: AuthRequest, res) => {
+    if (req.user?.role !== 'admin') return res.status(403).json({ error: "Réservé aux admins" });
+    const { is_read } = req.body;
+    try {
+      await executeSql("UPDATE contact_messages SET is_read = ? WHERE id = ?", [is_read ? 1 : 0, req.params.id]);
+      res.json({ success: true });
+    } catch (err: any) { res.status(500).json({ error: err.message }); }
+  });
+
+  app.get("/api/reviews", async (req, res) => {
+    try {
+      const list = await executeSql("SELECT * FROM reviews ORDER BY created_at DESC");
+      res.json(list);
+    } catch (err: any) { res.status(500).json({ error: err.message }); }
+  });
+
+  app.delete("/api/reviews/:id", authenticateToken, async (req: AuthRequest, res) => {
+    if (req.user?.role !== 'admin') return res.status(403).json({ error: "Interdit" });
+    try {
+      await queries.deleteReview(req.params.id);
+      res.json({ success: true });
     } catch (err: any) { res.status(500).json({ error: err.message }); }
   });
 
@@ -466,6 +570,14 @@ async function startServer() {
     if (req.user?.uid !== req.params.uid && req.user?.role !== 'admin') return res.status(403).json({ error: "Interdit" });
     try {
       await queries.updateUserProfile(req.params.uid, req.body);
+      res.json({ success: true });
+    } catch (err: any) { res.status(500).json({ error: err.message }); }
+  });
+
+  app.delete("/api/users/:uid", authenticateToken, async (req: AuthRequest, res) => {
+    if (req.user?.role !== 'admin') return res.status(403).json({ error: "Interdit" });
+    try {
+      await queries.deleteUser(req.params.uid);
       res.json({ success: true });
     } catch (err: any) { res.status(500).json({ error: err.message }); }
   });

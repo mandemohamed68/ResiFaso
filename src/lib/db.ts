@@ -118,6 +118,12 @@ export async function updateUserProfile(uid: string, updates: Partial<UserProfil
   });
 }
 
+export function deleteUser(uid: string): Promise<void> {
+  return apiFetch(`/api/users/${uid}`, {
+    method: 'DELETE'
+  });
+}
+
 // ==========================================
 // NOTIFICATIONS
 // ==========================================
@@ -185,4 +191,118 @@ export async function seedDatabaseIfNeeded() {
 
 export async function hardResetDatabase() {
   await apiFetch('/api/admin/reset-db', { method: 'POST' });
+}
+
+// ==========================================
+// ADMIN CONFIG & SETTINGS
+// ==========================================
+
+export async function getBackendDbType(): Promise<string> {
+  return apiFetch('/api/admin/db-type').then(res => res.dbType).catch(() => 'firebase');
+}
+
+export async function getGlobalSettings(): Promise<any> {
+  return apiFetch('/api/settings/global').catch(() => ({}));
+}
+
+export async function saveGlobalSettings(settings: any): Promise<void> {
+  await apiFetch('/api/settings/global', {
+    method: 'POST',
+    body: JSON.stringify(settings)
+  });
+}
+
+export async function getContactSettings(): Promise<any> {
+  return apiFetch('/api/settings/contactSettings').catch(() => ({}));
+}
+
+export async function saveContactSettings(settings: any): Promise<void> {
+  await apiFetch('/api/settings/contactSettings', {
+    method: 'POST',
+    body: JSON.stringify(settings)
+  });
+}
+
+// ==========================================
+// FAQS
+// ==========================================
+
+export async function getAllFaqs(): Promise<any[]> {
+  return apiFetch('/api/faqs').catch(() => []);
+}
+
+export async function saveFaq(faq: any): Promise<void> {
+  await apiFetch('/api/faqs', {
+    method: 'POST',
+    body: JSON.stringify(faq)
+  });
+}
+
+export async function deleteFaq(id: string): Promise<void> {
+  await apiFetch(`/api/faqs/${id}`, {
+    method: 'DELETE'
+  });
+}
+
+// ==========================================
+// ADVERTISEMENTS (ADS)
+// ==========================================
+
+export async function getAllAds(): Promise<any[]> {
+  return apiFetch('/api/ads').catch(() => []);
+}
+
+export async function saveAd(ad: any): Promise<void> {
+  await apiFetch('/api/ads', {
+    method: 'POST',
+    body: JSON.stringify(ad)
+  });
+}
+
+export async function deleteAd(id: string): Promise<void> {
+  await apiFetch(`/api/ads/${id}`, {
+    method: 'DELETE'
+  });
+}
+
+// ==========================================
+// CONTACT MESSAGES
+// ==========================================
+
+export async function getAllContactMessages(): Promise<any[]> {
+  return apiFetch('/api/contact-messages').catch(() => []);
+}
+
+export async function sendContactMessage(msg: any): Promise<void> {
+  await apiFetch('/api/contact-messages', {
+    method: 'POST',
+    body: JSON.stringify(msg)
+  });
+}
+
+export async function deleteContactMessage(id: string): Promise<void> {
+  await apiFetch(`/api/contact-messages/${id}`, {
+    method: 'DELETE'
+  });
+}
+
+export async function updateContactMessage(id: string, updates: any): Promise<void> {
+  await apiFetch(`/api/contact-messages/${id}`, {
+    method: 'PUT',
+    body: JSON.stringify(updates)
+  });
+}
+
+// ==========================================
+// REVIEWS
+// ==========================================
+
+export async function getAllReviews(): Promise<any[]> {
+  return apiFetch('/api/reviews').catch(() => []);
+}
+
+export async function deleteReview(id: string): Promise<void> {
+  await apiFetch(`/api/reviews/${id}`, {
+    method: 'DELETE'
+  });
 }

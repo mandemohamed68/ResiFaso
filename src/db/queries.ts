@@ -163,8 +163,37 @@ export const updateBookingStatus = async (id: string, updates: any) => {
 };
 
 export const updateUserProfile = async (uid: string, updates: any) => {
-  const fields = Object.keys(updates);
+  const mappedUpdates: any = { uid };
+  for (const [k, v] of Object.entries(updates)) {
+    if (k === 'uid') continue;
+    if (k === 'displayName') mappedUpdates.display_name = v;
+    else if (k === 'photoUrl') mappedUpdates.photo_url = v;
+    else if (k === 'isVerified') mappedUpdates.is_verified = v;
+    else if (k === 'isSuspended') mappedUpdates.is_suspended = v;
+    else if (k === 'phoneNumber') mappedUpdates.phone_number = v;
+    else if (k === 'createdAt') mappedUpdates.created_at = v;
+    else mappedUpdates[toSnakeCase(k)] = v;
+  }
+
+  const fields = Object.keys(mappedUpdates);
   if (fields.length === 0) return;
-  const setClause = fields.map(f => `${f} = ?`).join(', ');
-  await executeSql(`UPDATE users SET ${setClause} WHERE uid = ?`, [...Object.values(updates), uid]);
+  const placeholders = fields.map(() => '?').join(', ');
+  
+  const dbType = process.env.DB_TYPE || 'sqlite';
+  if (dbType === 'mariadb') {
+    const updateClause = fields.filter(f => f !== 'uid').map(f => `${f} = VALUES(${f})`).join(', ');
+    await executeSql(`INSERT INTO users (${fields.join(', ')}) VALUES (${placeholders}) ON DUPLICATE KEY UPDATE ${updateClause}`, Object.values(mappedUpdates));
+  } else {
+    const updateClause = fields.filter(f => f !== 'uid').map(f => `${f} = ?`).join(', ');
+    const updateValues = fields.filter(f => f !== 'uid').map(f => mappedUpdates[f]);
+    await executeSql(`INSERT INTO users (${fields.join(', ')}) VALUES (${placeholders}) ON CONFLICT(uid) DO UPDATE SET ${updateClause}`, [...Object.values(mappedUpdates), ...updateValues]);
+  }
+};
+
+export const deleteUser = async (uid: string) => {
+  await executeSql("DELETE FROM users WHERE uid = ?", [uid]);
+};
+
+export const deleteReview = async (id: string) => {
+  await executeSql("DELETE FROM reviews WHERE id = ?", [id]);
 };

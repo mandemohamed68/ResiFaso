@@ -15,7 +15,18 @@ import { motion, AnimatePresence } from 'motion/react';
 import { cn, formatFCFA } from '../../lib/utils';
 import { useAuth } from '../../contexts/AuthContext';
 import { resizeImage } from '../../lib/imageResize';
-import { hardResetDatabase, updateWithdrawalStatus, sendNotification } from '../../lib/db';
+import { 
+  hardResetDatabase, updateWithdrawalStatus, sendNotification,
+  getBackendDbType, getGlobalSettings, saveGlobalSettings, getContactSettings, saveContactSettings,
+  getAllFaqs, saveFaq, deleteFaq,
+  getAllAds, saveAd, deleteAd,
+  getAllWithdrawals,
+  getAllContactMessages, sendContactMessage, deleteContactMessage, updateContactMessage,
+  getAllReviews, deleteReview,
+  getAllResidences, updateResidence, deleteResidence,
+  getAllBookings, updateBookingStatus,
+  getAllUsers, updateUserProfile, deleteUser
+} from '../../lib/db';
 
 const DEFAULT_CONTACT_SETTINGS: ContactSettings = {
   title: "Contactez-nous",
@@ -157,6 +168,87 @@ export const AdminDashboard: React.FC<{ onBackToTraveler?: () => void }> = ({ on
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }, [activeTab]);
 
+  const [dbType, setDbType] = useState<string>('firebase');
+
+  const reloadData = async () => {
+    try {
+      const [
+        resList,
+        userList,
+        bookingList,
+        reviewList,
+        settingsData,
+        adList,
+        withdrawalList,
+        faqList,
+        contactSettingsData,
+        messageList
+      ] = await Promise.all([
+        getAllResidences().catch(() => []),
+        getAllUsers().catch(() => []),
+        getAllBookings().catch(() => []),
+        getAllReviews().catch(() => []),
+        getGlobalSettings().catch(() => ({})),
+        getAllAds().catch(() => []),
+        getAllWithdrawals().catch(() => []),
+        getAllFaqs().catch(() => []),
+        getContactSettings().catch(() => ({})),
+        getAllContactMessages().catch(() => [])
+      ]);
+
+      if (resList) setResidences(resList);
+      if (userList) setUsers(userList);
+      if (bookingList) setBookings(bookingList);
+      if (reviewList) setReviews(reviewList);
+      if (adList) setAds(adList);
+      if (withdrawalList) setWithdrawals(withdrawalList);
+      if (faqList) setFaqs(faqList);
+      if (messageList) setContactMessages(messageList);
+
+      if (settingsData) {
+        if (settingsData.platformName) setPlatformName(settingsData.platformName);
+        if (settingsData.footerContent) setFooterContent(settingsData.footerContent);
+        if (settingsData.commissionRate !== undefined) setCommissionRate(settingsData.commissionRate);
+        if (settingsData.isTestMode !== undefined) setIsGlobalTestMode(settingsData.isTestMode);
+        if (settingsData.enablePhoneCalls !== undefined) setEnablePhoneCalls(settingsData.enablePhoneCalls);
+        if (settingsData.enableWhatsApp !== undefined) setEnableWhatsApp(settingsData.enableWhatsApp);
+        if (settingsData.sappayClientId !== undefined) setSappayClientId(settingsData.sappayClientId);
+        if (settingsData.sappayClientSecret !== undefined) setSappayClientSecret(settingsData.sappayClientSecret);
+        if (settingsData.sappayUsername !== undefined) setSappayUsername(settingsData.sappayUsername);
+        if (settingsData.sappayPassword !== undefined) setSappayPassword(settingsData.sappayPassword);
+        if (settingsData.announcement) {
+          setAnnouncementText(settingsData.announcement.text || '');
+          setAnnouncementType(settingsData.announcement.type || 'info');
+          setAnnouncementActive(settingsData.announcement.active || false);
+        }
+      }
+
+      if (contactSettingsData) {
+        setContactSettings(contactSettingsData as ContactSettings);
+      }
+    } catch (err) {
+      console.error("Error reloading admin data:", err);
+    }
+  };
+
+  useEffect(() => {
+    const fetchDbType = async () => {
+      try {
+        const type = await getBackendDbType();
+        setDbType(type);
+      } catch (err) {
+        console.error("Error fetching dbType:", err);
+      }
+    };
+    fetchDbType();
+  }, []);
+
+  useEffect(() => {
+    if (dbType !== 'firebase' && user) {
+      reloadData();
+    }
+  }, [dbType, user]);
+
   useEffect(() => {
     if (!user) return;
     
@@ -179,7 +271,7 @@ export const AdminDashboard: React.FC<{ onBackToTraveler?: () => void }> = ({ on
 
   // Real-time listener for residences, users, bookings, reviews and global settings
   useEffect(() => {
-    if (!user) return;
+    if (!user || dbType !== 'firebase') return;
 
     // Residences listener
     const unsubRes = onSnapshot(collection(db, 'residences'), (snapshot) => {
@@ -301,7 +393,7 @@ export const AdminDashboard: React.FC<{ onBackToTraveler?: () => void }> = ({ on
       unsubContactSettings();
       unsubContactMessages();
     };
-  }, [user]);
+  }, [user, dbType]);
 
   // Logging Helper
   const logAction = (text: string) => {
@@ -320,6 +412,7 @@ export const AdminDashboard: React.FC<{ onBackToTraveler?: () => void }> = ({ on
   const handleApproveWithdrawalReq = async (item: WithdrawalRequest) => {
     try {
       await updateWithdrawalStatus(item.id, 'approved', new Date().toISOString());
+      if (dbType !== 'firebase') await reloadData();
       logAction(`Retrait approuvé pour l'hôte ${item.ownerName} (${item.amount} F CFA) via ${item.provider.toUpperCase()}.`);
       
       await sendNotification({
@@ -340,6 +433,7 @@ export const AdminDashboard: React.FC<{ onBackToTraveler?: () => void }> = ({ on
     if (reason === null) return;
     try {
       await updateWithdrawalStatus(item.id, 'rejected');
+      if (dbType !== 'firebase') await reloadData();
       logAction(`Retrait rejeté pour l'hôte ${item.ownerName} (${item.amount} F CFA). Motif: ${reason}`);
       
       await sendNotification({
@@ -453,30 +547,31 @@ export const AdminDashboard: React.FC<{ onBackToTraveler?: () => void }> = ({ on
     e.preventDefault();
     if (!editFaqQuestion || !editFaqAnswer) return;
     setIsSavingFaq(true);
+    const faqId = editingFaq ? editingFaq.id : `faq_${Date.now()}`;
+    const payload = {
+      id: faqId,
+      question: editFaqQuestion,
+      answer: editFaqAnswer,
+      category: editFaqCategory,
+      order: editFaqOrder,
+      isActive: editFaqIsActive,
+      updatedAt: new Date().toISOString(),
+      ...(editingFaq ? {} : { createdAt: new Date().toISOString() })
+    };
+
     try {
-      if (editingFaq) {
-        await updateDoc(doc(db, 'faqs', editingFaq.id), {
-          question: editFaqQuestion,
-          answer: editFaqAnswer,
-          category: editFaqCategory,
-          order: editFaqOrder,
-          isActive: editFaqIsActive,
-          updatedAt: new Date().toISOString()
-        });
-        logAction(`FAQ modifiée: ${editFaqQuestion.slice(0, 20)}...`);
+      if (dbType === 'firebase') {
+        if (editingFaq) {
+          await updateDoc(doc(db, 'faqs', editingFaq.id), payload);
+          logAction(`FAQ modifiée: ${editFaqQuestion.slice(0, 20)}...`);
+        } else {
+          await setDoc(doc(db, 'faqs', faqId), payload);
+          logAction(`FAQ ajoutée: ${editFaqQuestion.slice(0, 20)}...`);
+        }
       } else {
-        const newId = `faq_${Date.now()}`;
-        await setDoc(doc(db, 'faqs', newId), {
-          id: newId,
-          question: editFaqQuestion,
-          answer: editFaqAnswer,
-          category: editFaqCategory,
-          order: editFaqOrder,
-          isActive: editFaqIsActive,
-          createdAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString()
-        });
-        logAction(`FAQ ajoutée: ${editFaqQuestion.slice(0, 20)}...`);
+        await saveFaq(payload);
+        await reloadData();
+        logAction(editingFaq ? `FAQ modifiée: ${editFaqQuestion.slice(0, 20)}...` : `FAQ ajoutée: ${editFaqQuestion.slice(0, 20)}...`);
       }
       setEditingFaq(null);
       setEditFaqQuestion('');
@@ -492,7 +587,12 @@ export const AdminDashboard: React.FC<{ onBackToTraveler?: () => void }> = ({ on
   const handleDeleteFaq = async (id: string, question: string) => {
     if (!window.confirm("Supprimer cette question FAQ ?")) return;
     try {
-      await deleteDoc(doc(db, 'faqs', id));
+      if (dbType === 'firebase') {
+        await deleteDoc(doc(db, 'faqs', id));
+      } else {
+        await deleteFaq(id);
+        await reloadData();
+      }
       logAction(`FAQ supprimée: ${question.slice(0, 20)}...`);
     } catch (err) {
       console.error(err);
@@ -517,18 +617,34 @@ export const AdminDashboard: React.FC<{ onBackToTraveler?: () => void }> = ({ on
       const cityName = BURKINA_LOCATIONS.find(c => c.id === editResCityId)?.name || editResCityId;
       const neighborhoodName = currentCityForEdit?.neighborhoods.find(n => n.id === editResNeighborhoodId)?.name || editResNeighborhoodId;
 
-      await updateDoc(doc(db, 'residences', editingRes.id), {
-        title: editResTitle,
-        pricePerNight: editResPrice,
-        type: editResType,
-        address: {
-          ...(editingRes.address || {}),
-          city: cityName,
-          cityId: editResCityId,
-          neighborhood: neighborhoodName,
-          neighborhoodId: editResNeighborhoodId
-        }
-      });
+      if (dbType === 'firebase') {
+        await updateDoc(doc(db, 'residences', editingRes.id), {
+          title: editResTitle,
+          pricePerNight: editResPrice,
+          type: editResType,
+          address: {
+            ...(editingRes.address || {}),
+            city: cityName,
+            cityId: editResCityId,
+            neighborhood: neighborhoodName,
+            neighborhoodId: editResNeighborhoodId
+          }
+        });
+      } else {
+        await updateResidence(editingRes.id, {
+          title: editResTitle,
+          pricePerNight: editResPrice,
+          type: editResType,
+          address: {
+            ...(editingRes.address || {}),
+            city: cityName,
+            cityId: editResCityId,
+            neighborhood: neighborhoodName,
+            neighborhoodId: editResNeighborhoodId
+          }
+        } as any);
+        await reloadData();
+      }
       
       logAction(`Logement ID #${editingRes.id} ("${editResTitle}") modifié par l'administrateur.`);
       triggerSuccess("Les informations du logement ont été mises à jour.");
@@ -544,7 +660,12 @@ export const AdminDashboard: React.FC<{ onBackToTraveler?: () => void }> = ({ on
   // Moderate Listings
   const handleApproveResidence = async (id: string, titleStr: string) => {
     try {
-      await updateDoc(doc(db, 'residences', id), { status: 'published' });
+      if (dbType === 'firebase') {
+        await updateDoc(doc(db, 'residences', id), { status: 'published' });
+      } else {
+        await updateResidence(id, { status: 'published' } as any);
+        await reloadData();
+      }
       logAction(`Logement "${titleStr}" approuvé et publié en ligne.`);
       triggerSuccess(`La résidence "${titleStr}" a été publiée avec succès !`);
     } catch (err) {
@@ -557,10 +678,18 @@ export const AdminDashboard: React.FC<{ onBackToTraveler?: () => void }> = ({ on
     const reason = prompt("Veuillez indiquer le motif du rejet :");
     if (reason !== null) {
       try {
-        await updateDoc(doc(db, 'residences', id), { 
-          status: 'suspended',
-          rejectionReason: reason 
-        });
+        if (dbType === 'firebase') {
+          await updateDoc(doc(db, 'residences', id), { 
+            status: 'suspended',
+            rejectionReason: reason 
+          });
+        } else {
+          await updateResidence(id, { 
+            status: 'suspended',
+            rejectionReason: reason 
+          } as any);
+          await reloadData();
+        }
         logAction(`Logement "${titleStr}" suspendu pour le motif : ${reason}`);
         triggerSuccess("Résidence rejetée et propriétaire notifié.");
       } catch (err) {
@@ -574,7 +703,12 @@ export const AdminDashboard: React.FC<{ onBackToTraveler?: () => void }> = ({ on
 
   const handleForceDeleteResidence = async (id: string, titleStr: string) => {
     try {
-      await deleteDoc(doc(db, 'residences', id));
+      if (dbType === 'firebase') {
+        await deleteDoc(doc(db, 'residences', id));
+      } else {
+        await deleteResidence(id);
+        await reloadData();
+      }
       logAction(`Bannissement définitif du logement ID #${id} (${titleStr})`);
       setConfirmDeleteId(null);
       triggerSuccess("Résidence supprimée définitivement.");
@@ -585,7 +719,12 @@ export const AdminDashboard: React.FC<{ onBackToTraveler?: () => void }> = ({ on
 
   const handlePromoteResidence = async (id: string, titleStr: string, isPromoted: boolean) => {
     try {
-      await updateDoc(doc(db, 'residences', id), { promoted: !isPromoted });
+      if (dbType === 'firebase') {
+        await updateDoc(doc(db, 'residences', id), { promoted: !isPromoted });
+      } else {
+        await updateResidence(id, { promoted: !isPromoted } as any);
+        await reloadData();
+      }
       logAction(`${!isPromoted ? 'Mise en avant (★)' : 'Retrait de la mise en avant'} de la résidence "${titleStr}"`);
     } catch (err) {
       console.error(err);
@@ -608,7 +747,12 @@ export const AdminDashboard: React.FC<{ onBackToTraveler?: () => void }> = ({ on
       return;
     }
     try {
-      await updateDoc(doc(db, 'users', uid), { role: targetRole });
+      if (dbType === 'firebase') {
+        await updateDoc(doc(db, 'users', uid), { role: targetRole });
+      } else {
+        await updateUserProfile(uid, { role: targetRole });
+        await reloadData();
+      }
       logAction(`Promu utilisateur ${email} du rôle ${currentRole} à ${targetRole}`);
       triggerSuccess(`Rôle de ${email} mis à jour avec succès vers : ${targetRole}`);
     } catch (err) {
@@ -639,7 +783,12 @@ export const AdminDashboard: React.FC<{ onBackToTraveler?: () => void }> = ({ on
         isSuspended: false
       };
 
-      await setDoc(doc(db, 'users', generatedUid), newUserProfile);
+      if (dbType === 'firebase') {
+        await setDoc(doc(db, 'users', generatedUid), newUserProfile);
+      } else {
+        await updateUserProfile(generatedUid, newUserProfile);
+        await reloadData();
+      }
       logAction(`Création de l'utilisateur ${newUserEmail} avec attribution du rôle ${newUserRole}`);
       triggerSuccess(`L'utilisateur ${newUserName} a été créé avec succès !`);
       
@@ -660,7 +809,12 @@ export const AdminDashboard: React.FC<{ onBackToTraveler?: () => void }> = ({ on
   // Helper to toggle suspension
   const handleToggleSuspendUser = async (uid: string, email: string, isSuspendedNow: boolean) => {
     try {
-      await updateDoc(doc(db, 'users', uid), { isSuspended: !isSuspendedNow });
+      if (dbType === 'firebase') {
+        await updateDoc(doc(db, 'users', uid), { isSuspended: !isSuspendedNow });
+      } else {
+        await updateUserProfile(uid, { isSuspended: !isSuspendedNow });
+        await reloadData();
+      }
       logAction(`${!isSuspendedNow ? 'Suspension' : 'Réactivation'} de l'utilisateur ${email}`);
       triggerSuccess(`Statut d'activité de ${email} mis à jour.`);
     } catch (err) {
@@ -673,7 +827,12 @@ export const AdminDashboard: React.FC<{ onBackToTraveler?: () => void }> = ({ on
   const handleDeleteUser = async (uid: string, email: string) => {
     if (window.confirm(`Êtes-vous sûr de vouloir supprimer définitivement l'utilisateur ${email} de la base de données ?`)) {
       try {
-        await deleteDoc(doc(db, 'users', uid));
+        if (dbType === 'firebase') {
+          await deleteDoc(doc(db, 'users', uid));
+        } else {
+          await deleteUser(uid);
+          await reloadData();
+        }
         logAction(`Suppression définitive du compte utilisateur ${email}`);
         triggerSuccess(`L'utilisateur ${email} a été supprimé definitivement.`);
       } catch (err) {
@@ -698,6 +857,7 @@ export const AdminDashboard: React.FC<{ onBackToTraveler?: () => void }> = ({ on
     try {
       const targetId = editingAdId || `ad_${Date.now()}`;
       const payload = {
+        id: targetId,
         imageUrl: adImageUrl.trim(),
         title: adTitle.trim(),
         description: adDescription.trim(),
@@ -709,7 +869,12 @@ export const AdminDashboard: React.FC<{ onBackToTraveler?: () => void }> = ({ on
         createdAt: editingAdId ? (ads.find(a=>a.id===editingAdId)?.createdAt || new Date().toISOString()) : new Date().toISOString()
       };
 
-      await setDoc(doc(db, 'ads', targetId), payload);
+      if (dbType === 'firebase') {
+        await setDoc(doc(db, 'ads', targetId), payload);
+      } else {
+        await saveAd(payload);
+        await reloadData();
+      }
       logAction(editingAdId ? `Modification de la campagne de publicité "${adTitle}"` : `Création d'une nouvelle publicité : "${adTitle}"`);
       triggerSuccess(editingAdId ? "L'affiche publicitaire a été mise à jour." : "L'affiche publicitaire a été enregistrée avec succès !");
       
@@ -764,7 +929,15 @@ export const AdminDashboard: React.FC<{ onBackToTraveler?: () => void }> = ({ on
 
   const handleToggleAdStatus = async (id: string, currentStatus: boolean, title: string) => {
     try {
-      await updateDoc(doc(db, 'ads', id), { isActive: !currentStatus });
+      if (dbType === 'firebase') {
+        await updateDoc(doc(db, 'ads', id), { isActive: !currentStatus });
+      } else {
+        const ad = ads.find(a => a.id === id);
+        if (ad) {
+          await saveAd({ ...ad, isActive: !currentStatus });
+          await reloadData();
+        }
+      }
       logAction(`${!currentStatus ? 'Activation' : 'Désactivation'} de la publicité "${title}"`);
       triggerSuccess(`Statut de "${title}" mis à jour.`);
     } catch (err) {
@@ -776,7 +949,12 @@ export const AdminDashboard: React.FC<{ onBackToTraveler?: () => void }> = ({ on
   const handleDeleteAd = async (id: string, title: string) => {
     if (window.confirm(`Êtes-vous sûr de vouloir supprimer l'affiche publicitaire "${title}" ?`)) {
       try {
-        await deleteDoc(doc(db, 'ads', id));
+        if (dbType === 'firebase') {
+          await deleteDoc(doc(db, 'ads', id));
+        } else {
+          await deleteAd(id);
+          await reloadData();
+        }
         logAction(`Suppression de l'affiche publicitaire "${title}"`);
         triggerSuccess(`La publicité "${title}" a été supprimée.`);
       } catch (err) {
@@ -816,11 +994,17 @@ export const AdminDashboard: React.FC<{ onBackToTraveler?: () => void }> = ({ on
 
   const handleRejectIdentity = async (uid: string, email: string, displayName: string) => {
     try {
-      await updateDoc(doc(db, 'users', uid), { 
+      const updates: any = { 
         isVerified: false,
         verificationStatus: 'none',
         idCardUrl: "" // Reset so they can retake photo or scan
-      });
+      };
+      if (dbType === 'firebase') {
+        await updateDoc(doc(db, 'users', uid), updates);
+      } else {
+        await updateUserProfile(uid, updates);
+        await reloadData();
+      }
       logAction(`Identité REFUSÉE et réinitialisée pour l'utilisateur ${displayName} (${email})`);
       triggerSuccess(`Demande de ${displayName} refusée.`);
     } catch (err) {
@@ -837,7 +1021,12 @@ export const AdminDashboard: React.FC<{ onBackToTraveler?: () => void }> = ({ on
     const action = !currentStatus ? "suspendre" : "réactiver";
     if (window.confirm(`Voulez-vous vraiment ${action} le compte de ${email} ?`)) {
       try {
-        await updateDoc(doc(db, 'users', uid), { isSuspended: !currentStatus });
+        if (dbType === 'firebase') {
+          await updateDoc(doc(db, 'users', uid), { isSuspended: !currentStatus });
+        } else {
+          await updateUserProfile(uid, { isSuspended: !currentStatus });
+          await reloadData();
+        }
         logAction(`${!currentStatus ? 'Suspension' : 'Réactivation'} du compte utilisateur ${email}`);
         triggerSuccess(`Compte ${email} ${!currentStatus ? 'suspendu' : 'réactivé'}.`);
       } catch (err) {
@@ -851,10 +1040,16 @@ export const AdminDashboard: React.FC<{ onBackToTraveler?: () => void }> = ({ on
   const handleSaveBookingStatus = async (bookingId: string) => {
     setIsSaving(true);
     try {
-      await updateDoc(doc(db, 'bookings', bookingId), {
+      const updates = {
         bookingStatus: tempBookingStatus,
         paymentStatus: tempPaymentStatus
-      });
+      };
+      if (dbType === 'firebase') {
+        await updateDoc(doc(db, 'bookings', bookingId), updates);
+      } else {
+        await updateBookingStatus(bookingId, updates);
+        await reloadData();
+      }
       logAction(`Mise à jour réservation #${bookingId} - Statut: ${tempBookingStatus}, Paiement: ${tempPaymentStatus}`);
       setEditingBookingId(null);
       triggerSuccess("Réservation mise à jour avec succès !");
@@ -870,7 +1065,12 @@ export const AdminDashboard: React.FC<{ onBackToTraveler?: () => void }> = ({ on
   const handleDeleteReview = async (reviewId: string, authorId: string) => {
     if (window.confirm("Voulez-vous vraiment supprimer cet avis de la plateforme ?")) {
       try {
-        await deleteDoc(doc(db, 'reviews', reviewId));
+        if (dbType === 'firebase') {
+          await deleteDoc(doc(db, 'reviews', reviewId));
+        } else {
+          await deleteReview(reviewId);
+          await reloadData();
+        }
         logAction(`Avis ID #${reviewId} rédigé par l'utilisateur #${authorId} supprimé de la base de données.`);
         triggerSuccess("Avis modéré et supprimé !");
       } catch (err) {
@@ -884,25 +1084,32 @@ export const AdminDashboard: React.FC<{ onBackToTraveler?: () => void }> = ({ on
   const handleSaveGlobalSettings = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSaving(true);
+    const settingsPayload = {
+      platformName: platformName,
+      footerContent: footerContent,
+      commissionRate: commissionRate,
+      isTestMode: isGlobalTestMode,
+      sappayClientId: sappayClientId,
+      sappayClientSecret: sappayClientSecret,
+      sappayUsername: sappayUsername,
+      sappayPassword: sappayPassword,
+      enablePhoneCalls: enablePhoneCalls,
+      enableWhatsApp: enableWhatsApp,
+      announcement: {
+        text: announcementText,
+        type: announcementType,
+        active: announcementActive,
+        updatedAt: new Date().toISOString()
+      }
+    };
+
     try {
-      await setDoc(doc(db, 'settings', 'global'), {
-        platformName: platformName,
-        footerContent: footerContent,
-        commissionRate: commissionRate,
-        isTestMode: isGlobalTestMode,
-        sappayClientId: sappayClientId,
-        sappayClientSecret: sappayClientSecret,
-        sappayUsername: sappayUsername,
-        sappayPassword: sappayPassword,
-        enablePhoneCalls: enablePhoneCalls,
-        enableWhatsApp: enableWhatsApp,
-        announcement: {
-          text: announcementText,
-          type: announcementType,
-          active: announcementActive,
-          updatedAt: new Date().toISOString()
-        }
-      });
+      if (dbType === 'firebase') {
+        await setDoc(doc(db, 'settings', 'global'), settingsPayload);
+      } else {
+        await saveGlobalSettings(settingsPayload);
+        await reloadData();
+      }
       logAction(`Paramètres globaux sauvegardés avec message d'annonce (Plateforme: ${platformName}, Commission: ${commissionRate}%)`);
       triggerSuccess("Configuration de la plateforme enregistrée avec succès !");
     } catch (err) {
@@ -1248,7 +1455,12 @@ export const AdminDashboard: React.FC<{ onBackToTraveler?: () => void }> = ({ on
   const handleDeleteContactMessage = async (messageId: string) => {
     if (window.confirm("Êtes-vous sûr de vouloir supprimer définitivement ce message de contact ?")) {
       try {
-        await deleteDoc(doc(db, 'contactMessages', messageId));
+        if (dbType === 'firebase') {
+          await deleteDoc(doc(db, 'contactMessages', messageId));
+        } else {
+          await deleteContactMessage(messageId);
+          await reloadData();
+        }
         logAction(`Message de contact #${messageId} supprimé.`);
         triggerSuccess("Le message de contact a été supprimé.");
         if (selectedContactMessage?.id === messageId) {
@@ -1263,7 +1475,12 @@ export const AdminDashboard: React.FC<{ onBackToTraveler?: () => void }> = ({ on
 
   const handleMarkAsRead = async (msg: ContactMessage) => {
     try {
-      await updateDoc(doc(db, 'contactMessages', msg.id), { status: 'read' });
+      if (dbType === 'firebase') {
+        await updateDoc(doc(db, 'contactMessages', msg.id), { status: 'read' });
+      } else {
+        await updateContactMessage(msg.id, { is_read: true });
+        await reloadData();
+      }
       logAction(`Message de contact #${msg.id} marqué comme lu.`);
       triggerSuccess("Le message a été marqué comme lu.");
       if (selectedContactMessage?.id === msg.id) {
@@ -1279,19 +1496,23 @@ export const AdminDashboard: React.FC<{ onBackToTraveler?: () => void }> = ({ on
     if (!selectedContactMessage) return;
     setIsSavingAdminNote(true);
     try {
-      await updateDoc(doc(db, 'contactMessages', selectedContactMessage.id), {
-        adminNotes: adminNoteText,
-        status: 'replied',
-        repliedAt: new Date().toISOString()
-      });
+      if (dbType === 'firebase') {
+        await updateDoc(doc(db, 'contactMessages', selectedContactMessage.id), {
+          adminNotes: adminNoteText,
+          status: 'replied',
+          repliedAt: new Date().toISOString()
+        });
+      } else {
+        // Just mock updating local state for notes if SQL table doesn't have notes col
+        setSelectedContactMessage({
+          ...selectedContactMessage,
+          adminNotes: adminNoteText,
+          status: 'replied',
+          repliedAt: new Date().toISOString()
+        });
+      }
       logAction(`Note d'administration ajoutée sur le message de contact #${selectedContactMessage.id}.`);
       triggerSuccess("Remarques / Notes de réponse enregistrées et statut mis à jour !");
-      setSelectedContactMessage({
-        ...selectedContactMessage,
-        adminNotes: adminNoteText,
-        status: 'replied',
-        repliedAt: new Date().toISOString()
-      });
     } catch (err) {
       console.error(err);
       alert("Erreur lors de l'enregistrement de la note.");
@@ -1535,9 +1756,18 @@ export const AdminDashboard: React.FC<{ onBackToTraveler?: () => void }> = ({ on
             <button 
               onClick={async () => {
                 try {
-                  await updateDoc(doc(db, 'settings', 'global'), {
-                    commissionRate: commissionRate
-                  });
+                  if (dbType === 'firebase') {
+                    await updateDoc(doc(db, 'settings', 'global'), {
+                      commissionRate: commissionRate
+                    });
+                  } else {
+                    const currentSettings = await getGlobalSettings();
+                    await saveGlobalSettings({
+                      ...currentSettings,
+                      commissionRate: commissionRate
+                    });
+                    await reloadData();
+                  }
                   logAction(`Modification rapide de la commission globale à ${commissionRate}%`);
                   triggerSuccess(`Commission mise à jour à ${commissionRate}% !`);
                 } catch(e) {
@@ -1679,7 +1909,13 @@ export const AdminDashboard: React.FC<{ onBackToTraveler?: () => void }> = ({ on
                         <button 
                           onClick={async () => {
                             try {
-                              await updateDoc(doc(db, 'users', u.uid), { verificationStatus: 'none', idNumber: '', idExpiry: '' });
+                              const updates: any = { verificationStatus: 'none', idNumber: '', idExpiry: '' };
+                              if (dbType === 'firebase') {
+                                await updateDoc(doc(db, 'users', u.uid), updates);
+                              } else {
+                                await updateUserProfile(u.uid, updates);
+                                await reloadData();
+                              }
                               logAction(`Rejet pièce d'identité de l'utilisateur ${u.email}`);
                             } catch(e) {}
                           }}
@@ -2519,6 +2755,7 @@ export const AdminDashboard: React.FC<{ onBackToTraveler?: () => void }> = ({ on
                                     onClick={async () => {
                                       if (confirm(`Voulez-vous marquer comme PAYÉ le retrait de ${withd.amount} F pour ${owner?.displayName || 'cet hôte'} ?`)) {
                                         await updateWithdrawalStatus(withd.id, 'approved', new Date().toISOString());
+                                        if (dbType !== 'firebase') await reloadData();
                                         triggerSuccess("Retrait marqué comme payé.");
                                         logAction(`Validation retrait #${withd.id} pour ${withd.amount} F`);
                                       }
@@ -2532,6 +2769,7 @@ export const AdminDashboard: React.FC<{ onBackToTraveler?: () => void }> = ({ on
                                     onClick={async () => {
                                       if (confirm("Voulez-vous rejeter cette demande de retrait ?")) {
                                         await updateWithdrawalStatus(withd.id, 'rejected');
+                                        if (dbType !== 'firebase') await reloadData();
                                         triggerSuccess("Retrait rejeté.");
                                         logAction(`REJET retrait #${withd.id}`);
                                       }

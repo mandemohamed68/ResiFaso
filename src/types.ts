@@ -11,7 +11,7 @@ export interface UserProfile {
   createdAt: string;
   isSuspended?: boolean;
   phone?: string;
-  verificationStatus?: 'pending' | 'verified' | 'unverified' | 'rejected';
+  verificationStatus?: 'pending' | 'verified' | 'unverified' | 'rejected' | 'none';
   idNumber?: string;
   idType?: string;
   idExpiry?: string;
