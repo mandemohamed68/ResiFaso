@@ -1,34 +1,37 @@
-import sqlite3 from 'sqlite3';
-import { open, Database } from 'sqlite';
+import { DatabaseSync } from 'node:sqlite';
 import dotenv from 'dotenv';
 import path from 'path';
 
 dotenv.config();
 
-let dbPromise: Promise<Database> | null = null;
+let db: DatabaseSync | null = null;
 
-const getDb = async () => {
-  if (!dbPromise) {
-    dbPromise = open({
-      filename: process.env.DB_SQLITE_PATH || path.join(process.cwd(), 'database.sqlite'),
-      driver: sqlite3.Database
-    });
+const getDb = () => {
+  if (!db) {
+    const dbPath = process.env.DB_SQLITE_PATH || path.join(process.cwd(), 'database.sqlite');
+    db = new DatabaseSync(dbPath);
   }
-  return dbPromise;
+  return db;
 };
 
-export const dbQuery = async (query: string, params?: any[]) => {
+export const dbQuery = async (query: string, params: any[] = []) => {
   try {
-    const db = await getDb();
+    const database = getDb();
+    const stmt = database.prepare(query);
+    
     // If it's a SELECT query, use .all(), otherwise use .run()
     if (query.trim().toUpperCase().startsWith("SELECT")) {
-      return await db.all(query, params);
+      return stmt.all(...params);
     } else {
-      const result = await db.run(query, params);
-      return result;
+      const result = stmt.run(...params);
+      return {
+        lastID: result.lastInsertRowid,
+        changes: result.changes
+      };
     }
   } catch (err) {
     console.error("SQLite Query Error:", err);
     throw err;
   }
 };
+

@@ -38,29 +38,30 @@ var import_jsonwebtoken2 = __toESM(require("jsonwebtoken"), 1);
 var import_dotenv3 = __toESM(require("dotenv"), 1);
 
 // src/db/sqlite.ts
-var import_sqlite3 = __toESM(require("sqlite3"), 1);
-var import_sqlite = require("sqlite");
+var import_node_sqlite = require("node:sqlite");
 var import_dotenv = __toESM(require("dotenv"), 1);
 var import_path = __toESM(require("path"), 1);
 import_dotenv.default.config();
-var dbPromise = null;
-var getDb = async () => {
-  if (!dbPromise) {
-    dbPromise = (0, import_sqlite.open)({
-      filename: process.env.DB_SQLITE_PATH || import_path.default.join(process.cwd(), "database.sqlite"),
-      driver: import_sqlite3.default.Database
-    });
+var db = null;
+var getDb = () => {
+  if (!db) {
+    const dbPath = process.env.DB_SQLITE_PATH || import_path.default.join(process.cwd(), "database.sqlite");
+    db = new import_node_sqlite.DatabaseSync(dbPath);
   }
-  return dbPromise;
+  return db;
 };
-var dbQuery = async (query, params) => {
+var dbQuery = async (query, params = []) => {
   try {
-    const db = await getDb();
+    const database = getDb();
+    const stmt = database.prepare(query);
     if (query.trim().toUpperCase().startsWith("SELECT")) {
-      return await db.all(query, params);
+      return stmt.all(...params);
     } else {
-      const result = await db.run(query, params);
-      return result;
+      const result = stmt.run(...params);
+      return {
+        lastID: result.lastInsertRowid,
+        changes: result.changes
+      };
     }
   } catch (err) {
     console.error("SQLite Query Error:", err);
