@@ -22,20 +22,35 @@ export const getAllResidences = async () => {
       created_at as createdAt 
     FROM residences
   `);
-  for (const res of residences) {
-    const amenities = await executeSql("SELECT amenity FROM residence_amenities WHERE residence_id = ?", [res.id]);
-    res.amenities = amenities.map((a: any) => a.amenity);
-    const images = await executeSql("SELECT image_url FROM residence_images WHERE residence_id = ?", [res.id]);
-    res.images = images.map((i: any) => i.image_url);
-    // Reconstruct the address and utilities Included objects for frontend components that still use them
-    res.address = {
+
+  if (residences.length === 0) return [];
+
+  const allAmenities = await executeSql("SELECT residence_id, amenity FROM residence_amenities");
+  const allImages = await executeSql("SELECT residence_id, image_url FROM residence_images");
+
+  const amenitiesMap: Record<string, string[]> = {};
+  allAmenities.forEach((a: any) => {
+    if (!amenitiesMap[a.residence_id]) amenitiesMap[a.residence_id] = [];
+    amenitiesMap[a.residence_id].push(a.amenity);
+  });
+
+  const imagesMap: Record<string, string[]> = {};
+  allImages.forEach((i: any) => {
+    if (!imagesMap[i.residence_id]) imagesMap[i.residence_id] = [];
+    imagesMap[i.residence_id].push(i.image_url);
+  });
+
+  return residences.map((res: any) => ({
+    ...res,
+    amenities: amenitiesMap[res.id] || [],
+    images: imagesMap[res.id] || [],
+    address: {
       city: res.city,
       neighborhood: res.neighborhood,
       street: res.street
-    };
-    res.utilitiesIncluded = { water: true, electricity: true }; // Mocking as it's not saved in DB schema
-  }
-  return residences;
+    },
+    utilitiesIncluded: { water: true, electricity: true }
+  }));
 };
 
 export const getResidenceById = async (id: string) => {
