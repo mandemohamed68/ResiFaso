@@ -207,7 +207,7 @@ async function startServer() {
   }
 
   const app = express();
-  const PORT = Number(process.env.PORT) || 3000;
+  const PORT = 3000;
 
   // Lightweight CORS middleware to allow calls from mobile Capacitor webview (localhost / capacitor:// etc)
   app.use((req, res, next) => {
