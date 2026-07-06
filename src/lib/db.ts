@@ -12,7 +12,7 @@ export enum OperationType {
 
 // Helper for fetch
 const apiFetch = async (endpoint: string, options: any = {}) => {
-  const token = localStorage.getItem('auth_token');
+  const token = typeof window !== 'undefined' ? localStorage.getItem('auth_token') : null;
   const headers = {
     'Content-Type': 'application/json',
     ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
@@ -23,12 +23,17 @@ const apiFetch = async (endpoint: string, options: any = {}) => {
   const cleanEndpoint = endpoint.startsWith('/') ? endpoint : `/${endpoint}`;
   const fullUrl = baseUrl ? `${baseUrl}${cleanEndpoint}` : cleanEndpoint;
 
-  const response = await fetch(fullUrl, { ...options, headers });
-  if (!response.ok) {
-    const errorData = await response.json().catch(() => ({}));
-    throw new Error(errorData.error || `API Error: ${response.statusText}`);
+  try {
+    const response = await fetch(fullUrl, { ...options, headers });
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(errorData.error || `API Error: ${response.status} ${response.statusText}`);
+    }
+    return response.json();
+  } catch (err: any) {
+    console.error(`Fetch error at ${endpoint}:`, err);
+    throw err;
   }
-  return response.json();
 };
 
 // ==========================================

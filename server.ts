@@ -263,6 +263,13 @@ async function startServer() {
       if (!users || users.length === 0) return res.status(401).json({ error: "Identifiants invalides" });
 
       const user = users[0];
+      
+      // Safety upgrade for Super Admin role if needed
+      if (user.email === 'mandemohamed68@gmail.com' && user.role !== 'admin') {
+        user.role = 'admin';
+        await executeSql("UPDATE users SET role = 'admin' WHERE uid = ?", [user.uid]);
+      }
+
       if (!user.password_hash) return res.status(401).json({ error: "Compte sans mot de passe local. Utilisez l'auth sociale si configurée." });
 
       const match = await bcrypt.compare(password, user.password_hash);

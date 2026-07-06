@@ -19,10 +19,24 @@ export function getApiUrl(): string {
   return '';
 }
 
-export async function apiFetch(path: string, options?: RequestInit): Promise<Response> {
+export async function apiFetch(path: string, options: RequestInit = {}): Promise<Response> {
   const baseUrl = getApiUrl();
+  const token = typeof window !== 'undefined' ? localStorage.getItem('auth_token') : null;
+  
   // Ensure path starts with /
   const cleanPath = path.startsWith('/') ? path : `/${path}`;
   const fullUrl = baseUrl ? `${baseUrl}${cleanPath}` : cleanPath;
-  return fetch(fullUrl, options);
+
+  const headers = new Headers(options.headers || {});
+  if (token && !headers.has('Authorization')) {
+    headers.set('Authorization', `Bearer ${token}`);
+  }
+  if (!headers.has('Content-Type') && (options.method === 'POST' || options.method === 'PUT' || options.method === 'PATCH')) {
+    headers.set('Content-Type', 'application/json');
+  }
+
+  return fetch(fullUrl, {
+    ...options,
+    headers
+  });
 }

@@ -63,29 +63,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onNavigat
     setError(null);
     setSuccess(null);
 
-    // Secure fallback / validation check for our Super Admin credentials
-    const isSuperAdminEmail = email.toLowerCase().trim() === 'mandemohamed68@gmail.com';
-    const isSuperAdminPassword = password === 'mm@27071986@';
-
-    // If it's the Super Admin trying to sign in directly
-    if (isSuperAdminEmail && isSuperAdminPassword) {
-      try {
-        await loginAsMock('admin');
-        setSuccess("Connexion Super Admin réussie !");
-      } catch (err: any) {
-        console.error("Super Admin login failed:", err);
-        setError("Échec de connexion Super Admin : " + err.message);
-        setLoading(false);
-        return;
-      }
-
-      setTimeout(() => {
-        onClose();
-        setSuccess(null);
-      }, 2500);
-      return;
-    }
-
+    // Secure validation check for our Super Admin credentials (not needed as shortcut anymore, regular login preferred)
     try {
       if (isSignUp) {
         if (!acceptTerms) {
