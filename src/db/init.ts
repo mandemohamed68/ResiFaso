@@ -25,35 +25,31 @@ export const initDatabase = async () => {
     // Ensure 'uid' column exists in MariaDB for compatibility with imported SQL dumps
     try {
       const columns = await executeSql(`
-        SELECT COLUMN_NAME 
+        SELECT COLUMN_NAME, CHARACTER_MAXIMUM_LENGTH
         FROM INFORMATION_SCHEMA.COLUMNS 
         WHERE TABLE_SCHEMA = DATABASE() 
           AND TABLE_NAME = 'users' 
           AND COLUMN_NAME = 'uid'
       `);
+      
       if (!columns || columns.length === 0) {
         console.log("Migration MariaDB: La colonne 'uid' est manquante dans 'users'. Ajout en cours...");
-        
-        // Check if 'id' column exists to copy values from
-        const idColumns = await executeSql(`
-          SELECT COLUMN_NAME 
-          FROM INFORMATION_SCHEMA.COLUMNS 
-          WHERE TABLE_SCHEMA = DATABASE() 
-            AND TABLE_NAME = 'users' 
-            AND COLUMN_NAME = 'id'
-        `);
-        
-        if (idColumns && idColumns.length > 0) {
-          // Add 'uid' column
-          await executeSql("ALTER TABLE users ADD COLUMN uid VARCHAR(128) NULL");
-          // Copy 'id' values to 'uid'
-          await executeSql("UPDATE users SET uid = id WHERE uid IS NULL");
-          // Add unique constraint to make it referenceable by foreign keys
-          await executeSql("ALTER TABLE users ADD UNIQUE KEY (uid)");
-          console.log("Migration MariaDB: Colonne 'uid' ajoutée et synchronisée avec 'id' avec succès.");
-        } else {
-          // If neither 'uid' nor 'id' exists (should not happen), add 'uid'
-          await executeSql("ALTER TABLE users ADD COLUMN uid VARCHAR(128) PRIMARY KEY");
+        await executeSql("ALTER TABLE users ADD COLUMN uid VARCHAR(255) NULL");
+        await executeSql("UPDATE users SET uid = id WHERE uid IS NULL");
+        await executeSql("ALTER TABLE users ADD UNIQUE KEY (uid)");
+      } else {
+        // Ensure uid is VARCHAR(255) and indexed if it already exists
+        try {
+          await executeSql("ALTER TABLE users MODIFY uid VARCHAR(255)");
+          // Check if it already has a unique index
+          const indexes = await executeSql(`
+            SHOW INDEX FROM users WHERE Column_name = 'uid' AND Non_unique = 0
+          `);
+          if (!indexes || indexes.length === 0) {
+            await executeSql("ALTER TABLE users ADD UNIQUE KEY (uid)");
+          }
+        } catch (e) {
+          console.warn("Migration MariaDB: Impossible d'ajuster ou indexer 'uid' dans 'users':", e);
         }
       }
     } catch (err: any) {
@@ -263,9 +259,9 @@ export const initDatabase = async () => {
     try {
       await executeSql("DROP TABLE IF EXISTS notifications");
       await executeSql(`
-        CREATE TABLE IF NOT EXISTS notifications (
+        CREATE TABLE notifications (
           id VARCHAR(128) PRIMARY KEY,
-          user_id VARCHAR(128) NOT NULL,
+          user_id VARCHAR(255) NOT NULL,
           title VARCHAR(255),
           message TEXT,
           type VARCHAR(50),
@@ -273,7 +269,14 @@ export const initDatabase = async () => {
           created_at DATETIME DEFAULT CURRENT_TIMESTAMP
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_uca1400_ai_ci
       `);
-      console.log("Table 'notifications' recréée avec succès (FK temporairement retirée).");
+      
+      // Add foreign key with specific check to avoid errno 150
+      try {
+        await executeSql("ALTER TABLE notifications ADD CONSTRAINT fk_notifications_user FOREIGN KEY(user_id) REFERENCES users(uid) ON DELETE CASCADE");
+        console.log("Table 'notifications' créée avec succès avec sa clé étrangère.");
+      } catch (fkErr: any) {
+        console.warn("Avertissement: Impossible d'ajouter la FK sur notifications (errno 150 probable). La table fonctionnera sans contrainte:", fkErr.message);
+      }
     } catch (err: any) {
       console.error("Erreur lors de la création de la table notifications:", err.message);
     }
