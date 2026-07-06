@@ -35,17 +35,20 @@ export const MapView: React.FC<Props> = ({ residences, onResidenceClick }) => {
           attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
           url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
         />
-        {residences.map((res) => (
-          res.address.coordinates && (
+        {residences.map((res) => {
+          const lat = res.address?.coordinates?.lat || res.lat;
+          const lng = res.address?.coordinates?.lng || res.lng;
+          if (!lat || !lng) return null;
+          return (
             <Marker 
               key={res.id} 
-              position={[res.address.coordinates.lat, res.address.coordinates.lng]}
+              position={[lat, lng]}
             >
               <Popup>
                 <div className="p-2 min-w-[200px]">
                   <img src={res.images[0]} alt={res.title} className="w-full h-24 object-cover rounded-lg mb-2" />
                   <h4 className="font-bold text-gray-900">{res.title}</h4>
-                  <p className="text-sm font-black text-red-600 mb-2">{formatCurrency(res.pricePerNight)} FCFA / nuit</p>
+                  <p className="text-sm font-black text-red-600 mb-2">{formatCurrency(res.pricePerNight || res.price_per_night)} FCFA / nuit</p>
                   <button 
                     onClick={() => onResidenceClick(res)}
                     className="w-full bg-red-600 text-white py-2 rounded-lg text-xs font-bold"
@@ -55,8 +58,8 @@ export const MapView: React.FC<Props> = ({ residences, onResidenceClick }) => {
                 </div>
               </Popup>
             </Marker>
-          )
-        ))}
+          );
+        })}
       </MapContainerAny>
     </div>
   );

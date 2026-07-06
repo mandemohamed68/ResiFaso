@@ -1291,11 +1291,13 @@ export const OwnerDashboard: React.FC<{ isTestMode?: boolean; onBackToTraveler?:
     setTitle(res.title);
     setDescription(res.description);
     setType(res.type);
-    const city = BURKINA_LOCATIONS.find(c => c.name === res.address.city);
+    const cityName = res.address?.city || res.city;
+    const city = BURKINA_LOCATIONS.find(c => c.name === cityName);
     setSelectedCityId(city?.id || '');
-    const hood = city?.neighborhoods.find(n => n.name === res.address.neighborhood);
+    const hoodName = res.address?.neighborhood || res.neighborhood;
+    const hood = city?.neighborhoods.find(n => n.name === hoodName);
     setSelectedNeighborhoodId(hood?.id || '');
-    setStreet(res.address.street || '');
+    setStreet(res.address?.street || res.street || '');
     setPricePerNight(res.pricePerNight.toString());
     setAdvancePercentage(res.advancePercentage);
     setCleaningFee(res.cleaningFee.toString());
@@ -1312,8 +1314,8 @@ export const OwnerDashboard: React.FC<{ isTestMode?: boolean; onBackToTraveler?:
     setOwnerPhone(res.ownerPhone || '');
     setImages(res.images || []);
     setAmenities(res.amenities || []);
-    if (res.address.coordinates) {
-      setCoordinates(res.address.coordinates);
+    if (res.address?.coordinates || (res.lat && res.lng)) {
+      setCoordinates(res.address?.coordinates || { lat: res.lat, lng: res.lng });
     }
     setAvailabilityStatus(res.availabilityStatus || 'available');
     setUtilitiesIncluded(res.utilitiesIncluded || { water: false, electricity: false });
@@ -1649,7 +1651,7 @@ export const OwnerDashboard: React.FC<{ isTestMode?: boolean; onBackToTraveler?:
                           </div>
                         </td>
                         <td className="py-4 px-6 font-medium text-slate-500">
-                          {res.address.neighborhood}, {res.address.city}
+                          {res.address?.neighborhood || res.neighborhood}, {res.address?.city || res.city}
                         </td>
                         <td className="py-4 px-6">
                           <div className="flex flex-col gap-1">

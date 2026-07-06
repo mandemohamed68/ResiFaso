@@ -503,8 +503,8 @@ export const AdminDashboard: React.FC<{ onBackToTraveler?: () => void }> = ({ on
   const handleStartEditResidence = (res: Residence) => {
     setEditingRes(res);
     setEditResTitle(res.title);
-    setEditResCityId(res.address.cityId || res.address.city);
-    setEditResNeighborhoodId(res.address.neighborhoodId || res.address.neighborhood);
+    setEditResCityId(res.address?.cityId || res.address?.city || res.city);
+    setEditResNeighborhoodId(res.address?.neighborhoodId || res.address?.neighborhood || res.neighborhood);
     setEditResPrice(res.pricePerNight);
     setEditResType(res.type || '');
   };
@@ -522,7 +522,7 @@ export const AdminDashboard: React.FC<{ onBackToTraveler?: () => void }> = ({ on
         pricePerNight: editResPrice,
         type: editResType,
         address: {
-          ...editingRes.address,
+          ...(editingRes.address || {}),
           city: cityName,
           cityId: editResCityId,
           neighborhood: neighborhoodName,
@@ -1360,8 +1360,8 @@ export const AdminDashboard: React.FC<{ onBackToTraveler?: () => void }> = ({ on
   // Filters logic 
   const filteredResidences = residences.filter(res => 
     res.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    res.address.city.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    res.address.neighborhood.toLowerCase().includes(searchQuery.toLowerCase())
+    (res.address?.city || res.city || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
+    (res.address?.neighborhood || res.neighborhood || '').toLowerCase().includes(searchQuery.toLowerCase())
   );
 
   const filteredUsers = users.filter(usr => 
@@ -1600,7 +1600,7 @@ export const AdminDashboard: React.FC<{ onBackToTraveler?: () => void }> = ({ on
                         <img src={res.images?.[0] || 'https://images.unsplash.com/photo-1513694203232-719a280e022f?auto=format&fit=crop&w=150'} className="w-14 h-12 object-cover rounded-xl" />
                         <div>
                           <h4 className="font-black text-slate-900 leading-tight">{res.title}</h4>
-                          <span className="text-[10px] text-slate-500 capitalize">{res.address.neighborhood}, {res.address.city} &bull; {formatCurrency(res.pricePerNight)} F/nuit</span>
+                          <span className="text-[10px] text-slate-500 capitalize">{res.address?.neighborhood || res.neighborhood}, {res.address?.city || res.city} &bull; {formatCurrency(res.pricePerNight || res.price_per_night)} F/nuit</span>
                         </div>
                       </div>
                       <div className="flex gap-2 self-end sm:self-auto">
@@ -1707,7 +1707,7 @@ export const AdminDashboard: React.FC<{ onBackToTraveler?: () => void }> = ({ on
                     <img src={res.images?.[0] || 'https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?auto=format&fit=crop&w=150'} className="w-12 h-10 object-cover rounded-xl" />
                     <div>
                       <h4 className="font-extrabold text-slate-900 text-xs leading-none mb-1">{res.title}</h4>
-                      <p className="text-[10px] text-slate-400 font-bold">{res.address?.city} - {res.address?.neighborhood}</p>
+                      <p className="text-[10px] text-slate-400 font-bold">{res.address?.city || res.city} - {res.address?.neighborhood || res.neighborhood}</p>
                     </div>
                   </div>
                   <button 
@@ -1766,10 +1766,10 @@ export const AdminDashboard: React.FC<{ onBackToTraveler?: () => void }> = ({ on
                           </div>
                         </td>
                         <td className="py-4 px-6 font-medium text-slate-500">
-                          {res.address?.neighborhood}, {res.address?.city}
+                          {res.address?.neighborhood || res.neighborhood}, {res.address?.city || res.city}
                         </td>
                         <td className="py-4 px-6 font-black text-slate-950">
-                          {formatCurrency(res.pricePerNight)} F
+                          {formatCurrency(res.pricePerNight || res.price_per_night)} F
                         </td>
                         <td className="py-4 px-6">
                           {res.status === 'published' ? (

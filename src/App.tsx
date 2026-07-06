@@ -216,7 +216,7 @@ function AppContent() {
 
   const calculateTotal = (res: Residence) => {
     const nights = calculateNights();
-    let pricePerNight = res.promoPrice || res.pricePerNight;
+    let pricePerNight = res.promoPrice || res.promo_price || res.pricePerNight || res.price_per_night;
     
     // Check tiered pricing (degressive)
     if (res.pricingTiers && res.pricingTiers.length > 0) {
@@ -833,7 +833,7 @@ function AppContent() {
                   </div>
                   
                   <div className="flex items-center gap-2 text-slate-500 font-medium text-lg mb-8">
-                    <span>{selectedResidence.address.street}, {selectedResidence.address.neighborhood}, {selectedResidence.address.city}</span>
+                    <span>{selectedResidence.address?.street || selectedResidence.street}, {selectedResidence.address?.neighborhood || selectedResidence.neighborhood}, {selectedResidence.address?.city || selectedResidence.city}</span>
                   </div>
 
                   <hr className="border-slate-100 mb-8" />
@@ -919,7 +919,7 @@ function AppContent() {
                     </h2>
                     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
                       {residences
-                        .filter(r => r.id !== selectedResidence.id && (r.type === selectedResidence.type || r.address.city === selectedResidence.address.city))
+                        .filter(r => r.id !== selectedResidence.id && (r.type === selectedResidence.type || (r.address?.city || r.city) === (selectedResidence.address?.city || selectedResidence.city)))
                         .slice(0, 3)
                         .map(res => (
                           <ResidenceCard 
@@ -931,7 +931,7 @@ function AppContent() {
                           />
                         ))
                       }
-                      {residences.filter(r => r.id !== selectedResidence.id && (r.type === selectedResidence.type || r.address.city === selectedResidence.address.city)).length === 0 && (
+                      {residences.filter(r => r.id !== selectedResidence.id && (r.type === selectedResidence.type || (r.address?.city || r.city) === (selectedResidence.address?.city || selectedResidence.city))).length === 0 && (
                         <div className="col-span-full py-12 text-center bg-white rounded-3xl border border-dashed border-slate-200">
                            <p className="text-slate-400 font-bold text-sm">Découvrez d'autres pépites burkinabè sur l'accueil.</p>
                         </div>
@@ -973,17 +973,17 @@ function AppContent() {
                           </div>
 
                           <div className="flex items-baseline gap-1 mb-6">
-                        {selectedResidence.promoPrice ? (
+                        {(selectedResidence.promoPrice || selectedResidence.promo_price) ? (
                           <div className="flex flex-col">
                             <div className="flex items-center gap-2">
-                              <span className="text-3xl font-black text-red-600 italic">{formatCurrency(selectedResidence.promoPrice)}</span>
-                              <span className="text-sm font-bold text-slate-400 line-through">{formatCurrency(selectedResidence.pricePerNight)} FCFA</span>
+                              <span className="text-3xl font-black text-red-600 italic">{formatCurrency(selectedResidence.promoPrice || selectedResidence.promo_price)}</span>
+                              <span className="text-sm font-bold text-slate-400 line-through">{formatCurrency(selectedResidence.pricePerNight || selectedResidence.price_per_night)} FCFA</span>
                             </div>
                             <span className="text-[10px] font-black text-red-600 uppercase tracking-widest bg-red-50 w-fit px-2 py-0.5 rounded mt-1">Offre Spéciale Faso</span>
                           </div>
                         ) : (
                           <>
-                            <span className="text-3xl font-black text-slate-900">{formatCurrency(selectedResidence.pricePerNight)}</span>
+                            <span className="text-3xl font-black text-slate-900">{formatCurrency(selectedResidence.pricePerNight || selectedResidence.price_per_night)}</span>
                             <span className="text-sm font-bold text-slate-900 uppercase">FCFA</span>
                           </>
                         )}
@@ -1086,7 +1086,7 @@ function AppContent() {
                                 <p className="text-[9px] text-slate-400 italic mb-2">* Note: Vérifiez si l'eau et l'électricité sont incluses pour ces alternatives.</p>
                                 <div className="space-y-1">
                                   {residences
-                                    .filter(r => r.id !== selectedResidence.id && r.address.city === selectedResidence.address.city)
+                                    .filter(r => r.id !== selectedResidence.id && (r.address?.city || r.city) === (selectedResidence.address?.city || selectedResidence.city))
                                     .slice(0, 2)
                                     .map(alt => (
                                       <button 
@@ -1097,7 +1097,7 @@ function AppContent() {
                                       >
                                         <div className="flex flex-col">
                                           <span className="text-xs font-bold text-slate-900 line-clamp-1">{alt.title}</span>
-                                          <span className="text-[9px] font-bold text-slate-500">{alt.promoPrice ? alt.promoPrice : alt.pricePerNight} F CFA/nuit</span>
+                                          <span className="text-[9px] font-bold text-slate-500">{(alt.promoPrice || alt.promo_price) ? (alt.promoPrice || alt.promo_price) : (alt.pricePerNight || alt.price_per_night)} F CFA/nuit</span>
                                         </div>
                                         <ArrowRight size={14} className="text-red-500" />
                                       </button>
@@ -1115,7 +1115,7 @@ function AppContent() {
                     <div className="space-y-3 mb-6 text-sm">
                       {(() => {
                         const nights = calculateNights();
-                        let pPerNight = selectedResidence.promoPrice || selectedResidence.pricePerNight;
+                        let pPerNight = selectedResidence.promoPrice || selectedResidence.promo_price || selectedResidence.pricePerNight || selectedResidence.price_per_night;
                         let isTierApplied = false;
 
                         if (selectedResidence.pricingTiers && selectedResidence.pricingTiers.length > 0) {

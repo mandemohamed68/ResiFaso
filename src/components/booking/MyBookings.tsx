@@ -617,7 +617,7 @@ export const MyBookings: React.FC<{ onContactHost: (ownerId: string, resId: stri
                     </h3>
                     
                     <p className="text-xs text-slate-400 font-bold mb-1">
-                      {res.address?.street}, {res.address?.neighborhood}, {res.address?.city}
+                      {res.address?.street || res.street}, {res.address?.neighborhood || res.neighborhood}, {res.address?.city || res.city}
                     </p>
                     
                     {res.ownerName && (

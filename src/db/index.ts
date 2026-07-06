@@ -1,7 +1,7 @@
 import dotenv from 'dotenv';
 dotenv.config();
 
-const dbType = process.env.DB_TYPE || 'firebase';
+const dbType = process.env.DB_TYPE || 'sqlite';
 
 export let queryDatabase: (query: string, params?: any[]) => Promise<any> = async () => {
     throw new Error("Database not initialized");

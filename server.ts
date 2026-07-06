@@ -1347,7 +1347,7 @@ async function startServer() {
       if (!sql) {
         return res.status(400).json({ error: "Missing SQL query" });
       }
-      if (process.env.DB_TYPE === "firebase" || !process.env.DB_TYPE) {
+      if (DB_TYPE === "firebase") {
         return res.status(400).json({ error: "Local DB not configured. Set DB_TYPE to mariadb or sqlite." });
       }
       const result = await executeSql(sql, params || []);

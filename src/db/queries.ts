@@ -70,7 +70,7 @@ export const getSettings = async (key: string) => {
 };
 
 export const saveSettings = async (key: string, value: any) => {
-  const dbType = process.env.DB_TYPE || 'firebase';
+  const dbType = process.env.DB_TYPE || 'sqlite';
   if (dbType === 'mariadb') {
     await executeSql("INSERT INTO settings (`key`, value) VALUES (?, ?) ON DUPLICATE KEY UPDATE value = ?", [key, JSON.stringify(value), JSON.stringify(value)]);
   } else {

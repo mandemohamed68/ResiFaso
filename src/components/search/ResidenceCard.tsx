@@ -81,12 +81,12 @@ export const ResidenceCard: React.FC<Props> = ({
               Coup de coeur Faso ★
             </div>
           )}
-          {(residence.weeklyDiscount || residence.monthlyDiscount) && (
+          {(residence.weeklyDiscount || residence.monthlyDiscount || residence.weekly_discount || residence.monthly_discount) && (
             <div className="bg-green-600/90 text-white px-2 py-1 rounded text-[10px] font-black uppercase tracking-widest shadow-sm self-start border border-green-500/50">
               -{residence.monthlyDiscount || residence.weeklyDiscount}% Durée
             </div>
           )}
-          {residence.promoPrice && (
+          {(residence.promoPrice || residence.promo_price) && (
             <div className="bg-yellow-400 text-slate-900 px-2 py-1 rounded text-[10px] font-black uppercase tracking-widest shadow-sm self-start animate-pulse">
               Promo Flash ⚡
             </div>
@@ -173,13 +173,13 @@ export const ResidenceCard: React.FC<Props> = ({
             <div className="flex flex-col">
               <span className="text-xs text-slate-400 font-medium">À partir de</span>
               <div className="flex items-baseline gap-1">
-                {residence.promoPrice ? (
+                {(residence.promoPrice || residence.promo_price) ? (
                   <>
-                    <span className="text-lg font-black text-red-600">{formatFCFA(residence.promoPrice)}</span>
-                    <span className="text-[10px] text-slate-400 font-medium line-through">{formatFCFA(residence.pricePerNight)}</span>
+                    <span className="text-lg font-black text-red-600">{formatFCFA(residence.promoPrice || residence.promo_price)}</span>
+                    <span className="text-[10px] text-slate-400 font-medium line-through">{formatFCFA(residence.pricePerNight || residence.price_per_night)}</span>
                   </>
                 ) : (
-                  <span className="text-lg font-black text-slate-900">{formatFCFA(residence.pricePerNight)}</span>
+                  <span className="text-lg font-black text-slate-900">{formatFCFA(residence.pricePerNight || residence.price_per_night)}</span>
                 )}
                 <span className="text-[10px] text-slate-500 font-medium lowercase">/ nuit</span>
               </div>
