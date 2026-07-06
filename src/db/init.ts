@@ -19,7 +19,7 @@ export const initDatabase = async () => {
         is_suspended BOOLEAN DEFAULT 0,
         password_hash VARCHAR(255),
         created_at DATETIME DEFAULT CURRENT_TIMESTAMP
-      )
+      ) ENGINE=InnoDB
     `);
 
     // Ensure 'uid' column exists in MariaDB for compatibility with imported SQL dumps
@@ -108,7 +108,7 @@ export const initDatabase = async () => {
         rejection_reason TEXT,
         created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
         FOREIGN KEY(owner_id) REFERENCES users(uid) ON DELETE CASCADE
-      )
+      ) ENGINE=InnoDB
     `);
 
     // Residence Amenities Table
@@ -118,7 +118,7 @@ export const initDatabase = async () => {
         amenity VARCHAR(100),
         PRIMARY KEY (residence_id, amenity),
         FOREIGN KEY(residence_id) REFERENCES residences(id) ON DELETE CASCADE
-      )
+      ) ENGINE=InnoDB
     `);
 
     // Residence Images Table
@@ -128,7 +128,7 @@ export const initDatabase = async () => {
         residence_id VARCHAR(128),
         image_url TEXT NOT NULL,
         FOREIGN KEY(residence_id) REFERENCES residences(id) ON DELETE CASCADE
-      )
+      ) ENGINE=InnoDB
     `);
 
     // Bookings Table
@@ -161,7 +161,7 @@ export const initDatabase = async () => {
         FOREIGN KEY(residence_id) REFERENCES residences(id) ON DELETE SET NULL,
         FOREIGN KEY(client_id) REFERENCES users(uid) ON DELETE SET NULL,
         FOREIGN KEY(owner_id) REFERENCES users(uid) ON DELETE SET NULL
-      )
+      ) ENGINE=InnoDB
     `);
 
     // Reviews Table
@@ -177,7 +177,7 @@ export const initDatabase = async () => {
         FOREIGN KEY(booking_id) REFERENCES bookings(id) ON DELETE CASCADE,
         FOREIGN KEY(residence_id) REFERENCES residences(id) ON DELETE CASCADE,
         FOREIGN KEY(client_id) REFERENCES users(uid) ON DELETE CASCADE
-      )
+      ) ENGINE=InnoDB
     `);
 
     // Withdrawals Table
@@ -192,7 +192,7 @@ export const initDatabase = async () => {
         created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
         approved_at VARCHAR(50),
         FOREIGN KEY(owner_id) REFERENCES users(uid) ON DELETE SET NULL
-      )
+      ) ENGINE=InnoDB
     `);
 
     // Advertisements Table
@@ -208,7 +208,7 @@ export const initDatabase = async () => {
         start_at VARCHAR(50),
         end_at VARCHAR(50),
         created_at DATETIME DEFAULT CURRENT_TIMESTAMP
-      )
+      ) ENGINE=InnoDB
     `);
 
     // Settings Table
@@ -216,7 +216,7 @@ export const initDatabase = async () => {
       CREATE TABLE IF NOT EXISTS settings (
         \`key\` VARCHAR(255) PRIMARY KEY,
         value TEXT NOT NULL
-      )
+      ) ENGINE=InnoDB
     `);
 
     // FAQ Table
@@ -228,7 +228,7 @@ export const initDatabase = async () => {
           answer TEXT NOT NULL,
           category VARCHAR(100),
           \`order\` INTEGER DEFAULT 0
-        )
+        ) ENGINE=InnoDB
       `);
       console.log("Table 'faqs' checked/created successfully.");
     } catch (err: any) {
@@ -243,7 +243,7 @@ export const initDatabase = async () => {
         last_message TEXT,
         updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
         related_id VARCHAR(128)
-      )
+      ) ENGINE=InnoDB
     `);
 
     // Messages Table
@@ -256,7 +256,7 @@ export const initDatabase = async () => {
         is_read BOOLEAN DEFAULT 0,
         created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
         FOREIGN KEY(conversation_id) REFERENCES conversations(id) ON DELETE CASCADE
-      )
+      ) ENGINE=InnoDB
     `);
 
     // Notifications Table
@@ -271,7 +271,7 @@ export const initDatabase = async () => {
           is_read BOOLEAN DEFAULT 0,
           created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
           FOREIGN KEY(user_id) REFERENCES users(uid) ON DELETE CASCADE
-        )
+        ) ENGINE=InnoDB
       `);
       console.log("Table 'notifications' checked/created successfully.");
     } catch (err: any) {
@@ -284,7 +284,7 @@ export const initDatabase = async () => {
         email VARCHAR(255) PRIMARY KEY,
         token VARCHAR(255) NOT NULL,
         expires_at DATETIME NOT NULL
-      )
+      ) ENGINE=InnoDB
     `);
 
     // Contact Messages
@@ -297,7 +297,7 @@ export const initDatabase = async () => {
         message TEXT,
         status VARCHAR(50) DEFAULT 'unread',
         created_at DATETIME DEFAULT CURRENT_TIMESTAMP
-      )
+      ) ENGINE=InnoDB
     `);
   } else {
     // SQLite compatible schema
