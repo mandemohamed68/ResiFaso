@@ -576,6 +576,22 @@ async function startServer() {
   app.put("/api/users/:uid", authenticateToken, async (req: AuthRequest, res) => {
     if (req.user?.uid !== req.params.uid && req.user?.role !== 'admin') return res.status(403).json({ error: "Interdit" });
     try {
+      // Prevent modification of Super Admin role/status by others
+      const users = await executeSql("SELECT email FROM users WHERE uid = ?", [req.params.uid]);
+      if (users && users.length > 0 && users[0].email === 'mandemohamed68@gmail.com') {
+        if (req.user?.uid !== req.params.uid) {
+           // If someone else tries to modify Super Admin
+           if (req.body.role || req.body.is_suspended !== undefined) {
+             return res.status(403).json({ error: "Vous ne pouvez pas modifier le rôle ou le statut du Super Admin." });
+           }
+        } else {
+           // Super Admin modifying themselves: prevent accidental role change
+           if (req.body.role && req.body.role !== 'admin') {
+             return res.status(403).json({ error: "Vous ne pouvez pas vous retirer vos droits d'admin." });
+           }
+        }
+      }
+      
       await queries.updateUserProfile(req.params.uid, req.body);
       res.json({ success: true });
     } catch (err: any) { res.status(500).json({ error: err.message }); }

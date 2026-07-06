@@ -52,6 +52,24 @@ export const initDatabase = async () => {
           console.warn("Migration MariaDB: Impossible d'ajuster ou indexer 'uid' dans 'users':", e);
         }
       }
+
+      // Ensure 'password_hash' column exists (might be named 'password' in imported dumps)
+      const pwColumns = await executeSql(`
+        SELECT COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS 
+        WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'users' 
+        AND COLUMN_NAME IN ('password_hash', 'password')
+      `);
+
+      const hasPasswordHash = pwColumns.some((c: any) => c.COLUMN_NAME === 'password_hash');
+      const hasPassword = pwColumns.some((c: any) => c.COLUMN_NAME === 'password');
+
+      if (!hasPasswordHash && hasPassword) {
+        console.log("Migration MariaDB: Renommage de 'password' en 'password_hash'...");
+        await executeSql("ALTER TABLE users CHANGE COLUMN password password_hash VARCHAR(255)");
+      } else if (!hasPasswordHash && !hasPassword) {
+        console.log("Migration MariaDB: Ajout de la colonne 'password_hash'...");
+        await executeSql("ALTER TABLE users ADD COLUMN password_hash VARCHAR(255)");
+      }
     } catch (err: any) {
       console.error("Erreur lors de la vérification/migration de la colonne 'uid' de la table 'users':", err.message);
     }
