@@ -2,8 +2,7 @@ module.exports = {
   apps: [
     {
       name: "resifaso-web",
-      script: "npm",
-      args: "run start",
+      script: "./dist/server.cjs",
       env: {
         NODE_ENV: "production",
         PORT: 3000,
