@@ -261,6 +261,7 @@ export const initDatabase = async () => {
 
     // Notifications Table
     try {
+      await executeSql("DROP TABLE IF EXISTS notifications");
       await executeSql(`
         CREATE TABLE IF NOT EXISTS notifications (
           id VARCHAR(128) PRIMARY KEY,
@@ -273,9 +274,9 @@ export const initDatabase = async () => {
           FOREIGN KEY(user_id) REFERENCES users(uid) ON DELETE CASCADE
         ) ENGINE=InnoDB
       `);
-      console.log("Table 'notifications' checked/created successfully.");
+      console.log("Table 'notifications' recréée avec succès.");
     } catch (err: any) {
-      console.error("Error creating notifications table:", err.message);
+      console.error("Erreur lors de la création de la table notifications:", err.message);
     }
 
     // Password Resets Table
