@@ -1,21 +1,17 @@
 import dotenv from 'dotenv';
 dotenv.config();
 
+import { dbQuery as sqliteQuery } from './sqlite';
+import { dbQuery as mariadbQuery } from './mariadb';
+
 const dbType = process.env.DB_TYPE || 'sqlite';
 
-export let queryDatabase: (query: string, params?: any[]) => Promise<any> = async () => {
-    throw new Error("Database not initialized");
-};
+export let queryDatabase: (query: string, params?: any[]) => Promise<any>;
 
-// Lazy initialization so we don't crash if packages are missing
 if (dbType === 'mariadb') {
-  import('./mariadb').then(module => {
-    queryDatabase = module.dbQuery;
-  }).catch(err => console.error("Failed to load mariadb driver", err));
+  queryDatabase = mariadbQuery;
 } else if (dbType === 'sqlite') {
-  import('./sqlite').then(module => {
-    queryDatabase = module.dbQuery;
-  }).catch(err => console.error("Failed to load sqlite driver", err));
+  queryDatabase = sqliteQuery;
 } else {
   // Use Firebase
   queryDatabase = async () => {

@@ -4,13 +4,6 @@ var __getOwnPropDesc = Object.getOwnPropertyDescriptor;
 var __getOwnPropNames = Object.getOwnPropertyNames;
 var __getProtoOf = Object.getPrototypeOf;
 var __hasOwnProp = Object.prototype.hasOwnProperty;
-var __esm = (fn, res) => function __init() {
-  return fn && (res = (0, fn[__getOwnPropNames(fn)[0]])(fn = 0)), res;
-};
-var __export = (target, all) => {
-  for (var name in all)
-    __defProp(target, name, { get: all[name], enumerable: true });
-};
 var __copyProps = (to, from, except, desc) => {
   if (from && typeof from === "object" || typeof from === "function") {
     for (let key of __getOwnPropNames(from))
@@ -28,80 +21,6 @@ var __toESM = (mod, isNodeMode, target) => (target = mod != null ? __create(__ge
   mod
 ));
 
-// src/db/mariadb.ts
-var mariadb_exports = {};
-__export(mariadb_exports, {
-  dbQuery: () => dbQuery
-});
-var import_mariadb, import_dotenv, pool, dbQuery;
-var init_mariadb = __esm({
-  "src/db/mariadb.ts"() {
-    import_mariadb = __toESM(require("mariadb"), 1);
-    import_dotenv = __toESM(require("dotenv"), 1);
-    import_dotenv.default.config();
-    pool = import_mariadb.default.createPool({
-      host: process.env.DB_HOST || "localhost",
-      user: process.env.DB_USER || "root",
-      password: process.env.DB_PASSWORD || "",
-      database: process.env.DB_NAME || "resifaso_db",
-      connectionLimit: 5
-    });
-    dbQuery = async (query, params) => {
-      let conn;
-      try {
-        conn = await pool.getConnection();
-        const rows = await conn.query(query, params);
-        return rows;
-      } catch (err) {
-        console.error("MariaDB Query Error:", err);
-        throw err;
-      } finally {
-        if (conn) conn.end();
-      }
-    };
-  }
-});
-
-// src/db/sqlite.ts
-var sqlite_exports = {};
-__export(sqlite_exports, {
-  dbQuery: () => dbQuery2
-});
-var import_sqlite3, import_sqlite, import_dotenv2, import_path, dbPromise, getDb, dbQuery2;
-var init_sqlite = __esm({
-  "src/db/sqlite.ts"() {
-    import_sqlite3 = __toESM(require("sqlite3"), 1);
-    import_sqlite = require("sqlite");
-    import_dotenv2 = __toESM(require("dotenv"), 1);
-    import_path = __toESM(require("path"), 1);
-    import_dotenv2.default.config();
-    dbPromise = null;
-    getDb = async () => {
-      if (!dbPromise) {
-        dbPromise = (0, import_sqlite.open)({
-          filename: process.env.DB_SQLITE_PATH || import_path.default.join(process.cwd(), "database.sqlite"),
-          driver: import_sqlite3.default.Database
-        });
-      }
-      return dbPromise;
-    };
-    dbQuery2 = async (query, params) => {
-      try {
-        const db = await getDb();
-        if (query.trim().toUpperCase().startsWith("SELECT")) {
-          return await db.all(query, params);
-        } else {
-          const result = await db.run(query, params);
-          return result;
-        }
-      } catch (err) {
-        console.error("SQLite Query Error:", err);
-        throw err;
-      }
-    };
-  }
-});
-
 // server.ts
 var import_express = __toESM(require("express"), 1);
 var import_path2 = __toESM(require("path"), 1);
@@ -117,19 +36,71 @@ var import_jsonwebtoken2 = __toESM(require("jsonwebtoken"), 1);
 
 // src/db/index.ts
 var import_dotenv3 = __toESM(require("dotenv"), 1);
+
+// src/db/sqlite.ts
+var import_sqlite3 = __toESM(require("sqlite3"), 1);
+var import_sqlite = require("sqlite");
+var import_dotenv = __toESM(require("dotenv"), 1);
+var import_path = __toESM(require("path"), 1);
+import_dotenv.default.config();
+var dbPromise = null;
+var getDb = async () => {
+  if (!dbPromise) {
+    dbPromise = (0, import_sqlite.open)({
+      filename: process.env.DB_SQLITE_PATH || import_path.default.join(process.cwd(), "database.sqlite"),
+      driver: import_sqlite3.default.Database
+    });
+  }
+  return dbPromise;
+};
+var dbQuery = async (query, params) => {
+  try {
+    const db = await getDb();
+    if (query.trim().toUpperCase().startsWith("SELECT")) {
+      return await db.all(query, params);
+    } else {
+      const result = await db.run(query, params);
+      return result;
+    }
+  } catch (err) {
+    console.error("SQLite Query Error:", err);
+    throw err;
+  }
+};
+
+// src/db/mariadb.ts
+var import_mariadb = __toESM(require("mariadb"), 1);
+var import_dotenv2 = __toESM(require("dotenv"), 1);
+import_dotenv2.default.config();
+var pool = import_mariadb.default.createPool({
+  host: process.env.DB_HOST || "localhost",
+  user: process.env.DB_USER || "root",
+  password: process.env.DB_PASSWORD || "",
+  database: process.env.DB_NAME || "resifaso_db",
+  connectionLimit: 5
+});
+var dbQuery2 = async (query, params) => {
+  let conn;
+  try {
+    conn = await pool.getConnection();
+    const rows = await conn.query(query, params);
+    return rows;
+  } catch (err) {
+    console.error("MariaDB Query Error:", err);
+    throw err;
+  } finally {
+    if (conn) conn.end();
+  }
+};
+
+// src/db/index.ts
 import_dotenv3.default.config();
 var dbType = process.env.DB_TYPE || "sqlite";
-var queryDatabase = async () => {
-  throw new Error("Database not initialized");
-};
+var queryDatabase;
 if (dbType === "mariadb") {
-  Promise.resolve().then(() => (init_mariadb(), mariadb_exports)).then((module2) => {
-    queryDatabase = module2.dbQuery;
-  }).catch((err) => console.error("Failed to load mariadb driver", err));
+  queryDatabase = dbQuery2;
 } else if (dbType === "sqlite") {
-  Promise.resolve().then(() => (init_sqlite(), sqlite_exports)).then((module2) => {
-    queryDatabase = module2.dbQuery;
-  }).catch((err) => console.error("Failed to load sqlite driver", err));
+  queryDatabase = dbQuery;
 } else {
   queryDatabase = async () => {
     throw new Error("Local query execution is disabled when using Firebase natively.");
