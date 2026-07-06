@@ -97,7 +97,23 @@ export const Navbar: React.FC<{
           className="flex items-center cursor-pointer group hover:opacity-90 transition-opacity"
         >
           <div className="w-40 h-16 sm:w-48 sm:h-20 flex items-center justify-start group-hover:scale-105 transition-transform relative">
-            <img src="/logo.jpg" alt="ResiFaso" className="w-full h-full object-contain" referrerPolicy="no-referrer" />
+            <img 
+              src="/logo.jpg" 
+              alt="ResiFaso" 
+              className="w-full h-full object-contain" 
+              referrerPolicy="no-referrer"
+              onError={(e) => {
+                const target = e.target as HTMLImageElement;
+                target.style.display = 'none';
+                const parent = target.parentElement;
+                if (parent) {
+                  const fallback = document.createElement('div');
+                  fallback.className = 'text-2xl font-black text-red-600 tracking-tighter ml-2';
+                  fallback.innerText = 'ResiFaso';
+                  parent.appendChild(fallback);
+                }
+              }}
+            />
           </div>
         </div>
 

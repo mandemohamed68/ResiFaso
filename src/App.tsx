@@ -207,16 +207,19 @@ function AppContent() {
   };
 
   const calculateNights = () => {
+    if (!checkIn || !checkOut) return 1;
     const start = new Date(checkIn);
     const end = new Date(checkOut);
+    if (isNaN(start.getTime()) || isNaN(end.getTime())) return 1;
     const diff = end.getTime() - start.getTime();
     const nights = Math.ceil(diff / (1000 * 60 * 60 * 24));
     return nights > 0 ? nights : 1;
   };
 
   const calculateTotal = (res: Residence) => {
+    if (!res) return 0;
     const nights = calculateNights();
-    let pricePerNight = res.promoPrice || res.promo_price || res.pricePerNight || res.price_per_night || 0;
+    let pricePerNight = Number(res.promoPrice || res.promo_price || res.pricePerNight || res.price_per_night || 0);
     
     // Check tiered pricing (degressive)
     if (res.pricingTiers && res.pricingTiers.length > 0) {
@@ -225,23 +228,25 @@ function AppContent() {
         .sort((a, b) => b.minNights - a.minNights);
       
       if (applicableTiers.length > 0) {
-        pricePerNight = applicableTiers[0].pricePerNight;
+        pricePerNight = Number(applicableTiers[0].pricePerNight);
       }
     }
     
     // Apply duration discounts (legacy percentage-based)
     let discount = 0;
     if (nights >= 28 && res.monthlyDiscount) {
-      discount = res.monthlyDiscount;
+      discount = Number(res.monthlyDiscount);
     } else if (nights >= 7 && res.weeklyDiscount) {
-      discount = res.weeklyDiscount;
+      discount = Number(res.weeklyDiscount);
     }
 
     const base = (pricePerNight * nights) * (1 - (discount || 0) / 100);
-    const cleaning = res.cleaningFee || 0;
-    const platformService = base * (commissionRate / 100); // Platform commission
-    const extraService = res.serviceFee || 0; // Host controlled service fee
-    return Math.round(base + cleaning + platformService + extraService);
+    const cleaning = Number(res.cleaningFee || 0);
+    const platformService = base * (Number(commissionRate || 8) / 100); // Platform commission
+    const extraService = Number(res.serviceFee || 0); // Host controlled service fee
+    const total = base + cleaning + platformService + extraService;
+    
+    return isNaN(total) ? 0 : Math.round(total);
   };
 
   const calculateAdvance = (res: Residence) => {
@@ -1208,10 +1213,12 @@ function AppContent() {
                         );
                       })()}
 
-                      <hr className="border-slate-50" />
-                      <div className="flex justify-between text-lg font-black text-slate-900">
-                        <span>Total du séjour</span>
-                        <span className="font-black text-xl">{formatCurrency(calculateTotal(selectedResidence))} FCFA</span>
+                      <div className="flex justify-between text-lg font-black text-slate-900 border-t border-slate-100 pt-4">
+                        <span className="flex flex-col">
+                          Total du séjour
+                          <span className="text-[10px] text-slate-400 font-bold uppercase tracking-widest mt-1">Net à payer (FCFA)</span>
+                        </span>
+                        <span className="font-black text-2xl text-red-600">{formatCurrency(calculateTotal(selectedResidence))} FCFA</span>
                       </div>
                     </div>
 

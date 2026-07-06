@@ -18,7 +18,7 @@ import * as queries from './src/db/queries';
 dotenv.config();
 
 const JWT_SECRET = process.env.JWT_SECRET || 'super-secret-key-change-me';
-const DB_TYPE = process.env.DB_TYPE || 'mariadb';
+const DB_TYPE = process.env.DB_TYPE || 'sqlite';
 
 // Safe detection of __dirname and __filename for both CJS and ESM
 const currentFilename = typeof __filename !== "undefined" 
@@ -617,11 +617,25 @@ async function startServer() {
       const booking = req.body;
       const id = `book_${Date.now()}`;
       await executeSql(`
-        INSERT INTO bookings (id, residence_id, client_id, owner_id, check_in, check_out, total_price, booking_status)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-      `, [id, booking.residenceId, req.user?.uid, booking.ownerId, booking.checkIn, booking.checkOut, booking.totalPrice, 'pending']);
+        INSERT INTO bookings (id, residence_id, client_id, owner_id, check_in, check_out, guests, total_price, advance_paid, booking_status)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      `, [
+        id, 
+        booking.residenceId, 
+        req.user?.uid, 
+        booking.ownerId, 
+        booking.checkIn, 
+        booking.checkOut, 
+        booking.guests || 1, 
+        booking.totalPrice, 
+        booking.advancePaid || 0,
+        'pending'
+      ]);
       res.json({ id, ...booking, booking_status: 'pending' });
-    } catch (err: any) { res.status(500).json({ error: err.message }); }
+    } catch (err: any) { 
+      console.error("Booking Creation Error:", err);
+      res.status(500).json({ error: err.message }); 
+    }
   });
 
   app.get("/api/residences/:id/bookings", async (req, res) => {
