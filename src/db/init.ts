@@ -220,15 +220,20 @@ export const initDatabase = async () => {
     `);
 
     // FAQ Table
-    await executeSql(`
-      CREATE TABLE IF NOT EXISTS faqs (
-        id VARCHAR(128) PRIMARY KEY,
-        question TEXT NOT NULL,
-        answer TEXT NOT NULL,
-        category VARCHAR(100),
-        \`order\` INTEGER DEFAULT 0
-      )
-    `);
+    try {
+      await executeSql(`
+        CREATE TABLE IF NOT EXISTS faqs (
+          id VARCHAR(128) PRIMARY KEY,
+          question TEXT NOT NULL,
+          answer TEXT NOT NULL,
+          category VARCHAR(100),
+          \`order\` INTEGER DEFAULT 0
+        )
+      `);
+      console.log("Table 'faqs' checked/created successfully.");
+    } catch (err: any) {
+      console.error("Error creating faqs table:", err.message);
+    }
 
     // Conversations Table
     await executeSql(`
@@ -255,22 +260,22 @@ export const initDatabase = async () => {
     `);
 
     // Notifications Table
-    await executeSql(`
-      CREATE TABLE IF NOT EXISTS notifications (
-        id VARCHAR(128) PRIMARY KEY,
-        user_id VARCHAR(128),
-        title VARCHAR(255),
-        message TEXT,
-        type VARCHAR(50),
-        is_read BOOLEAN DEFAULT 0,
-        created_at DATETIME DEFAULT CURRENT_TIMESTAMP
-      )
-    `);
-    
     try {
-      await executeSql("ALTER TABLE notifications ADD CONSTRAINT fk_notifications_user FOREIGN KEY(user_id) REFERENCES users(uid) ON DELETE CASCADE");
-    } catch (e) {
-      console.warn("Could not add foreign key to notifications, skipping:", e);
+      await executeSql(`
+        CREATE TABLE IF NOT EXISTS notifications (
+          id VARCHAR(128) PRIMARY KEY,
+          user_id VARCHAR(128),
+          title VARCHAR(255),
+          message TEXT,
+          type VARCHAR(50),
+          is_read BOOLEAN DEFAULT 0,
+          created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+          FOREIGN KEY(user_id) REFERENCES users(uid) ON DELETE CASCADE
+        )
+      `);
+      console.log("Table 'notifications' checked/created successfully.");
+    } catch (err: any) {
+      console.error("Error creating notifications table:", err.message);
     }
 
     // Password Resets Table
