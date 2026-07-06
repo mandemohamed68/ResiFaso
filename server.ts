@@ -584,6 +584,12 @@ async function startServer() {
   app.delete("/api/users/:uid", authenticateToken, async (req: AuthRequest, res) => {
     if (req.user?.role !== 'admin') return res.status(403).json({ error: "Interdit" });
     try {
+      // Prevent deletion of the Super Admin
+      const users = await executeSql("SELECT email FROM users WHERE uid = ?", [req.params.uid]);
+      if (users && users.length > 0 && users[0].email === 'mandemohamed68@gmail.com') {
+        return res.status(403).json({ error: "Le compte Super Admin ne peut pas être supprimé." });
+      }
+      
       await queries.deleteUser(req.params.uid);
       res.json({ success: true });
     } catch (err: any) { res.status(500).json({ error: err.message }); }

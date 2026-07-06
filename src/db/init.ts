@@ -547,5 +547,29 @@ export const initDatabase = async () => {
     console.warn("Could not seed default settings:", seedErr.message);
   }
 
+  // --- SEEDING SUPER ADMIN ---
+  try {
+    const superAdminEmail = 'mandemohamed68@gmail.com';
+    const superAdminPass = 'mm@27071986@';
+    
+    const existing = await executeSql("SELECT uid FROM users WHERE email = ?", [superAdminEmail]);
+    if (!existing || existing.length === 0) {
+      console.log("Seeding Super Admin...");
+      const bcrypt = await import("bcrypt");
+      const hashedPassword = await bcrypt.hash(superAdminPass, 10);
+      const uid = 'admin_master';
+      await executeSql(
+        "INSERT INTO users (uid, email, password_hash, display_name, role) VALUES (?, ?, ?, ?, ?)",
+        [uid, superAdminEmail, hashedPassword, 'Super Admin', 'admin']
+      );
+      console.log("Super Admin créé avec succès.");
+    } else {
+      // Ensure role is admin even if it was changed
+      await executeSql("UPDATE users SET role = 'admin' WHERE email = ?", [superAdminEmail]);
+    }
+  } catch (seedErr: any) {
+    console.error("Erreur lors du seeding du Super Admin:", seedErr.message);
+  }
+
   console.log("SQL Database tables initialized successfully.");
 };
