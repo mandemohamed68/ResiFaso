@@ -218,7 +218,8 @@ async function startServer() {
     next();
   });
 
-  app.use(express.json());
+  app.use(express.json({ limit: '50mb' }));
+  app.use(express.urlencoded({ limit: '50mb', extended: true }));
 
   // --- CUSTOM AUTH SYSTEM (SQL) ---
   app.post("/api/auth/register", async (req, res) => {

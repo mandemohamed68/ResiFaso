@@ -136,8 +136,8 @@ export const InvoiceModal: React.FC<InvoiceModalProps> = ({
                     <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3">Détails de l'hébergement</h3>
                     <p className="font-bold text-slate-900">{residence?.title || 'Logement non spécifié'}</p>
                     <p className="text-sm text-slate-500 mt-1">{residence?.type || '-'}</p>
-                    {residence?.address && (
-                      <p className="text-sm text-slate-500">{residence.address.city}, {residence.address.neighborhood}</p>
+                    {(residence?.address || residence?.city) && (
+                      <p className="text-sm text-slate-500">{residence?.address?.city || residence?.city}, {residence?.address?.neighborhood || residence?.neighborhood}</p>
                     )}
                   </div>
                 </div>

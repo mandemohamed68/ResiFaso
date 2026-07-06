@@ -122,7 +122,7 @@ export const ResidenceCard: React.FC<Props> = ({
         
         <div className="flex items-center gap-1 text-slate-400 text-[10px] mb-1 font-bold uppercase tracking-wider">
           <MapPin size={10} className="text-red-500" />
-          <span className="line-clamp-1">{residence.address.neighborhood}, {residence.address.city}</span>
+          <span className="line-clamp-1">{residence.address?.neighborhood || residence.neighborhood}, {residence.address?.city || residence.city}</span>
         </div>
 
         <div className="flex items-center gap-3 mb-3">
