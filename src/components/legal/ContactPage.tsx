@@ -1,6 +1,4 @@
 import React, { useEffect, useState } from 'react';
-import { db } from '../../lib/firebase';
-import { doc, onSnapshot, collection, addDoc } from 'firebase/firestore';
 import { motion, AnimatePresence } from 'motion/react';
 import { Mail, Phone, MapPin, Clock, Send, CheckCircle2, ArrowLeft, MessageSquare, Facebook, HelpCircle } from 'lucide-react';
 import { ContactSettings } from '../../types';
@@ -35,28 +33,34 @@ export const ContactPage: React.FC<ContactPageProps> = ({ onBack, onNavigateToFa
   const [submitError, setSubmitError] = useState<string | null>(null);
 
   useEffect(() => {
-    // Sync contact settings in real-time
-    const unsub = onSnapshot(doc(db, 'settings', 'contactSettings'), (docSnap) => {
-      if (docSnap.exists()) {
-        const data = docSnap.data();
-        setSettings({
-          title: data.title || DEFAULT_SETTINGS.title,
-          description: data.description || DEFAULT_SETTINGS.description,
-          email: data.email || DEFAULT_SETTINGS.email,
-          phone: data.phone || DEFAULT_SETTINGS.phone,
-          address: data.address || DEFAULT_SETTINGS.address,
-          hours: data.hours || DEFAULT_SETTINGS.hours,
-          facebookUrl: data.facebookUrl || DEFAULT_SETTINGS.facebookUrl,
-          whatsappNumber: data.whatsappNumber || DEFAULT_SETTINGS.whatsappNumber,
-          isEmailEnabled: data.isEmailEnabled !== false,
-          isPhoneEnabled: data.isPhoneEnabled !== false,
-          isWhatsappEnabled: data.isWhatsappEnabled !== false,
-          isFacebookEnabled: data.isFacebookEnabled !== false,
-          isAddressEnabled: data.isAddressEnabled !== false,
-        });
+    const fetchSettings = async () => {
+      try {
+        const response = await fetch('/api/settings/contactSettings');
+        if (response.ok) {
+          const data = await response.json();
+          if (data && Object.keys(data).length > 0) {
+            setSettings({
+              title: data.title || DEFAULT_SETTINGS.title,
+              description: data.description || DEFAULT_SETTINGS.description,
+              email: data.email || DEFAULT_SETTINGS.email,
+              phone: data.phone || DEFAULT_SETTINGS.phone,
+              address: data.address || DEFAULT_SETTINGS.address,
+              hours: data.hours || DEFAULT_SETTINGS.hours,
+              facebookUrl: data.facebookUrl || DEFAULT_SETTINGS.facebookUrl,
+              whatsappNumber: data.whatsappNumber || DEFAULT_SETTINGS.whatsappNumber,
+              isEmailEnabled: data.isEmailEnabled !== false,
+              isPhoneEnabled: data.isPhoneEnabled !== false,
+              isWhatsappEnabled: data.isWhatsappEnabled !== false,
+              isFacebookEnabled: data.isFacebookEnabled !== false,
+              isAddressEnabled: data.isAddressEnabled !== false,
+            });
+          }
+        }
+      } catch (err) {
+        console.error("Error fetching settings:", err);
       }
-    });
-    return () => unsub();
+    };
+    fetchSettings();
   }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -70,15 +74,19 @@ export const ContactPage: React.FC<ContactPageProps> = ({ onBack, onNavigateToFa
     setSubmitError(null);
 
     try {
-      await addDoc(collection(db, 'contactMessages'), {
-        name,
-        email,
-        subject,
-        message,
-        createdAt: new Date().toISOString(),
-        status: 'unread'
+      const response = await fetch('/api/contact-messages', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name,
+          email,
+          subject,
+          message,
+        })
       });
       
+      if (!response.ok) throw new Error("Failed to send message");
+
       setSubmitSuccess(true);
       setName('');
       setEmail('');

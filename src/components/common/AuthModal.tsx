@@ -143,7 +143,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onNavigat
         <div className="mb-6 text-center">
           <div className="inline-flex w-48 h-24 sm:w-64 sm:h-32 items-center justify-center mb-2 relative">
             <img 
-              src="/logo.jpg" 
+              src="/logoresifaso.png" 
               alt="ResiFaso" 
               className="w-full h-full object-contain" 
               referrerPolicy="no-referrer"

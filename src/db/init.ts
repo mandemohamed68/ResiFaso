@@ -220,19 +220,15 @@ export const initDatabase = async () => {
     `);
 
     // FAQ Table
-    try {
-      await executeSql(`
-        CREATE TABLE IF NOT EXISTS faqs (
-          id VARCHAR(128) PRIMARY KEY,
-          question TEXT NOT NULL,
-          answer TEXT NOT NULL,
-          category VARCHAR(100),
-          \`order\` INTEGER DEFAULT 0
-        )
-      `);
-    } catch (err: any) {
-      console.error("Error creating faqs table:", err.message);
-    }
+    await executeSql(`
+      CREATE TABLE IF NOT EXISTS faqs (
+        id VARCHAR(128) PRIMARY KEY,
+        question TEXT NOT NULL,
+        answer TEXT NOT NULL,
+        category VARCHAR(100),
+        \`order\` INTEGER DEFAULT 0
+      )
+    `);
 
     // Conversations Table
     await executeSql(`
@@ -259,53 +255,45 @@ export const initDatabase = async () => {
     `);
 
     // Notifications Table
+    await executeSql(`
+      CREATE TABLE IF NOT EXISTS notifications (
+        id VARCHAR(128) PRIMARY KEY,
+        user_id VARCHAR(128),
+        title VARCHAR(255),
+        message TEXT,
+        type VARCHAR(50),
+        is_read BOOLEAN DEFAULT 0,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+      )
+    `);
+    
     try {
-      await executeSql(`
-        CREATE TABLE IF NOT EXISTS notifications (
-          id VARCHAR(128) PRIMARY KEY,
-          user_id VARCHAR(128),
-          title VARCHAR(255),
-          message TEXT,
-          type VARCHAR(50),
-          is_read BOOLEAN DEFAULT 0,
-          created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-          INDEX (user_id),
-          FOREIGN KEY(user_id) REFERENCES users(uid) ON DELETE CASCADE
-        )
-      `);
-    } catch (err: any) {
-      console.error("Error creating notifications table:", err.message);
+      await executeSql("ALTER TABLE notifications ADD CONSTRAINT fk_notifications_user FOREIGN KEY(user_id) REFERENCES users(uid) ON DELETE CASCADE");
+    } catch (e) {
+      console.warn("Could not add foreign key to notifications, skipping:", e);
     }
 
     // Password Resets Table
-    try {
-      await executeSql(`
-        CREATE TABLE IF NOT EXISTS password_resets (
-          email VARCHAR(255) PRIMARY KEY,
-          token VARCHAR(255) NOT NULL,
-          expires_at DATETIME NOT NULL
-        )
-      `);
-    } catch (err: any) {
-      console.error("Error creating password_resets table:", err.message);
-    }
+    await executeSql(`
+      CREATE TABLE IF NOT EXISTS password_resets (
+        email VARCHAR(255) PRIMARY KEY,
+        token VARCHAR(255) NOT NULL,
+        expires_at DATETIME NOT NULL
+      )
+    `);
 
     // Contact Messages
-    try {
-      await executeSql(`
-        CREATE TABLE IF NOT EXISTS contact_messages (
-          id VARCHAR(128) PRIMARY KEY,
-          name VARCHAR(255),
-          email VARCHAR(255),
-          subject VARCHAR(255),
-          message TEXT,
-          status VARCHAR(50) DEFAULT 'unread',
-          created_at DATETIME DEFAULT CURRENT_TIMESTAMP
-        )
-      `);
-    } catch (err: any) {
-      console.error("Error creating contact_messages table:", err.message);
-    }
+    await executeSql(`
+      CREATE TABLE IF NOT EXISTS contact_messages (
+        id VARCHAR(128) PRIMARY KEY,
+        name VARCHAR(255),
+        email VARCHAR(255),
+        subject VARCHAR(255),
+        message TEXT,
+        status VARCHAR(50) DEFAULT 'unread',
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+      )
+    `);
   } else {
     // SQLite compatible schema
     // Users Table
