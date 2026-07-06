@@ -84,7 +84,7 @@ async function getSappayCredentials() {
     }
   } else if (DB_TYPE !== 'firebase') {
     try {
-      const results = await executeSql("SELECT value FROM settings WHERE key = 'global'");
+      const results = await executeSql("SELECT value FROM settings WHERE `key` = 'global'");
       if (results && results.length > 0) {
         const data = JSON.parse(results[0].value);
         return {
@@ -534,7 +534,7 @@ async function startServer() {
       } else {
         const users = await executeSql("SELECT * FROM users WHERE email = ?", [email]);
         userExists = users.length > 0;
-        const settings = await executeSql("SELECT value FROM settings WHERE key = 'email'");
+        const settings = await executeSql("SELECT value FROM settings WHERE `key` = 'email'");
         if (settings.length > 0) emailSettings = JSON.parse(settings[0].value);
       }
 
@@ -552,7 +552,11 @@ async function startServer() {
       } else {
         const token = Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
         const expiresAt = new Date(Date.now() + 3600000).toISOString(); // 1 hour
-        await executeSql("INSERT INTO password_resets (email, token, expires_at) VALUES (?, ?, ?) ON CONFLICT(email) DO UPDATE SET token = ?, expires_at = ?", [email, token, expiresAt, token, expiresAt]);
+        if (DB_TYPE === 'mariadb') {
+          await executeSql("INSERT INTO password_resets (email, token, expires_at) VALUES (?, ?, ?) ON DUPLICATE KEY UPDATE token = ?, expires_at = ?", [email, token, expiresAt, token, expiresAt]);
+        } else {
+          await executeSql("INSERT INTO password_resets (email, token, expires_at) VALUES (?, ?, ?) ON CONFLICT(email) DO UPDATE SET token = ?, expires_at = ?", [email, token, expiresAt, token, expiresAt]);
+        }
         resetLink = `${req.headers.origin}?view=reset-password&email=${email}&token=${token}`;
       }
 
@@ -630,7 +634,7 @@ async function startServer() {
         const docSnap = await adminDb.collection("settings").doc("email").get();
         return res.json(docSnap.exists ? docSnap.data() : {});
       } else {
-        const results = await executeSql("SELECT value FROM settings WHERE key = 'email'");
+        const results = await executeSql("SELECT value FROM settings WHERE `key` = 'email'");
         return res.json(results.length > 0 ? JSON.parse(results[0].value) : {});
       }
     } catch (error: any) {
@@ -645,7 +649,11 @@ async function startServer() {
         if (!adminDb) throw new Error("Base de données non initialisée");
         await adminDb.collection("settings").doc("email").set(settings, { merge: true });
       } else {
-        await executeSql("INSERT INTO settings (key, value) VALUES ('email', ?) ON CONFLICT(key) DO UPDATE SET value = ?", [JSON.stringify(settings), JSON.stringify(settings)]);
+        if (DB_TYPE === 'mariadb') {
+          await executeSql("INSERT INTO settings (`key`, value) VALUES ('email', ?) ON DUPLICATE KEY UPDATE value = ?", [JSON.stringify(settings), JSON.stringify(settings)]);
+        } else {
+          await executeSql("INSERT INTO settings (`key`, value) VALUES ('email', ?) ON CONFLICT(`key`) DO UPDATE SET value = ?", [JSON.stringify(settings), JSON.stringify(settings)]);
+        }
       }
       res.json({ success: true });
     } catch (error: any) {

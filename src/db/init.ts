@@ -462,5 +462,16 @@ export const initDatabase = async () => {
     `);
   }
 
+  // Seed default settings if they do not exist
+  try {
+    const existingGlobal = await executeSql("SELECT * FROM settings WHERE `key` = 'global'");
+    if (!existingGlobal || existingGlobal.length === 0) {
+      await executeSql("INSERT INTO settings (`key`, value) VALUES ('global', ?)", [JSON.stringify({})]);
+      console.log("Seeded 'global' setting with default empty object.");
+    }
+  } catch (seedErr: any) {
+    console.warn("Could not seed default settings:", seedErr.message);
+  }
+
   console.log("SQL Database tables initialized successfully.");
 };
