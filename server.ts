@@ -18,7 +18,7 @@ import * as queries from './src/db/queries';
 dotenv.config();
 
 const JWT_SECRET = process.env.JWT_SECRET || 'super-secret-key-change-me';
-const DB_TYPE = process.env.DB_TYPE || 'sqlite';
+const DB_TYPE = process.env.DB_TYPE || 'mariadb';
 
 // Safe detection of __dirname and __filename for both CJS and ESM
 const currentFilename = typeof __filename !== "undefined" 
@@ -31,31 +31,33 @@ const currentDirname = typeof __dirname !== "undefined"
 
 // Initialize Firebase Admin utilizing credentials if available
 let adminDb: any = null;
-try {
-  const configPath = path.join(process.cwd(), "firebase-applet-config.json");
-  if (fs.existsSync(configPath)) {
-    const config = JSON.parse(fs.readFileSync(configPath, "utf-8"));
-    
-    const apps = getApps();
-    if (apps.length === 0) {
-      initializeApp({
-        projectId: config.projectId,
-      });
+if (DB_TYPE === 'firebase') {
+  try {
+    const configPath = path.join(process.cwd(), "firebase-applet-config.json");
+    if (fs.existsSync(configPath)) {
+      const config = JSON.parse(fs.readFileSync(configPath, "utf-8"));
+      
+      const apps = getApps();
+      if (apps.length === 0) {
+        initializeApp({
+          projectId: config.projectId,
+        });
+      }
+      
+      const dbId = config.firestoreDatabaseId || "(default)";
+      adminDb = getFirestore(dbId);
+      console.log(`Firebase Admin initialized for project ${config.projectId} and database ${dbId}`);
+    } else {
+      const apps = getApps();
+      if (apps.length === 0) {
+        initializeApp();
+      }
+      adminDb = getFirestore();
+      console.log("Firebase Admin initialized with default ADC");
     }
-    
-    const dbId = config.firestoreDatabaseId || "(default)";
-    adminDb = getFirestore(dbId);
-    console.log(`Firebase Admin initialized for project ${config.projectId} and database ${dbId}`);
-  } else {
-    const apps = getApps();
-    if (apps.length === 0) {
-      initializeApp();
-    }
-    adminDb = getFirestore();
-    console.log("Firebase Admin initialized with default ADC");
+  } catch (e: any) {
+    console.error("Firebase Admin initialization failed:", e);
   }
-} catch (e: any) {
-  console.error("Firebase Admin initialization failed:", e);
 }
 
 const SAPPAY_BASE_PUBLIC_SANDBOX = "https://sandbox.sappay.net/api/v1";
