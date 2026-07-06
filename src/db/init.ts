@@ -265,16 +265,15 @@ export const initDatabase = async () => {
       await executeSql(`
         CREATE TABLE IF NOT EXISTS notifications (
           id VARCHAR(128) PRIMARY KEY,
-          user_id VARCHAR(128),
+          user_id VARCHAR(128) NOT NULL,
           title VARCHAR(255),
           message TEXT,
           type VARCHAR(50),
           is_read BOOLEAN DEFAULT 0,
-          created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-          FOREIGN KEY(user_id) REFERENCES users(id) ON DELETE CASCADE
-        ) ENGINE=InnoDB
+          created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_uca1400_ai_ci
       `);
-      console.log("Table 'notifications' recréée avec succès et FK ajoutée.");
+      console.log("Table 'notifications' recréée avec succès (FK temporairement retirée).");
     } catch (err: any) {
       console.error("Erreur lors de la création de la table notifications:", err.message);
     }
