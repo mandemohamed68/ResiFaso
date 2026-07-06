@@ -271,7 +271,7 @@ export const initDatabase = async () => {
           type VARCHAR(50),
           is_read BOOLEAN DEFAULT 0,
           created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-          FOREIGN KEY(user_id) REFERENCES users(uid) ON DELETE CASCADE
+          FOREIGN KEY(user_id) REFERENCES users(id) ON DELETE CASCADE
         ) ENGINE=InnoDB
       `);
       console.log("Table 'notifications' recréée avec succès et FK ajoutée.");
