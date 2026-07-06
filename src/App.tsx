@@ -219,10 +219,13 @@ function AppContent() {
   const calculateTotal = (res: Residence) => {
     if (!res) return 0;
     const nights = calculateNights();
-    let pricePerNight = Number(res.promoPrice || res.promo_price || res.pricePerNight || res.price_per_night || 0);
+    
+    // Base price per night detection (handles aliased and raw database names)
+    const rawPrice = res.promoPrice ?? res.promo_price ?? res.pricePerNight ?? res.price_per_night ?? 0;
+    let pricePerNight = Number(rawPrice);
     
     // Check tiered pricing (degressive)
-    if (res.pricingTiers && res.pricingTiers.length > 0) {
+    if (res.pricingTiers && Array.isArray(res.pricingTiers) && res.pricingTiers.length > 0) {
       const applicableTiers = [...res.pricingTiers]
         .filter(tier => nights >= tier.minNights)
         .sort((a, b) => b.minNights - a.minNights);
@@ -234,19 +237,22 @@ function AppContent() {
     
     // Apply duration discounts (legacy percentage-based)
     let discount = 0;
-    if (nights >= 28 && res.monthlyDiscount) {
-      discount = Number(res.monthlyDiscount);
-    } else if (nights >= 7 && res.weeklyDiscount) {
-      discount = Number(res.weeklyDiscount);
+    if (nights >= 28 && (res.monthlyDiscount || res.monthly_discount)) {
+      discount = Number(res.monthlyDiscount || res.monthly_discount);
+    } else if (nights >= 7 && (res.weeklyDiscount || res.weekly_discount)) {
+      discount = Number(res.weeklyDiscount || res.weekly_discount);
     }
 
     const base = (pricePerNight * nights) * (1 - (discount || 0) / 100);
-    const cleaning = Number(res.cleaningFee || 0);
-    const platformService = base * (Number(commissionRate || 8) / 100); // Platform commission
-    const extraService = Number(res.serviceFee || 0); // Host controlled service fee
+    const cleaning = Number(res.cleaningFee || res.cleaning_fee || 0);
+    const currentCommission = Number(commissionRate ?? 8);
+    const platformService = base * (currentCommission / 100);
+    const extraService = Number(res.serviceFee || res.service_fee || 0);
+    
     const total = base + cleaning + platformService + extraService;
     
-    return isNaN(total) ? 0 : Math.round(total);
+    if (isNaN(total) || total < 0) return 0;
+    return Math.round(total);
   };
 
   const calculateAdvance = (res: Residence) => {
@@ -1122,15 +1128,15 @@ function AppContent() {
                     <div className="space-y-3 mb-6 text-sm">
                       {(() => {
                         const nights = calculateNights();
-                        let pPerNight = selectedResidence.promoPrice || selectedResidence.promo_price || selectedResidence.pricePerNight || selectedResidence.price_per_night;
+                        let pPerNight = Number(selectedResidence.promoPrice ?? selectedResidence.promo_price ?? selectedResidence.pricePerNight ?? selectedResidence.price_per_night ?? 0);
                         let isTierApplied = false;
 
-                        if (selectedResidence.pricingTiers && selectedResidence.pricingTiers.length > 0) {
+                        if (selectedResidence.pricingTiers && Array.isArray(selectedResidence.pricingTiers) && selectedResidence.pricingTiers.length > 0) {
                           const tiers = [...selectedResidence.pricingTiers]
                             .filter(t => nights >= t.minNights)
                             .sort((a, b) => b.minNights - a.minNights);
                           if (tiers.length > 0) {
-                            pPerNight = tiers[0].pricePerNight;
+                            pPerNight = Number(tiers[0].pricePerNight);
                             isTierApplied = true;
                           }
                         }
@@ -1176,37 +1182,37 @@ function AppContent() {
 
                             <div className="flex justify-between text-slate-600">
                               <span>
-                                {formatCurrency(pPerNight)} FCFA x {nights} nuits
+                                {formatFCFA(pPerNight)} x {nights} nuits
                                 {isTierApplied && (
                                   <span className="ml-2 text-[9px] bg-blue-50 text-blue-600 px-1.5 py-0.5 rounded-full font-black border border-blue-100 uppercase tracking-tighter">
                                     Tarif Dégressif
                                   </span>
                                 )}
                               </span>
-                              <span className="font-medium">{formatCurrency(baseBeforeDiscount)} FCFA</span>
+                              <span className="font-medium">{formatFCFA(baseBeforeDiscount)}</span>
                             </div>
                             
                             {discountPercent > 0 && (
                               <div className="flex justify-between text-green-600 font-bold bg-green-50 p-2 rounded-lg">
                                 <span>Remise durée ({discountPercent}%)</span>
-                                <span>- {formatCurrency(discountAmount)} FCFA</span>
+                                <span>- {formatFCFA(discountAmount)}</span>
                               </div>
                             )}
 
                             <div className="flex justify-between text-slate-600">
                               <span>Frais de ménage</span>
-                              <span className="font-medium">{formatCurrency(selectedResidence.cleaningFee)} FCFA</span>
+                              <span className="font-medium">{formatFCFA(selectedResidence.cleaningFee || selectedResidence.cleaning_fee)}</span>
                             </div>
                             {commissionRate > 0 && (
                               <div className="flex justify-between text-slate-600">
                                 <span>Frais de service ({commissionRate}%)</span>
-                                <span className="font-medium">{formatCurrency(platformService)} FCFA</span>
+                                <span className="font-medium">{formatFCFA(platformService)}</span>
                               </div>
                             )}
-                            {selectedResidence.serviceFee > 0 && (
+                            {(selectedResidence.serviceFee > 0 || selectedResidence.service_fee > 0) && (
                               <div className="flex justify-between text-slate-600">
                                 <span>Frais de service Additionnel</span>
-                                <span className="font-medium">{formatCurrency(selectedResidence.serviceFee)} FCFA</span>
+                                <span className="font-medium">{formatFCFA(selectedResidence.serviceFee || selectedResidence.service_fee)}</span>
                               </div>
                             )}
                           </>
@@ -1218,14 +1224,14 @@ function AppContent() {
                           Total du séjour
                           <span className="text-[10px] text-slate-400 font-bold uppercase tracking-widest mt-1">Net à payer (FCFA)</span>
                         </span>
-                        <span className="font-black text-2xl text-red-600">{formatCurrency(calculateTotal(selectedResidence))} FCFA</span>
+                        <span className="font-black text-2xl text-red-600">{formatFCFA(calculateTotal(selectedResidence))}</span>
                       </div>
                     </div>
 
                     <div className="bg-orange-50 border border-orange-100 rounded-xl p-4 mb-6">
                       <div className="flex items-center justify-between mb-2">
-                        <span className="text-xs font-bold text-orange-800 uppercase tracking-tighter">Avance requise ({selectedResidence.advancePercentage}%)</span>
-                        <span className="text-lg font-black text-orange-900 underline underline-offset-4">{formatCurrency(calculateAdvance(selectedResidence))} FCFA</span>
+                        <span className="text-xs font-bold text-orange-800 uppercase tracking-tighter">Avance requise ({selectedResidence.advancePercentage || selectedResidence.advance_percentage || 100}%)</span>
+                        <span className="text-lg font-black text-orange-900 underline underline-offset-4">{formatFCFA(calculateAdvance(selectedResidence))}</span>
                       </div>
                       <p className="text-[11px] text-orange-700 leading-tight italic">Cette avance sera payée via Mobile Money une fois que l'hôte aura approuvé vos dates.</p>
                     </div>

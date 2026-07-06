@@ -220,15 +220,19 @@ export const initDatabase = async () => {
     `);
 
     // FAQ Table
-    await executeSql(`
-      CREATE TABLE IF NOT EXISTS faq (
-        id VARCHAR(128) PRIMARY KEY,
-        question TEXT NOT NULL,
-        answer TEXT NOT NULL,
-        category VARCHAR(100),
-        order_index INTEGER DEFAULT 0
-      )
-    `);
+    try {
+      await executeSql(`
+        CREATE TABLE IF NOT EXISTS faqs (
+          id VARCHAR(128) PRIMARY KEY,
+          question TEXT NOT NULL,
+          answer TEXT NOT NULL,
+          category VARCHAR(100),
+          \`order\` INTEGER DEFAULT 0
+        )
+      `);
+    } catch (err: any) {
+      console.error("Error creating faqs table:", err.message);
+    }
 
     // Conversations Table
     await executeSql(`
@@ -255,40 +259,53 @@ export const initDatabase = async () => {
     `);
 
     // Notifications Table
-    await executeSql(`
-      CREATE TABLE IF NOT EXISTS notifications (
-        id VARCHAR(128) PRIMARY KEY,
-        user_id VARCHAR(128),
-        title VARCHAR(255),
-        message TEXT,
-        type VARCHAR(50),
-        is_read BOOLEAN DEFAULT 0,
-        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-        FOREIGN KEY(user_id) REFERENCES users(uid) ON DELETE CASCADE
-      )
-    `);
+    try {
+      await executeSql(`
+        CREATE TABLE IF NOT EXISTS notifications (
+          id VARCHAR(128) PRIMARY KEY,
+          user_id VARCHAR(128),
+          title VARCHAR(255),
+          message TEXT,
+          type VARCHAR(50),
+          is_read BOOLEAN DEFAULT 0,
+          created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+          INDEX (user_id),
+          FOREIGN KEY(user_id) REFERENCES users(uid) ON DELETE CASCADE
+        )
+      `);
+    } catch (err: any) {
+      console.error("Error creating notifications table:", err.message);
+    }
 
     // Password Resets Table
-    await executeSql(`
-      CREATE TABLE IF NOT EXISTS password_resets (
-        email VARCHAR(255) PRIMARY KEY,
-        token VARCHAR(255) NOT NULL,
-        expires_at DATETIME NOT NULL
-      )
-    `);
+    try {
+      await executeSql(`
+        CREATE TABLE IF NOT EXISTS password_resets (
+          email VARCHAR(255) PRIMARY KEY,
+          token VARCHAR(255) NOT NULL,
+          expires_at DATETIME NOT NULL
+        )
+      `);
+    } catch (err: any) {
+      console.error("Error creating password_resets table:", err.message);
+    }
 
     // Contact Messages
-    await executeSql(`
-      CREATE TABLE IF NOT EXISTS contact_messages (
-        id VARCHAR(128) PRIMARY KEY,
-        name VARCHAR(255),
-        email VARCHAR(255),
-        subject VARCHAR(255),
-        message TEXT,
-        status VARCHAR(50) DEFAULT 'unread',
-        created_at DATETIME DEFAULT CURRENT_TIMESTAMP
-      )
-    `);
+    try {
+      await executeSql(`
+        CREATE TABLE IF NOT EXISTS contact_messages (
+          id VARCHAR(128) PRIMARY KEY,
+          name VARCHAR(255),
+          email VARCHAR(255),
+          subject VARCHAR(255),
+          message TEXT,
+          status VARCHAR(50) DEFAULT 'unread',
+          created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+        )
+      `);
+    } catch (err: any) {
+      console.error("Error creating contact_messages table:", err.message);
+    }
   } else {
     // SQLite compatible schema
     // Users Table
@@ -448,15 +465,19 @@ export const initDatabase = async () => {
     `);
 
     // FAQ Table
-    await executeSql(`
-      CREATE TABLE IF NOT EXISTS faq (
-        id TEXT PRIMARY KEY,
-        question TEXT NOT NULL,
-        answer TEXT NOT NULL,
-        category TEXT,
-        order_index INTEGER DEFAULT 0
-      )
-    `);
+    try {
+      await executeSql(`
+        CREATE TABLE IF NOT EXISTS faqs (
+          id TEXT PRIMARY KEY,
+          question TEXT NOT NULL,
+          answer TEXT NOT NULL,
+          category TEXT,
+          \`order\` INTEGER DEFAULT 0
+        )
+      `);
+    } catch (err: any) {
+      console.error("Error creating faqs table (sqlite):", err.message);
+    }
 
     // Conversations Table
     await executeSql(`

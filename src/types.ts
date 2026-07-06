@@ -80,6 +80,9 @@ export interface Residence {
   weekly_discount?: number;
   monthly_discount?: number;
   promo_price?: number;
+  cleaning_fee?: number;
+  service_fee?: number;
+  advance_percentage?: number;
   street?: string;
   lat?: number;
   lng?: number;
