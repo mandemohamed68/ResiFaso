@@ -7,7 +7,7 @@ export const getUserProfile = async (uid: string) => {
 };
 
 export const getAllUsers = async () => {
-  return await executeSql("SELECT uid, email, display_name as displayName, role, photo_url as photoUrl, is_verified as isVerified, created_at as createdAt FROM users");
+  return await executeSql("SELECT uid, email, display_name as displayName, role, photo_url as photoUrl, is_verified as isVerified, created_at as createdAt FROM users ORDER BY created_at DESC");
 };
 
 // Residences
@@ -21,6 +21,7 @@ export const getAllResidences = async () => {
       monthly_discount as monthlyDiscount, promo_price as promoPrice, rejection_reason as rejectionReason, 
       created_at as createdAt 
     FROM residences
+    ORDER BY created_at DESC
   `);
 
   if (residences.length === 0) return [];

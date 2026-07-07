@@ -13,7 +13,8 @@ import {
   getOwnerWithdrawals,
   getBackendDbType,
   getAllResidences,
-  getAllBookings
+  getAllBookings,
+  updateUserProfile
 } from '../../lib/db';
 import { CustomSelect } from '../common/CustomSelect';
 import { Message, Conversation, Residence, Booking, WithdrawalRequest, MobileMoneyProvider } from '../../types';
@@ -24,7 +25,8 @@ import { cn } from '../../lib/utils';
 import { 
   BarChart3, Plus, Home, CalendarCheck, Wallet, ArrowRight, ArrowLeft, 
   Upload, Trash2, Eye, ShieldAlert, Check, X, RefreshCw, Layers, Pencil,
-  MessageSquare, Send, Star, Percent, History, Clock, Filter, Download
+  MessageSquare, Send, Star, Percent, History, Clock, Filter, Download,
+  ChevronLeft, ChevronRight
 } from 'lucide-react';
 import { resizeImage } from '../../lib/imageResize';
 import { db } from '../../lib/firebase';
@@ -230,6 +232,11 @@ const BookingTable: React.FC<BookingTableProps> = ({
 }) => {
   const [selectedBookingForDetails, setSelectedBookingForDetails] = useState<Booking | null>(null);
   const [selectedBookingForInvoice, setSelectedBookingForInvoice] = useState<Booking | null>(null);
+  const [currentPage, setCurrentPage] = useState(1);
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [bookings.length]);
 
   useEffect(() => {
     const handleOpenBooking = (e: Event) => {
@@ -259,7 +266,7 @@ const BookingTable: React.FC<BookingTableProps> = ({
           </tr>
         </thead>
         <tbody className="divide-y divide-slate-50 text-sm font-bold text-slate-700">
-          {bookings.map(b => {
+          {bookings.slice((currentPage - 1) * 5, currentPage * 5).map(b => {
              const res = residences.find(r => r.id === b.residenceId);
              return (
               <tr key={b.id}>
@@ -376,6 +383,81 @@ const BookingTable: React.FC<BookingTableProps> = ({
           })}
         </tbody>
       </table>
+
+      {/* Pagination UI for Bookings */}
+      {bookings.length > 5 && (
+        <div className="flex items-center justify-between border-t border-slate-100 pt-5 px-6">
+          <div className="flex flex-1 justify-between sm:hidden">
+            <button
+              disabled={currentPage === 1}
+              onClick={() => {
+                setCurrentPage(prev => Math.max(prev - 1, 1));
+              }}
+              className="relative inline-flex items-center rounded-xl border border-slate-200 bg-white px-4 py-2 text-xs font-black uppercase text-slate-700 hover:bg-slate-50 disabled:opacity-50 transition cursor-pointer"
+            >
+              Précédent
+            </button>
+            <button
+              disabled={currentPage === Math.ceil(bookings.length / 5)}
+              onClick={() => {
+                setCurrentPage(prev => Math.min(prev + 1, Math.ceil(bookings.length / 5)));
+              }}
+              className="relative ml-3 inline-flex items-center rounded-xl border border-slate-200 bg-white px-4 py-2 text-xs font-black uppercase text-slate-700 hover:bg-slate-50 disabled:opacity-50 transition cursor-pointer"
+            >
+              Suivant
+            </button>
+          </div>
+          <div className="hidden sm:flex sm:flex-1 sm:items-center sm:justify-between">
+            <div>
+              <p className="text-xs text-slate-500 font-bold">
+                Affichage de <span className="font-extrabold text-slate-800">{Math.min((currentPage - 1) * 5 + 1, bookings.length)}</span> à{' '}
+                <span className="font-extrabold text-slate-800">{Math.min(currentPage * 5, bookings.length)}</span> sur{' '}
+                <span className="font-extrabold text-slate-800">{bookings.length}</span> réservations
+              </p>
+            </div>
+            <div>
+              <nav className="isolate inline-flex -space-x-px rounded-xl shadow-xs gap-1" aria-label="Pagination">
+                <button
+                  disabled={currentPage === 1}
+                  onClick={() => {
+                    setCurrentPage(prev => Math.max(prev - 1, 1));
+                  }}
+                  className="relative inline-flex items-center rounded-xl border border-slate-150 bg-white p-2 text-slate-500 hover:bg-slate-100 disabled:opacity-40 transition cursor-pointer"
+                >
+                  <ChevronLeft size={16} />
+                </button>
+                
+                {Array.from({ length: Math.ceil(bookings.length / 5) }, (_, i) => i + 1).map((p) => (
+                  <button
+                    key={p}
+                    onClick={() => {
+                      setCurrentPage(p);
+                    }}
+                    className={cn(
+                      "relative inline-flex items-center px-3 py-1.5 text-xs font-black rounded-xl border transition cursor-pointer",
+                      currentPage === p
+                        ? "z-10 bg-red-600 text-white border-red-600 shadow-sm"
+                        : "bg-white text-slate-600 border-slate-150 hover:bg-slate-100"
+                    )}
+                  >
+                    {p}
+                  </button>
+                ))}
+
+                <button
+                  disabled={currentPage === Math.ceil(bookings.length / 5)}
+                  onClick={() => {
+                    setCurrentPage(prev => Math.min(prev + 1, Math.ceil(bookings.length / 5)));
+                  }}
+                  className="relative inline-flex items-center rounded-xl border border-slate-150 bg-white p-2 text-slate-500 hover:bg-slate-100 disabled:opacity-40 transition cursor-pointer"
+                >
+                  <ChevronRight size={16} />
+                </button>
+              </nav>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Complete Booking Details Bento Modal */}
       {selectedBookingForDetails && (() => {
@@ -577,11 +659,34 @@ const BookingTable: React.FC<BookingTableProps> = ({
   );
 };
 
+export const PREDEFINED_TYPES = [
+  "Appartement meublé",
+  "Villa basse",
+  "Villa duplex",
+  "Chambre d'hôte",
+  "Auberge / Hôtel",
+  "Studio moderne",
+  "Maison complète",
+  "Célibaterium",
+  "Loft",
+  "Paillote / Bungalow"
+];
+
 export const OwnerDashboard: React.FC<{ isTestMode?: boolean; onBackToTraveler?: () => void }> = ({ isTestMode, onBackToTraveler }) => {
   const { user } = useAuth();
   const [residences, setResidences] = useState<Residence[]>([]);
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [loading, setLoading] = useState(true);
+  const [listingsPage, setListingsPage] = useState(1);
+  const [withdrawalsPage, setWithdrawalsPage] = useState(1);
+
+  useEffect(() => {
+    setListingsPage(1);
+  }, [residences.length]);
+
+  useEffect(() => {
+    setWithdrawalsPage(1);
+  }, [bookings.length]);
   const [activeTab, setActiveTab] = useState<'stats' | 'listings' | 'bookings' | 'revenue' | 'messages' | 'notifications' | 'policy'>('stats');
   const [commissionRate, setCommissionRate] = useState<number>(8);
   
@@ -833,6 +938,7 @@ export const OwnerDashboard: React.FC<{ isTestMode?: boolean; onBackToTraveler?:
             snap.forEach(docSnap => {
               list.push({ id: docSnap.id, ...docSnap.data() } as Residence);
             });
+            list.sort((a, b) => new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime());
             setResidences(list);
           });
 
@@ -842,7 +948,7 @@ export const OwnerDashboard: React.FC<{ isTestMode?: boolean; onBackToTraveler?:
             snap.forEach(docSnap => {
               list.push({ id: docSnap.id, ...docSnap.data() } as Booking);
             });
-            list.sort((a, b) => new Date(a.checkIn).getTime() - new Date(b.checkIn).getTime());
+            list.sort((a, b) => new Date(b.createdAt || b.checkIn || 0).getTime() - new Date(a.createdAt || a.checkIn || 0).getTime());
             setBookings(list);
             setLoading(false);
           });
@@ -861,10 +967,13 @@ export const OwnerDashboard: React.FC<{ isTestMode?: boolean; onBackToTraveler?:
             isAdmin ? getAllBookings() : getOwnerBookings(user.uid)
           ]);
           
-          setResidences(resList || []);
+          const sortedRes = (resList || []).sort((a, b) => 
+            new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime()
+          );
+          setResidences(sortedRes);
           
           const sortedBookings = (bookList || []).sort((a, b) => 
-            new Date(a.checkIn).getTime() - new Date(b.checkIn).getTime()
+            new Date(b.createdAt || b.checkIn || 0).getTime() - new Date(a.createdAt || a.checkIn || 0).getTime()
           );
           setBookings(sortedBookings);
         }
@@ -1672,7 +1781,7 @@ export const OwnerDashboard: React.FC<{ isTestMode?: boolean; onBackToTraveler?:
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-50 text-sm font-bold text-slate-700">
-                    {residences.map(res => (
+                    {residences.slice((listingsPage - 1) * 5, listingsPage * 5).map(res => (
                       <tr key={res.id}>
                         <td className="py-4 px-6 flex items-center gap-3">
                           <img src={res.images?.[0]} className="w-12 h-10 object-cover rounded-md shadow-sm shrink-0" />
@@ -1819,6 +1928,81 @@ export const OwnerDashboard: React.FC<{ isTestMode?: boolean; onBackToTraveler?:
                     ))}
                   </tbody>
                 </table>
+
+                {/* Pagination UI for Listings */}
+                {residences.length > 5 && (
+                  <div className="flex items-center justify-between border-t border-slate-100 pt-5 px-6 mt-4 text-slate-700">
+                    <div className="flex flex-1 justify-between sm:hidden">
+                      <button
+                        disabled={listingsPage === 1}
+                        onClick={() => {
+                          setListingsPage(prev => Math.max(prev - 1, 1));
+                        }}
+                        className="relative inline-flex items-center rounded-xl border border-slate-200 bg-white px-4 py-2 text-xs font-black uppercase text-slate-700 hover:bg-slate-50 disabled:opacity-50 transition cursor-pointer"
+                      >
+                        Précédent
+                      </button>
+                      <button
+                        disabled={listingsPage === Math.ceil(residences.length / 5)}
+                        onClick={() => {
+                          setListingsPage(prev => Math.min(prev + 1, Math.ceil(residences.length / 5)));
+                        }}
+                        className="relative ml-3 inline-flex items-center rounded-xl border border-slate-200 bg-white px-4 py-2 text-xs font-black uppercase text-slate-700 hover:bg-slate-50 disabled:opacity-50 transition cursor-pointer"
+                      >
+                        Suivant
+                      </button>
+                    </div>
+                    <div className="hidden sm:flex sm:flex-1 sm:items-center sm:justify-between">
+                      <div>
+                        <p className="text-xs text-slate-500 font-bold">
+                          Affichage de <span className="font-extrabold text-slate-800">{Math.min((listingsPage - 1) * 5 + 1, residences.length)}</span> à{' '}
+                          <span className="font-extrabold text-slate-800">{Math.min(listingsPage * 5, residences.length)}</span> sur{' '}
+                          <span className="font-extrabold text-slate-800">{residences.length}</span> hébergements
+                        </p>
+                      </div>
+                      <div>
+                        <nav className="isolate inline-flex -space-x-px rounded-xl shadow-xs gap-1" aria-label="Pagination">
+                          <button
+                            disabled={listingsPage === 1}
+                            onClick={() => {
+                              setListingsPage(prev => Math.max(prev - 1, 1));
+                            }}
+                            className="relative inline-flex items-center rounded-xl border border-slate-150 bg-white p-2 text-slate-500 hover:bg-slate-100 disabled:opacity-40 transition cursor-pointer"
+                          >
+                            <ChevronLeft size={16} />
+                          </button>
+                          
+                          {Array.from({ length: Math.ceil(residences.length / 5) }, (_, i) => i + 1).map((p) => (
+                            <button
+                              key={p}
+                              onClick={() => {
+                                setListingsPage(p);
+                              }}
+                              className={cn(
+                                "relative inline-flex items-center px-3 py-1.5 text-xs font-black rounded-xl border transition cursor-pointer",
+                                listingsPage === p
+                                  ? "z-10 bg-red-600 text-white border-red-600 shadow-sm"
+                                  : "bg-white text-slate-600 border-slate-150 hover:bg-slate-100"
+                              )}
+                            >
+                              {p}
+                            </button>
+                          ))}
+
+                          <button
+                            disabled={listingsPage === Math.ceil(residences.length / 5)}
+                            onClick={() => {
+                              setListingsPage(prev => Math.min(prev + 1, Math.ceil(residences.length / 5)));
+                            }}
+                            className="relative inline-flex items-center rounded-xl border border-slate-150 bg-white p-2 text-slate-500 hover:bg-slate-100 disabled:opacity-40 transition cursor-pointer"
+                          >
+                            <ChevronRight size={16} />
+                          </button>
+                        </nav>
+                      </div>
+                    </div>
+                  </div>
+                )}
               </div>
             )}
           </motion.div>
@@ -2062,7 +2246,8 @@ export const OwnerDashboard: React.FC<{ isTestMode?: boolean; onBackToTraveler?:
                 </div>
 
                 {withdrawals.length > 0 ? (
-                  <div className="overflow-x-auto">
+                  <>
+                    <div className="overflow-x-auto">
                     <table className="w-full text-left text-xs border-collapse">
                       <thead>
                         <tr className="border-b border-slate-100 text-slate-400">
@@ -2073,7 +2258,7 @@ export const OwnerDashboard: React.FC<{ isTestMode?: boolean; onBackToTraveler?:
                         </tr>
                       </thead>
                       <tbody>
-                        {withdrawals.map((item) => (
+                        {withdrawals.slice((withdrawalsPage - 1) * 5, withdrawalsPage * 5).map((item) => (
                           <tr key={item.id} className="border-b border-slate-50 hover:bg-slate-50/50">
                             <td className="py-3.5 font-bold text-slate-500">
                               {new Date(item.createdAt).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short', year: 'numeric' })}
@@ -2105,6 +2290,82 @@ export const OwnerDashboard: React.FC<{ isTestMode?: boolean; onBackToTraveler?:
                       </tbody>
                     </table>
                   </div>
+
+                  {/* Pagination UI for Withdrawals */}
+                  {withdrawals.length > 5 && (
+                    <div className="flex items-center justify-between border-t border-slate-100 pt-5 px-2 mt-4 text-slate-700">
+                      <div className="flex flex-1 justify-between sm:hidden">
+                        <button
+                          disabled={withdrawalsPage === 1}
+                          onClick={() => {
+                            setWithdrawalsPage(prev => Math.max(prev - 1, 1));
+                          }}
+                          className="relative inline-flex items-center rounded-xl border border-slate-200 bg-white px-4 py-2 text-xs font-black uppercase text-slate-700 hover:bg-slate-50 disabled:opacity-50 transition cursor-pointer"
+                        >
+                          Précédent
+                        </button>
+                        <button
+                          disabled={withdrawalsPage === Math.ceil(withdrawals.length / 5)}
+                          onClick={() => {
+                            setWithdrawalsPage(prev => Math.min(prev + 1, Math.ceil(withdrawals.length / 5)));
+                          }}
+                          className="relative ml-3 inline-flex items-center rounded-xl border border-slate-200 bg-white px-4 py-2 text-xs font-black uppercase text-slate-700 hover:bg-slate-50 disabled:opacity-50 transition cursor-pointer"
+                        >
+                          Suivant
+                        </button>
+                      </div>
+                      <div className="hidden sm:flex sm:flex-1 sm:items-center sm:justify-between">
+                        <div>
+                          <p className="text-xs text-slate-500 font-bold">
+                            Affichage de <span className="font-extrabold text-slate-800">{Math.min((withdrawalsPage - 1) * 5 + 1, withdrawals.length)}</span> à{' '}
+                            <span className="font-extrabold text-slate-800">{Math.min(withdrawalsPage * 5, withdrawals.length)}</span> sur{' '}
+                            <span className="font-extrabold text-slate-800">{withdrawals.length}</span> demandes
+                          </p>
+                        </div>
+                        <div>
+                          <nav className="isolate inline-flex -space-x-px rounded-xl shadow-xs gap-1" aria-label="Pagination">
+                            <button
+                              disabled={withdrawalsPage === 1}
+                              onClick={() => {
+                                setWithdrawalsPage(prev => Math.max(prev - 1, 1));
+                              }}
+                              className="relative inline-flex items-center rounded-xl border border-slate-150 bg-white p-2 text-slate-500 hover:bg-slate-100 disabled:opacity-40 transition cursor-pointer"
+                            >
+                              <ChevronLeft size={16} />
+                            </button>
+                            
+                            {Array.from({ length: Math.ceil(withdrawals.length / 5) }, (_, i) => i + 1).map((p) => (
+                              <button
+                                key={p}
+                                onClick={() => {
+                                  setWithdrawalsPage(p);
+                                }}
+                                className={cn(
+                                  "relative inline-flex items-center px-3 py-1.5 text-xs font-black rounded-xl border transition cursor-pointer",
+                                  withdrawalsPage === p
+                                    ? "z-10 bg-red-600 text-white border-red-600 shadow-sm"
+                                    : "bg-white text-slate-600 border-slate-150 hover:bg-slate-100"
+                                )}
+                              >
+                                {p}
+                              </button>
+                            ))}
+
+                            <button
+                              disabled={withdrawalsPage === Math.ceil(withdrawals.length / 5)}
+                              onClick={() => {
+                                setWithdrawalsPage(prev => Math.min(prev + 1, Math.ceil(withdrawals.length / 5)));
+                              }}
+                              className="relative inline-flex items-center rounded-xl border border-slate-150 bg-white p-2 text-slate-500 hover:bg-slate-100 disabled:opacity-40 transition cursor-pointer"
+                            >
+                              <ChevronRight size={16} />
+                            </button>
+                          </nav>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                  </>
                 ) : (
                   <div className="text-center py-12">
                     <Wallet className="mx-auto h-12 w-12 text-slate-200 mb-3" />
@@ -2524,26 +2785,39 @@ export const OwnerDashboard: React.FC<{ isTestMode?: boolean; onBackToTraveler?:
                     </div>
 
                     <div>
-                      <label className="block text-xs font-black text-slate-400 uppercase tracking-wider mb-2">Type de bâtiment</label>
-                      <input 
-                        list="residence-types"
-                        value={type}
-                        onChange={(e) => setType(e.target.value)}
-                        placeholder="Tapez ou sélectionnez le type"
+                      <label className="block text-xs font-black text-slate-400 uppercase tracking-wider mb-2">Type de bâtiment / logement</label>
+                      <select
+                        value={PREDEFINED_TYPES.includes(type) ? type : (type === '' ? '' : 'Autre')}
+                        onChange={(e) => {
+                          const val = e.target.value;
+                          if (val === 'Autre') {
+                            setType('');
+                          } else {
+                            setType(val);
+                          }
+                        }}
                         className="w-full bg-slate-50 border border-slate-100 focus:bg-white focus:border-red-500 rounded-2xl py-3.5 px-4 outline-none text-sm font-bold transition-all"
-                      />
-                      <datalist id="residence-types">
-                        <option value="Appartement meublé" />
-                        <option value="Villa basse" />
-                        <option value="Villa duplex" />
-                        <option value="Chambre d'hôte" />
-                        <option value="Auberge / Hôtel" />
-                        <option value="Studio moderne" />
-                        <option value="Maison complète" />
-                        <option value="Célibaterium" />
-                        <option value="Loft" />
-                        <option value="Paillote / Bungalow" />
-                      </datalist>
+                      >
+                        <option value="">-- Sélectionnez un type --</option>
+                        {PREDEFINED_TYPES.map((t) => (
+                          <option key={t} value={t}>{t}</option>
+                        ))}
+                        <option value="Autre">Autre (Saisir manuellement)...</option>
+                      </select>
+
+                      {(!PREDEFINED_TYPES.includes(type) || type === '') && (
+                        <div className="mt-3">
+                          <label className="block text-xs font-black text-slate-400 uppercase tracking-wider mb-1.5">Saisir le type personnalisé</label>
+                          <input 
+                            type="text"
+                            value={type}
+                            onChange={(e) => setType(e.target.value)}
+                            placeholder="Ex: Yourte, Conteneur aménagé, etc."
+                            className="w-full bg-slate-50 border border-slate-100 focus:bg-white focus:border-red-500 rounded-2xl py-3.5 px-4 outline-none text-sm font-bold transition-all"
+                            required
+                          />
+                        </div>
+                      )}
                     </div>
 
                     <div>

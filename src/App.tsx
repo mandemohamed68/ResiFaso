@@ -113,6 +113,7 @@ function AppContent() {
 
   // Database list and loadings
   const [residences, setResidences] = useState<Residence[]>([]);
+  const [homePage, setHomePage] = useState(1);
   const [loading, setLoading] = useState(true);
   const [commissionRate, setCommissionRate] = useState<number>(8);
 
@@ -124,6 +125,10 @@ function AppContent() {
     capacity: number;
     amenities: string[];
   } | null>(null);
+
+  useEffect(() => {
+    setHomePage(1);
+  }, [searchFilters]);
 
   // Synchroniser le Mode Test avec les Paramètres Globaux (API)
   useEffect(() => {
@@ -610,29 +615,111 @@ function AppContent() {
                 ) : (
                   <AnimatePresence mode="wait">
                     {viewType === 'list' ? (
-                      <motion.div 
-                        key="list"
-                        initial={{ opacity: 0, y: 15 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        exit={{ opacity: 0, y: -15 }}
-                        className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6"
-                      >
-                        {filteredResidences.map((res) => (
-                          <div key={res.id} className="relative">
-                            {res.recommended && (
-                              <span className="absolute top-3 left-3 bg-red-600 text-yellow-400 text-[9px] font-black uppercase tracking-widest px-2.5 py-1 rounded-md z-10 shadow-sm border border-red-500">
-                                Recommended Faso ★
-                              </span>
-                            )}
-                            <ResidenceCard 
-                              residence={res} 
-                              onClick={() => handleResidenceClick(res)} 
-                              enablePhoneCalls={enablePhoneCalls}
-                              enableWhatsApp={enableWhatsApp}
-                            />
+                      <div className="flex flex-col gap-8">
+                        <motion.div 
+                          key="list"
+                          initial={{ opacity: 0, y: 15 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          exit={{ opacity: 0, y: -15 }}
+                          className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6"
+                        >
+                          {filteredResidences.slice((homePage - 1) * 6, homePage * 6).map((res) => (
+                            <div key={res.id} className="relative">
+                              {res.recommended && (
+                                <span className="absolute top-3 left-3 bg-red-600 text-yellow-400 text-[9px] font-black uppercase tracking-widest px-2.5 py-1 rounded-md z-10 shadow-sm border border-red-500">
+                                  Recommended Faso ★
+                                </span>
+                              )}
+                              <ResidenceCard 
+                                residence={res} 
+                                onClick={() => handleResidenceClick(res)} 
+                                enablePhoneCalls={enablePhoneCalls}
+                                enableWhatsApp={enableWhatsApp}
+                              />
+                            </div>
+                          ))}
+                        </motion.div>
+
+                        {/* Pagination UI */}
+                        {filteredResidences.length > 6 && (
+                          <div className="flex items-center justify-between border-t border-slate-100 pt-6 px-2">
+                            <div className="flex flex-1 justify-between sm:hidden">
+                              <button
+                                disabled={homePage === 1}
+                                onClick={() => {
+                                  setHomePage(prev => Math.max(prev - 1, 1));
+                                  window.scrollTo({ top: 500, behavior: 'smooth' });
+                                }}
+                                className="relative inline-flex items-center rounded-xl border border-slate-200 bg-white px-4 py-2 text-xs font-black uppercase text-slate-700 hover:bg-slate-50 disabled:opacity-50 transition cursor-pointer"
+                              >
+                                Précédent
+                              </button>
+                              <button
+                                disabled={homePage === Math.ceil(filteredResidences.length / 6)}
+                                onClick={() => {
+                                  setHomePage(prev => Math.min(prev + 1, Math.ceil(filteredResidences.length / 6)));
+                                  window.scrollTo({ top: 500, behavior: 'smooth' });
+                                }}
+                                className="relative ml-3 inline-flex items-center rounded-xl border border-slate-200 bg-white px-4 py-2 text-xs font-black uppercase text-slate-700 hover:bg-slate-50 disabled:opacity-50 transition cursor-pointer"
+                              >
+                                Suivant
+                              </button>
+                            </div>
+                            <div className="hidden sm:flex sm:flex-1 sm:items-center sm:justify-between">
+                              <div>
+                                <p className="text-xs text-slate-500 font-bold">
+                                  Affichage de <span className="font-extrabold text-slate-800">{Math.min((homePage - 1) * 6 + 1, filteredResidences.length)}</span> à{' '}
+                                  <span className="font-extrabold text-slate-800">{Math.min(homePage * 6, filteredResidences.length)}</span> sur{' '}
+                                  <span className="font-extrabold text-slate-800">{filteredResidences.length}</span> résidences
+                                </p>
+                              </div>
+                              <div>
+                                <nav className="isolate inline-flex -space-x-px rounded-xl shadow-xs gap-1" aria-label="Pagination">
+                                  <button
+                                    disabled={homePage === 1}
+                                    onClick={() => {
+                                      setHomePage(prev => Math.max(prev - 1, 1));
+                                      window.scrollTo({ top: 500, behavior: 'smooth' });
+                                    }}
+                                    className="relative inline-flex items-center rounded-xl border border-slate-150 bg-white p-2 text-slate-500 hover:bg-slate-100 disabled:opacity-40 transition cursor-pointer"
+                                  >
+                                    <ChevronLeft size={16} />
+                                  </button>
+                                  
+                                  {Array.from({ length: Math.ceil(filteredResidences.length / 6) }, (_, i) => i + 1).map((p) => (
+                                    <button
+                                      key={p}
+                                      onClick={() => {
+                                        setHomePage(p);
+                                        window.scrollTo({ top: 500, behavior: 'smooth' });
+                                      }}
+                                      className={cn(
+                                        "relative inline-flex items-center px-3 py-1.5 text-xs font-black rounded-xl border transition cursor-pointer",
+                                        homePage === p
+                                          ? "z-10 bg-red-600 text-white border-red-600 shadow-sm"
+                                          : "bg-white text-slate-600 border-slate-150 hover:bg-slate-100"
+                                      )}
+                                    >
+                                      {p}
+                                    </button>
+                                  ))}
+
+                                  <button
+                                    disabled={homePage === Math.ceil(filteredResidences.length / 6)}
+                                    onClick={() => {
+                                      setHomePage(prev => Math.min(prev + 1, Math.ceil(filteredResidences.length / 6)));
+                                      window.scrollTo({ top: 500, behavior: 'smooth' });
+                                    }}
+                                    className="relative inline-flex items-center rounded-xl border border-slate-150 bg-white p-2 text-slate-500 hover:bg-slate-100 disabled:opacity-40 transition cursor-pointer"
+                                  >
+                                    <ChevronRight size={16} />
+                                  </button>
+                                </nav>
+                              </div>
+                            </div>
                           </div>
-                        ))}
-                      </motion.div>
+                        )}
+                      </div>
                     ) : (
                       <motion.div
                         key="map"

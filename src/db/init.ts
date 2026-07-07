@@ -6,8 +6,10 @@ export const initDatabase = async () => {
 
   if (dbType === 'mariadb') {
     // MariaDB/MySQL compatible schema
-    // Users Table
-    await executeSql(`
+    await executeSql("SET FOREIGN_KEY_CHECKS = 0");
+    try {
+      // Users Table
+      await executeSql(`
       CREATE TABLE IF NOT EXISTS users (
         uid VARCHAR(128) PRIMARY KEY,
         email VARCHAR(255) UNIQUE NOT NULL,
@@ -35,10 +37,35 @@ export const initDatabase = async () => {
       if (!columns || columns.length === 0) {
         console.log("Migration MariaDB: La colonne 'uid' est manquante dans 'users'. Ajout en cours...");
         await executeSql("ALTER TABLE users ADD COLUMN uid VARCHAR(255) NULL");
-        await executeSql("UPDATE users SET uid = id WHERE uid IS NULL");
+        
+        let updateQuery = "UPDATE users SET uid = email WHERE uid IS NULL OR uid = ''";
+        try {
+          const idCheck = await executeSql(`
+            SELECT COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS
+            WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'users' AND COLUMN_NAME = 'id'
+          `);
+          if (idCheck && idCheck.length > 0) {
+            updateQuery = "UPDATE users SET uid = COALESCE(id, email) WHERE uid IS NULL OR uid = ''";
+          }
+        } catch (err) {}
+        await executeSql(updateQuery);
+        
         await executeSql("ALTER TABLE users MODIFY uid VARCHAR(255) NOT NULL");
         await executeSql("ALTER TABLE users ADD UNIQUE KEY uk_users_uid (uid)");
       } else {
+        // Make sure we resolve any null/empty values before modifying column to NOT NULL
+        let updateQuery = "UPDATE users SET uid = email WHERE uid IS NULL OR uid = ''";
+        try {
+          const idCheck = await executeSql(`
+            SELECT COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS
+            WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'users' AND COLUMN_NAME = 'id'
+          `);
+          if (idCheck && idCheck.length > 0) {
+            updateQuery = "UPDATE users SET uid = COALESCE(id, email) WHERE uid IS NULL OR uid = ''";
+          }
+        } catch (err) {}
+        await executeSql(updateQuery);
+
         // Force length to 255 to match notifications.user_id and ensure unique index
         await executeSql("ALTER TABLE users MODIFY uid VARCHAR(255) NOT NULL");
         
@@ -281,7 +308,7 @@ export const initDatabase = async () => {
           type VARCHAR(50),
           is_read BOOLEAN DEFAULT 0,
           created_at DATETIME DEFAULT CURRENT_TIMESTAMP
-        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+        ) ENGINE=InnoDB
       `);
       
       try {
@@ -321,6 +348,9 @@ export const initDatabase = async () => {
         created_at DATETIME DEFAULT CURRENT_TIMESTAMP
       ) ENGINE=InnoDB
     `);
+    } finally {
+      await executeSql("SET FOREIGN_KEY_CHECKS = 1");
+    }
   } else {
     // SQLite compatible schema
     // Users Table

@@ -95,18 +95,20 @@ export const Navbar: React.FC<{
   };
 
   return (
-    <nav className="sticky top-0 z-50 bg-white border-b border-gray-100 px-4 py-3">
-      <div className="max-w-7xl mx-auto flex items-center justify-between">
+    <nav className="sticky top-0 z-50 bg-white border-b border-gray-100 shadow-xs">
+      {/* National colors brand accent bar */}
+      <div className="h-1 bg-gradient-to-r from-red-600 via-yellow-400 to-green-600 w-full absolute top-0 left-0" />
+      <div className="max-w-7xl mx-auto flex items-center justify-between px-4 py-3 mt-1">
         {/* Logo */}
         <div 
           onClick={() => onNavigate('home')} 
-          className="flex items-center cursor-pointer group hover:opacity-90 transition-opacity"
+          className="flex items-center cursor-pointer group"
         >
-          <div className="w-40 h-16 sm:w-48 sm:h-20 flex items-center justify-start group-hover:scale-105 transition-transform relative">
+          <div className="w-40 h-14 sm:w-48 sm:h-16 flex items-center justify-start overflow-hidden rounded-xl relative">
             <img 
               src="/logoresifaso.png" 
               alt="ResiFaso" 
-              className="w-full h-full object-contain" 
+              className="w-[145%] h-[145%] max-w-none object-cover -translate-y-[12%] -translate-x-[2%] scale-[1.25] mix-blend-multiply" 
               referrerPolicy="no-referrer"
               onError={(e) => {
                 const target = e.target as HTMLImageElement;

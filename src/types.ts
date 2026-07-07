@@ -19,6 +19,8 @@ export interface UserProfile {
   notifications?: any;
   privacy?: any;
   paymentPreferences?: any;
+  hostCancellationFee?: number;
+  hostCancellationRulesText?: string;
 }
 
 export type ResidenceType = "appartement" | "chambre" | "villa" | "auberge";

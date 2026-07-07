@@ -3,7 +3,8 @@ import React, { useState, useEffect } from 'react';
 import { 
   LayoutDashboard, Home, Users, BarChart3, Settings, ShieldCheck, 
   Activity, Search, Trash2, Edit3, Plus, ArrowUpRight, TrendingUp, Calendar, Check, X,
-  FileText, Download, Award, ShieldAlert, Megaphone, Upload, Wallet, ArrowLeft, MapPin, MessageSquare, Mail, Phone, Clock
+  FileText, Download, Award, ShieldAlert, Megaphone, Upload, Wallet, ArrowLeft, MapPin, MessageSquare, Mail, Phone, Clock,
+  ChevronLeft, ChevronRight
 } from 'lucide-react';
 import { db } from '../../lib/firebase';
 import { collection, query, onSnapshot, doc, updateDoc, deleteDoc, setDoc, getDocs } from 'firebase/firestore';
@@ -87,6 +88,21 @@ export const AdminDashboard: React.FC<{ onBackToTraveler?: () => void }> = ({ on
   const [editFaqOrder, setEditFaqOrder] = useState(0);
   const [editFaqIsActive, setEditFaqIsActive] = useState(true);
   const [isSavingFaq, setIsSavingFaq] = useState(false);
+
+  // Admin Pagination States
+  const [residencesPage, setResidencesPage] = useState(1);
+  const [usersPage, setUsersPage] = useState(1);
+  const [bookingsPage, setBookingsPage] = useState(1);
+  const [withdrawalsPage, setWithdrawalsPage] = useState(1);
+  const [reviewsPage, setReviewsPage] = useState(1);
+  const [logsPage, setLogsPage] = useState(1);
+  const [supportPage, setSupportPage] = useState(1);
+
+  // Reset page numbers when data lists/filters update
+  useEffect(() => { setResidencesPage(1); }, [searchQuery]);
+  useEffect(() => { setUsersPage(1); }, [userSearchQuery]);
+  useEffect(() => { setBookingsPage(1); }, [bookingFilterStatus]);
+  useEffect(() => { setSupportPage(1); }, [msgSearchQuery, msgStatusFilter]);
 
   // Global Settings State
   const [platformName, setPlatformName] = useState('ResiFaso');
@@ -281,6 +297,7 @@ export const AdminDashboard: React.FC<{ onBackToTraveler?: () => void }> = ({ on
       snapshot.forEach(docSnap => {
         list.push({ id: docSnap.id, ...docSnap.data() } as Residence);
       });
+      list.sort((a, b) => new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime());
       setResidences(list);
     }, (error) => console.error("AdminDashboard residences snapshot error:", error));
 
@@ -290,6 +307,7 @@ export const AdminDashboard: React.FC<{ onBackToTraveler?: () => void }> = ({ on
       snapshot.forEach(docSnap => {
         list.push({ uid: docSnap.id, ...docSnap.data() } as UserProfile);
       });
+      list.sort((a, b) => new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime());
       setUsers(list);
     }, (error) => console.error("AdminDashboard users snapshot error:", error));
 
@@ -299,6 +317,7 @@ export const AdminDashboard: React.FC<{ onBackToTraveler?: () => void }> = ({ on
       snapshot.forEach(docSnap => {
         list.push({ id: docSnap.id, ...docSnap.data() } as Booking);
       });
+      list.sort((a, b) => new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime());
       setBookings(list);
     }, (error) => console.error("AdminDashboard bookings snapshot error:", error));
 
@@ -308,6 +327,7 @@ export const AdminDashboard: React.FC<{ onBackToTraveler?: () => void }> = ({ on
       snapshot.forEach(docSnap => {
         list.push({ id: docSnap.id, ...docSnap.data() } as Review);
       });
+      list.sort((a, b) => new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime());
       setReviews(list);
     }, (error) => console.error("AdminDashboard reviews snapshot error:", error));
 
@@ -1994,7 +2014,7 @@ export const AdminDashboard: React.FC<{ onBackToTraveler?: () => void }> = ({ on
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-50 text-sm font-bold text-slate-700">
-                    {filteredResidences.map(res => (
+                    {filteredResidences.slice((residencesPage - 1) * 8, residencesPage * 8).map(res => (
                       <tr key={res.id}>
                         <td className="py-4 px-6 flex items-center gap-3">
                           <img src={res.images?.[0] || 'https://images.unsplash.com/photo-1540555700478-4be289fbecef?auto=format&fit=crop&w=150'} className="w-12 h-10 object-cover rounded-md" />
@@ -2079,6 +2099,81 @@ export const AdminDashboard: React.FC<{ onBackToTraveler?: () => void }> = ({ on
                     ))}
                   </tbody>
                 </table>
+
+                {/* Pagination UI for Admin Residences */}
+                {filteredResidences.length > 8 && (
+                  <div className="flex items-center justify-between border-t border-slate-100 pt-5 px-6 mt-4 pb-4">
+                    <div className="flex flex-1 justify-between sm:hidden">
+                      <button
+                        disabled={residencesPage === 1}
+                        onClick={() => {
+                          setResidencesPage(prev => Math.max(prev - 1, 1));
+                        }}
+                        className="relative inline-flex items-center rounded-xl border border-slate-200 bg-white px-4 py-2 text-xs font-black uppercase text-slate-700 hover:bg-slate-50 disabled:opacity-50 transition cursor-pointer"
+                      >
+                        Précédent
+                      </button>
+                      <button
+                        disabled={residencesPage === Math.ceil(filteredResidences.length / 8)}
+                        onClick={() => {
+                          setResidencesPage(prev => Math.min(prev + 1, Math.ceil(filteredResidences.length / 8)));
+                        }}
+                        className="relative ml-3 inline-flex items-center rounded-xl border border-slate-200 bg-white px-4 py-2 text-xs font-black uppercase text-slate-700 hover:bg-slate-50 disabled:opacity-50 transition cursor-pointer"
+                      >
+                        Suivant
+                      </button>
+                    </div>
+                    <div className="hidden sm:flex sm:flex-1 sm:items-center sm:justify-between">
+                      <div>
+                        <p className="text-xs text-slate-500 font-bold">
+                          Affichage de <span className="font-extrabold text-slate-800">{Math.min((residencesPage - 1) * 8 + 1, filteredResidences.length)}</span> à{' '}
+                          <span className="font-extrabold text-slate-800">{Math.min(residencesPage * 8, filteredResidences.length)}</span> sur{' '}
+                          <span className="font-extrabold text-slate-800">{filteredResidences.length}</span> hébergements
+                        </p>
+                      </div>
+                      <div>
+                        <nav className="isolate inline-flex -space-x-px rounded-xl shadow-xs gap-1" aria-label="Pagination">
+                          <button
+                            disabled={residencesPage === 1}
+                            onClick={() => {
+                              setResidencesPage(prev => Math.max(prev - 1, 1));
+                            }}
+                            className="relative inline-flex items-center rounded-xl border border-slate-150 bg-white p-2 text-slate-500 hover:bg-slate-100 disabled:opacity-40 transition cursor-pointer"
+                          >
+                            <ChevronLeft size={16} />
+                          </button>
+                          
+                          {Array.from({ length: Math.ceil(filteredResidences.length / 8) }, (_, i) => i + 1).map((p) => (
+                            <button
+                              key={p}
+                              onClick={() => {
+                                setResidencesPage(p);
+                              }}
+                              className={cn(
+                                "relative inline-flex items-center px-3 py-1.5 text-xs font-black rounded-xl border transition cursor-pointer",
+                                residencesPage === p
+                                  ? "z-10 bg-red-600 text-white border-red-600 shadow-sm"
+                                  : "bg-white text-slate-600 border-slate-150 hover:bg-slate-100"
+                              )}
+                            >
+                              {p}
+                            </button>
+                          ))}
+
+                          <button
+                            disabled={residencesPage === Math.ceil(filteredResidences.length / 8)}
+                            onClick={() => {
+                              setResidencesPage(prev => Math.min(prev + 1, Math.ceil(filteredResidences.length / 8)));
+                            }}
+                            className="relative inline-flex items-center rounded-xl border border-slate-150 bg-white p-2 text-slate-500 hover:bg-slate-100 disabled:opacity-40 transition cursor-pointer"
+                          >
+                            <ChevronRight size={16} />
+                          </button>
+                        </nav>
+                      </div>
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
           </div>
@@ -2193,7 +2288,7 @@ export const AdminDashboard: React.FC<{ onBackToTraveler?: () => void }> = ({ on
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              {filteredUsers.map(usr => {
+              {filteredUsers.slice((usersPage - 1) * 6, usersPage * 6).map(usr => {
                 const isListedSU = isSuperAdminEmail(usr.email);
                 const isSuspended = usr.isSuspended === true;
                 return (
@@ -2393,6 +2488,81 @@ export const AdminDashboard: React.FC<{ onBackToTraveler?: () => void }> = ({ on
                 );
               })}
             </div>
+
+            {/* Pagination UI for Admin Users */}
+            {filteredUsers.length > 6 && (
+              <div className="flex items-center justify-between border-t border-slate-100 pt-5 px-6 mt-4 pb-4">
+                <div className="flex flex-1 justify-between sm:hidden">
+                  <button
+                    disabled={usersPage === 1}
+                    onClick={() => {
+                      setUsersPage(prev => Math.max(prev - 1, 1));
+                    }}
+                    className="relative inline-flex items-center rounded-xl border border-slate-200 bg-white px-4 py-2 text-xs font-black uppercase text-slate-700 hover:bg-slate-50 disabled:opacity-50 transition cursor-pointer"
+                  >
+                    Précédent
+                  </button>
+                  <button
+                    disabled={usersPage === Math.ceil(filteredUsers.length / 6)}
+                    onClick={() => {
+                      setUsersPage(prev => Math.min(prev + 1, Math.ceil(filteredUsers.length / 6)));
+                    }}
+                    className="relative ml-3 inline-flex items-center rounded-xl border border-slate-200 bg-white px-4 py-2 text-xs font-black uppercase text-slate-700 hover:bg-slate-50 disabled:opacity-50 transition cursor-pointer"
+                  >
+                    Suivant
+                  </button>
+                </div>
+                <div className="hidden sm:flex sm:flex-1 sm:items-center sm:justify-between">
+                  <div>
+                    <p className="text-xs text-slate-500 font-bold">
+                      Affichage de <span className="font-extrabold text-slate-800">{Math.min((usersPage - 1) * 6 + 1, filteredUsers.length)}</span> à{' '}
+                      <span className="font-extrabold text-slate-800">{Math.min(usersPage * 6, filteredUsers.length)}</span> sur{' '}
+                      <span className="font-extrabold text-slate-800">{filteredUsers.length}</span> utilisateurs
+                    </p>
+                  </div>
+                  <div>
+                    <nav className="isolate inline-flex -space-x-px rounded-xl shadow-xs gap-1" aria-label="Pagination">
+                      <button
+                        disabled={usersPage === 1}
+                        onClick={() => {
+                          setUsersPage(prev => Math.max(prev - 1, 1));
+                        }}
+                        className="relative inline-flex items-center rounded-xl border border-slate-150 bg-white p-2 text-slate-500 hover:bg-slate-100 disabled:opacity-40 transition cursor-pointer"
+                      >
+                        <ChevronLeft size={16} />
+                      </button>
+                      
+                      {Array.from({ length: Math.ceil(filteredUsers.length / 6) }, (_, i) => i + 1).map((p) => (
+                        <button
+                          key={p}
+                          onClick={() => {
+                            setUsersPage(p);
+                          }}
+                          className={cn(
+                            "relative inline-flex items-center px-3 py-1.5 text-xs font-black rounded-xl border transition cursor-pointer",
+                            usersPage === p
+                              ? "z-10 bg-red-600 text-white border-red-600 shadow-sm"
+                              : "bg-white text-slate-600 border-slate-150 hover:bg-slate-100"
+                          )}
+                        >
+                          {p}
+                        </button>
+                      ))}
+
+                      <button
+                        disabled={usersPage === Math.ceil(filteredUsers.length / 6)}
+                        onClick={() => {
+                          setUsersPage(prev => Math.min(prev + 1, Math.ceil(filteredUsers.length / 6)));
+                        }}
+                        className="relative inline-flex items-center rounded-xl border border-slate-150 bg-white p-2 text-slate-500 hover:bg-slate-100 disabled:opacity-40 transition cursor-pointer"
+                      >
+                        <ChevronRight size={16} />
+                      </button>
+                    </nav>
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
         )}
 
@@ -2443,7 +2613,7 @@ export const AdminDashboard: React.FC<{ onBackToTraveler?: () => void }> = ({ on
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-slate-50 text-xs font-bold text-slate-700">
-                      {filteredBookings.map((book) => {
+                      {filteredBookings.slice((bookingsPage - 1) * 8, bookingsPage * 8).map((book) => {
                         const isEditing = editingBookingId === book.id;
                         return (
                           <tr key={book.id} className={cn("transition-colors", isEditing ? "bg-red-50/20" : "")}>
@@ -2541,6 +2711,81 @@ export const AdminDashboard: React.FC<{ onBackToTraveler?: () => void }> = ({ on
                     </tbody>
                   </table>
                 </div>
+
+                {/* Pagination UI for Admin Bookings */}
+                {filteredBookings.length > 8 && (
+                  <div className="flex items-center justify-between border-t border-slate-100 pt-5 px-6 mt-4 pb-4">
+                    <div className="flex flex-1 justify-between sm:hidden">
+                      <button
+                        disabled={bookingsPage === 1}
+                        onClick={() => {
+                          setBookingsPage(prev => Math.max(prev - 1, 1));
+                        }}
+                        className="relative inline-flex items-center rounded-xl border border-slate-200 bg-white px-4 py-2 text-xs font-black uppercase text-slate-700 hover:bg-slate-50 disabled:opacity-50 transition cursor-pointer"
+                      >
+                        Précédent
+                      </button>
+                      <button
+                        disabled={bookingsPage === Math.ceil(filteredBookings.length / 8)}
+                        onClick={() => {
+                          setBookingsPage(prev => Math.min(prev + 1, Math.ceil(filteredBookings.length / 8)));
+                        }}
+                        className="relative ml-3 inline-flex items-center rounded-xl border border-slate-200 bg-white px-4 py-2 text-xs font-black uppercase text-slate-700 hover:bg-slate-50 disabled:opacity-50 transition cursor-pointer"
+                      >
+                        Suivant
+                      </button>
+                    </div>
+                    <div className="hidden sm:flex sm:flex-1 sm:items-center sm:justify-between">
+                      <div>
+                        <p className="text-xs text-slate-500 font-bold">
+                          Affichage de <span className="font-extrabold text-slate-800">{Math.min((bookingsPage - 1) * 8 + 1, filteredBookings.length)}</span> à{' '}
+                          <span className="font-extrabold text-slate-800">{Math.min(bookingsPage * 8, filteredBookings.length)}</span> sur{' '}
+                          <span className="font-extrabold text-slate-800">{filteredBookings.length}</span> réservations
+                        </p>
+                      </div>
+                      <div>
+                        <nav className="isolate inline-flex -space-x-px rounded-xl shadow-xs gap-1" aria-label="Pagination">
+                          <button
+                            disabled={bookingsPage === 1}
+                            onClick={() => {
+                              setBookingsPage(prev => Math.max(prev - 1, 1));
+                            }}
+                            className="relative inline-flex items-center rounded-xl border border-slate-150 bg-white p-2 text-slate-500 hover:bg-slate-100 disabled:opacity-40 transition cursor-pointer"
+                          >
+                            <ChevronLeft size={16} />
+                          </button>
+                          
+                          {Array.from({ length: Math.ceil(filteredBookings.length / 8) }, (_, i) => i + 1).map((p) => (
+                            <button
+                              key={p}
+                              onClick={() => {
+                                setBookingsPage(p);
+                              }}
+                              className={cn(
+                                "relative inline-flex items-center px-3 py-1.5 text-xs font-black rounded-xl border transition cursor-pointer",
+                                bookingsPage === p
+                                  ? "z-10 bg-red-600 text-white border-red-600 shadow-sm"
+                                  : "bg-white text-slate-600 border-slate-150 hover:bg-slate-100"
+                              )}
+                            >
+                              {p}
+                            </button>
+                          ))}
+
+                          <button
+                            disabled={bookingsPage === Math.ceil(filteredBookings.length / 8)}
+                            onClick={() => {
+                              setBookingsPage(prev => Math.min(prev + 1, Math.ceil(filteredBookings.length / 8)));
+                            }}
+                            className="relative inline-flex items-center rounded-xl border border-slate-150 bg-white p-2 text-slate-500 hover:bg-slate-100 disabled:opacity-40 transition cursor-pointer"
+                          >
+                            <ChevronRight size={16} />
+                          </button>
+                        </nav>
+                      </div>
+                    </div>
+                  </div>
+                )}
               </div>
             )}
           </div>
