@@ -281,6 +281,7 @@ export const initDatabase = async () => {
           message TEXT,
           type VARCHAR(50),
           is_read BOOLEAN DEFAULT 0,
+        reference_id VARCHAR(128),
           created_at DATETIME DEFAULT CURRENT_TIMESTAMP
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
       `);

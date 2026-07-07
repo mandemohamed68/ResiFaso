@@ -106,12 +106,23 @@ export const deleteResidence = async (id: string) => {
 
 const toSnakeCase = (str: string) => str.replace(/[A-Z]/g, letter => `_${letter.toLowerCase()}`);
 
+const VALID_RESIDENCE_COLS = new Set([
+  'id', 'owner_id', 'title', 'description', 'type', 'price_per_night',
+  'advance_percentage', 'cleaning_fee', 'service_fee', 'city', 'neighborhood',
+  'street', 'capacity', 'bedrooms', 'beds', 'bathrooms', 'rooms', 'status',
+  'availability_status', 'promoted', 'weekly_discount', 'monthly_discount',
+  'promo_price', 'rejection_reason', 'created_at'
+]);
+
 export const updateResidence = async (id: string, updates: any) => {
   const { amenities, images, address, utilitiesIncluded, ...rest } = updates;
   
   const mappedUpdates: any = {};
   for (const [k, v] of Object.entries(rest)) {
-    mappedUpdates[toSnakeCase(k)] = v;
+    const snakeKey = toSnakeCase(k);
+    if (VALID_RESIDENCE_COLS.has(snakeKey)) {
+      mappedUpdates[snakeKey] = v;
+    }
   }
   if (address) {
     mappedUpdates.city = address.city;
@@ -145,13 +156,17 @@ export const createResidence = async (res: any) => {
   
   const mappedObj: any = {};
   for (const [k, v] of Object.entries(rest)) {
-    mappedObj[toSnakeCase(k)] = v;
+    const snakeKey = toSnakeCase(k);
+    if (VALID_RESIDENCE_COLS.has(snakeKey) || snakeKey === 'id') {
+      mappedObj[snakeKey] = v;
+    }
   }
   if (address) {
     mappedObj.city = address.city;
     mappedObj.neighborhood = address.neighborhood;
     mappedObj.street = address.street;
   }
+  if (res.id) mappedObj.id = res.id;
 
   const fields = Object.keys(mappedObj);
   const placeholders = fields.map(() => '?').join(', ');

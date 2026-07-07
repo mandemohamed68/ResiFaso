@@ -1305,7 +1305,7 @@ export const OwnerDashboard: React.FC<{ isTestMode?: boolean; onBackToTraveler?:
     if (!user) return;
     setIsSavingPolicy(true);
     try {
-      await updateDoc(doc(db, 'users', user.uid), {
+      await updateUserProfile(user.uid, {
         hostCancellationFee: hostCancellationFee,
         hostCancellationRulesText: hostCancellationRulesText
       });
