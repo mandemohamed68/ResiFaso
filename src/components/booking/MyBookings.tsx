@@ -13,6 +13,8 @@ import { collection, query, where, onSnapshot, addDoc, doc, updateDoc, getDoc } 
 import { apiFetch } from '../../lib/api';
 import { InvoiceModal } from './InvoiceModal';
 
+import { useToast } from '../../contexts/ToastContext';
+
 interface ReviewModalProps {
   isOpen: boolean;
   onClose: () => void;
@@ -22,6 +24,7 @@ interface ReviewModalProps {
 }
 
 const ReviewModal: React.FC<ReviewModalProps> = ({ isOpen, onClose, booking, residence, onSuccess }) => {
+  const { addToast } = useToast();
   const [rating, setRating] = useState(5);
   const [comment, setComment] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -50,7 +53,7 @@ const ReviewModal: React.FC<ReviewModalProps> = ({ isOpen, onClose, booking, res
       onClose();
     } catch (err) {
       console.error(err);
-      alert("Erreur lors de l'enregistrement de l'avis.");
+      addToast("Erreur lors de l'enregistrement de l'avis.", "error");
     } finally {
       setIsSubmitting(false);
     }
@@ -142,6 +145,7 @@ interface CancellationModalProps {
 }
 
 const CancellationModal: React.FC<CancellationModalProps> = ({ isOpen, onClose, booking, residence, onSuccess }) => {
+  const { addToast } = useToast();
   const [reason, setReason] = useState('');
   const [refundPhone, setRefundPhone] = useState('');
   const [refundProvider, setRefundProvider] = useState<'orange' | 'moov' | 'telecel' | 'coris'>('orange');
@@ -236,11 +240,11 @@ const CancellationModal: React.FC<CancellationModalProps> = ({ isOpen, onClose, 
   const handleCancelSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!reason.trim()) {
-      alert("Veuillez indiquer le motif de votre annulation.");
+      addToast("Veuillez indiquer le motif de votre annulation.", "error");
       return;
     }
     if (paidAmount > 0 && (!refundPhone || refundPhone.trim().length < 8)) {
-      alert("Veuillez entrer un numéro de téléphone Mobile Money burkinabè valide (8 chiffres) pour recevoir votre remboursement.");
+      addToast("Veuillez entrer un numéro de téléphone Mobile Money burkinabè valide (8 chiffres) pour recevoir votre remboursement.", "error");
       return;
     }
 
@@ -279,7 +283,7 @@ const CancellationModal: React.FC<CancellationModalProps> = ({ isOpen, onClose, 
       onClose();
     } catch (err) {
       console.error(err);
-      alert("Une erreur est survenue lors de l'annulation de la réservation.");
+      addToast("Une erreur est survenue lors de l'annulation de la réservation.", "error");
     } finally {
       setLoading(false);
     }
@@ -435,6 +439,7 @@ const CancellationModal: React.FC<CancellationModalProps> = ({ isOpen, onClose, 
 
 export const MyBookings: React.FC<{ onContactHost: (ownerId: string, resId: string) => void, isTestMode?: boolean }> = ({ onContactHost, isTestMode }) => {
   const { user } = useAuth();
+  const { addToast } = useToast();
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [currentPage, setCurrentPage] = useState(1);
 
@@ -911,11 +916,11 @@ export const MyBookings: React.FC<{ onContactHost: (ownerId: string, resId: stri
                   type: 'payment'
                 });
 
-                alert(isFinalPayment ? 'Félicitations ! Votre séjour est entièrement payé.' : 'Paiement de l\'avance enregistré avec succès ! Votre réservation est validée.');
+                addToast(isFinalPayment ? 'Félicitations ! Votre séjour est entièrement payé.' : 'Paiement de l\'avance enregistré avec succès ! Votre réservation est validée.', "error");
                 setSelectedBookingForPayment(null);
               } catch (err) {
                 console.error(err);
-                alert('Erreur lors de la validation du paiement.');
+                addToast('Erreur lors de la validation du paiement.', "error");
               }
             }}
           />
@@ -930,7 +935,7 @@ export const MyBookings: React.FC<{ onContactHost: (ownerId: string, resId: stri
             booking={selectedBookingForReview}
             residence={residencesMap[selectedBookingForReview.residenceId]}
             onSuccess={() => {
-              alert("Merci pour votre avis !");
+              addToast("Merci pour votre avis !", "error");
             }}
           />
         )}
@@ -944,7 +949,7 @@ export const MyBookings: React.FC<{ onContactHost: (ownerId: string, resId: stri
             booking={selectedBookingForCancel}
             residence={residencesMap[selectedBookingForCancel.residenceId]}
             onSuccess={() => {
-              alert("Réservation annulée avec succès et demande de remboursement enregistrée !");
+              addToast("Réservation annulée avec succès et demande de remboursement enregistrée !", "error");
               setSelectedBookingForCancel(null);
             }}
           />

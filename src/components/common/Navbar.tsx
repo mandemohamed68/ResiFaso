@@ -386,14 +386,14 @@ export const Navbar: React.FC<{
                     )}
                     {currentRole === 'owner' && (
                       <>
-                        <button onClick={() => { setIsUserMenuOpen(false); alert('Profil public'); }} className="w-full text-left px-5 py-2.5 hover:bg-slate-50 font-bold text-sm text-slate-700">Profil public</button>
+                        <button onClick={() => { setIsUserMenuOpen(false); addToast('Profil public', "error"); }} className="w-full text-left px-5 py-2.5 hover:bg-slate-50 font-bold text-sm text-slate-700">Profil public</button>
                         <button onClick={() => { setIsUserMenuOpen(false); onNavigate('profile'); }} className="w-full text-left px-5 py-2.5 hover:bg-slate-50 font-bold text-sm text-slate-700">Paramètres du compte</button>
                         <div className="h-px bg-slate-100 my-2"></div>
                       </>
                     )}
                     {currentRole === 'admin' && (
                       <>
-                        <button onClick={() => { setIsUserMenuOpen(false); alert('Profil personnel à venir'); }} className="w-full text-left px-5 py-2.5 hover:bg-slate-50 font-bold text-sm text-slate-700">Profil personnel</button>
+                        <button onClick={() => { setIsUserMenuOpen(false); addToast('Profil personnel à venir', "error"); }} className="w-full text-left px-5 py-2.5 hover:bg-slate-50 font-bold text-sm text-slate-700">Profil personnel</button>
                         <div className="h-px bg-slate-100 my-2"></div>
                       </>
                     )}

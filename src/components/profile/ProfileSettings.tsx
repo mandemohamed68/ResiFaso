@@ -18,8 +18,11 @@ const PRESET_AVATARS = [
   "https://images.unsplash.com/photo-1544005313-94ddf0286df2?auto=format&fit=crop&q=80&w=200", // Woman 2
 ];
 
+import { useToast } from '../../contexts/ToastContext';
+
 export const ProfileSettings: React.FC = () => {
   const { profile, user, refreshProfile, logOut } = useAuth();
+  const { addToast } = useToast();
   const [activeTab, setActiveTab] = useState<Tab>('personal');
   const [isSaving, setIsSaving] = useState(false);
   const [saveSuccess, setSaveSuccess] = useState<string | null>(null);
@@ -97,10 +100,7 @@ export const ProfileSettings: React.FC = () => {
 
   // Handle flash success message helper
   const triggerSuccess = (message: string) => {
-    setSaveSuccess(message);
-    setTimeout(() => {
-      setSaveSuccess(null);
-    }, 4000);
+    addToast(message, 'success');
   };
 
   // Save personal informations
@@ -118,7 +118,7 @@ export const ProfileSettings: React.FC = () => {
       triggerSuccess('Informations personnelles enregistrées avec succès !');
     } catch (e) {
       console.error(e);
-      alert('Erreur lors de la sauvegarde : ' + (e instanceof Error ? e.message : String(e)));
+      addToast('Erreur lors de la sauvegarde : ' + (e instanceof Error ? e.message : String(e)), "error");
     } finally {
       setIsSaving(false);
     }
@@ -171,7 +171,7 @@ export const ProfileSettings: React.FC = () => {
       }
     } catch (err) {
       console.error("Failed to capture image:", err);
-      alert("Échec de capture de l'image.");
+      addToast("Échec de capture de l'image.", "error");
     }
   };
 
@@ -180,7 +180,7 @@ export const ProfileSettings: React.FC = () => {
     if (!files || files.length === 0) return;
     const file = files[0];
     if (file.size > 5 * 1024 * 1024) {
-      alert("Le scan ou image de pièce d'identité ne doit pas dépasser 5 Mo.");
+      addToast("Le scan ou image de pièce d'identité ne doit pas dépasser 5 Mo.", "error");
       return;
     }
     setUploadProgress("Optimisation du document en cours...");
@@ -193,7 +193,7 @@ export const ProfileSettings: React.FC = () => {
     } catch (err) {
       console.error(err);
       setUploadProgress(null);
-      alert("Échec du traitement du fichier d'identité.");
+      addToast("Échec du traitement du fichier d'identité.", "error");
     }
   };
 
@@ -211,11 +211,11 @@ export const ProfileSettings: React.FC = () => {
     e.preventDefault();
     if (!user) return;
     if (!idNumber) {
-      alert("Veuillez saisir le numéro de votre pièce d'identité.");
+      addToast("Veuillez saisir le numéro de votre pièce d'identité.", "error");
       return;
     }
     if (!idFileSimulated || !capturedImage) {
-      alert("Veuillez soit prendre en photo, soit importer votre pièce d'identité.");
+      addToast("Veuillez soit prendre en photo, soit importer votre pièce d'identité.", "error");
       return;
     }
     setIsSaving(true);
@@ -232,7 +232,7 @@ export const ProfileSettings: React.FC = () => {
       triggerSuccess(`Votre pièce d'identité (${idType}) a été enregistrée et soumise pour vérification. Notre équipe va l'analyser.`);
     } catch (e) {
       console.error(e);
-      alert('Erreur lors de la soumission de la pièce d\'identité : ' + (e instanceof Error ? e.message : String(e)));
+      addToast('Erreur lors de la soumission de la pièce d\'identité : ' + (e instanceof Error ? e.message : String(e)), "error");
     } finally {
       setIsSaving(false);
     }
@@ -251,7 +251,7 @@ export const ProfileSettings: React.FC = () => {
       triggerSuccess('Photo de profil mise à jour avec succès !');
     } catch (e) {
       console.error(e);
-      alert('Erreur lors du changement de photo.');
+      addToast('Erreur lors du changement de photo.', "error");
     } finally {
       setIsSaving(false);
     }
@@ -271,7 +271,7 @@ export const ProfileSettings: React.FC = () => {
       triggerSuccess('Photo de profil supprimée.');
     } catch (e) {
       console.error(e);
-      alert('Erreur.');
+      addToast('Erreur.', "error");
     } finally {
       setIsSaving(false);
     }
@@ -296,7 +296,7 @@ export const ProfileSettings: React.FC = () => {
       triggerSuccess('Préférences de paiement enregistrées avec succès !');
     } catch (e) {
       console.error(e);
-      alert('Erreur de sauvegarde.');
+      addToast('Erreur de sauvegarde.', "error");
     } finally {
       setIsSaving(false);
     }
@@ -323,7 +323,7 @@ export const ProfileSettings: React.FC = () => {
       triggerSuccess('Moyen de paiement favori retiré.');
     } catch (e) {
       console.error(e);
-      alert('Erreur.');
+      addToast('Erreur.', "error");
     } finally {
       setIsSaving(false);
     }
@@ -342,7 +342,7 @@ export const ProfileSettings: React.FC = () => {
       triggerSuccess('Préférences d\'alertes et notifications enregistrées avec succès !');
     } catch (e) {
       console.error(e);
-      alert('Erreur lors de l\'enregistrement des notifications.');
+      addToast('Erreur lors de l\'enregistrement des notifications.', "error");
     } finally {
       setIsSaving(false);
     }
@@ -361,7 +361,7 @@ export const ProfileSettings: React.FC = () => {
       triggerSuccess('Paramètres de confidentialité enregistrés avec succès !');
     } catch (e) {
       console.error(e);
-      alert('Erreur lors de l\'enregistrement de la confidentialité.');
+      addToast('Erreur lors de l\'enregistrement de la confidentialité.', "error");
     } finally {
       setIsSaving(false);
     }
@@ -371,11 +371,11 @@ export const ProfileSettings: React.FC = () => {
   const handleUpdatePassword = async (e: React.FormEvent) => {
     e.preventDefault();
     if (newPassword !== confirmPassword) {
-      alert("Les nouveaux mots de passe ne correspondent pas.");
+      addToast("Les nouveaux mots de passe ne correspondent pas.", "error");
       return;
     }
     if (!currentPassword) {
-      alert("Veuillez entrer votre mot de passe actuel.");
+      addToast("Veuillez entrer votre mot de passe actuel.", "error");
       return;
     }
     setIsSaving(true);
@@ -403,11 +403,11 @@ export const ProfileSettings: React.FC = () => {
       await updateDoc(userRef, {
         deactivated: true
       });
-      alert("Votre compte a été désactivé. À bientôt sur ResiFaso !");
+      addToast("Votre compte a été désactivé. À bientôt sur ResiFaso !", "error");
       await logOut();
     } catch (e) {
       console.error(e);
-      alert("Erreur de désactivation.");
+      addToast("Erreur de désactivation.", "error");
     } finally {
       setIsSaving(false);
     }
@@ -426,11 +426,11 @@ export const ProfileSettings: React.FC = () => {
         displayName: "[Utilisateur Supprimé]",
         phoneNumber: ""
       });
-      alert("Vos données ont été supprimées. Déconnexion en cours.");
+      addToast("Vos données ont été supprimées. Déconnexion en cours.", "error");
       await logOut();
     } catch (e) {
       console.error(e);
-      alert("Erreur de suppression.");
+      addToast("Erreur de suppression.", "error");
     } finally {
       setIsSaving(false);
     }
@@ -1181,7 +1181,7 @@ export const ProfileSettings: React.FC = () => {
                   </button>
 
                   <button 
-                    onClick={() => alert("Génération de vos données en cours... Un document ZIP conforme RGPD contenant vos informations et réservations vous a été envoyé par email.")} 
+                    onClick={() => addToast("Génération de vos données en cours... Un document ZIP conforme RGPD contenant vos informations et réservations vous a été envoyé par email.", "error")} 
                     className="text-slate-600 font-black text-xs uppercase tracking-wider hover:text-black flex items-center gap-2 transition cursor-pointer hover:underline"
                   >
                     Télécharger mes données (RGPD)

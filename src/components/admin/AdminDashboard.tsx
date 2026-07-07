@@ -41,8 +41,11 @@ const DEFAULT_CONTACT_SETTINGS: ContactSettings = {
   whatsappNumber: "+226 70 12 34 56"
 };
 
+import { useToast } from '../../contexts/ToastContext';
+
 export const AdminDashboard: React.FC<{ onBackToTraveler?: () => void }> = ({ onBackToTraveler }) => {
   const { user } = useAuth();
+  const { addToast } = useToast();
   const [activeTab, setActiveTab] = useState<'overview' | 'alerts' | 'listings' | 'users' | 'bookings' | 'revenue' | 'reviews' | 'reports' | 'settings' | 'logs' | 'ads' | 'withdrawals' | 'locations' | 'flash-info' | 'faq' | 'contact' | 'email'>('overview');
   
   // Contact page & messages states
@@ -427,10 +430,7 @@ export const AdminDashboard: React.FC<{ onBackToTraveler?: () => void }> = ({ on
 
   // Toast Helper
   const triggerSuccess = (message: string) => {
-    setAdminSaveSuccess(message);
-    setTimeout(() => {
-      setAdminSaveSuccess(null);
-    }, 4000);
+    addToast(message, 'success');
   };
 
   const handleApproveWithdrawalReq = async (item: WithdrawalRequest) => {
@@ -448,7 +448,7 @@ export const AdminDashboard: React.FC<{ onBackToTraveler?: () => void }> = ({ on
       triggerSuccess("Le retrait a été approuvé et payé avec succès !");
     } catch (err) {
       console.error(err);
-      alert("Erreur lors de l'approbation du retrait.");
+      addToast("Erreur lors de l'approbation du retrait.", "error");
     }
   };
 
@@ -469,7 +469,7 @@ export const AdminDashboard: React.FC<{ onBackToTraveler?: () => void }> = ({ on
       triggerSuccess("Le retrait a été refusé.");
     } catch (err) {
       console.error(err);
-      alert("Erreur lors du rejet du retrait.");
+      addToast("Erreur lors du rejet du retrait.", "error");
     }
   };
 
@@ -487,9 +487,10 @@ export const AdminDashboard: React.FC<{ onBackToTraveler?: () => void }> = ({ on
       setNewCityName('');
       triggerSuccess(`La ville "${newCityName}" a été ajoutée à la plateforme.`);
       logAction(`Ajout de la ville "${newCityName}" aux localités de la plateforme.`);
+      await reloadData();
     } catch (err) {
       console.error(err);
-      alert("Erreur lors de l'ajout de la ville.");
+      addToast("Erreur lors de l'ajout de la ville.", "error");
     } finally {
       setIsSaving(false);
     }
@@ -526,9 +527,10 @@ export const AdminDashboard: React.FC<{ onBackToTraveler?: () => void }> = ({ on
       setNewNeighborhoodName('');
       triggerSuccess(`Le quartier "${newNeighborhoodName}" a été ajouté à ${city.name}.`);
       logAction(`Ajout du quartier "${newNeighborhoodName}" à la ville de ${city.name}.`);
+      await reloadData();
     } catch (err) {
       console.error(err);
-      alert("Erreur lors de l'ajout du quartier.");
+      addToast("Erreur lors de l'ajout du quartier.", "error");
     } finally {
       setIsSaving(false);
     }
@@ -602,7 +604,7 @@ export const AdminDashboard: React.FC<{ onBackToTraveler?: () => void }> = ({ on
       setEditFaqAnswer('');
     } catch (err) {
       console.error(err);
-      alert("Erreur lors de la sauvegarde de la FAQ.");
+      addToast("Erreur lors de la sauvegarde de la FAQ.", "error");
     } finally {
       setIsSavingFaq(false);
     }
@@ -620,7 +622,7 @@ export const AdminDashboard: React.FC<{ onBackToTraveler?: () => void }> = ({ on
       logAction(`FAQ supprimée: ${question.slice(0, 20)}...`);
     } catch (err) {
       console.error(err);
-      alert("Erreur lors de la suppression.");
+      addToast("Erreur lors de la suppression.", "error");
     }
   };
 
@@ -711,9 +713,10 @@ export const AdminDashboard: React.FC<{ onBackToTraveler?: () => void }> = ({ on
       logAction(`Logement ID #${editingRes.id} ("${editResTitle}") modifié par l'administrateur.`);
       triggerSuccess("Les informations du logement ont été mises à jour.");
       setEditingRes(null);
+      await reloadData();
     } catch (err) {
       console.error(err);
-      alert("Erreur lors de la mise à jour.");
+      addToast("Erreur lors de la mise à jour.", "error");
     } finally {
       setIsSavingRes(false);
     }
@@ -724,15 +727,17 @@ export const AdminDashboard: React.FC<{ onBackToTraveler?: () => void }> = ({ on
     try {
       if (dbType === 'firebase') {
         await updateDoc(doc(db, 'residences', id), { status: 'published' });
+        setResidences(prev => prev.map(r => r.id === id ? {...r, status: 'published'} : r));
       } else {
         await updateResidence(id, { status: 'published' } as any);
         await reloadData();
       }
       logAction(`Logement "${titleStr}" approuvé et publié en ligne.`);
       triggerSuccess(`La résidence "${titleStr}" a été publiée avec succès !`);
+      await reloadData();
     } catch (err) {
       console.error(err);
-      alert("Erreur lors de la validation.");
+      addToast("Erreur lors de la validation.", "error");
     }
   };
 
@@ -745,6 +750,7 @@ export const AdminDashboard: React.FC<{ onBackToTraveler?: () => void }> = ({ on
             status: 'suspended',
             rejectionReason: reason 
           });
+          setResidences(prev => prev.map(r => r.id === id ? {...r, status: 'suspended', rejectionReason: reason} : r));
         } else {
           await updateResidence(id, { 
             status: 'suspended',
@@ -754,9 +760,10 @@ export const AdminDashboard: React.FC<{ onBackToTraveler?: () => void }> = ({ on
         }
         logAction(`Logement "${titleStr}" suspendu pour le motif : ${reason}`);
         triggerSuccess("Résidence rejetée et propriétaire notifié.");
+        await reloadData();
       } catch (err) {
         console.error(err);
-        alert("Erreur lors du rejet.");
+        addToast("Erreur lors du rejet.", "error");
       }
     }
   };
@@ -797,7 +804,11 @@ export const AdminDashboard: React.FC<{ onBackToTraveler?: () => void }> = ({ on
   const isSuperAdminEmail = (emailStr?: string | null) => {
     if (!emailStr) return false;
     const cleanEmail = emailStr.trim().toLowerCase();
-    return cleanEmail === 'mandemohamed68@gmail.com' || cleanEmail === 'mandemohamed68@gamil.com';
+    const isSuper = cleanEmail === 'mandemohamed68@gmail.com' || cleanEmail === 'mandemohamed68@gamil.com';
+    if (!isSuper) {
+      addToast("Action refusée : Seul le Super Administrateur principal est habilité.", "warning");
+    }
+    return isSuper;
   };
 
   const isCurrentUserSU = isSuperAdminEmail(user?.email);
@@ -805,7 +816,7 @@ export const AdminDashboard: React.FC<{ onBackToTraveler?: () => void }> = ({ on
   // Change user role
   const handleChangeRole = async (uid: string, email: string, currentRole: UserRole, targetRole: UserRole) => {
     if (!isCurrentUserSU) {
-      alert("Action refusée : Seul le Super Administrateur principal (mandemohamed68@gmail.com) est habilité à modifier les rôles.");
+      addToast("Action refusée : Seul le Super Administrateur principal (mandemohamed68@gmail.com) est habilité à modifier les rôles.", "error");
       return;
     }
     try {
@@ -819,7 +830,7 @@ export const AdminDashboard: React.FC<{ onBackToTraveler?: () => void }> = ({ on
       triggerSuccess(`Rôle de ${email} mis à jour avec succès vers : ${targetRole}`);
     } catch (err) {
       console.error(err);
-      alert("Erreur de modification du rôle.");
+      addToast("Erreur de modification du rôle.", "error");
     }
   };
 
@@ -827,7 +838,7 @@ export const AdminDashboard: React.FC<{ onBackToTraveler?: () => void }> = ({ on
   const handleCreateUser = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newUserEmail || !newUserName) {
-      alert("Veuillez renseigner le nom et l'adresse email.");
+      addToast("Veuillez renseigner le nom et l'adresse email.", "error");
       return;
     }
 
@@ -862,7 +873,7 @@ export const AdminDashboard: React.FC<{ onBackToTraveler?: () => void }> = ({ on
       setShowAddUserForm(false);
     } catch (err) {
       console.error(err);
-      alert("Erreur lors de la création de l'utilisateur.");
+      addToast("Erreur lors de la création de l'utilisateur.", "error");
     } finally {
       setIsCreatingUser(false);
     }
@@ -881,7 +892,7 @@ export const AdminDashboard: React.FC<{ onBackToTraveler?: () => void }> = ({ on
       triggerSuccess(`Statut d'activité de ${email} mis à jour.`);
     } catch (err) {
       console.error(err);
-      alert("Erreur lors de la mise à jour de la suspension.");
+      addToast("Erreur lors de la mise à jour de la suspension.", "error");
     }
   };
 
@@ -899,7 +910,7 @@ export const AdminDashboard: React.FC<{ onBackToTraveler?: () => void }> = ({ on
         triggerSuccess(`L'utilisateur ${email} a été supprimé definitivement.`);
       } catch (err) {
         console.error(err);
-        alert("Erreur lors de la suppression de l'utilisateur.");
+        addToast("Erreur lors de la suppression de l'utilisateur.", "error");
       }
     }
   };
@@ -908,11 +919,11 @@ export const AdminDashboard: React.FC<{ onBackToTraveler?: () => void }> = ({ on
   const handleSaveAd = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!adImageUrl || !adTitle) {
-      alert("L'URL de l'image et le titre de l'affiche sont obligatoires.");
+      addToast("L'URL de l'image et le titre de l'affiche sont obligatoires.", "error");
       return;
     }
     if (adStartAt && adEndAt && new Date(adStartAt) >= new Date(adEndAt)) {
-      alert("La date de début doit être strictement antérieure à la date de fin.");
+      addToast("La date de début doit être strictement antérieure à la date de fin.", "error");
       return;
     }
     setIsSavingAd(true);
@@ -943,7 +954,7 @@ export const AdminDashboard: React.FC<{ onBackToTraveler?: () => void }> = ({ on
       resetAdForm();
     } catch (err) {
       console.error(err);
-      alert("Erreur lors de l'enregistrement de la publicité.");
+      addToast("Erreur lors de l'enregistrement de la publicité.", "error");
     } finally {
       setIsSavingAd(false);
     }
@@ -957,7 +968,7 @@ export const AdminDashboard: React.FC<{ onBackToTraveler?: () => void }> = ({ on
     // Check file size (e.g. max 5 MB)
     const maxFileSize = 5 * 1024 * 1024; // 5 MB
     if (file.size > maxFileSize) {
-      alert("Le fichier est trop lourd. Veuillez uploader une image inférieure à 5 Mo.");
+      addToast("Le fichier est trop lourd. Veuillez uploader une image inférieure à 5 Mo.", "error");
       return;
     }
 
@@ -970,7 +981,7 @@ export const AdminDashboard: React.FC<{ onBackToTraveler?: () => void }> = ({ on
       triggerSuccess("L'image a été chargée et optimisée avec succès !");
     } catch (err) {
       console.error(err);
-      alert("Une erreur est survenue lors de l'optimisation de l'image.");
+      addToast("Une erreur est survenue lors de l'optimisation de l'image.", "error");
     } finally {
       setIsUploadingAd(false);
     }
@@ -1004,7 +1015,7 @@ export const AdminDashboard: React.FC<{ onBackToTraveler?: () => void }> = ({ on
       triggerSuccess(`Statut de "${title}" mis à jour.`);
     } catch (err) {
       console.error(err);
-      alert("Erreur de modification du statut.");
+      addToast("Erreur de modification du statut.", "error");
     }
   };
 
@@ -1021,7 +1032,7 @@ export const AdminDashboard: React.FC<{ onBackToTraveler?: () => void }> = ({ on
         triggerSuccess(`La publicité "${title}" a été supprimée.`);
       } catch (err) {
         console.error(err);
-        alert("Erreur de suppression de la publicité.");
+        addToast("Erreur de suppression de la publicité.", "error");
       }
     }
   };
@@ -1050,7 +1061,7 @@ export const AdminDashboard: React.FC<{ onBackToTraveler?: () => void }> = ({ on
       triggerSuccess(`Compte de ${displayName} vérifié et certifié !`);
     } catch (err) {
       console.error(err);
-      alert("Erreur de validation de l'identité.");
+      addToast("Erreur de validation de l'identité.", "error");
     }
   };
 
@@ -1071,13 +1082,13 @@ export const AdminDashboard: React.FC<{ onBackToTraveler?: () => void }> = ({ on
       triggerSuccess(`Demande de ${displayName} refusée.`);
     } catch (err) {
       console.error(err);
-      alert("Erreur lors du rejet de la pièce d'identité.");
+      addToast("Erreur lors du rejet de la pièce d'identité.", "error");
     }
   };
 
   const handleToggleSuspension = async (uid: string, currentStatus: boolean, email: string) => {
     if (isSuperAdminEmail(email)) {
-      alert("Impossible de suspendre un Super Admin.");
+      addToast("Impossible de suspendre un Super Admin.", "error");
       return;
     }
     const action = !currentStatus ? "suspendre" : "réactiver";
@@ -1093,7 +1104,7 @@ export const AdminDashboard: React.FC<{ onBackToTraveler?: () => void }> = ({ on
         triggerSuccess(`Compte ${email} ${!currentStatus ? 'suspendu' : 'réactivé'}.`);
       } catch (err) {
         console.error(err);
-        alert("Erreur lors du changement de statut.");
+        addToast("Erreur lors du changement de statut.", "error");
       }
     }
   };
@@ -1117,7 +1128,7 @@ export const AdminDashboard: React.FC<{ onBackToTraveler?: () => void }> = ({ on
       triggerSuccess("Réservation mise à jour avec succès !");
     } catch (err) {
       console.error(err);
-      alert("Erreur lors de la mise à jour de la réservation.");
+      addToast("Erreur lors de la mise à jour de la réservation.", "error");
     } finally {
       setIsSaving(false);
     }
@@ -1137,7 +1148,7 @@ export const AdminDashboard: React.FC<{ onBackToTraveler?: () => void }> = ({ on
         triggerSuccess("Avis modéré et supprimé !");
       } catch (err) {
         console.error(err);
-        alert("Erreur de modération de l'avis.");
+        addToast("Erreur de modération de l'avis.", "error");
       }
     }
   };
@@ -1174,9 +1185,10 @@ export const AdminDashboard: React.FC<{ onBackToTraveler?: () => void }> = ({ on
       }
       logAction(`Paramètres globaux sauvegardés avec message d'annonce (Plateforme: ${platformName}, Commission: ${commissionRate}%)`);
       triggerSuccess("Configuration de la plateforme enregistrée avec succès !");
+      await reloadData();
     } catch (err) {
       console.error(err);
-      alert("Erreur lors de la sauvegarde de la configuration.");
+      addToast("Erreur lors de la sauvegarde de la configuration.", "error");
     } finally {
       setIsSaving(false);
     }
@@ -1508,7 +1520,7 @@ export const AdminDashboard: React.FC<{ onBackToTraveler?: () => void }> = ({ on
       triggerSuccess("Les paramètres de la page de contact ont été enregistrés avec succès !");
     } catch (err) {
       console.error(err);
-      alert("Erreur lors de l'enregistrement des paramètres de contact.");
+      addToast("Erreur lors de l'enregistrement des paramètres de contact.", "error");
     } finally {
       setIsSavingContactSettings(false);
     }
@@ -1530,7 +1542,7 @@ export const AdminDashboard: React.FC<{ onBackToTraveler?: () => void }> = ({ on
         }
       } catch (err) {
         console.error(err);
-        alert("Erreur lors de la suppression du message.");
+        addToast("Erreur lors de la suppression du message.", "error");
       }
     }
   };
@@ -1577,7 +1589,7 @@ export const AdminDashboard: React.FC<{ onBackToTraveler?: () => void }> = ({ on
       triggerSuccess("Remarques / Notes de réponse enregistrées et statut mis à jour !");
     } catch (err) {
       console.error(err);
-      alert("Erreur lors de l'enregistrement de la note.");
+      addToast("Erreur lors de l'enregistrement de la note.", "error");
     } finally {
       setIsSavingAdminNote(false);
     }
@@ -1833,7 +1845,7 @@ export const AdminDashboard: React.FC<{ onBackToTraveler?: () => void }> = ({ on
                   logAction(`Modification rapide de la commission globale à ${commissionRate}%`);
                   triggerSuccess(`Commission mise à jour à ${commissionRate}% !`);
                 } catch(e) {
-                  alert("Erreur de mise à jour");
+                  addToast("Erreur de mise à jour", "error");
                 }
               }}
               className="bg-slate-900 text-white px-3 py-2 rounded-xl text-[9px] font-black uppercase tracking-wider hover:bg-slate-800 transition cursor-pointer"
@@ -2393,7 +2405,7 @@ export const AdminDashboard: React.FC<{ onBackToTraveler?: () => void }> = ({ on
                         <button
                           onClick={async () => {
                             if (isSuperAdminEmail(usr.email)) {
-                              alert("Impossible de supprimer un Super Admin.");
+                              addToast("Impossible de supprimer un Super Admin.", "error");
                               return;
                             }
                             if (window.confirm(`Voulez-vous supprimer définitivement le compte de ${usr.email} ?`)) {
@@ -2451,7 +2463,7 @@ export const AdminDashboard: React.FC<{ onBackToTraveler?: () => void }> = ({ on
                                   if (win) {
                                     win.document.write(`<div style="display:flex; justify-content:center; align-items:center; height:100vh; background:#0f172a;"><img src="${usr.idCardUrl}" style="max-width:100%; max-height:100%; object-fit:contain; border-radius:12px; box-shadow:0 25px 50px -12px rgba(0,0,0,0.5);" /></div>`);
                                   } else {
-                                    alert("Impossible d'ouvrir l'onglet. Veuillez autoriser les popups.");
+                                    addToast("Impossible d'ouvrir l'onglet. Veuillez autoriser les popups.", "error");
                                   }
                                 }}
                               />
@@ -3265,7 +3277,7 @@ export const AdminDashboard: React.FC<{ onBackToTraveler?: () => void }> = ({ on
                   }
                 } catch (err) {
                   console.error(err);
-                  alert("Une erreur est survenue lors de l'enregistrement.");
+                  addToast("Une erreur est survenue lors de l'enregistrement.", "error");
                 } finally {
                   setIsSavingEmailSettings(false);
                 }

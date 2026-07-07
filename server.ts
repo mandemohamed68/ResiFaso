@@ -163,32 +163,61 @@ async function getSappayToken(): Promise<string> {
   const credentials = await getSappayCredentials();
   const urls = await getSappayBaseUrls();
   try {
-    const response = await fetch(`${urls.publicBase}/authentication/`, {
+    const payload = {
+      grant_type: "password",
+      client_id: credentials.clientId,
+      client_secret: credentials.clientSecret,
+      username: credentials.username,
+      password: credentials.password
+    };
+
+    console.log(`[Sappay] Attempting Authentication for user: ${credentials.username}`);
+    
+    let response = await fetch(`${urls.publicBase}/authentication/`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
         "Accept": "application/json"
       },
-      body: JSON.stringify({
-        grant_type: "password",
-        client_id: credentials.clientId,
-        client_secret: credentials.clientSecret,
-        username: credentials.username,
-        password: credentials.password
-      })
+      body: JSON.stringify(payload)
     });
     
+    // If JSON fails with 401/400, try form-urlencoded as fallback (some Sappay environments differ)
+    if (!response.ok && (response.status === 400 || response.status === 401)) {
+      console.warn(`[Sappay] JSON auth failed (${response.status}), trying application/x-www-form-urlencoded fallback...`);
+      const formParams = new URLSearchParams();
+      Object.entries(payload).forEach(([key, val]) => formParams.append(key, val));
+      
+      response = await fetch(`${urls.publicBase}/authentication/`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/x-www-form-urlencoded",
+          "Accept": "application/json"
+        },
+        body: formParams
+      });
+    }
+
     if (response.ok) {
       const data: any = await response.json();
       const token = data.access || data.access_token || data.token || data.response?.access || data.response?.access_token || data.response?.token;
       if (!token && !credentials.isTestMode) {
+        console.warn("[Sappay] Success but No Token Found in Body:", JSON.stringify(data));
         throw new Error("Sappay a retourné un succès sans jeton d'accès (access_token absent).");
       }
       return token || "mock_sappay_token_success";
     } else {
       const errorText = await response.text();
+      console.error(`[Sappay] AUTH FAILED [${response.status}]:`, errorText);
+      console.error(`[Sappay] SENT PAYLOAD INFO: client_id=${credentials.clientId.substring(0, 8)}..., username=${credentials.username}`);
+      
       if (!credentials.isTestMode) {
-        throw new Error(`Échec de l'authentification Sappay (${response.status}): ${errorText}`);
+        let parsedError = errorText;
+        try { 
+          const errObj = JSON.parse(errorText);
+          parsedError = errObj.error_description || errObj.error || errObj.message || errorText; 
+        } catch(e) {}
+        throw new Error(`Échec de l'authentification Sappay (${response.status}): ${parsedError}`);
       }
       return "mock_sappay_token_fallback";
     }

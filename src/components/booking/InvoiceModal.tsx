@@ -4,6 +4,7 @@ import { motion, AnimatePresence } from 'motion/react';
 import { X, Download, Printer } from 'lucide-react';
 import { Booking, Residence } from '../../types';
 import { generateInvoice } from '../../utils/invoice';
+import { useToast } from '../../contexts/ToastContext';
 
 interface InvoiceModalProps {
   isOpen: boolean;
@@ -20,6 +21,7 @@ export const InvoiceModal: React.FC<InvoiceModalProps> = ({
   residence, 
   clientName 
 }) => {
+  const { addToast } = useToast();
   const invoiceRef = useRef<HTMLDivElement>(null);
 
   if (!booking) return null;
@@ -39,10 +41,10 @@ export const InvoiceModal: React.FC<InvoiceModalProps> = ({
     try {
       const doc = generateInvoice(booking, residence, clientName);
       doc.save(`Recu_${booking.id}_ResiFaso_Impression.pdf`);
-      alert("Le reçu a été téléchargé au format PDF. Veuillez l'ouvrir pour l'imprimer.");
+      addToast("Le reçu a été téléchargé au format PDF. Veuillez l'ouvrir pour l'imprimer.", "error");
     } catch (e) {
       console.error("Erreur lors de l'impression:", e);
-      alert("Une erreur s'est produite lors de la préparation de l'impression.");
+      addToast("Une erreur s'est produite lors de la préparation de l'impression.", "error");
     }
   };
 

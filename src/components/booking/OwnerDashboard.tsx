@@ -1,6 +1,7 @@
 import { formatCurrency } from '../../utils/currency';
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
+import { useToast } from '../../contexts/ToastContext';
 import { 
   getOwnerResidences, 
   getOwnerBookings, 
@@ -856,15 +857,10 @@ export const OwnerDashboard: React.FC<{ isTestMode?: boolean; onBackToTraveler?:
   const [declineReasonType, setDeclineReasonType] = useState("dates_unavailable");
   const [declineReason, setDeclineReason] = useState("");
   const [isDeclineLoading, setIsDeclineLoading] = useState(false);
+  const { addToast } = useToast();
 
-  // Global toasts
-  const [saveSuccess, setSaveSuccess] = useState<string | null>(null);
-  
   const triggerSuccess = (message: string) => {
-    setSaveSuccess(message);
-    setTimeout(() => {
-      setSaveSuccess(null);
-    }, 4500);
+    addToast(message, 'success');
   };
 
   // Addition flow modal of residence
@@ -919,70 +915,67 @@ export const OwnerDashboard: React.FC<{ isTestMode?: boolean; onBackToTraveler?:
   ];
 
   // Fetch data for owners
+  const fetchData = async () => {
+    if (!user) return;
+    setLoading(true);
+    try {
+      const dbType = await getBackendDbType();
+      
+      if (dbType === 'firebase') {
+        const qRes = query(collection(db, 'residences'), where('ownerId', '==', user.uid));
+        const unsubRes = onSnapshot(qRes, (snap) => {
+          const list: Residence[] = [];
+          snap.forEach(docSnap => {
+            list.push({ id: docSnap.id, ...docSnap.data() } as Residence);
+          });
+          list.sort((a, b) => new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime());
+          setResidences(list);
+        });
+
+        const qBook = query(collection(db, 'bookings'), where('ownerId', '==', user.uid));
+        const unsubBook = onSnapshot(qBook, (snap) => {
+          const list: Booking[] = [];
+          snap.forEach(docSnap => {
+            list.push({ id: docSnap.id, ...docSnap.data() } as Booking);
+          });
+          list.sort((a, b) => new Date(b.createdAt || b.checkIn || 0).getTime() - new Date(a.createdAt || a.checkIn || 0).getTime());
+          setBookings(list);
+          setLoading(false);
+        });
+
+        return () => {
+          unsubRes();
+          unsubBook();
+        };
+      } else {
+        const isAdmin = user.role === 'admin' || user.email === 'mandemohamed68@gmail.com';
+        const [resList, bookList] = await Promise.all([
+          isAdmin ? getAllResidences() : getOwnerResidences(user.uid),
+          isAdmin ? getAllBookings() : getOwnerBookings(user.uid)
+        ]);
+        
+        const sortedRes = (resList || []).sort((a, b) => 
+          new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime()
+        );
+        setResidences(sortedRes);
+        
+        const sortedBookings = (bookList || []).sort((a, b) => 
+          new Date(b.createdAt || b.checkIn || 0).getTime() - new Date(a.createdAt || a.checkIn || 0).getTime()
+        );
+        setBookings(sortedBookings);
+      }
+    } catch (err) {
+      console.error("Error fetching owner dashboard data:", err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   useEffect(() => {
     if (!user) {
       setLoading(false);
       return;
     }
-
-    const fetchData = async () => {
-      setLoading(true);
-      try {
-        const dbType = await getBackendDbType();
-        
-        if (dbType === 'firebase') {
-          // Firebase logic (keep it for compatibility if needed, but we prefer API)
-          const qRes = query(collection(db, 'residences'), where('ownerId', '==', user.uid));
-          const unsubRes = onSnapshot(qRes, (snap) => {
-            const list: Residence[] = [];
-            snap.forEach(docSnap => {
-              list.push({ id: docSnap.id, ...docSnap.data() } as Residence);
-            });
-            list.sort((a, b) => new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime());
-            setResidences(list);
-          });
-
-          const qBook = query(collection(db, 'bookings'), where('ownerId', '==', user.uid));
-          const unsubBook = onSnapshot(qBook, (snap) => {
-            const list: Booking[] = [];
-            snap.forEach(docSnap => {
-              list.push({ id: docSnap.id, ...docSnap.data() } as Booking);
-            });
-            list.sort((a, b) => new Date(b.createdAt || b.checkIn || 0).getTime() - new Date(a.createdAt || a.checkIn || 0).getTime());
-            setBookings(list);
-            setLoading(false);
-          });
-
-          return () => {
-            unsubRes();
-            unsubBook();
-          };
-        } else {
-          // SQL / API Logic
-          // If admin, they might want to see EVERYTHING if they are the "Global Host"
-          const isAdmin = user.role === 'admin' || user.email === 'mandemohamed68@gmail.com';
-          
-          const [resList, bookList] = await Promise.all([
-            isAdmin ? getAllResidences() : getOwnerResidences(user.uid),
-            isAdmin ? getAllBookings() : getOwnerBookings(user.uid)
-          ]);
-          
-          const sortedRes = (resList || []).sort((a, b) => 
-            new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime()
-          );
-          setResidences(sortedRes);
-          
-          const sortedBookings = (bookList || []).sort((a, b) => 
-            new Date(b.createdAt || b.checkIn || 0).getTime() - new Date(a.createdAt || a.checkIn || 0).getTime()
-          );
-          setBookings(sortedBookings);
-        }
-      } catch (err) {
-        console.error("Error fetching owner dashboard data:", err);
-      } finally {
-        setLoading(false);
-      }
-    };
 
     fetchData();
     // Refresh every 60 seconds if not firebase
@@ -1074,7 +1067,7 @@ export const OwnerDashboard: React.FC<{ isTestMode?: boolean; onBackToTraveler?:
       // The onSnapshot listener will handle the UI update
     } catch (err) {
       console.error(err);
-      alert("Erreur lors de la mise à jour de la disponibilité.");
+      addToast("Erreur lors de la mise à jour de la disponibilité.", "error");
     } finally {
       setIsUpdatingStatus(null);
     }
@@ -1084,9 +1077,11 @@ export const OwnerDashboard: React.FC<{ isTestMode?: boolean; onBackToTraveler?:
     const newStatus = res.status === 'published' ? 'suspended' : 'published';
     try {
       await updateResidence(res.id, { status: newStatus });
+      triggerSuccess(newStatus === 'published' ? "Résidence activée !" : "Résidence désactivée.");
+      await fetchData();
     } catch (err) {
       console.error(err);
-      alert("Erreur lors de la modification du statut.");
+      addToast("Erreur lors de la modification du statut.", "error");
     }
   };
 
@@ -1094,8 +1089,10 @@ export const OwnerDashboard: React.FC<{ isTestMode?: boolean; onBackToTraveler?:
     try {
       await updateResidence(res.id, { promoted: !res.promoted });
       triggerSuccess(res.promoted ? "Promotion désactivée." : "Résidence mise en avant avec succès !");
+      await fetchData();
     } catch (err) {
       console.error(err);
+      addToast("Erreur lors de la mise en avant.", "error");
     }
   };
 
@@ -1179,7 +1176,13 @@ export const OwnerDashboard: React.FC<{ isTestMode?: boolean; onBackToTraveler?:
 
   const handleApproveBooking = async (booking: Booking) => {
     try {
-      await updateBookingStatus(booking.id, { bookingStatus: 'confirmed' });
+      const dbType = await getBackendDbType();
+      if (dbType === 'firebase') {
+        await updateDoc(doc(db, 'bookings', booking.id), { bookingStatus: 'confirmed' });
+      } else {
+        await updateBookingStatus(booking.id, { bookingStatus: 'confirmed' });
+      }
+      
       await sendNotification({
         userId: booking.clientId,
         title: "Réservation Approuvée ! 🎉",
@@ -1187,10 +1190,12 @@ export const OwnerDashboard: React.FC<{ isTestMode?: boolean; onBackToTraveler?:
         type: 'booking',
         referenceId: booking.id
       });
+      
+      await fetchData();
       triggerSuccess("Réservation approuvée avec succès !");
     } catch (err) {
       console.error(err);
-      alert("Erreur lors de l'approbation.");
+      addToast("Erreur lors de l'approbation.", 'error');
     }
   };
 
@@ -1222,7 +1227,7 @@ export const OwnerDashboard: React.FC<{ isTestMode?: boolean; onBackToTraveler?:
       setBookingToDecline(null);
     } catch (err) {
       console.error(err);
-      alert("Erreur lors du traitement du refus.");
+      addToast("Erreur lors du traitement du refus.", "error");
     } finally {
       setIsDeclineLoading(false);
     }
@@ -1253,9 +1258,10 @@ export const OwnerDashboard: React.FC<{ isTestMode?: boolean; onBackToTraveler?:
         referenceId: booking.id
       });
       triggerSuccess("Le solde a été marqué comme payé avec succès !");
+      await fetchData();
     } catch (err) {
       console.error(err);
-      alert("Erreur lors de la mise à jour du paiement.");
+      addToast("Erreur lors de la mise à jour du paiement.", "error");
     } finally {
       setIsProcessingPayment(null);
     }
@@ -1288,9 +1294,10 @@ export const OwnerDashboard: React.FC<{ isTestMode?: boolean; onBackToTraveler?:
       });
 
       triggerSuccess("Début de séjour enregistré avec succès !");
+      await fetchData();
     } catch (err) {
       console.error(err);
-      alert("Erreur lors de l'enregistrement du check-in.");
+      addToast("Erreur lors de l'enregistrement du check-in.", "error");
     }
   };
 
@@ -1322,9 +1329,10 @@ export const OwnerDashboard: React.FC<{ isTestMode?: boolean; onBackToTraveler?:
       });
 
       triggerSuccess("Fin de séjour enregistrée avec succès !");
+      await fetchData();
     } catch (err) {
       console.error(err);
-      alert("Erreur lors du check-out.");
+      addToast("Erreur lors du check-out.", "error");
     }
   };
 
@@ -1421,7 +1429,7 @@ export const OwnerDashboard: React.FC<{ isTestMode?: boolean; onBackToTraveler?:
       triggerSuccess("Votre politique de remboursement personnalisée a été enregistrée avec succès ! Elle s'appliquera désormais à tous vos futurs séjours.");
     } catch (err) {
       console.error("Error saving policy: ", err);
-      alert("Erreur lors de l'enregistrement de la politique : " + (err instanceof Error ? err.message : String(err)));
+      addToast("Erreur lors de l'enregistrement de la politique : " + (err instanceof Error ? err.message : String(err)), "error");
     } finally {
       setIsSavingPolicy(false);
     }
@@ -1515,7 +1523,7 @@ export const OwnerDashboard: React.FC<{ isTestMode?: boolean; onBackToTraveler?:
       for (let i = 0; i < files.length; i++) {
         // limit size approx
         if (files[i].size > 5 * 1024 * 1024) {
-          alert(`L'image ${files[i].name} dépasse 5 Mo.`);
+          addToast(`L'image ${files[i].name} dépasse 5 Mo.`, "error");
           continue;
         }
         const compressed = await resizeImage(files[i], 800);
@@ -1524,7 +1532,7 @@ export const OwnerDashboard: React.FC<{ isTestMode?: boolean; onBackToTraveler?:
       setImages(prev => [...prev, ...newImages]);
     } catch (err) {
       console.error(err);
-      alert("Erreur lors de la compression des images.");
+      addToast("Erreur lors de la compression des images.", "error");
     } finally {
       setIsUploading(false);
     }
@@ -1533,12 +1541,12 @@ export const OwnerDashboard: React.FC<{ isTestMode?: boolean; onBackToTraveler?:
   const handleNextStep = () => {
     if (step === 1) {
       if (!title || !description || !ownerPhone) {
-        alert("Veuillez remplir le titre, la description et votre numéro de contact.");
+        addToast("Veuillez remplir le titre, la description et votre numéro de contact.", "error");
         return;
       }
     } else if (step === 2) {
       if (!selectedCityId || !selectedNeighborhoodId) {
-        alert("Veuillez sélectionner une ville et un quartier.");
+        addToast("Veuillez sélectionner une ville et un quartier.", "error");
         return;
       }
     } else if (step === 3) {
@@ -1557,7 +1565,7 @@ export const OwnerDashboard: React.FC<{ isTestMode?: boolean; onBackToTraveler?:
     if (!user || isSubmitting) return;
 
     if (!title || !description || !pricePerNight || !selectedCityId || !selectedNeighborhoodId || !ownerPhone) {
-      alert("Veuillez remplir tous les champs obligatoires (Titre, Description, Prix, Ville, Quartier, Contact).");
+      addToast("Veuillez remplir tous les champs obligatoires (Titre, Description, Prix, Ville, Quartier, Contact).", "error");
       return;
     }
 
@@ -1623,7 +1631,7 @@ export const OwnerDashboard: React.FC<{ isTestMode?: boolean; onBackToTraveler?:
       resetForm();
     } catch (err) {
       console.error(err);
-      alert("Une erreur est survenue lors de la soumission. Veuillez vérifier votre connexion.");
+      addToast("Une erreur est survenue lors de la soumission. Veuillez vérifier votre connexion.", "error");
     } finally {
       setIsSubmitting(false);
     }
@@ -1657,14 +1665,6 @@ export const OwnerDashboard: React.FC<{ isTestMode?: boolean; onBackToTraveler?:
           <ArrowLeft size={14} />
           Retour Accueil Voyageur
         </button>
-      )}
-      {saveSuccess && (
-        <div className="fixed bottom-5 right-5 bg-slate-900 text-white px-6 py-4 rounded-2xl shadow-2xl z-[9000] flex items-center gap-3 border border-slate-800 animate-in slide-in-from-bottom duration-300">
-          <div className="bg-green-500 p-1.5 rounded-full text-white">
-            <Check size={16} className="stroke-[3]" />
-          </div>
-          <span className="text-sm font-black tracking-tight">{saveSuccess}</span>
-        </div>
       )}
       
       {/* Upper Panel */}
@@ -3252,7 +3252,7 @@ export const OwnerDashboard: React.FC<{ isTestMode?: boolean; onBackToTraveler?:
                            onClick={() => {
                              // Force validation for essential fields regardless of step
                              if (!title || !description || !selectedCityId || !selectedNeighborhoodId || !ownerPhone || !pricePerNight) {
-                               alert("Veuillez remplir au moins les informations de base (Titre, Description, Contact, Ville, Quartier et Prix) avant d'enregistrer.");
+                               addToast("Veuillez remplir au moins les informations de base (Titre, Description, Contact, Ville, Quartier et Prix) avant d'enregistrer.", "error");
                                return;
                              }
                              handleAddResidenceSubmit(undefined, true);
