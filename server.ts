@@ -12,6 +12,7 @@ import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
 import { executeSql } from './src/db/index';
 import { initDatabase } from './src/db/init';
+import { formatSqlValue } from './src/db/queries';
 import { authenticateToken, AuthRequest } from './src/lib/auth-middleware';
 import * as queries from './src/db/queries';
 
@@ -600,7 +601,7 @@ async function startServer() {
     if (req.user?.role !== 'admin') return res.status(403).json({ error: "Interdit" });
     try {
       const { status, approvedAt } = req.body;
-      await executeSql("UPDATE withdrawals SET status = ?, approved_at = ? WHERE id = ?", [status, approvedAt || null, req.params.id]);
+      await executeSql("UPDATE withdrawals SET status = ?, approved_at = ? WHERE id = ?", [status, approvedAt ? formatSqlValue(approvedAt) : null, req.params.id]);
       res.json({ success: true });
     } catch (err: any) { res.status(500).json({ error: err.message }); }
   });
@@ -835,9 +836,9 @@ async function startServer() {
         const token = Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
         const expiresAt = new Date(Date.now() + 3600000).toISOString(); // 1 hour
         if (DB_TYPE === 'mariadb') {
-          await executeSql("INSERT INTO password_resets (email, token, expires_at) VALUES (?, ?, ?) ON DUPLICATE KEY UPDATE token = ?, expires_at = ?", [email, token, expiresAt, token, expiresAt]);
+          await executeSql("INSERT INTO password_resets (email, token, expires_at) VALUES (?, ?, ?) ON DUPLICATE KEY UPDATE token = ?, expires_at = ?", [email, token, formatSqlValue(expiresAt), token, formatSqlValue(expiresAt)]);
         } else {
-          await executeSql("INSERT INTO password_resets (email, token, expires_at) VALUES (?, ?, ?) ON CONFLICT(email) DO UPDATE SET token = ?, expires_at = ?", [email, token, expiresAt, token, expiresAt]);
+          await executeSql("INSERT INTO password_resets (email, token, expires_at) VALUES (?, ?, ?) ON CONFLICT(email) DO UPDATE SET token = ?, expires_at = ?", [email, token, formatSqlValue(expiresAt), token, formatSqlValue(expiresAt)]);
         }
         resetLink = `${req.headers.origin}?view=reset-password&email=${email}&token=${token}`;
       }

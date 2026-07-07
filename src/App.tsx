@@ -3,6 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { RoleProvider, useRole } from './contexts/RoleContext';
 import { ToastProvider, useToast } from './contexts/ToastContext';
+import { DataRefreshProvider } from './contexts/DataRefreshContext';
 import { Navbar } from './components/common/Navbar';
 import { Hero } from './components/home/Hero';
 import { SearchForm } from './components/search/SearchForm';
@@ -1558,7 +1559,9 @@ export default function App() {
     <AuthProvider>
       <RoleProvider>
         <ToastProvider>
-          <AppContent />
+          <DataRefreshProvider>
+            <AppContent />
+          </DataRefreshProvider>
         </ToastProvider>
       </RoleProvider>
     </AuthProvider>

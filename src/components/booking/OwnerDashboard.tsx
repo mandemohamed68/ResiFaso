@@ -2,6 +2,7 @@ import { formatCurrency } from '../../utils/currency';
 import React, { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
 import { useToast } from '../../contexts/ToastContext';
+import { useDataRefresh } from '../../contexts/DataRefreshContext';
 import { 
   getOwnerResidences, 
   getOwnerBookings, 
@@ -675,6 +676,7 @@ export const PREDEFINED_TYPES = [
 
 export const OwnerDashboard: React.FC<{ isTestMode?: boolean; onBackToTraveler?: () => void }> = ({ isTestMode, onBackToTraveler }) => {
   const { user } = useAuth();
+  const { lastRefresh, refreshData } = useDataRefresh();
   const [residences, setResidences] = useState<Residence[]>([]);
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [loading, setLoading] = useState(true);
@@ -981,7 +983,7 @@ export const OwnerDashboard: React.FC<{ isTestMode?: boolean; onBackToTraveler?:
     // Refresh every 60 seconds if not firebase
     const interval = setInterval(fetchData, 60000);
     return () => clearInterval(interval);
-  }, [user]);
+  }, [user, lastRefresh]);
 
   // Fetch real-time conversations for owner
   useEffect(() => {
@@ -1192,6 +1194,7 @@ export const OwnerDashboard: React.FC<{ isTestMode?: boolean; onBackToTraveler?:
       });
       
       await fetchData();
+      refreshData();
       triggerSuccess("Réservation approuvée avec succès !");
     } catch (err) {
       console.error(err);
