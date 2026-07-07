@@ -68,18 +68,29 @@ const SAPPAY_BASE_CHECKOUT_PROD = "https://api.prod.sappay.net/api/checkout";
 
 // Dynamically fetch administrator-configured Sappay credentials
 async function getSappayCredentials() {
+  const defaultClientId = (process.env.SAPPAY_CLIENT_ID || "IJIJhhArSLVJNIs2ylGwowxTCqm5t5br92lAPlgF").trim();
+  const defaultClientSecret = (process.env.SAPPAY_CLIENT_SECRET || "7qrVeDjSmDQjHksFyzKriidK3iuSo3RK6h5voHnbXAAPZvQEQnF9LIPzjqOcg4POqmikuUoJ7ynI565leEzbFhSnKZynwCLVOChma3y7vesLBRwaoyixtLcknd4g6Rdm").trim();
+  const defaultUsername = (process.env.SAPPAY_USERNAME || "mandemohamed68@gmail.com").trim();
+  const defaultPassword = (process.env.SAPPAY_PASSWORD || "mm@27071986").trim();
+
+  let finalCreds = {
+    clientId: defaultClientId,
+    clientSecret: defaultClientSecret,
+    username: defaultUsername,
+    password: defaultPassword,
+    isTestMode: false
+  };
+
   if (DB_TYPE === 'firebase' && adminDb) {
     try {
       const docSnap = await adminDb.collection("settings").doc("global").get();
       if (docSnap.exists) {
         const data = docSnap.data();
-        return {
-          clientId: data?.sappayClientId || process.env.SAPPAY_CLIENT_ID || "",
-          clientSecret: data?.sappayClientSecret || process.env.SAPPAY_CLIENT_SECRET || "",
-          username: data?.sappayUsername || process.env.SAPPAY_USERNAME || "",
-          password: data?.sappayPassword || process.env.SAPPAY_PASSWORD || "",
-          isTestMode: data?.isTestMode !== undefined ? data.isTestMode : false
-        };
+        if (data?.sappayClientId) finalCreds.clientId = data.sappayClientId.trim();
+        if (data?.sappayClientSecret) finalCreds.clientSecret = data.sappayClientSecret.trim();
+        if (data?.sappayUsername) finalCreds.username = data.sappayUsername.trim();
+        if (data?.sappayPassword) finalCreds.password = data.sappayPassword.trim();
+        if (data?.isTestMode !== undefined) finalCreds.isTestMode = data.isTestMode;
       }
     } catch (e: any) {
       console.warn("Sappay: Error reading Firebase configuration:", e.message);
@@ -89,25 +100,18 @@ async function getSappayCredentials() {
       const results = await executeSql("SELECT value FROM settings WHERE `key` = 'global'");
       if (results && results.length > 0) {
         const data = JSON.parse(results[0].value);
-        return {
-          clientId: data?.sappayClientId || process.env.SAPPAY_CLIENT_ID || "",
-          clientSecret: data?.sappayClientSecret || process.env.SAPPAY_CLIENT_SECRET || "",
-          username: data?.sappayUsername || process.env.SAPPAY_USERNAME || "",
-          password: data?.sappayPassword || process.env.SAPPAY_PASSWORD || "",
-          isTestMode: data?.isTestMode !== undefined ? data.isTestMode : false
-        };
+        if (data?.sappayClientId) finalCreds.clientId = data.sappayClientId.trim();
+        if (data?.sappayClientSecret) finalCreds.clientSecret = data.sappayClientSecret.trim();
+        if (data?.sappayUsername) finalCreds.username = data.sappayUsername.trim();
+        if (data?.sappayPassword) finalCreds.password = data.sappayPassword.trim();
+        if (data?.isTestMode !== undefined) finalCreds.isTestMode = data.isTestMode;
       }
     } catch (e: any) {
       console.warn("Sappay: Error reading SQL configuration:", e.message);
     }
   }
-  return {
-    clientId: process.env.SAPPAY_CLIENT_ID || "IJIJhhArSLVJNIs2ylGwowxTCqm5t5br92lAPlgF",
-    clientSecret: process.env.SAPPAY_CLIENT_SECRET || "7qrVeDjSmDQjHksFyzKriidK3iuSo3RK6h5voHnbXAAPZvQEQnF9LIPzjqOcg4POqmikuUoJ7ynI565leEzbFhSnKZynwCLVOChma3y7vesLBRwaoyixtLcknd4g6Rdm",
-    username: process.env.SAPPAY_USERNAME || "mandemohamed68@gmail.com",
-    password: process.env.SAPPAY_PASSWORD || "mm@27071986",
-    isTestMode: false
-  };
+  
+  return finalCreds;
 }
 
 async function getSappayBaseUrls() {
