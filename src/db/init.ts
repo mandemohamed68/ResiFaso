@@ -302,19 +302,23 @@ export const initDatabase = async () => {
       await executeSql(`
         CREATE TABLE IF NOT EXISTS notifications (
           id VARCHAR(128) PRIMARY KEY,
-          user_id VARCHAR(255) NOT NULL,
+          user_id VARCHAR(128) NOT NULL,
           title VARCHAR(255),
           message TEXT,
           type VARCHAR(50),
           is_read BOOLEAN DEFAULT 0,
+          reference_id VARCHAR(128),
           created_at DATETIME DEFAULT CURRENT_TIMESTAMP
         ) ENGINE=InnoDB
       `);
       
       try {
-        await executeSql("ALTER TABLE notifications ADD COLUMN reference_id VARCHAR(128)");
+        const columns = await executeSql("SHOW COLUMNS FROM notifications LIKE 'reference_id'");
+        if (!columns || columns.length === 0) {
+          await executeSql("ALTER TABLE notifications ADD COLUMN reference_id VARCHAR(128)");
+        }
       } catch (colErr: any) {
-        // Column might already exist
+        // Fallback or ignore
       }
       
       // Attempt FK creation separately so it doesn't block the whole table creation if it fails
@@ -562,12 +566,6 @@ export const initDatabase = async () => {
         FOREIGN KEY(user_id) REFERENCES users(uid)
       )
     `);
-
-    try {
-      await executeSql("ALTER TABLE notifications ADD COLUMN reference_id TEXT");
-    } catch (colErr: any) {
-      // Column might already exist
-    }
 
     // Password Resets Table
     await executeSql(`
