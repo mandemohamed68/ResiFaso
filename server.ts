@@ -439,10 +439,25 @@ async function startServer() {
     } catch (err: any) { res.status(500).json({ error: err.message }); }
   });
 
+  const mapNotificationToCamelCase = (row: any) => {
+    if (!row) return row;
+    return {
+      id: row.id,
+      userId: row.user_id,
+      title: row.title,
+      message: row.message,
+      type: row.type,
+      isRead: row.is_read !== undefined ? !!row.is_read : false,
+      is_read: row.is_read,
+      referenceId: row.reference_id,
+      createdAt: row.created_at
+    };
+  };
+
   app.get("/api/notifications", authenticateToken, async (req: AuthRequest, res) => {
     try {
       const list = await executeSql("SELECT * FROM notifications WHERE user_id = ? ORDER BY created_at DESC", [req.user?.uid]);
-      res.json(list);
+      res.json(list.map(mapNotificationToCamelCase));
     } catch (err: any) { res.status(500).json({ error: err.message }); }
   });
 
@@ -458,9 +473,9 @@ async function startServer() {
       const notif = req.body;
       const id = `notif_${Date.now()}`;
       await executeSql(`
-        INSERT INTO notifications (id, user_id, title, message, type, is_read)
-        VALUES (?, ?, ?, ?, ?, ?)
-      `, [id, notif.userId, notif.title, notif.message, notif.type, 0]);
+        INSERT INTO notifications (id, user_id, title, message, type, is_read, reference_id)
+        VALUES (?, ?, ?, ?, ?, ?, ?)
+      `, [id, notif.userId, notif.title, notif.message, notif.type, 0, notif.referenceId || null]);
       res.json({ id, ...notif, is_read: 0 });
     } catch (err: any) { res.status(500).json({ error: err.message }); }
   });
@@ -637,6 +652,43 @@ async function startServer() {
     } catch (err: any) { res.status(500).json({ error: err.message }); }
   });
 
+  const mapBookingToCamelCase = (row: any) => {
+    if (!row) return row;
+    const mapping: Record<string, string> = {
+      residence_id: 'residenceId',
+      client_id: 'clientId',
+      owner_id: 'ownerId',
+      check_in: 'checkIn',
+      check_out: 'checkOut',
+      total_price: 'totalPrice',
+      advance_paid: 'advancePaid',
+      booking_status: 'bookingStatus',
+      payment_status: 'paymentStatus',
+      transaction_id: 'transactionId',
+      created_at: 'createdAt',
+      stay_status: 'stayStatus',
+      checked_in_at: 'checkedInAt',
+      checked_out_at: 'checkedOutAt',
+      cancelled_by: 'cancelledBy',
+      cancellation_reason: 'cancellationReason',
+      cancelled_at: 'cancelledAt',
+      refund_status: 'refundStatus',
+      refund_amount: 'refundAmount',
+      refund_phone: 'refundPhone',
+      refund_provider: 'refundProvider',
+      refund_processed_at: 'refundProcessedAt',
+      traveler_id: 'travelerId',
+      total_amount: 'totalAmount',
+      client_phone: 'clientPhone'
+    };
+    const mapped: any = {};
+    for (const [k, v] of Object.entries(row)) {
+      const targetKey = mapping[k] || k;
+      mapped[targetKey] = v;
+    }
+    return mapped;
+  };
+
   app.get("/api/bookings", authenticateToken, async (req: AuthRequest, res) => {
     try {
       const { role: queryRole, userId } = req.query;
@@ -645,14 +697,14 @@ async function startServer() {
       // or they can filter as they wish.
       if (req.user?.role === 'admin' && !queryRole) {
         const list = await executeSql("SELECT * FROM bookings ORDER BY created_at DESC");
-        return res.json(list);
+        return res.json(list.map(mapBookingToCamelCase));
       }
 
       const field = queryRole === 'owner' ? 'owner_id' : 'client_id';
       const targetUid = (req.user?.role === 'admin' && userId) ? userId : req.user?.uid;
       
       const list = await executeSql(`SELECT * FROM bookings WHERE ${field} = ? ORDER BY created_at DESC`, [targetUid]);
-      res.json(list);
+      res.json(list.map(mapBookingToCamelCase));
     } catch (err: any) { res.status(500).json({ error: err.message }); }
   });
 
@@ -675,7 +727,21 @@ async function startServer() {
         booking.advancePaid || 0,
         'pending'
       ]);
-      res.json({ id, ...booking, booking_status: 'pending' });
+      const createdBooking = {
+        id,
+        residence_id: booking.residenceId,
+        client_id: req.user?.uid,
+        owner_id: booking.ownerId,
+        check_in: booking.checkIn,
+        check_out: booking.checkOut,
+        guests: booking.guests || 1,
+        total_price: booking.totalPrice,
+        advance_paid: booking.advancePaid || 0,
+        booking_status: 'pending',
+        payment_status: 'pending',
+        created_at: new Date().toISOString()
+      };
+      res.json(mapBookingToCamelCase(createdBooking));
     } catch (err: any) { 
       console.error("Booking Creation Error:", err);
       res.status(500).json({ error: err.message }); 
@@ -685,7 +751,7 @@ async function startServer() {
   app.get("/api/residences/:id/bookings", async (req, res) => {
     try {
       const list = await executeSql("SELECT * FROM bookings WHERE residence_id = ? AND booking_status IN ('confirmed', 'pending')", [req.params.id]);
-      res.json(list);
+      res.json(list.map(mapBookingToCamelCase));
     } catch (err: any) { res.status(500).json({ error: err.message }); }
   });
 

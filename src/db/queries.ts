@@ -170,11 +170,14 @@ export const createResidence = async (res: any) => {
 };
 
 export const updateBookingStatus = async (id: string, updates: any) => {
-  const fields = Object.keys(updates);
+  const mappedUpdates: any = {};
+  for (const [k, v] of Object.entries(updates)) {
+    mappedUpdates[toSnakeCase(k)] = v;
+  }
+  const fields = Object.keys(mappedUpdates);
   if (fields.length === 0) return;
-  // Map JS camelCase to SQL snake_case if needed, but assuming server sends correct fields
   const setClause = fields.map(f => `${f} = ?`).join(', ');
-  await executeSql(`UPDATE bookings SET ${setClause} WHERE id = ?`, [...Object.values(updates), id]);
+  await executeSql(`UPDATE bookings SET ${setClause} WHERE id = ?`, [...Object.values(mappedUpdates), id]);
 };
 
 export const updateUserProfile = async (uid: string, updates: any) => {

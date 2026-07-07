@@ -59,7 +59,7 @@ export const Navbar: React.FC<{
         headers: { 'Authorization': `Bearer ${token}` }
       });
       if (response.ok) {
-        setNotifications(prev => prev.map(n => n.id === id ? { ...n, is_read: 1 } : n));
+        setNotifications(prev => prev.map(n => n.id === id ? { ...n, is_read: 1, isRead: true } : n));
       }
     } catch (err) {
       console.error(err);
@@ -69,18 +69,24 @@ export const Navbar: React.FC<{
   const handleMarkAllAsRead = async () => {
     const token = localStorage.getItem('auth_token');
     try {
-      const unread = notifications.filter(n => !n.is_read);
+      const unread = notifications.filter(n => {
+        const isRead = n.is_read !== undefined ? !!n.is_read : !!n.isRead;
+        return !isRead;
+      });
       await Promise.all(unread.map(n => fetch(`/api/notifications/${n.id}/read`, {
         method: 'POST',
         headers: { 'Authorization': `Bearer ${token}` }
       })));
-      setNotifications(prev => prev.map(n => ({ ...n, is_read: 1 })));
+      setNotifications(prev => prev.map(n => ({ ...n, is_read: 1, isRead: true })));
     } catch (err) {
       console.error(err);
     }
   };
 
-  const unreadCount = notifications.filter(n => !n.is_read).length;
+  const unreadCount = notifications.filter(n => {
+    const isRead = n.is_read !== undefined ? !!n.is_read : !!n.isRead;
+    return !isRead;
+  }).length;
 
   const roleLabels: Record<UserRole, string> = {
     client: 'Voyageur',
@@ -251,7 +257,7 @@ export const Navbar: React.FC<{
                           </div>
                         ) : (
                           notifications.map((notif) => {
-                            const isRead = !!notif.isRead;
+                            const isRead = notif.is_read !== undefined ? !!notif.is_read : !!notif.isRead;
                             let Icon = Info;
                             let iconColor = "text-blue-500";
                             let bgColor = "bg-blue-50/50";

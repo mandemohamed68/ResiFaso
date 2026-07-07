@@ -31,6 +31,12 @@ export const CustomSelect: React.FC<CustomSelectProps> = ({
   const selectedOption = options.find(opt => opt.id === value);
   const displayValue = selectedOption ? selectedOption.name : (value || search);
 
+  useEffect(() => {
+    if (!value) {
+      setSearch('');
+    }
+  }, [value]);
+
   const filteredOptions = options.filter(opt => 
     opt.name.toLowerCase().includes(search.toLowerCase())
   );
@@ -38,16 +44,25 @@ export const CustomSelect: React.FC<CustomSelectProps> = ({
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        const trimmedSearch = search.trim();
+        if (trimmedSearch !== '') {
+          const exactMatch = options.find(opt => opt.name.toLowerCase() === trimmedSearch.toLowerCase());
+          if (exactMatch) {
+            onChange(exactMatch.id);
+          } else {
+            onChange(trimmedSearch);
+          }
+        }
         setIsOpen(false);
         setSearch('');
       }
     };
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, []);
+  }, [search, options, onChange]);
 
   return (
-    <div className="relative flex-1" ref={dropdownRef}>
+    <div className={cn("relative flex-1", isOpen && "z-[1010]")} ref={dropdownRef}>
       <div className="group">
         <p className="text-[10px] uppercase font-black text-slate-400 tracking-widest mb-1 flex items-center gap-1.5 px-1">
           {Icon && <Icon size={12} className="text-red-500" />}
@@ -61,7 +76,9 @@ export const CustomSelect: React.FC<CustomSelectProps> = ({
             type="text"
             value={isOpen ? search : (displayValue === placeholder ? '' : displayValue)}
             onChange={(e) => {
-              setSearch(e.target.value);
+              const val = e.target.value;
+              setSearch(val);
+              onChange(val);
               if (!isOpen) setIsOpen(true);
             }}
             onFocus={() => setIsOpen(true)}
@@ -80,7 +97,7 @@ export const CustomSelect: React.FC<CustomSelectProps> = ({
       </div>
 
       {isOpen && (
-        <div className="absolute z-50 w-full mt-2 bg-white border border-slate-100 rounded-2xl shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+        <div className="absolute z-[1010] w-full mt-2 bg-white border border-slate-100 rounded-2xl shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-200">
           <div className="max-h-60 overflow-y-auto no-scrollbar">
             {filteredOptions.length > 0 ? (
               filteredOptions.map((option) => (

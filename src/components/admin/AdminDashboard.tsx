@@ -246,6 +246,8 @@ export const AdminDashboard: React.FC<{ onBackToTraveler?: () => void }> = ({ on
   useEffect(() => {
     if (dbType !== 'firebase' && user) {
       reloadData();
+      const interval = setInterval(reloadData, 30000);
+      return () => clearInterval(interval);
     }
   }, [dbType, user]);
 

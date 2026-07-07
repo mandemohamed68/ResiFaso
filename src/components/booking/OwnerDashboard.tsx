@@ -2562,8 +2562,8 @@ export const OwnerDashboard: React.FC<{ isTestMode?: boolean; onBackToTraveler?:
 
                 {/* STEP 2: Location logic inputs */}
                 {step === 2 && (
-                  <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} className="space-y-4">
-                    <div>
+                  <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} className="space-y-4 relative">
+                    <div className="relative z-[50]">
                       <CustomSelect
                         label="Ville (Burkina Faso) *"
                         placeholder="Sélectionnez ou tapez la ville"
@@ -2576,7 +2576,7 @@ export const OwnerDashboard: React.FC<{ isTestMode?: boolean; onBackToTraveler?:
                       />
                     </div>
 
-                    <div>
+                    <div className="relative z-[40]">
                       <CustomSelect
                         label="Quartier / Zone *"
                         placeholder="Sélectionnez ou tapez le quartier"
@@ -2586,7 +2586,7 @@ export const OwnerDashboard: React.FC<{ isTestMode?: boolean; onBackToTraveler?:
                       />
                     </div>
 
-                    <div>
+                    <div className="relative z-10">
                       <label className="block text-xs font-black text-slate-400 uppercase tracking-wider mb-2">Rue / Indication d'adresse</label>
                       <input
                         type="text"

@@ -523,10 +523,17 @@ export const initDatabase = async () => {
         message TEXT,
         type TEXT,
         is_read BOOLEAN DEFAULT 0,
+        reference_id TEXT,
         created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
         FOREIGN KEY(user_id) REFERENCES users(uid)
       )
     `);
+
+    try {
+      await executeSql("ALTER TABLE notifications ADD COLUMN reference_id TEXT");
+    } catch (colErr: any) {
+      // Column might already exist
+    }
 
     // Password Resets Table
     await executeSql(`
@@ -586,9 +593,17 @@ export const initDatabase = async () => {
     // --- MIGRATION: Super Admin as Host of all residences ---
     try {
       console.log("Migration: Setting Super Admin as host of all residences...");
-      await executeSql("UPDATE residences SET owner_id = 'admin_master'");
-      await executeSql("UPDATE bookings SET owner_id = 'admin_master'");
-      console.log("Migration: All residences and bookings now belong to Super Admin.");
+      const adminUsers = await executeSql("SELECT uid FROM users WHERE email = ?", [superAdminEmail]);
+      if (adminUsers && adminUsers.length > 0) {
+        const adminUid = adminUsers[0].uid;
+        await executeSql("UPDATE residences SET owner_id = ?", [adminUid]);
+        await executeSql("UPDATE bookings SET owner_id = ?", [adminUid]);
+        console.log(`Migration: All residences and bookings now belong to Super Admin (${adminUid}).`);
+      } else {
+        await executeSql("UPDATE residences SET owner_id = 'admin_master'");
+        await executeSql("UPDATE bookings SET owner_id = 'admin_master'");
+        console.log("Migration: All residences and bookings now belong to Super Admin (admin_master fallback).");
+      }
     } catch (migErr: any) {
       console.warn("Migration Super Admin Host failed (might be expected if tables are empty):", migErr.message);
     }
