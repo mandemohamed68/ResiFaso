@@ -38,10 +38,42 @@ export const PaymentModal: React.FC<Props> = ({ isOpen, onClose, amount, residen
   const [helperMessage, setHelperMessage] = useState('');
   const [error, setError] = useState<string | null>(null);
 
+  const getCleanBFNumber = (rawPhone: string): string => {
+    let clean = rawPhone.replace(/\D/g, "");
+    if (clean.length > 8) {
+      if (clean.startsWith("226")) {
+        return clean.slice(3);
+      }
+      if (clean.startsWith("00226")) {
+        return clean.slice(5);
+      }
+    }
+    return clean;
+  };
+
+  const handlePhoneChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    let rawVal = e.target.value.replace(/\D/g, "");
+    if (rawVal.startsWith("226") && rawVal.length > 8) {
+      rawVal = rawVal.slice(3);
+    } else if (rawVal.startsWith("00226") && rawVal.length > 8) {
+      rawVal = rawVal.slice(5);
+    }
+    if (rawVal.length > 8) {
+      rawVal = rawVal.slice(0, 8);
+    }
+    setPhone(rawVal);
+  };
+
+  const getFormattedPhone = () => {
+    const matches = phone.match(/.{1,2}/g);
+    return matches ? matches.join(' ') : phone;
+  };
+
   const handleInitiate = async () => {
     setLoading(true);
     setHelperMessage('');
     setError(null);
+    const cleanPhone = getCleanBFNumber(phone);
     try {
       // 1. Initialiser la facture (Sappay Init) via proxy local
       const initResp = await apiFetch('/api/payment/sappay/init', {
@@ -65,8 +97,8 @@ export const PaymentModal: React.FC<Props> = ({ isOpen, onClose, amount, residen
       setInvoiceId(currentInvoiceId);
       setAccessToken(currentToken);
       
-      // 2. Demander le code OTP (Sappay Get OTP) - Uniquement si requis par le provider (Moov, Coris)
-      const needsOtpGeneration = provider === 'moov' || provider === 'coris'; 
+      // 2. Demander le code OTP (Sappay Get OTP) - Requis pour Moov, Telecel et Coris
+      const needsOtpGeneration = provider === 'moov' || provider === 'coris' || provider === 'telecel'; 
       
       if (needsOtpGeneration) {
         const processorId = PROCESSOR_IDS[provider || 'moov'];
@@ -74,7 +106,7 @@ export const PaymentModal: React.FC<Props> = ({ isOpen, onClose, amount, residen
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            customer_msisdn: phone,
+            customer_msisdn: cleanPhone,
             invoice_id: currentInvoiceId,
             payment_processor_id: processorId,
             access_token: currentToken
@@ -92,13 +124,19 @@ export const PaymentModal: React.FC<Props> = ({ isOpen, onClose, amount, residen
         
         if (otpData.message) {
           setHelperMessage(otpData.message);
+        } else {
+          if (provider === 'moov') {
+            setHelperMessage("Un code OTP à 6 chiffres vous a été envoyé par SMS sur votre numéro Moov Money.");
+          } else if (provider === 'telecel') {
+            setHelperMessage("Un code OTP à 4 chiffres vous a été envoyé par SMS sur votre numéro Telecel Money.");
+          } else if (provider === 'coris') {
+            setHelperMessage("Un code OTP vous a été envoyé par SMS sur votre numéro lié à Coris Money.");
+          }
         }
       } else {
-        // Orange / Telecel : L'utilisateur doit générer son code lui-même (ex: *144*4*6#)
+        // Orange Money : L'utilisateur doit générer son code lui-même (ex: *144*4*6#)
         if (provider === 'orange') {
           setHelperMessage("Veuillez générer votre code de paiement Orange Money (Code 6 chiffres) en composant le *144*4*6# et saisissez-le ci-dessous.");
-        } else if (provider === 'telecel') {
-          setHelperMessage("Veuillez saisir votre code OTP Telecel pour valider le paiement.");
         }
       }
       
@@ -113,6 +151,7 @@ export const PaymentModal: React.FC<Props> = ({ isOpen, onClose, amount, residen
   const handleVerify = async () => {
     setLoading(true);
     setError(null);
+    const cleanPhone = getCleanBFNumber(phone);
     try {
       const processorId = PROCESSOR_IDS[provider || 'moov'];
       const resp = await apiFetch('/api/payment/sappay/perform', {
@@ -121,7 +160,7 @@ export const PaymentModal: React.FC<Props> = ({ isOpen, onClose, amount, residen
         body: JSON.stringify({
           invoice_id: invoiceId,
           payment_processor_id: processorId,
-          customer_msisdn: phone,
+          customer_msisdn: cleanPhone,
           otp: otp,
           trans_id: transId,
           access_token: accessToken
@@ -296,18 +335,18 @@ export const PaymentModal: React.FC<Props> = ({ isOpen, onClose, amount, residen
                   <input 
                     type="tel"
                     placeholder="70 00 00 00"
-                    value={phone}
-                    onChange={(e) => setPhone(e.target.value)}
+                    value={getFormattedPhone()}
+                    onChange={handlePhoneChange}
                     className="w-full pl-12 pr-4 py-4 bg-slate-50 border border-slate-200 rounded-2xl font-bold text-slate-900 focus:ring-2 focus:ring-red-600 outline-none transition-all"
                   />
                 </div>
 
                 <button 
-                  disabled={phone.length < 8 || loading}
+                  disabled={getCleanBFNumber(phone).length < 8 || loading}
                   onClick={handleInitiate}
                   className="w-full bg-red-600 text-white py-4 rounded-2xl font-black text-lg hover:bg-red-700 transition-all disabled:opacity-50 flex items-center justify-center gap-2 shadow-lg shadow-red-600/20 cursor-pointer"
                 >
-                  {loading ? <Loader2 className="animate-spin" /> : 'RECEVOIR LE CODE OTP'}
+                  {loading ? <Loader2 className="animate-spin" /> : (provider === 'orange' ? 'VALIDER ET SAISIR LE CODE' : 'RECEVOIR LE CODE OTP')}
                 </button>
               </motion.div>
             )}
@@ -326,7 +365,7 @@ export const PaymentModal: React.FC<Props> = ({ isOpen, onClose, amount, residen
                   </div>
                   <h4 className="text-xl font-bold text-slate-900 mb-2">Vérification</h4>
                   <p className="text-sm text-slate-500">
-                    {helperMessage || (isTestMode ? `Un code de sécurité a été envoyé au ${phone}. Entrez le code ${provider === 'telecel' ? '1234' : '123456'} pour tester.` : `Un code de sécurité a été envoyé au ${phone}. Veuillez le saisir ci-dessous.`)}
+                    {helperMessage || (isTestMode ? `Un code de sécurité a été envoyé au ${getFormattedPhone()}. Entrez le code ${provider === 'telecel' ? '1234' : '123456'} pour tester.` : `Un code de sécurité a été envoyé au ${getFormattedPhone()}. Veuillez le saisir ci-dessous.`)}
                   </p>
                 </div>
 

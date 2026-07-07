@@ -1430,13 +1430,47 @@ export const OwnerDashboard: React.FC<{ isTestMode?: boolean; onBackToTraveler?:
   const handleEditClick = (res: Residence) => {
     setTitle(res.title);
     setDescription(res.description);
-    setType(res.type);
+    
+    let finalType: string = res.type || 'appartement';
+    const typeMapping: Record<string, string> = {
+      'appartement': 'Appartement meublé',
+      'villa': 'Villa basse',
+      'chambre': "Chambre d'hôte",
+      'auberge': 'Auberge / Hôtel',
+    };
+    if (typeMapping[finalType.toLowerCase()]) {
+      finalType = typeMapping[finalType.toLowerCase()];
+    } else {
+      const found = PREDEFINED_TYPES.find(t => t.toLowerCase() === finalType.toLowerCase());
+      if (found) finalType = found;
+    }
+    setType(finalType as any);
+
+    const normalize = (s: string) => {
+      if (!s) return '';
+      return s.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-9]/g, "");
+    };
+
     const cityName = res.address?.city || res.city;
-    const city = BURKINA_LOCATIONS.find(c => c.name === cityName);
-    setSelectedCityId(city?.id || '');
+    const cityIdFromDoc = res.address?.cityId || '';
+    const city = allLocations.find(c => 
+      c.id === cityIdFromDoc || 
+      c.id === cityName || 
+      normalize(c.name) === normalize(cityName) || 
+      normalize(c.id) === normalize(cityName)
+    );
+    setSelectedCityId(city?.id || cityName || '');
+
     const hoodName = res.address?.neighborhood || res.neighborhood;
-    const hood = city?.neighborhoods.find(n => n.name === hoodName);
-    setSelectedNeighborhoodId(hood?.id || '');
+    const hoodIdFromDoc = res.address?.neighborhoodId || '';
+    const hood = city?.neighborhoods.find(n => 
+      n.id === hoodIdFromDoc || 
+      n.id === hoodName || 
+      normalize(n.name) === normalize(hoodName) || 
+      normalize(n.id) === normalize(hoodName)
+    );
+    setSelectedNeighborhoodId(hood?.id || hoodName || '');
+
     setStreet(res.address?.street || res.street || '');
     setPricePerNight(res.pricePerNight.toString());
     setAdvancePercentage(res.advancePercentage);

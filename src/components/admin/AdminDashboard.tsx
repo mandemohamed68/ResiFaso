@@ -2,7 +2,7 @@ import { formatCurrency } from '../../utils/currency';
 import React, { useState, useEffect } from 'react';
 import { 
   LayoutDashboard, Home, Users, BarChart3, Settings, ShieldCheck, 
-  Activity, Search, Trash2, Edit3, Plus, ArrowUpRight, TrendingUp, Calendar, Check, X,
+  Activity, Search, Trash2, Edit3, Plus, ArrowUpRight, TrendingUp, Calendar, Check, X, Eye,
   FileText, Download, Award, ShieldAlert, Megaphone, Upload, Wallet, ArrowLeft, MapPin, MessageSquare, Mail, Phone, Clock,
   ChevronLeft, ChevronRight
 } from 'lucide-react';
@@ -15,6 +15,7 @@ import { useLocations } from '../../hooks/useLocations';
 import { motion, AnimatePresence } from 'motion/react';
 import { cn, formatFCFA } from '../../lib/utils';
 import { useAuth } from '../../contexts/AuthContext';
+import { PREDEFINED_TYPES } from '../booking/OwnerDashboard';
 import { resizeImage } from '../../lib/imageResize';
 import { 
   hardResetDatabase, updateWithdrawalStatus, sendNotification,
@@ -68,6 +69,7 @@ export const AdminDashboard: React.FC<{ onBackToTraveler?: () => void }> = ({ on
 
   // Residence Editing State
   const [editingRes, setEditingRes] = useState<Residence | null>(null);
+  const [selectedResForDetail, setSelectedResForDetail] = useState<Residence | null>(null);
   const [isSavingRes, setIsSavingRes] = useState(false);
   const [editResTitle, setEditResTitle] = useState('');
   const [editResCityId, setEditResCityId] = useState('');
@@ -623,12 +625,50 @@ export const AdminDashboard: React.FC<{ onBackToTraveler?: () => void }> = ({ on
   };
 
   const handleStartEditResidence = (res: Residence) => {
+    const normalize = (s: string) => {
+      if (!s) return '';
+      return s.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-9]/g, "");
+    };
+
     setEditingRes(res);
     setEditResTitle(res.title);
-    setEditResCityId(res.address?.cityId || res.address?.city || res.city);
-    setEditResNeighborhoodId(res.address?.neighborhoodId || res.address?.neighborhood || res.neighborhood);
+
+    const cityName = res.address?.city || res.city;
+    const cityIdFromDoc = res.address?.cityId || '';
+    const city = allLocations.find(c => 
+      c.id === cityIdFromDoc || 
+      c.id === cityName || 
+      normalize(c.name) === normalize(cityName) || 
+      normalize(c.id) === normalize(cityName)
+    );
+    setEditResCityId(city?.id || cityName || '');
+
+    const hoodName = res.address?.neighborhood || res.neighborhood;
+    const hoodIdFromDoc = res.address?.neighborhoodId || '';
+    const hood = city?.neighborhoods.find(n => 
+      n.id === hoodIdFromDoc || 
+      n.id === hoodName || 
+      normalize(n.name) === normalize(hoodName) || 
+      normalize(n.id) === normalize(hoodName)
+    );
+    setEditResNeighborhoodId(hood?.id || hoodName || '');
+
     setEditResPrice(res.pricePerNight);
-    setEditResType(res.type || '');
+
+    let finalType = res.type || '';
+    const typeMapping: Record<string, string> = {
+      'appartement': 'Appartement meublé',
+      'villa': 'Villa basse',
+      'chambre': "Chambre d'hôte",
+      'auberge': 'Auberge / Hôtel',
+    };
+    if (typeMapping[finalType.toLowerCase()]) {
+      finalType = typeMapping[finalType.toLowerCase()];
+    } else {
+      const found = PREDEFINED_TYPES.find(t => t.toLowerCase() === finalType.toLowerCase());
+      if (found) finalType = found;
+    }
+    setEditResType(finalType);
   };
 
   const handleUpdateResidence = async (e: React.FormEvent) => {
@@ -1961,19 +2001,30 @@ export const AdminDashboard: React.FC<{ onBackToTraveler?: () => void }> = ({ on
               
               {residences.filter(r => r.status === 'pending').map(res => (
                 <div key={res.id} className="bg-white border border-slate-100 rounded-2xl p-4 flex flex-col sm:flex-row items-center justify-between gap-4">
-                  <div className="flex items-center gap-4">
+                  <div 
+                    className="flex items-center gap-4 cursor-pointer hover:opacity-80 transition duration-150"
+                    onClick={() => setSelectedResForDetail(res)}
+                  >
                     <img src={res.images?.[0] || 'https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?auto=format&fit=crop&w=150'} className="w-12 h-10 object-cover rounded-xl" />
                     <div>
-                      <h4 className="font-extrabold text-slate-900 text-xs leading-none mb-1">{res.title}</h4>
+                      <h4 className="font-extrabold text-slate-900 text-xs leading-none mb-1 hover:text-red-650 transition duration-150">{res.title}</h4>
                       <p className="text-[10px] text-slate-400 font-bold">{res.address?.city || res.city} - {res.address?.neighborhood || res.neighborhood}</p>
                     </div>
                   </div>
-                  <button 
-                    onClick={() => setActiveTab('listings')}
-                    className="px-4 py-2 border border-slate-200 text-slate-700 hover:bg-slate-50 text-[10px] font-black uppercase tracking-wider rounded-xl cursor-pointer"
-                  >
-                    Examiner dans le catalogue
-                  </button>
+                  <div className="flex gap-2">
+                    <button 
+                      onClick={() => setSelectedResForDetail(res)}
+                      className="px-4 py-2 bg-red-50 hover:bg-red-100 text-red-700 text-[10px] font-black uppercase tracking-wider rounded-xl cursor-pointer flex items-center gap-1.5 transition"
+                    >
+                      <Eye size={12} /> Voir les détails
+                    </button>
+                    <button 
+                      onClick={() => setActiveTab('listings')}
+                      className="px-4 py-2 border border-slate-200 text-slate-700 hover:bg-slate-50 text-[10px] font-black uppercase tracking-wider rounded-xl cursor-pointer transition"
+                    >
+                      Examiner dans le catalogue
+                    </button>
+                  </div>
                 </div>
               ))}
             </div>
@@ -2016,10 +2067,13 @@ export const AdminDashboard: React.FC<{ onBackToTraveler?: () => void }> = ({ on
                   <tbody className="divide-y divide-slate-50 text-sm font-bold text-slate-700">
                     {filteredResidences.slice((residencesPage - 1) * 8, residencesPage * 8).map(res => (
                       <tr key={res.id}>
-                        <td className="py-4 px-6 flex items-center gap-3">
-                          <img src={res.images?.[0] || 'https://images.unsplash.com/photo-1540555700478-4be289fbecef?auto=format&fit=crop&w=150'} className="w-12 h-10 object-cover rounded-md" />
+                        <td 
+                          className="py-4 px-6 flex items-center gap-3 cursor-pointer hover:bg-slate-50/50 group transition duration-150"
+                          onClick={() => setSelectedResForDetail(res)}
+                        >
+                          <img src={res.images?.[0] || 'https://images.unsplash.com/photo-1540555700478-4be289fbecef?auto=format&fit=crop&w=150'} className="w-12 h-10 object-cover rounded-md group-hover:scale-105 transition duration-150" />
                           <div>
-                            <span className="block font-black text-slate-900 leading-tight">{res.title}</span>
+                            <span className="block font-black text-slate-900 leading-tight group-hover:text-red-650 transition duration-150">{res.title}</span>
                             <span className="text-[10px] text-slate-400 font-medium capitalize">{res.type}</span>
                           </div>
                         </td>
@@ -2062,6 +2116,13 @@ export const AdminDashboard: React.FC<{ onBackToTraveler?: () => void }> = ({ on
                         </td>
                         <td className="py-4 px-6 text-center">
                           <div className="flex items-center justify-center gap-2">
+                            <button
+                              onClick={() => setSelectedResForDetail(res)}
+                              className="bg-slate-50 hover:bg-slate-100 border border-slate-200 text-slate-600 p-1.5 rounded-lg cursor-pointer transition"
+                              title="Voir tous les détails & images"
+                            >
+                              <Eye size={14} />
+                            </button>
                             <button
                               onClick={() => handleStartEditResidence(res)}
                               className="bg-slate-50 hover:bg-slate-100 border border-slate-200 text-slate-600 p-1.5 rounded-lg cursor-pointer transition"
@@ -4899,6 +4960,183 @@ export const AdminDashboard: React.FC<{ onBackToTraveler?: () => void }> = ({ on
                 </div>
               </div>
             )}
+          </div>
+        </div>
+      )}
+
+      {/* DETAILED VIEW MODAL FOR ADMIN MODERATION */}
+      {selectedResForDetail && (
+        <div className="fixed inset-0 bg-slate-900/80 backdrop-blur-sm flex items-center justify-center p-4 z-[9999] animate-in fade-in duration-200 overflow-y-auto">
+          <div className="bg-white rounded-[32px] w-full max-w-3xl overflow-hidden p-8 border border-slate-100 shadow-2xl relative my-8 animate-in zoom-in-95 duration-200 max-h-[90vh] overflow-y-auto">
+            <button
+              onClick={() => setSelectedResForDetail(null)}
+              className="absolute top-6 right-6 p-2 rounded-full hover:bg-slate-50 text-slate-400 hover:text-slate-600 transition"
+            >
+              <X size={18} />
+            </button>
+
+            <div className="mb-6">
+              <span className="text-[9px] bg-red-105 text-red-700 px-2.5 py-1 rounded-full font-black uppercase tracking-widest">
+                Examen du Logement
+              </span>
+              <h3 className="text-2xl font-black text-slate-900 leading-tight mt-2">{selectedResForDetail.title}</h3>
+              <p className="text-xs text-slate-500 font-semibold mt-1">
+                Type : <span className="capitalize text-slate-800">{selectedResForDetail.type}</span> &bull; Proposé par l'hôte
+              </p>
+            </div>
+
+            {/* Content layout */}
+            <div className="space-y-6">
+              {/* Image Gallery */}
+              <div>
+                <h4 className="text-xs font-black text-slate-400 uppercase tracking-widest mb-3">Galerie d'images ({selectedResForDetail.images?.length || 0})</h4>
+                {selectedResForDetail.images && selectedResForDetail.images.length > 0 ? (
+                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                    {selectedResForDetail.images.map((img, idx) => (
+                      <div key={idx} className="relative aspect-video rounded-2xl overflow-hidden shadow-sm group bg-slate-100">
+                        <img 
+                          src={img} 
+                          referrerPolicy="no-referrer" 
+                          className="w-full h-full object-cover hover:scale-105 transition duration-300" 
+                          alt={`Logement photo ${idx + 1}`}
+                        />
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="p-6 bg-slate-50 border border-slate-100 rounded-2xl text-center">
+                    <p className="text-xs text-slate-400 font-bold">Aucune image fournie pour ce logement.</p>
+                  </div>
+                )}
+              </div>
+
+              {/* Description */}
+              <div className="bg-slate-50 rounded-2xl p-5 border border-slate-100">
+                <h4 className="text-xs font-black text-slate-900 uppercase tracking-widest mb-2">Description détaillée</h4>
+                <p className="text-xs text-slate-600 font-semibold leading-relaxed whitespace-pre-line">
+                  {selectedResForDetail.description || "Aucune description fournie."}
+                </p>
+              </div>
+
+              {/* Key Specs Grid */}
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+                <div className="bg-slate-50 p-4 rounded-2xl border border-slate-100 text-center">
+                  <span className="block text-[10px] text-slate-400 uppercase font-black tracking-wider mb-1">Prix Nuitée</span>
+                  <span className="text-sm font-black text-slate-950">{formatCurrency(selectedResForDetail.pricePerNight)} F CFA</span>
+                </div>
+                <div className="bg-slate-50 p-4 rounded-2xl border border-slate-100 text-center">
+                  <span className="block text-[10px] text-slate-400 uppercase font-black tracking-wider mb-1">Capacité Max</span>
+                  <span className="text-sm font-black text-slate-950">{selectedResForDetail.capacity} voyageur(s)</span>
+                </div>
+                <div className="bg-slate-50 p-4 rounded-2xl border border-slate-100 text-center">
+                  <span className="block text-[10px] text-slate-400 uppercase font-black tracking-wider mb-1">Chambres / Lits</span>
+                  <span className="text-sm font-black text-slate-950">{selectedResForDetail.bedrooms || 0} ch. / {selectedResForDetail.beds || 0} lit(s)</span>
+                </div>
+                <div className="bg-slate-50 p-4 rounded-2xl border border-slate-100 text-center">
+                  <span className="block text-[10px] text-slate-400 uppercase font-black tracking-wider mb-1">Douches / Pièces</span>
+                  <span className="text-sm font-black text-slate-950">{selectedResForDetail.bathrooms || 0} dch. / {selectedResForDetail.rooms || 1} pces</span>
+                </div>
+              </div>
+
+              {/* Location & Contact Details */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="bg-slate-50 p-5 rounded-2xl border border-slate-100 space-y-3">
+                  <h4 className="text-xs font-black text-slate-900 uppercase tracking-widest">Localisation</h4>
+                  <div className="space-y-1.5 text-xs text-slate-600 font-semibold">
+                    <p><span className="text-slate-400 font-bold uppercase text-[10px]">Ville :</span> {selectedResForDetail.address?.city || selectedResForDetail.city}</p>
+                    <p><span className="text-slate-400 font-bold uppercase text-[10px]">Quartier :</span> {selectedResForDetail.address?.neighborhood || selectedResForDetail.neighborhood}</p>
+                    <p><span className="text-slate-400 font-bold uppercase text-[10px]">Rue / Indications :</span> {selectedResForDetail.address?.street || selectedResForDetail.street || "Non spécifié"}</p>
+                  </div>
+                </div>
+
+                <div className="bg-slate-50 p-5 rounded-2xl border border-slate-100 space-y-3">
+                  <h4 className="text-xs font-black text-slate-900 uppercase tracking-widest">Contact Propriétaire</h4>
+                  <div className="space-y-1.5 text-xs text-slate-600 font-semibold">
+                    <p><span className="text-slate-400 font-bold uppercase text-[10px]">Téléphone / WhatsApp :</span> <span className="font-black text-red-650">{selectedResForDetail.ownerPhone || "Non renseigné"}</span></p>
+                    <p><span className="text-slate-400 font-bold uppercase text-[10px]">Acompte requis :</span> {selectedResForDetail.advancePercentage || 30}% à la réservation</p>
+                    <p>
+                      <span className="text-slate-400 font-bold uppercase text-[10px]">Charges incluses :</span>{" "}
+                      {selectedResForDetail.utilitiesIncluded?.water ? "💧 Eau" : ""}
+                      {selectedResForDetail.utilitiesIncluded?.water && selectedResForDetail.utilitiesIncluded?.electricity ? " & " : ""}
+                      {selectedResForDetail.utilitiesIncluded?.electricity ? "⚡ Électricité" : ""}
+                      {!selectedResForDetail.utilitiesIncluded?.water && !selectedResForDetail.utilitiesIncluded?.electricity ? "Aucune charge incluse" : ""}
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Amenities List */}
+              <div>
+                <h4 className="text-xs font-black text-slate-400 uppercase tracking-widest mb-3">Équipements et Commodités</h4>
+                <div className="flex flex-wrap gap-2">
+                  {selectedResForDetail.amenities && selectedResForDetail.amenities.length > 0 ? (
+                    selectedResForDetail.amenities.map(item => (
+                      <span key={item} className="px-3 py-1.5 bg-red-50 text-red-700 rounded-xl text-xs font-bold border border-red-100 flex items-center gap-1.5 animate-in fade-in">
+                        <Check size={12} className="text-red-600" /> {item}
+                      </span>
+                    ))
+                  ) : (
+                    <span className="text-xs text-slate-400 font-bold italic">Aucun équipement spécifié.</span>
+                  )}
+                </div>
+              </div>
+
+              {/* Pricing Tiers if applicable */}
+              {selectedResForDetail.pricingTiers && selectedResForDetail.pricingTiers.length > 0 && (
+                <div>
+                  <h4 className="text-xs font-black text-slate-400 uppercase tracking-widest mb-3">Tarifs dégressifs</h4>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                    {selectedResForDetail.pricingTiers.map((tier, idx) => (
+                      <div key={idx} className="flex justify-between items-center bg-slate-50 p-3 rounded-xl border border-slate-100 text-xs font-bold">
+                        <span className="text-slate-500">À partir de {tier.minNights} nuitées</span>
+                        <span className="text-slate-900">{formatCurrency(tier.pricePerNight)} F CFA / nuit</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Footer actions inside detail modal */}
+            <div className="flex flex-col sm:flex-row gap-3 pt-6 border-t border-slate-100 mt-8">
+              {selectedResForDetail.status === 'pending' ? (
+                <>
+                  <button
+                    type="button"
+                    onClick={async () => {
+                      const resToApprove = selectedResForDetail;
+                      setSelectedResForDetail(null);
+                      await handleApproveResidence(resToApprove.id, resToApprove.title);
+                    }}
+                    className="flex-1 bg-green-650 hover:bg-green-700 text-white font-black py-4 rounded-2xl text-sm uppercase flex items-center justify-center gap-1.5 shadow-lg shadow-green-600/15 cursor-pointer"
+                  >
+                    <Check size={16} /> Approuver & Mettre en Ligne
+                  </button>
+                  <button
+                    type="button"
+                    onClick={async () => {
+                      const resToDecline = selectedResForDetail;
+                      setSelectedResForDetail(null);
+                      await handleDeclineResidence(resToDecline.id, resToDecline.title);
+                    }}
+                    className="flex-1 bg-orange-600 hover:bg-orange-700 text-white font-black py-4 rounded-2xl text-sm uppercase flex items-center justify-center gap-1.5 shadow-lg shadow-orange-600/15 cursor-pointer"
+                  >
+                    <X size={16} /> Rejeter avec Motif
+                  </button>
+                </>
+              ) : (
+                <div className="flex-1 text-left py-2 text-xs text-slate-400 font-bold flex items-center gap-1">
+                  Statut actuel : <span className="uppercase text-slate-650 font-black">{selectedResForDetail.status}</span>
+                </div>
+              )}
+              <button
+                type="button"
+                onClick={() => setSelectedResForDetail(null)}
+                className="px-6 py-4 border border-slate-200 hover:bg-slate-50 text-slate-700 font-black rounded-2xl text-sm uppercase cursor-pointer"
+              >
+                Fermer
+              </button>
+            </div>
           </div>
         </div>
       )}
