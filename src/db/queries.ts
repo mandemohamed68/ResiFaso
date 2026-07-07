@@ -106,6 +106,16 @@ export const deleteResidence = async (id: string) => {
 
 const toSnakeCase = (str: string) => str.replace(/[A-Z]/g, letter => `_${letter.toLowerCase()}`);
 
+const formatSqlValue = (val: any) => {
+  if (typeof val === 'string' && /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}/.test(val)) {
+    return val.replace('T', ' ').substring(0, 19);
+  }
+  if (val !== null && typeof val === 'object') {
+    return JSON.stringify(val);
+  }
+  return val;
+};
+
 const VALID_RESIDENCE_COLS = new Set([
   'id', 'owner_id', 'title', 'description', 'type', 'price_per_night',
   'advance_percentage', 'cleaning_fee', 'service_fee', 'city', 'neighborhood',
@@ -121,7 +131,7 @@ export const updateResidence = async (id: string, updates: any) => {
   for (const [k, v] of Object.entries(rest)) {
     const snakeKey = toSnakeCase(k);
     if (VALID_RESIDENCE_COLS.has(snakeKey)) {
-      mappedUpdates[snakeKey] = v;
+      mappedUpdates[snakeKey] = formatSqlValue(v);
     }
   }
   if (address) {
@@ -143,6 +153,7 @@ export const updateResidence = async (id: string, updates: any) => {
       await executeSql("INSERT INTO residence_amenities (residence_id, amenity) VALUES (?, ?)", [id, a]);
     }
   }
+
   if (images) {
     await executeSql("DELETE FROM residence_images WHERE residence_id = ?", [id]);
     for (const img of images) {
@@ -158,7 +169,7 @@ export const createResidence = async (res: any) => {
   for (const [k, v] of Object.entries(rest)) {
     const snakeKey = toSnakeCase(k);
     if (VALID_RESIDENCE_COLS.has(snakeKey) || snakeKey === 'id') {
-      mappedObj[snakeKey] = v;
+      mappedObj[snakeKey] = formatSqlValue(v);
     }
   }
   if (address) {
@@ -187,7 +198,7 @@ export const createResidence = async (res: any) => {
 export const updateBookingStatus = async (id: string, updates: any) => {
   const mappedUpdates: any = {};
   for (const [k, v] of Object.entries(updates)) {
-    mappedUpdates[toSnakeCase(k)] = v;
+    mappedUpdates[toSnakeCase(k)] = formatSqlValue(v);
   }
   const fields = Object.keys(mappedUpdates);
   if (fields.length === 0) return;
@@ -199,15 +210,17 @@ export const updateUserProfile = async (uid: string, updates: any) => {
   const mappedUpdates: any = { uid };
   for (const [k, v] of Object.entries(updates)) {
     if (k === 'uid') continue;
-    if (k === 'displayName') mappedUpdates.display_name = v;
-    else if (k === 'photoUrl') mappedUpdates.photo_url = v;
-    else if (k === 'isVerified') mappedUpdates.is_verified = v;
-    else if (k === 'isSuspended') mappedUpdates.is_suspended = v;
-    else if (k === 'phoneNumber') mappedUpdates.phone_number = v;
-    else if (k === 'createdAt') mappedUpdates.created_at = v;
-    else mappedUpdates[toSnakeCase(k)] = v;
+    
+    let dbValue = formatSqlValue(v);
+    
+    if (k === 'displayName') mappedUpdates.display_name = dbValue;
+    else if (k === 'photoUrl') mappedUpdates.photo_url = dbValue;
+    else if (k === 'isVerified') mappedUpdates.is_verified = dbValue;
+    else if (k === 'isSuspended') mappedUpdates.is_suspended = dbValue;
+    else if (k === 'phoneNumber') mappedUpdates.phone_number = dbValue;
+    else if (k === 'createdAt') mappedUpdates.created_at = dbValue;
+    else mappedUpdates[toSnakeCase(k)] = dbValue;
   }
-
   const fields = Object.keys(mappedUpdates);
   if (fields.length === 0) return;
   const placeholders = fields.map(() => '?').join(', ');

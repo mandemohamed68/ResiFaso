@@ -272,26 +272,29 @@ export const initDatabase = async () => {
 
     // Notifications Table
     try {
-      await executeSql("DROP TABLE IF EXISTS notifications");
       await executeSql(`
-        CREATE TABLE notifications (
+        CREATE TABLE IF NOT EXISTS notifications (
           id VARCHAR(128) PRIMARY KEY,
           user_id VARCHAR(255) NOT NULL,
           title VARCHAR(255),
           message TEXT,
           type VARCHAR(50),
           is_read BOOLEAN DEFAULT 0,
-        reference_id VARCHAR(128),
           created_at DATETIME DEFAULT CURRENT_TIMESTAMP
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
       `);
       
+      try {
+        await executeSql("ALTER TABLE notifications ADD COLUMN reference_id VARCHAR(128)");
+      } catch (colErr: any) {
+        // Column might already exist
+      }
+      
       // Attempt FK creation separately so it doesn't block the whole table creation if it fails
       try {
         await executeSql("ALTER TABLE notifications ADD CONSTRAINT fk_notifications_user FOREIGN KEY(user_id) REFERENCES users(uid) ON DELETE CASCADE");
-        console.log("Table 'notifications' créée avec succès avec FK.");
       } catch (fkErr: any) {
-        console.warn("FK notifications non créée (errno 150):", fkErr.message);
+        // FK might already exist or user table doesn't match
       }
     } catch (err: any) {
       console.error("Erreur table notifications:", err.message);
