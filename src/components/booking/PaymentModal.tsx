@@ -97,8 +97,8 @@ export const PaymentModal: React.FC<Props> = ({ isOpen, onClose, amount, residen
       setInvoiceId(currentInvoiceId);
       setAccessToken(currentToken);
       
-      // 2. Demander le code OTP (Sappay Get OTP) - Requis pour Moov, Telecel et Coris
-      const needsOtpGeneration = provider === 'moov' || provider === 'coris' || provider === 'telecel'; 
+      // 2. Demander le code OTP (Sappay Get OTP) - Requis pour Moov et Coris
+      const needsOtpGeneration = provider === 'moov' || provider === 'coris'; 
       
       if (needsOtpGeneration) {
         const processorId = PROCESSOR_IDS[provider || 'moov'];
@@ -127,16 +127,16 @@ export const PaymentModal: React.FC<Props> = ({ isOpen, onClose, amount, residen
         } else {
           if (provider === 'moov') {
             setHelperMessage("Un code OTP à 6 chiffres vous a été envoyé par SMS sur votre numéro Moov Money.");
-          } else if (provider === 'telecel') {
-            setHelperMessage("Un code OTP à 4 chiffres vous a été envoyé par SMS sur votre numéro Telecel Money.");
           } else if (provider === 'coris') {
             setHelperMessage("Un code OTP vous a été envoyé par SMS sur votre numéro lié à Coris Money.");
           }
         }
       } else {
-        // Orange Money : L'utilisateur doit générer son code lui-même (ex: *144*4*6#)
+        // Orange / Telecel : L'utilisateur doit générer son code lui-même (ex: *144*4*6#)
         if (provider === 'orange') {
           setHelperMessage("Veuillez générer votre code de paiement Orange Money (Code 6 chiffres) en composant le *144*4*6# et saisissez-le ci-dessous.");
+        } else if (provider === 'telecel') {
+          setHelperMessage("Veuillez générer votre code de paiement Telecel et saisissez-le ci-dessous.");
         }
       }
       
@@ -281,10 +281,10 @@ export const PaymentModal: React.FC<Props> = ({ isOpen, onClose, amount, residen
 
                 <div className="grid grid-cols-2 gap-3">
                   {[
-                    { id: 'orange', name: 'Orange Money', logo: '/orange.svg' },
-                    { id: 'moov', name: 'Moov Money', logo: '/moov.svg' },
-                    { id: 'telecel', name: 'Telecel Money', logo: '/telecel.svg' },
-                    { id: 'coris', name: 'Coris Money', logo: '/coris.svg' }
+                    { id: 'orange', name: 'Orange Money', logo: '/orange.png' },
+                    { id: 'moov', name: 'Moov Money', logo: '/moov-1.png' },
+                    { id: 'telecel', name: 'Telecel Money', logo: '/telecel.png' },
+                    { id: 'coris', name: 'Coris Money', logo: '/coris.png' }
                   ].map((p) => (
                     <button
                       key={p.id}
@@ -346,7 +346,7 @@ export const PaymentModal: React.FC<Props> = ({ isOpen, onClose, amount, residen
                   onClick={handleInitiate}
                   className="w-full bg-red-600 text-white py-4 rounded-2xl font-black text-lg hover:bg-red-700 transition-all disabled:opacity-50 flex items-center justify-center gap-2 shadow-lg shadow-red-600/20 cursor-pointer"
                 >
-                  {loading ? <Loader2 className="animate-spin" /> : (provider === 'orange' ? 'VALIDER ET SAISIR LE CODE' : 'RECEVOIR LE CODE OTP')}
+                  {loading ? <Loader2 className="animate-spin" /> : (provider === 'orange' || provider === 'telecel' ? 'VALIDER ET SAISIR LE CODE' : 'RECEVOIR LE CODE OTP')}
                 </button>
               </motion.div>
             )}
