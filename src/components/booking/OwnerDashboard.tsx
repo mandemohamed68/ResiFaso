@@ -705,7 +705,7 @@ export const OwnerDashboard: React.FC<{ isTestMode?: boolean; onBackToTraveler?:
         list.push({ id: docSnap.id, ...docSnap.data() });
       });
       // Sort on client by date (most recent first)
-      list.sort((a,b) => b.createdAt.localeCompare(a.createdAt));
+      list.sort((a,b) => (b.createdAt || '').localeCompare(a.createdAt || ''));
       setDbNotifications(list);
     }, (err) => console.error("Error watching notifications: ", err));
 

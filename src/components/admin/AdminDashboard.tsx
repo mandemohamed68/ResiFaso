@@ -2718,7 +2718,7 @@ export const AdminDashboard: React.FC<{ onBackToTraveler?: () => void }> = ({ on
                       </tr>
                     ) : (
                       withdrawals
-                        .sort((a, b) => b.createdAt.localeCompare(a.createdAt))
+                        .sort((a, b) => (b.createdAt || '').localeCompare(a.createdAt || ''))
                         .map(withd => {
                         const owner = users.find(u => u.uid === withd.ownerId);
                         return (

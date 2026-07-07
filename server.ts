@@ -294,6 +294,16 @@ async function startServer() {
   });
 
   // --- GENERIC DATA API (SQL) ---
+  const mapRowToCamelCase = (row: any) => {
+    if (!row) return row;
+    const result: any = {};
+    for (const key in row) {
+      const camelKey = key.replace(/_([a-z])/g, (g) => g[1].toUpperCase());
+      result[camelKey] = row[key];
+    }
+    return result;
+  };
+
   app.get("/api/residences", async (req, res) => {
     try {
       const { ownerId } = req.query;
@@ -301,7 +311,7 @@ async function startServer() {
       if (ownerId) {
         list = list.filter((r: any) => r.ownerId === ownerId);
       }
-      res.json(list);
+      res.json(list.map(mapRowToCamelCase));
     } catch (err: any) { res.status(500).json({ error: err.message }); }
   });
 
@@ -335,7 +345,7 @@ async function startServer() {
   app.get("/api/ads", async (req, res) => {
     try {
       const list = await queries.getAllAds();
-      res.json(list);
+      res.json(list.map(mapRowToCamelCase));
     } catch (err: any) { res.status(500).json({ error: err.message }); }
   });
 
@@ -364,7 +374,7 @@ async function startServer() {
   app.get("/api/faqs", async (req, res) => {
     try {
       const list = await executeSql("SELECT * FROM faqs ORDER BY `order` ASC");
-      res.json(list);
+      res.json(list.map(mapRowToCamelCase));
     } catch (err: any) { res.status(500).json({ error: err.message }); }
   });
 
@@ -394,7 +404,7 @@ async function startServer() {
     if (req.user?.role !== 'admin') return res.status(403).json({ error: "Réservé aux admins" });
     try {
       const list = await executeSql("SELECT * FROM contact_messages ORDER BY created_at DESC");
-      res.json(list);
+      res.json(list.map(mapRowToCamelCase));
     } catch (err: any) { res.status(500).json({ error: err.message }); }
   });
 
@@ -427,7 +437,7 @@ async function startServer() {
   app.get("/api/reviews", async (req, res) => {
     try {
       const list = await executeSql("SELECT * FROM reviews ORDER BY created_at DESC");
-      res.json(list);
+      res.json(list.map(mapRowToCamelCase));
     } catch (err: any) { res.status(500).json({ error: err.message }); }
   });
 
@@ -522,7 +532,7 @@ async function startServer() {
   app.get("/api/conversations/:id/messages", authenticateToken, async (req: AuthRequest, res) => {
     try {
       const list = await executeSql("SELECT * FROM messages WHERE conversation_id = ? ORDER BY created_at ASC", [req.params.id]);
-      res.json(list);
+      res.json(list.map(mapRowToCamelCase));
     } catch (err: any) { res.status(500).json({ error: err.message }); }
   });
 
@@ -537,7 +547,7 @@ async function startServer() {
       }
       query += " ORDER BY created_at DESC";
       const list = await executeSql(query, params);
-      res.json(list);
+      res.json(list.map(mapRowToCamelCase));
     } catch (err: any) { res.status(500).json({ error: err.message }); }
   });
 
@@ -648,7 +658,7 @@ async function startServer() {
     if (req.user?.role !== 'admin') return res.status(403).json({ error: "Interdit" });
     try {
       const list = await queries.getAllUsers();
-      res.json(list);
+      res.json(list.map(mapRowToCamelCase));
     } catch (err: any) { res.status(500).json({ error: err.message }); }
   });
 
