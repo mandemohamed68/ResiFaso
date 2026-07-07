@@ -357,6 +357,13 @@ async function startServer() {
     } catch (err: any) { res.status(500).json({ error: err.message }); }
   });
 
+  app.get("/api/debug-settings", async (req, res) => {
+    try {
+      const data = await queries.getSettings('global');
+      res.json(data);
+    } catch (err: any) { res.status(500).json({ error: err.message }); }
+  });
+
   app.get("/api/settings/:key", async (req, res) => {
     try {
       const data = await queries.getSettings(req.params.key);
@@ -367,6 +374,7 @@ async function startServer() {
   app.post("/api/settings/:key", authenticateToken, async (req: AuthRequest, res) => {
     if (req.user?.role !== 'admin') return res.status(403).json({ error: "Réservé aux admins" });
     try {
+      console.log(`[DEBUG] Updating settings for key: ${req.params.key}, body:`, JSON.stringify(req.body));
       await queries.saveSettings(req.params.key, req.body);
       res.json({ success: true });
     } catch (err: any) { res.status(500).json({ error: err.message }); }

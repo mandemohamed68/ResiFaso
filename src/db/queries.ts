@@ -86,11 +86,13 @@ export const getSettings = async (key: string) => {
 };
 
 export const saveSettings = async (key: string, value: any) => {
+  console.log(`[DEBUG] Saving settings for key: ${key}, value:`, JSON.stringify(value));
   const dbType = process.env.DB_TYPE || 'sqlite';
+  const valString = JSON.stringify(value);
   if (dbType === 'mariadb') {
-    await executeSql("INSERT INTO settings (`key`, value) VALUES (?, ?) ON DUPLICATE KEY UPDATE value = ?", [key, JSON.stringify(value), JSON.stringify(value)]);
+    await executeSql("INSERT INTO settings (`key`, value) VALUES (?, ?) ON DUPLICATE KEY UPDATE value = ?", [key, valString, valString]);
   } else {
-    await executeSql("INSERT INTO settings (`key`, value) VALUES (?, ?) ON CONFLICT(`key`) DO UPDATE SET value = ?", [key, JSON.stringify(value), JSON.stringify(value)]);
+    await executeSql("INSERT INTO settings (`key`, value) VALUES (?, ?) ON CONFLICT(`key`) DO UPDATE SET value = ?", [key, valString, valString]);
   }
 };
 

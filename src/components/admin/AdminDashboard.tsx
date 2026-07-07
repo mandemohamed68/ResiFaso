@@ -337,7 +337,7 @@ export const AdminDashboard: React.FC<{ onBackToTraveler?: () => void }> = ({ on
     }, (error) => console.error("AdminDashboard reviews snapshot error:", error));
 
     // Settings listener
-    const unsubSettings = onSnapshot(doc(db, 'settings', 'global'), (docSnap) => {
+    const unsubSettings = dbType === 'firebase' ? onSnapshot(doc(db, 'settings', 'global'), (docSnap) => {
       if (docSnap.exists()) {
         const data = docSnap.data();
         if (data.platformName) setPlatformName(data.platformName);
@@ -357,7 +357,7 @@ export const AdminDashboard: React.FC<{ onBackToTraveler?: () => void }> = ({ on
           setAnnouncementActive(data.announcement.active || false);
         }
       }
-    }, (error) => console.error("AdminDashboard settings snapshot error:", error));
+    }, (error) => console.error("AdminDashboard settings snapshot error:", error)) : () => {};
 
     // Ads listener
     const unsubAds = onSnapshot(collection(db, 'ads'), (snapshot) => {
