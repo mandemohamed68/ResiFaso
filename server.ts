@@ -237,8 +237,6 @@ async function startServer() {
     if (!email || !password) return res.status(400).json({ error: "Email et mot de passe requis" });
 
     try {
-      if (DB_TYPE === "firebase") {}
-
       const existing = await executeSql("SELECT uid FROM users WHERE email = ?", [email]);
       if (existing && existing.length > 0) return res.status(400).json({ error: "Cet email est déjà utilisé" });
 
@@ -261,8 +259,6 @@ async function startServer() {
   app.post("/api/auth/login", async (req, res) => {
     const { email, password } = req.body;
     try {
-      if (DB_TYPE === "firebase") {}
-
       const users = await executeSql("SELECT * FROM users WHERE email = ?", [email]);
       if (!users || users.length === 0) return res.status(401).json({ error: "Identifiants invalides" });
 
@@ -821,8 +817,6 @@ async function startServer() {
       let userExists = false;
       let emailSettings: any = null;
 
-      if (DB_TYPE === "firebase") {}
-
       if (!userExists) {
         return res.status(404).json({ error: "Aucun utilisateur trouvé avec cet email" });
       }
@@ -847,15 +841,19 @@ async function startServer() {
       const token = await getSappayToken();
       
       const payload = {
-        amount: parseFloat(amount),
-        customer_email: email || "client@resifaso.com",
+        type: "SIMPLE",
+        customer: {
+          email: email || "client@resifaso.com",
+          country: 1
+        },
+        amount: parseFloat(amount).toFixed(2),
         note: note || "Validation acompte"
       };
       
       let invoiceId = "";
       
       if (!credentials.isTestMode) {
-        const response = await fetch(`${urls.checkoutBase}/invoices/`, {
+        const response = await fetch(`${urls.publicBase}/invoice/`, {
           method: "POST",
           headers: {
             "Content-Type": "application/json",

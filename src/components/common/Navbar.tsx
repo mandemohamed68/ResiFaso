@@ -106,7 +106,7 @@ export const Navbar: React.FC<{
         >
           <div className="w-10 h-10 flex-shrink-0 flex items-center justify-center overflow-hidden rounded-xl bg-slate-900 border border-slate-800 shadow-md relative">
             <img 
-              src="/logoresifaso.png" 
+              src="/logoresifaso.png?v=2" 
               alt="ResiFaso logo" 
               className="w-full h-full object-cover scale-110" 
               referrerPolicy="no-referrer"
