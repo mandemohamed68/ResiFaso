@@ -51,9 +51,15 @@ export const getAllResidences = async () => {
       neighborhood: res.neighborhood,
       street: res.street
     },
-    utilitiesIncluded: res.utilitiesIncludedRaw
-      ? (typeof res.utilitiesIncludedRaw === 'string' ? JSON.parse(res.utilitiesIncludedRaw) : res.utilitiesIncludedRaw)
-      : { water: false, electricity: false }
+    utilitiesIncluded: (() => {
+      try {
+        if (!res.utilitiesIncludedRaw) return { water: false, electricity: false };
+        return typeof res.utilitiesIncludedRaw === 'string' ? JSON.parse(res.utilitiesIncludedRaw) : res.utilitiesIncludedRaw;
+      } catch (e) {
+        console.warn(`Error parsing utilitiesIncluded for residence ${res.id}:`, e);
+        return { water: false, electricity: false };
+      }
+    })()
   }));
 };
 
@@ -79,9 +85,15 @@ export const getResidenceById = async (id: string) => {
     neighborhood: residence.neighborhood,
     street: residence.street
   };
-  residence.utilitiesIncluded = residence.utilitiesIncludedRaw
-    ? (typeof residence.utilitiesIncludedRaw === 'string' ? JSON.parse(res.utilitiesIncludedRaw) : residence.utilitiesIncludedRaw)
-    : { water: false, electricity: false };
+  residence.utilitiesIncluded = (() => {
+    try {
+      if (!residence.utilitiesIncludedRaw) return { water: false, electricity: false };
+      return typeof residence.utilitiesIncludedRaw === 'string' ? JSON.parse(residence.utilitiesIncludedRaw) : residence.utilitiesIncludedRaw;
+    } catch (e) {
+      console.warn(`Error parsing utilitiesIncluded for residence ${id}:`, e);
+      return { water: false, electricity: false };
+    }
+  })();
   return residence;
 };
 
@@ -91,10 +103,10 @@ export const getSettings = async (key: string) => {
   if (results.length === 0) return {};
   
   try {
-    const data = JSON.parse(results[0].value);
+    const data = typeof results[0].value === 'string' ? JSON.parse(results[0].value) : results[0].value;
     
     // Harmonize types for 'global' settings
-    if (key === 'global') {
+    if (key === 'global' && data) {
       if (data.commissionRate !== undefined) data.commissionRate = Number(data.commissionRate);
       if (data.isTestMode !== undefined) data.isTestMode = Boolean(data.isTestMode);
       if (data.enablePhoneCalls !== undefined) data.enablePhoneCalls = Boolean(data.enablePhoneCalls);

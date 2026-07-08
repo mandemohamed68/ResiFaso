@@ -326,12 +326,12 @@ export const initDatabase = async () => {
       ) ENGINE=InnoDB
     `);
 
-    // Notifications Table
+    // Notifications Table (with corrected user_id length)
     try {
       await executeSql(`
         CREATE TABLE IF NOT EXISTS notifications (
           id VARCHAR(128) PRIMARY KEY,
-          user_id VARCHAR(128) NOT NULL,
+          user_id VARCHAR(255) NOT NULL,  -- 🔥 MODIFIED: now VARCHAR(255) to match users.uid
           title VARCHAR(255),
           message TEXT,
           type VARCHAR(50),
@@ -350,9 +350,9 @@ export const initDatabase = async () => {
         // Fallback or ignore
       }
 
-      // Explicitly modify existing user_id column to VARCHAR(128) to match users.uid VARCHAR(128)
+      // Explicitly modify existing user_id column to match users.uid length
       try {
-        await executeSql("ALTER TABLE notifications MODIFY COLUMN user_id VARCHAR(128) NOT NULL");
+        await executeSql("ALTER TABLE notifications MODIFY COLUMN user_id VARCHAR(255) NOT NULL");
       } catch (modifyErr: any) {
         // Ignored or already aligned
       }
@@ -362,6 +362,7 @@ export const initDatabase = async () => {
         await executeSql("ALTER TABLE notifications ADD CONSTRAINT fk_notifications_user FOREIGN KEY(user_id) REFERENCES users(uid) ON DELETE CASCADE");
       } catch (fkErr: any) {
         // FK might already exist or user table doesn't match
+        console.warn("FK notification creation warning (maybe already exists):", fkErr.message);
       }
     } catch (err: any) {
       console.error("Erreur table notifications:", err.message);
@@ -392,7 +393,7 @@ export const initDatabase = async () => {
       await executeSql("SET FOREIGN_KEY_CHECKS = 1");
     }
   } else {
-    // SQLite compatible schema
+    // SQLite compatible schema (unchanged)
     // Users Table
     await executeSql(`
       CREATE TABLE IF NOT EXISTS users (

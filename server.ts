@@ -233,6 +233,7 @@ async function startServer() {
     }
   });
 
+  // --- Residences ---
   app.get("/api/residences", async (req, res) => {
     try {
       const residences = await queries.getAllResidences();
@@ -254,9 +255,9 @@ async function startServer() {
 
   app.post("/api/residences", authenticateToken, async (req: AuthRequest, res) => {
     try {
-      const data = { ...req.body, ownerId: req.user?.uid };
       const id = 'res_' + Math.random().toString(36).substr(2, 9);
-      await queries.createResidence({ ...data, id });
+      const data = { ...req.body, id, ownerId: req.user?.uid };
+      await queries.createResidence(data);
       res.json({ success: true, id });
     } catch (err: any) {
       res.status(500).json({ error: err.message });
@@ -265,7 +266,6 @@ async function startServer() {
 
   app.put("/api/residences/:id", authenticateToken, async (req: AuthRequest, res) => {
     try {
-      // Logic to check if owner matches
       const existing = await queries.getResidenceById(req.params.id);
       if (!existing) return res.status(404).json({ error: "Résidence non trouvée" });
       if (existing.ownerId !== req.user?.uid && req.user?.role !== 'admin') {
@@ -295,12 +295,23 @@ async function startServer() {
   // --- Bookings ---
   app.get("/api/bookings", authenticateToken, async (req: AuthRequest, res) => {
     try {
-      const role = req.user?.role;
+      const role = req.query.role;
       const uid = req.user?.uid;
       let sql = "SELECT * FROM bookings WHERE client_id = ? OR owner_id = ? ORDER BY created_at DESC";
-      if (role === 'admin') sql = "SELECT * FROM bookings ORDER BY created_at DESC";
+      let params = [uid, uid];
       
-      const bookings = await executeSql(sql, role === 'admin' ? [] : [uid, uid]);
+      if (req.user?.role === 'admin') {
+        sql = "SELECT * FROM bookings ORDER BY created_at DESC";
+        params = [];
+      } else if (role === 'client') {
+        sql = "SELECT * FROM bookings WHERE client_id = ? ORDER BY created_at DESC";
+        params = [uid];
+      } else if (role === 'owner') {
+        sql = "SELECT * FROM bookings WHERE owner_id = ? ORDER BY created_at DESC";
+        params = [uid];
+      }
+      
+      const bookings = await executeSql(sql, params);
       res.json(bookings);
     } catch (err: any) {
       res.status(500).json({ error: err.message });
@@ -330,11 +341,38 @@ async function startServer() {
     }
   });
 
+  app.patch("/api/bookings/:id", authenticateToken, async (req: AuthRequest, res) => {
+    try {
+      await queries.updateBookingStatus(req.params.id, req.body);
+      res.json({ success: true });
+    } catch (err: any) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
   // --- Conversations & Messages ---
   app.get("/api/conversations", authenticateToken, async (req: AuthRequest, res) => {
     try {
       const convs = await executeSql("SELECT * FROM conversations WHERE participants LIKE ?", [`%${req.user?.uid}%`]);
       res.json(convs);
+    } catch (err: any) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  app.post("/api/conversations", authenticateToken, async (req: AuthRequest, res) => {
+    try {
+      const { participants, relatedId } = req.body;
+      const participantsStr = participants.sort().join(',');
+      const existing = await executeSql("SELECT id FROM conversations WHERE participants = ? AND (related_id = ? OR related_id IS NULL)", [participantsStr, relatedId]);
+      
+      if (existing.length > 0) {
+        return res.json({ id: existing[0].id });
+      }
+
+      const id = 'conv_' + Math.random().toString(36).substr(2, 9);
+      await executeSql("INSERT INTO conversations (id, participants, related_id) VALUES (?, ?, ?)", [id, participantsStr, relatedId]);
+      res.json({ id });
     } catch (err: any) {
       res.status(500).json({ error: err.message });
     }
@@ -362,6 +400,15 @@ async function startServer() {
   });
 
   // --- Users ---
+  app.get("/api/users", authenticateToken, async (req, res) => {
+    try {
+      const users = await queries.getAllUsers();
+      res.json(users);
+    } catch (err: any) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
   app.get("/api/users/public", async (req, res) => {
     try {
       const users = await executeSql("SELECT uid, display_name as displayName, photo_url as photoUrl FROM users");
@@ -380,11 +427,258 @@ async function startServer() {
     }
   });
 
+  app.put("/api/users/:uid", authenticateToken, async (req: AuthRequest, res) => {
+    try {
+      if (req.user?.uid !== req.params.uid && req.user?.role !== 'admin') {
+        return res.status(403).json({ error: "Non autorisé" });
+      }
+      await queries.updateUserProfile(req.params.uid, req.body);
+      res.json({ success: true });
+    } catch (err: any) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  app.delete("/api/users/:uid", authenticateToken, async (req: AuthRequest, res) => {
+    try {
+      if (req.user?.role !== 'admin') {
+        return res.status(403).json({ error: "Réservé aux administrateurs" });
+      }
+      await queries.deleteUser(req.params.uid);
+      res.json({ success: true });
+    } catch (err: any) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  // --- Settings ---
+  app.get("/api/settings/:key", async (req, res) => {
+    try {
+      const settings = await queries.getSettings(req.params.key);
+      res.json(settings);
+    } catch (err: any) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  app.post("/api/settings/:key", authenticateToken, async (req: AuthRequest, res) => {
+    try {
+      if (req.user?.role !== 'admin') {
+        return res.status(403).json({ error: "Réservé aux administrateurs" });
+      }
+      await queries.saveSettings(req.params.key, req.body);
+      res.json({ success: true });
+    } catch (err: any) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  // --- Ads ---
+  app.get("/api/ads", async (req, res) => {
+    try {
+      const ads = await queries.getAllAds();
+      res.json(ads);
+    } catch (err: any) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  app.post("/api/ads", authenticateToken, async (req: AuthRequest, res) => {
+    try {
+      if (req.user?.role !== 'admin') return res.status(403).json({ error: "Non autorisé" });
+      const id = req.body.id || 'ad_' + Math.random().toString(36).substr(2, 9);
+      const fields = ['id', 'title', 'description', 'image_url', 'link_url', 'is_active', 'frequency_seconds'];
+      const vals = [id, req.body.title, req.body.description, req.body.image_url, req.body.link_url, req.body.is_active ? 1 : 0, req.body.frequency_seconds];
+      
+      const placeholders = fields.map(() => '?').join(', ');
+      
+      const dbType = process.env.DB_TYPE || 'sqlite';
+      if (dbType === 'mariadb') {
+        const updateClause = fields.map(f => `${f} = VALUES(${f})`).join(', ');
+        await executeSql(`INSERT INTO advertisements (${fields.join(', ')}) VALUES (${placeholders}) ON DUPLICATE KEY UPDATE ${updateClause}`, vals);
+      } else {
+        const sqliteUpdate = fields.map(f => `${f} = ?`).join(', ');
+        await executeSql(`INSERT INTO advertisements (${fields.join(', ')}) VALUES (${placeholders}) ON CONFLICT(id) DO UPDATE SET ${sqliteUpdate}`, [...vals, ...vals]);
+      }
+      res.json({ success: true, id });
+    } catch (err: any) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  app.delete("/api/ads/:id", authenticateToken, async (req: AuthRequest, res) => {
+    try {
+      if (req.user?.role !== 'admin') return res.status(403).json({ error: "Non autorisé" });
+      await executeSql("DELETE FROM advertisements WHERE id = ?", [req.params.id]);
+      res.json({ success: true });
+    } catch (err: any) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  // --- FAQs ---
+  app.get("/api/faqs", async (req, res) => {
+    try {
+      const faqs = await executeSql("SELECT * FROM faqs ORDER BY `order` ASC");
+      res.json(faqs);
+    } catch (err: any) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  app.post("/api/faqs", authenticateToken, async (req: AuthRequest, res) => {
+    try {
+      if (req.user?.role !== 'admin') return res.status(403).json({ error: "Non autorisé" });
+      const id = req.body.id || 'faq_' + Math.random().toString(36).substr(2, 9);
+      const { question, answer, category, order } = req.body;
+      
+      const dbType = process.env.DB_TYPE || 'sqlite';
+      if (dbType === 'mariadb') {
+        await executeSql("INSERT INTO faqs (id, question, answer, category, `order`) VALUES (?, ?, ?, ?, ?) ON DUPLICATE KEY UPDATE question=VALUES(question), answer=VALUES(answer), category=VALUES(category), `order`=VALUES(`order`)", [id, question, answer, category, order]);
+      } else {
+        await executeSql("INSERT INTO faqs (id, question, answer, category, `order`) VALUES (?, ?, ?, ?, ?) ON CONFLICT(id) DO UPDATE SET question=?, answer=?, category=?, `order`=?", [id, question, answer, category, order, question, answer, category, order]);
+      }
+      res.json({ success: true, id });
+    } catch (err: any) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  app.delete("/api/faqs/:id", authenticateToken, async (req: AuthRequest, res) => {
+    try {
+      if (req.user?.role !== 'admin') return res.status(403).json({ error: "Non autorisé" });
+      await executeSql("DELETE FROM faqs WHERE id = ?", [req.params.id]);
+      res.json({ success: true });
+    } catch (err: any) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  // --- Contact Messages ---
+  app.get("/api/contact-messages", authenticateToken, async (req: AuthRequest, res) => {
+    try {
+      if (req.user?.role !== 'admin') return res.status(403).json({ error: "Non autorisé" });
+      const messages = await executeSql("SELECT * FROM contact_messages ORDER BY created_at DESC");
+      res.json(messages);
+    } catch (err: any) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  app.post("/api/contact-messages", async (req, res) => {
+    try {
+      const id = 'cont_' + Math.random().toString(36).substr(2, 9);
+      const { name, email, subject, message } = req.body;
+      await executeSql("INSERT INTO contact_messages (id, name, email, subject, message) VALUES (?, ?, ?, ?, ?)", [id, name, email, subject, message]);
+      res.json({ success: true, id });
+    } catch (err: any) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  app.put("/api/contact-messages/:id", authenticateToken, async (req: AuthRequest, res) => {
+    try {
+      if (req.user?.role !== 'admin') return res.status(403).json({ error: "Non autorisé" });
+      const fields = Object.keys(req.body);
+      const setClause = fields.map(f => `${f} = ?`).join(', ');
+      await executeSql(`UPDATE contact_messages SET ${setClause} WHERE id = ?`, [...Object.values(req.body), req.params.id]);
+      res.json({ success: true });
+    } catch (err: any) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  app.delete("/api/contact-messages/:id", authenticateToken, async (req: AuthRequest, res) => {
+    try {
+      if (req.user?.role !== 'admin') return res.status(403).json({ error: "Non autorisé" });
+      await executeSql("DELETE FROM contact_messages WHERE id = ?", [req.params.id]);
+      res.json({ success: true });
+    } catch (err: any) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  // --- Reviews ---
+  app.get("/api/reviews", async (req, res) => {
+    try {
+      const reviews = await executeSql("SELECT * FROM reviews ORDER BY created_at DESC");
+      res.json(reviews);
+    } catch (err: any) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  app.delete("/api/reviews/:id", authenticateToken, async (req: AuthRequest, res) => {
+    try {
+      if (req.user?.role !== 'admin') return res.status(403).json({ error: "Non autorisé" });
+      await queries.deleteReview(req.params.id);
+      res.json({ success: true });
+    } catch (err: any) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  // --- Withdrawals ---
+  app.get("/api/withdrawals", authenticateToken, async (req: AuthRequest, res) => {
+    try {
+      const ownerId = req.query.ownerId;
+      let sql = "SELECT * FROM withdrawals ORDER BY created_at DESC";
+      let params: any[] = [];
+      
+      if (ownerId) {
+        sql = "SELECT * FROM withdrawals WHERE owner_id = ? ORDER BY created_at DESC";
+        params = [ownerId];
+      } else if (req.user?.role !== 'admin') {
+        sql = "SELECT * FROM withdrawals WHERE owner_id = ? ORDER BY created_at DESC";
+        params = [req.user?.uid];
+      }
+      
+      const withdrawals = await executeSql(sql, params);
+      res.json(withdrawals);
+    } catch (err: any) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  app.post("/api/withdrawals", authenticateToken, async (req: AuthRequest, res) => {
+    try {
+      const id = 'wth_' + Math.random().toString(36).substr(2, 9);
+      const { amount, phone, provider } = req.body;
+      await executeSql("INSERT INTO withdrawals (id, owner_id, amount, phone, provider) VALUES (?, ?, ?, ?, ?)", [id, req.user?.uid, amount, phone, provider]);
+      res.json({ success: true, id });
+    } catch (err: any) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  app.patch("/api/withdrawals/:id", authenticateToken, async (req: AuthRequest, res) => {
+    try {
+      if (req.user?.role !== 'admin') return res.status(403).json({ error: "Non autorisé" });
+      const fields = Object.keys(req.body);
+      const setClause = fields.map(f => `${f} = ?`).join(', ');
+      await executeSql(`UPDATE withdrawals SET ${setClause} WHERE id = ?`, [...Object.values(req.body), req.params.id]);
+      res.json({ success: true });
+    } catch (err: any) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
   // --- Notifications ---
   app.get("/api/notifications", authenticateToken, async (req: AuthRequest, res) => {
     try {
       const notifications = await executeSql("SELECT * FROM notifications WHERE user_id = ? ORDER BY created_at DESC", [req.user?.uid]);
       res.json(notifications);
+    } catch (err: any) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  app.post("/api/notifications", authenticateToken, async (req: AuthRequest, res) => {
+    try {
+      const id = 'not_' + Math.random().toString(36).substr(2, 9);
+      const { user_id, title, message, type, reference_id } = req.body;
+      await executeSql("INSERT INTO notifications (id, user_id, title, message, type, reference_id) VALUES (?, ?, ?, ?, ?, ?)", [id, user_id, title, message, type, reference_id]);
+      res.json({ success: true, id });
     } catch (err: any) {
       res.status(500).json({ error: err.message });
     }
@@ -399,21 +693,12 @@ async function startServer() {
     }
   });
 
-  // --- Settings ---
-  app.get("/api/settings/global", async (req, res) => {
+  // --- Admin ---
+  app.post("/api/admin/reset-db", authenticateToken, async (req: AuthRequest, res) => {
     try {
-      const settings = await queries.getSettings('global');
-      res.json(settings);
-    } catch (err: any) {
-      res.status(500).json({ error: err.message });
-    }
-  });
-
-  // --- Ads ---
-  app.get("/api/ads", async (req, res) => {
-    try {
-      const ads = await queries.getAllAds();
-      res.json(ads);
+      if (req.user?.role !== 'admin') return res.status(403).json({ error: "Non autorisé" });
+      await initDatabase();
+      res.json({ success: true });
     } catch (err: any) {
       res.status(500).json({ error: err.message });
     }
