@@ -118,25 +118,28 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onNavigat
           <X size={18} />
         </button>
 
-        <div className="mb-6 text-center">
-          <div className="inline-flex w-48 h-24 sm:w-64 sm:h-32 items-center justify-center mb-2 relative">
-            <img 
-              src="/logoresifaso.png" 
-              alt="ResiFaso" 
-              className="w-full h-full object-contain" 
-              referrerPolicy="no-referrer"
-              onError={(e) => {
-                const target = e.target as HTMLImageElement;
-                target.style.display = 'none';
-                const parent = target.parentElement;
-                if (parent) {
-                  const fallback = document.createElement('div');
-                  fallback.className = 'text-3xl font-black text-red-600 tracking-tighter';
-                  fallback.innerText = 'ResiFaso';
-                  parent.appendChild(fallback);
-                }
-              }}
-            />
+        <div className="mb-6 text-center select-none">
+          <div className="inline-flex items-center gap-3 justify-center mb-1">
+            <div className="w-12 h-12 flex-shrink-0 flex items-center justify-center overflow-hidden rounded-2xl bg-slate-900 border border-slate-800 shadow-md relative">
+              <img 
+                src="/logoresifaso.png" 
+                alt="ResiFaso logo" 
+                className="w-full h-full object-cover" 
+                referrerPolicy="no-referrer"
+                onError={(e) => {
+                  const target = e.target as HTMLImageElement;
+                  target.src = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23dc2626' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z'/%3E%3Cpolyline points='9 22 9 12 15 12 15 22'/%3E%3C/svg%3E";
+                }}
+              />
+            </div>
+            <div className="flex flex-col text-left">
+              <span className="text-2xl font-black tracking-tighter text-slate-900 leading-none">
+                Resi<span className="text-red-600">Faso</span>
+              </span>
+              <span className="text-[8px] font-black uppercase tracking-[0.25em] text-slate-400 mt-1">
+                Résidences du Burkina
+              </span>
+            </div>
           </div>
           <h3 className="text-2xl font-black text-slate-900 tracking-tight mt-4">
             {isForgotPassword ? "Mot de passe oublié" : isSignUp ? "Créer un compte" : "Connexion"}

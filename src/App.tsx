@@ -84,8 +84,24 @@ function AppContent() {
     active: boolean;
   } | null>(null);
   const [isAnnouncementDismissed, setIsAnnouncementDismissed] = useState(false);
+  const [currentAnnouncementIndex, setCurrentAnnouncementIndex] = useState(0);
   const [enablePhoneCalls, setEnablePhoneCalls] = useState<boolean>(true);
   const [enableWhatsApp, setEnableWhatsApp] = useState<boolean>(true);
+
+  const announcementsList = globalAnnouncement && globalAnnouncement.text
+    ? globalAnnouncement.text.split('\n').map(t => t.trim()).filter(t => t.length > 0)
+    : [];
+
+  useEffect(() => {
+    if (announcementsList.length > 1) {
+      const interval = setInterval(() => {
+        setCurrentAnnouncementIndex((prev) => (prev + 1) % announcementsList.length);
+      }, 5000);
+      return () => clearInterval(interval);
+    } else {
+      setCurrentAnnouncementIndex(0);
+    }
+  }, [globalAnnouncement?.text]);
 
   // New Booking date states
   const [checkIn, setCheckIn] = useState('');
@@ -251,11 +267,10 @@ function AppContent() {
 
     const base = (pricePerNight * nights) * (1 - (discount || 0) / 100);
     const cleaning = Number(res.cleaningFee || res.cleaning_fee || 0);
-    const currentCommission = Number(commissionRate ?? 8);
-    const platformService = base * (currentCommission / 100);
     const extraService = Number(res.serviceFee || res.service_fee || 0);
     
-    const total = base + cleaning + platformService + extraService;
+    // Global platform commission is supported by the host, not the client
+    const total = base + cleaning + extraService;
     
     if (isNaN(total) || total < 0) return 0;
     return Math.round(total);
@@ -481,9 +496,9 @@ function AppContent() {
   return (
     <div className="min-h-screen bg-slate-50 pb-20 md:pb-0 font-sans">
 
-      {globalAnnouncement && globalAnnouncement.active && !isAnnouncementDismissed && (
+      {globalAnnouncement && globalAnnouncement.active && !isAnnouncementDismissed && announcementsList.length > 0 && (
         <div className={cn(
-          "relative overflow-hidden border-b transition-all duration-500 animate-in fade-in slide-in-from-top-full z-[100] shadow-lg",
+          "relative overflow-hidden border-b transition-all duration-500 z-[100] shadow-lg",
           globalAnnouncement.type === 'info' && "bg-slate-900 text-white border-slate-800",
           globalAnnouncement.type === 'warning' && "bg-amber-400 text-slate-950 border-amber-500 shadow-amber-100/20",
           globalAnnouncement.type === 'success' && "bg-emerald-600 text-white border-emerald-700",
@@ -494,25 +509,64 @@ function AppContent() {
             <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-white via-transparent to-transparent animate-pulse scale-150"></div>
           </div>
           
-          <div className="max-w-7xl mx-auto px-4 py-3.5 sm:py-4 pr-14 flex items-center justify-center gap-4 relative">
-            <div className={cn(
-              "p-2 rounded-full flex-shrink-0 animate-bounce shadow-inner",
-              globalAnnouncement.type === 'warning' ? "bg-amber-500 text-slate-950" : "bg-white/10 text-white"
-            )}>
-              <Megaphone size={16} className="stroke-[3]" />
-            </div>
-            
-            <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-3 text-center sm:text-left">
-              <span className={cn(
-                "text-[10px] uppercase font-black tracking-[0.2em] opacity-80",
-                globalAnnouncement.type === 'warning' ? "text-slate-900" : "text-white/80"
+          <div className="max-w-7xl mx-auto px-4 py-3 sm:py-3.5 pr-20 flex items-center justify-between gap-4 relative min-h-[52px]">
+            <div className="flex items-center gap-3 overflow-hidden flex-1 justify-center sm:justify-start">
+              <div className={cn(
+                "p-2 rounded-full flex-shrink-0 animate-bounce shadow-inner hidden sm:flex",
+                globalAnnouncement.type === 'warning' ? "bg-amber-500 text-slate-950" : "bg-white/10 text-white"
               )}>
-                {globalAnnouncement.type === 'danger' ? 'Alerte Critique' : 'Flash Info'}
-              </span>
-              <p className="text-xs sm:text-sm font-black tracking-tight leading-tight">
-                {globalAnnouncement.text}
-              </p>
+                <Megaphone size={14} className="stroke-[3]" />
+              </div>
+              
+              <div className="flex items-center gap-3 overflow-hidden h-6 relative w-full justify-center sm:justify-start">
+                <AnimatePresence mode="wait">
+                  <motion.div
+                    key={currentAnnouncementIndex}
+                    initial={{ y: 15, opacity: 0 }}
+                    animate={{ y: 0, opacity: 1 }}
+                    exit={{ y: -15, opacity: 0 }}
+                    transition={{ duration: 0.3, ease: "easeOut" }}
+                    className="flex items-center gap-2 text-center sm:text-left justify-center sm:justify-start w-full"
+                  >
+                    <span className={cn(
+                      "text-[9px] uppercase font-black tracking-[0.2em] opacity-85 shrink-0 px-2 py-0.5 rounded bg-black/10",
+                      globalAnnouncement.type === 'warning' ? "text-slate-900 bg-black/5" : "text-white"
+                    )}>
+                      {globalAnnouncement.type === 'danger' ? 'ALERTE' : `INFO ${announcementsList.length > 1 ? `${currentAnnouncementIndex + 1}/${announcementsList.length}` : ''}`}
+                    </span>
+                    <p className="text-xs sm:text-sm font-black tracking-tight leading-tight truncate max-w-[90%]">
+                      {announcementsList[currentAnnouncementIndex]}
+                    </p>
+                  </motion.div>
+                </AnimatePresence>
+              </div>
             </div>
+
+            {/* Slider Controls for Multi-announcements */}
+            {announcementsList.length > 1 && (
+              <div className="flex items-center gap-1.5 shrink-0 mr-6 absolute right-12 sm:right-14">
+                <button
+                  onClick={() => setCurrentAnnouncementIndex((prev) => (prev - 1 + announcementsList.length) % announcementsList.length)}
+                  className={cn(
+                    "p-1 rounded hover:bg-black/10 transition-colors cursor-pointer",
+                    globalAnnouncement.type === 'warning' ? "text-slate-900" : "text-white"
+                  )}
+                  title="Précédent"
+                >
+                  <ChevronLeft size={14} />
+                </button>
+                <button
+                  onClick={() => setCurrentAnnouncementIndex((prev) => (prev + 1) % announcementsList.length)}
+                  className={cn(
+                    "p-1 rounded hover:bg-black/10 transition-colors cursor-pointer",
+                    globalAnnouncement.type === 'warning' ? "text-slate-900" : "text-white"
+                  )}
+                  title="Suivant"
+                >
+                  <ChevronRight size={14} />
+                </button>
+              </div>
+            )}
 
             <button 
               onClick={() => setIsAnnouncementDismissed(true)}
@@ -1292,9 +1346,9 @@ function AppContent() {
                               <span className="font-medium">{formatFCFA(selectedResidence.cleaningFee || selectedResidence.cleaning_fee)}</span>
                             </div>
                             {commissionRate > 0 && (
-                              <div className="flex justify-between text-slate-600">
-                                <span>Frais de service ({commissionRate}%)</span>
-                                <span className="font-medium">{formatFCFA(platformService)}</span>
+                              <div className="flex justify-between items-center bg-emerald-50 border border-emerald-100 p-2.5 rounded-xl text-xs">
+                                <span className="text-emerald-800 font-extrabold">Frais de service ({commissionRate}%)</span>
+                                <span className="text-emerald-600 font-black">0 F CFA (Pris en charge par l'hôte)</span>
                               </div>
                             )}
                             {(selectedResidence.serviceFee > 0 || selectedResidence.service_fee > 0) && (

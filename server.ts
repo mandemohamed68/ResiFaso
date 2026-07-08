@@ -816,14 +816,127 @@ async function startServer() {
     }
   });
 
-  app.post("/api/payments/sappay/perform", async (req, res) => {
-    const { invoice_id, payment_processor_id, customer_msisdn, otp, trans_id, access_token, isTestMode } = req.body;
+  // --- SAPPAY BILLING INTERACTION ROUTES ---
+  
+  app.post("/api/payment/sappay/init", async (req, res) => {
+    const { amount, note, email } = req.body;
     try {
+      const credentials = await getSappayCredentials();
+      const urls = await getSappayBaseUrls();
+      const token = await getSappayToken();
+      
+      const payload = {
+        amount: parseFloat(amount),
+        customer_email: email || "client@resifaso.com",
+        note: note || "Validation acompte"
+      };
+      
+      let invoiceId = "";
+      
+      if (!credentials.isTestMode) {
+        const response = await fetch(`${urls.checkoutBase}/invoices/`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "Authorization": `Bearer ${token}`
+          },
+          body: JSON.stringify(payload)
+        });
+        
+        if (!response.ok) {
+          const text = await response.text();
+          throw new Error(`Erreur Sappay lors de la création de la facture: ${text}`);
+        }
+        
+        const data = await response.json();
+        const resolvedId = findInvoiceId(data);
+        if (!resolvedId) {
+          throw new Error("Impossible de récupérer l'ID de facture depuis la réponse de Sappay.");
+        }
+        invoiceId = resolvedId;
+      } else {
+        // Test mode fallback
+        invoiceId = `mock_inv_${Date.now()}_${Math.floor(Math.random() * 1000)}`;
+      }
+      
+      res.json({
+        invoice_id: invoiceId,
+        access_token: token
+      });
+    } catch (error: any) {
+      console.error("Error in sappay/init:", error);
+      const credentials = await getSappayCredentials();
+      if (credentials.isTestMode) {
+        return res.json({
+          invoice_id: `mock_inv_${Date.now()}`,
+          access_token: "mock_sappay_token_fallback"
+        });
+      }
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.post("/api/payment/sappay/get-otp", async (req, res) => {
+    const { customer_msisdn, invoice_id, payment_processor_id, access_token } = req.body;
+    try {
+      const credentials = await getSappayCredentials();
+      const urls = await getSappayBaseUrls();
+      
+      if (!credentials.isTestMode) {
+        const response = await fetch(`${urls.checkoutBase}/get-otp/`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "Authorization": `Bearer ${access_token}`
+          },
+          body: JSON.stringify({
+            customer_msisdn: normalizePhoneNumberSappay(customer_msisdn),
+            invoice_id,
+            payment_processor_id
+          })
+        });
+        
+        if (!response.ok) {
+          const text = await response.text();
+          throw new Error(`Erreur Sappay lors de la demande d'OTP: ${text}`);
+        }
+        
+        const data = await response.json();
+        res.json({
+          trans_id: data.trans_id || data.transaction_id || `txn_${Date.now()}`,
+          message: data.message || "Un code OTP vous a été envoyé par SMS."
+        });
+      } else {
+        res.json({
+          trans_id: `mock_txn_${Date.now()}`,
+          message: "Un code de sécurité (OTP) a été simulé. Entrez 1234 ou 123456 pour valider en mode Test."
+        });
+      }
+    } catch (error: any) {
+      console.error("Error in sappay/get-otp:", error);
+      const credentials = await getSappayCredentials();
+      if (credentials.isTestMode) {
+        return res.json({
+          trans_id: `mock_txn_${Date.now()}`,
+          message: "Mode Sandbox: Un code OTP virtuel a été généré. Entrez 1234 ou 123456."
+        });
+      }
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.post(["/api/payments/sappay/perform", "/api/payment/sappay/perform"], async (req, res) => {
+    const { invoice_id, payment_processor_id, customer_msisdn, otp, trans_id, access_token } = req.body;
+    try {
+      const credentials = await getSappayCredentials();
+      const isTestMode = credentials.isTestMode || req.body.isTestMode || false;
       const urls = { checkoutBase: isTestMode ? SAPPAY_BASE_CHECKOUT_SANDBOX : SAPPAY_BASE_CHECKOUT_PROD };
       
       if (isTestMode) {
-        if (otp.toString() === "1234" || otp.toString() === "123456") {
+        if (otp && (otp.toString() === "1234" || otp.toString() === "123456")) {
           // sandbox mock logic passes
+        } else if (!otp) {
+          return res.status(400).json({ error: "Code OTP requis" });
         } else {
           return res.status(400).json({ error: "Code OTP invalide (Mode Sandbox)" });
         }
@@ -833,7 +946,7 @@ async function startServer() {
         invoice_id,
         payment_processor_id,
         customer_msisdn: normalizePhoneNumberSappay(customer_msisdn),
-        otp: otp.toString()
+        otp: otp ? otp.toString() : ""
       };
 
       if (trans_id) {
@@ -859,7 +972,7 @@ async function startServer() {
         if (!isTestMode) {
           return res.status(500).json({ error: `Erreur de connexion Sappay (Perform) : ${fetchErr.message}` });
         }
-        if (otp.toString() === "1234" || otp.toString() === "123456" || otp.toString().length === 4 || otp.toString().length === 6) {
+        if (otp && (otp.toString() === "1234" || otp.toString() === "123456" || otp.toString().length === 4 || otp.toString().length === 6)) {
           return res.json({
             status: "SUCCESS",
             message: "Paiement effectué avec succès (Mode Sandbox Fallback)"
@@ -896,7 +1009,7 @@ async function startServer() {
           });
         }
         console.warn(`Sappay perform returned error (${response.status}). Falling back to sandbox support.`);
-        if (otp.toString() === "1234" || otp.toString() === "123456" || otp.toString().length === 4 || otp.toString().length === 6) {
+        if (otp && (otp.toString() === "1234" || otp.toString() === "123456" || otp.toString().length === 4 || otp.toString().length === 6)) {
           return res.json({
             status: "SUCCESS",
             message: "Paiement effectué avec succès (Mode Sandbox Fallback)"

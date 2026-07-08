@@ -102,26 +102,27 @@ export const Navbar: React.FC<{
         {/* Logo */}
         <div 
           onClick={() => onNavigate('home')} 
-          className="flex items-center cursor-pointer group"
+          className="flex items-center gap-2.5 cursor-pointer group select-none"
         >
-          <div className="w-40 h-14 sm:w-48 sm:h-16 flex items-center justify-start overflow-hidden rounded-xl relative">
+          <div className="w-10 h-10 flex-shrink-0 flex items-center justify-center overflow-hidden rounded-xl bg-slate-900 border border-slate-800 shadow-md relative">
             <img 
               src="/logoresifaso.png" 
-              alt="ResiFaso" 
-              className="w-[145%] h-[145%] max-w-none object-cover -translate-y-[12%] -translate-x-[2%] scale-[1.25] mix-blend-multiply" 
+              alt="ResiFaso logo" 
+              className="w-full h-full object-cover" 
               referrerPolicy="no-referrer"
               onError={(e) => {
                 const target = e.target as HTMLImageElement;
-                target.style.display = 'none';
-                const parent = target.parentElement;
-                if (parent) {
-                  const fallback = document.createElement('div');
-                  fallback.className = 'text-2xl font-black text-red-600 tracking-tighter ml-2';
-                  fallback.innerText = 'ResiFaso';
-                  parent.appendChild(fallback);
-                }
+                target.src = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23dc2626' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z'/%3E%3Cpolyline points='9 22 9 12 15 12 15 22'/%3E%3C/svg%3E";
               }}
             />
+          </div>
+          <div className="flex flex-col">
+            <span className="text-lg font-black tracking-tighter text-slate-900 leading-none group-hover:text-red-600 transition-colors">
+              Resi<span className="text-red-600 group-hover:text-slate-900 transition-colors">Faso</span>
+            </span>
+            <span className="text-[7.5px] font-black uppercase tracking-[0.2em] text-slate-400 mt-1">
+              Résidences du Burkina
+            </span>
           </div>
         </div>
 
