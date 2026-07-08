@@ -236,7 +236,8 @@ async function startServer() {
   // --- Residences ---
   app.get("/api/residences", async (req, res) => {
     try {
-      const residences = await queries.getAllResidences();
+      const { ownerId } = req.query;
+      const residences = await queries.getAllResidences(ownerId as string);
       res.json(residences);
     } catch (err: any) {
       res.status(500).json({ error: err.message });

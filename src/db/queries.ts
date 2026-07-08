@@ -11,8 +11,8 @@ export const getAllUsers = async () => {
 };
 
 // Residences
-export const getAllResidences = async () => {
-  const residences = await executeSql(`
+export const getAllResidences = async (ownerId?: string) => {
+  let sql = `
     SELECT 
       id, owner_id as ownerId, title, description, type, price_per_night as pricePerNight, 
       advance_percentage as advancePercentage, cleaning_fee as cleaningFee, service_fee as serviceFee, 
@@ -22,28 +22,64 @@ export const getAllResidences = async () => {
       utilities_included as utilitiesIncludedRaw, owner_phone as ownerPhone,
       created_at as createdAt 
     FROM residences
-    ORDER BY created_at DESC
-  `);
+  `;
+  
+  const params: any[] = [];
+  if (ownerId) {
+    sql += " WHERE owner_id = ?";
+    params.push(ownerId);
+  }
+  
+  sql += " ORDER BY created_at DESC";
 
-  if (residences.length === 0) return [];
+  const rows = await executeSql(sql, params);
+
+  if (rows.length === 0) return [];
 
   const allAmenities = await executeSql("SELECT residence_id, amenity FROM residence_amenities");
   const allImages = await executeSql("SELECT residence_id, image_url FROM residence_images");
 
   const amenitiesMap: Record<string, string[]> = {};
   allAmenities.forEach((a: any) => {
-    if (!amenitiesMap[a.residence_id]) amenitiesMap[a.residence_id] = [];
-    amenitiesMap[a.residence_id].push(a.amenity);
+    const resId = a.residence_id || a.residenceId;
+    if (!amenitiesMap[resId]) amenitiesMap[resId] = [];
+    amenitiesMap[resId].push(a.amenity);
   });
 
   const imagesMap: Record<string, string[]> = {};
   allImages.forEach((i: any) => {
-    if (!imagesMap[i.residence_id]) imagesMap[i.residence_id] = [];
-    imagesMap[i.residence_id].push(i.image_url);
+    const resId = i.residence_id || i.residenceId;
+    if (!imagesMap[resId]) imagesMap[resId] = [];
+    imagesMap[resId].push(i.image_url || i.imageUrl);
   });
 
-  return residences.map((res: any) => ({
-    ...res,
+  return rows.map((res: any) => ({
+    id: res.id,
+    ownerId: res.ownerId || res.owner_id,
+    title: res.title,
+    description: res.description,
+    type: res.type,
+    pricePerNight: res.pricePerNight !== undefined ? res.pricePerNight : res.price_per_night,
+    advancePercentage: res.advancePercentage !== undefined ? res.advancePercentage : res.advance_percentage,
+    cleaningFee: res.cleaningFee !== undefined ? res.cleaningFee : res.cleaning_fee,
+    serviceFee: res.serviceFee !== undefined ? res.serviceFee : res.service_fee,
+    city: res.city,
+    neighborhood: res.neighborhood,
+    street: res.street,
+    capacity: res.capacity,
+    bedrooms: res.bedrooms,
+    beds: res.beds,
+    bathrooms: res.bathrooms,
+    rooms: res.rooms,
+    status: res.status,
+    availabilityStatus: res.availabilityStatus || res.availability_status,
+    promoted: res.promoted !== undefined ? !!res.promoted : !!res.promoted,
+    weeklyDiscount: res.weeklyDiscount !== undefined ? res.weeklyDiscount : res.weekly_discount,
+    monthlyDiscount: res.monthlyDiscount !== undefined ? res.monthlyDiscount : res.monthly_discount,
+    promoPrice: res.promoPrice !== undefined ? res.promoPrice : res.promo_price,
+    rejectionReason: res.rejectionReason || res.rejection_reason,
+    ownerPhone: res.ownerPhone || res.owner_phone,
+    createdAt: res.createdAt || res.created_at,
     amenities: amenitiesMap[res.id] || [],
     images: imagesMap[res.id] || [],
     address: {
@@ -53,8 +89,9 @@ export const getAllResidences = async () => {
     },
     utilitiesIncluded: (() => {
       try {
-        if (!res.utilitiesIncludedRaw) return { water: false, electricity: false };
-        return typeof res.utilitiesIncludedRaw === 'string' ? JSON.parse(res.utilitiesIncludedRaw) : res.utilitiesIncludedRaw;
+        const raw = res.utilitiesIncludedRaw || res.utilities_included;
+        if (!raw) return { water: false, electricity: false };
+        return typeof raw === 'string' ? JSON.parse(raw) : raw;
       } catch (e) {
         console.warn(`Error parsing utilitiesIncluded for residence ${res.id}:`, e);
         return { water: false, electricity: false };
@@ -75,26 +112,55 @@ export const getResidenceById = async (id: string) => {
       created_at as createdAt 
     FROM residences WHERE id = ?`, [id]);
   if (!res[0]) return null;
-  const residence = res[0];
+  const row = res[0];
   const amenities = await executeSql("SELECT amenity FROM residence_amenities WHERE residence_id = ?", [id]);
-  residence.amenities = amenities.map((a: any) => a.amenity);
   const images = await executeSql("SELECT image_url FROM residence_images WHERE residence_id = ?", [id]);
-  residence.images = images.map((i: any) => i.image_url);
-  residence.address = {
-    city: residence.city,
-    neighborhood: residence.neighborhood,
-    street: residence.street
+  
+  return {
+    id: row.id,
+    ownerId: row.ownerId || row.owner_id,
+    title: row.title,
+    description: row.description,
+    type: row.type,
+    pricePerNight: row.pricePerNight !== undefined ? row.pricePerNight : row.price_per_night,
+    advancePercentage: row.advancePercentage !== undefined ? row.advancePercentage : row.advance_percentage,
+    cleaningFee: row.cleaningFee !== undefined ? row.cleaningFee : row.cleaning_fee,
+    serviceFee: row.serviceFee !== undefined ? row.serviceFee : row.service_fee,
+    city: row.city,
+    neighborhood: row.neighborhood,
+    street: row.street,
+    capacity: row.capacity,
+    bedrooms: row.bedrooms,
+    beds: row.beds,
+    bathrooms: row.bathrooms,
+    rooms: row.rooms,
+    status: row.status,
+    availabilityStatus: row.availabilityStatus || row.availability_status,
+    promoted: row.promoted !== undefined ? !!row.promoted : !!row.promoted,
+    weeklyDiscount: row.weeklyDiscount !== undefined ? row.weeklyDiscount : row.weekly_discount,
+    monthlyDiscount: row.monthlyDiscount !== undefined ? row.monthlyDiscount : row.monthly_discount,
+    promoPrice: row.promoPrice !== undefined ? row.promoPrice : row.promo_price,
+    rejectionReason: row.rejectionReason || row.rejection_reason,
+    ownerPhone: row.ownerPhone || row.owner_phone,
+    createdAt: row.createdAt || row.created_at,
+    amenities: amenities.map((a: any) => a.amenity),
+    images: images.map((i: any) => i.image_url || i.imageUrl),
+    address: {
+      city: row.city,
+      neighborhood: row.neighborhood,
+      street: row.street
+    },
+    utilitiesIncluded: (() => {
+      try {
+        const raw = row.utilitiesIncludedRaw || row.utilities_included;
+        if (!raw) return { water: false, electricity: false };
+        return typeof raw === 'string' ? JSON.parse(raw) : raw;
+      } catch (e) {
+        console.warn(`Error parsing utilitiesIncluded for residence ${id}:`, e);
+        return { water: false, electricity: false };
+      }
+    })()
   };
-  residence.utilitiesIncluded = (() => {
-    try {
-      if (!residence.utilitiesIncludedRaw) return { water: false, electricity: false };
-      return typeof residence.utilitiesIncludedRaw === 'string' ? JSON.parse(residence.utilitiesIncludedRaw) : residence.utilitiesIncludedRaw;
-    } catch (e) {
-      console.warn(`Error parsing utilitiesIncluded for residence ${id}:`, e);
-      return { water: false, electricity: false };
-    }
-  })();
-  return residence;
 };
 
 // Bookings

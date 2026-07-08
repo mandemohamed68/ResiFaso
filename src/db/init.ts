@@ -393,17 +393,9 @@ export const initDatabase = async () => {
     `);
 
     try {
-      const adminNotesCols = await executeSql("SHOW COLUMNS FROM contact_messages LIKE 'admin_notes'");
-      if (!adminNotesCols || adminNotesCols.length === 0) {
-        await executeSql("ALTER TABLE contact_messages ADD COLUMN admin_notes TEXT");
-        console.log("Migration MariaDB: Colonne admin_notes ajoutée à contact_messages.");
-      }
-      
-      const repliedAtCols = await executeSql("SHOW COLUMNS FROM contact_messages LIKE 'replied_at'");
-      if (!repliedAtCols || repliedAtCols.length === 0) {
-        await executeSql("ALTER TABLE contact_messages ADD COLUMN replied_at VARCHAR(50)");
-        console.log("Migration MariaDB: Colonne replied_at ajoutée à contact_messages.");
-      }
+      await executeSql("ALTER TABLE contact_messages ADD COLUMN admin_notes TEXT").catch(() => {});
+      await executeSql("ALTER TABLE contact_messages ADD COLUMN replied_at VARCHAR(50)").catch(() => {});
+      console.log("Migration MariaDB: Colonnes admin_notes et replied_at vérifiées pour contact_messages.");
     } catch (msgColErr: any) {
       console.warn("Avertissement migration MariaDB contact_messages:", msgColErr.message);
     }

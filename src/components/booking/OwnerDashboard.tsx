@@ -1458,6 +1458,7 @@ export const OwnerDashboard: React.FC<{ isTestMode?: boolean; onBackToTraveler?:
 
   const handleEditClick = (res: Residence) => {
     console.log("Editing residence:", res);
+    console.log("Residence ownerPhone value:", res.ownerPhone);
     setTitle(res.title);
     setDescription(res.description);
     
