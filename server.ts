@@ -233,6 +233,54 @@ async function startServer() {
     }
   });
 
+  app.get("/api/residences", async (req, res) => {
+    try {
+      const residences = await executeSql("SELECT * FROM residences");
+      res.json(residences);
+    } catch (err: any) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  // --- Notifications ---
+  app.get("/api/notifications", authenticateToken, async (req: AuthRequest, res) => {
+    try {
+      const notifications = await executeSql("SELECT * FROM notifications WHERE user_id = ? ORDER BY created_at DESC", [req.user?.uid]);
+      res.json(notifications);
+    } catch (err: any) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  app.post("/api/notifications/:id/read", authenticateToken, async (req: AuthRequest, res) => {
+    try {
+      await executeSql("UPDATE notifications SET is_read = 1 WHERE id = ? AND user_id = ?", [req.params.id, req.user?.uid]);
+      res.json({ success: true });
+    } catch (err: any) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  // --- Settings ---
+  app.get("/api/settings/global", async (req, res) => {
+    try {
+      const settings = await queries.getSettings('global');
+      res.json(settings);
+    } catch (err: any) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  // --- Ads ---
+  app.get("/api/ads", async (req, res) => {
+    try {
+      const ads = await queries.getAllAds();
+      res.json(ads);
+    } catch (err: any) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
   // ---------- ROUTES MÉTIER (conservées telles quelles) ----------
   // (Toutes les routes existantes pour residences, bookings, notifications, etc.
   //  Elles utilisent executeSql / queries, donc OK.)

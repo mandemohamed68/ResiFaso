@@ -1515,7 +1515,7 @@ export const OwnerDashboard: React.FC<{ isTestMode?: boolean; onBackToTraveler?:
     setBeds(res.beds.toString());
     setBathrooms(res.bathrooms.toString());
     setRooms((res.rooms || 1).toString());
-    setOwnerPhone(res.ownerPhone || '');
+    setOwnerPhone(res.ownerPhone || (res as any).owner_phone || '');
     setImages(res.images || []);
     setAmenities(res.amenities || []);
     if (res.address?.coordinates || (res.lat && res.lng)) {
@@ -2926,7 +2926,7 @@ export const OwnerDashboard: React.FC<{ isTestMode?: boolean; onBackToTraveler?:
                 {/* STEP 2: Location logic inputs */}
                 {step === 2 && (
                   <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} className="space-y-4 relative z-[100]">
-                    <div className="relative z-[60]">
+                      <div className="relative z-[200]">
                       <CustomSelect
                         label="Ville (Burkina Faso) *"
                         placeholder="Sélectionnez ou tapez la ville"
@@ -2939,11 +2939,11 @@ export const OwnerDashboard: React.FC<{ isTestMode?: boolean; onBackToTraveler?:
                       />
                     </div>
 
-                    <div className="relative z-[50]">
+                    <div className="relative z-[150]">
                       <CustomSelect
                         label="Quartier / Zone *"
                         placeholder="Sélectionnez ou tapez le quartier"
-                        options={currentCity?.neighborhoods.map(nb => ({ id: nb.id, name: nb.name })) || []}
+                        options={currentCity?.neighborhoods.map(nb => ({ id: nb.id, name: nb.name }))}
                         value={selectedNeighborhoodId}
                         onChange={(val) => setSelectedNeighborhoodId(val)}
                       />
