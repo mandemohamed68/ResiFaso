@@ -1457,6 +1457,7 @@ export const OwnerDashboard: React.FC<{ isTestMode?: boolean; onBackToTraveler?:
   };
 
   const handleEditClick = (res: Residence) => {
+    console.log("Editing residence:", res);
     setTitle(res.title);
     setDescription(res.description);
     
@@ -2924,8 +2925,8 @@ export const OwnerDashboard: React.FC<{ isTestMode?: boolean; onBackToTraveler?:
 
                 {/* STEP 2: Location logic inputs */}
                 {step === 2 && (
-                  <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} className="space-y-4 relative">
-                    <div className="relative z-[50]">
+                  <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} className="space-y-4 relative z-[100]">
+                    <div className="relative z-[60]">
                       <CustomSelect
                         label="Ville (Burkina Faso) *"
                         placeholder="Sélectionnez ou tapez la ville"
@@ -2938,7 +2939,7 @@ export const OwnerDashboard: React.FC<{ isTestMode?: boolean; onBackToTraveler?:
                       />
                     </div>
 
-                    <div className="relative z-[40]">
+                    <div className="relative z-[50]">
                       <CustomSelect
                         label="Quartier / Zone *"
                         placeholder="Sélectionnez ou tapez le quartier"
