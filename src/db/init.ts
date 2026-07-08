@@ -386,9 +386,27 @@ export const initDatabase = async () => {
         subject VARCHAR(255),
         message TEXT,
         status VARCHAR(50) DEFAULT 'unread',
+        admin_notes TEXT,
+        replied_at VARCHAR(50),
         created_at DATETIME DEFAULT CURRENT_TIMESTAMP
       ) ENGINE=InnoDB
     `);
+
+    try {
+      const adminNotesCols = await executeSql("SHOW COLUMNS FROM contact_messages LIKE 'admin_notes'");
+      if (!adminNotesCols || adminNotesCols.length === 0) {
+        await executeSql("ALTER TABLE contact_messages ADD COLUMN admin_notes TEXT");
+        console.log("Migration MariaDB: Colonne admin_notes ajoutée à contact_messages.");
+      }
+      
+      const repliedAtCols = await executeSql("SHOW COLUMNS FROM contact_messages LIKE 'replied_at'");
+      if (!repliedAtCols || repliedAtCols.length === 0) {
+        await executeSql("ALTER TABLE contact_messages ADD COLUMN replied_at VARCHAR(50)");
+        console.log("Migration MariaDB: Colonne replied_at ajoutée à contact_messages.");
+      }
+    } catch (msgColErr: any) {
+      console.warn("Avertissement migration MariaDB contact_messages:", msgColErr.message);
+    }
     } finally {
       await executeSql("SET FOREIGN_KEY_CHECKS = 1");
     }

@@ -134,9 +134,16 @@ export function deleteUser(uid: string): Promise<void> {
 // ==========================================
 
 export async function sendNotification(notif: any): Promise<void> {
+  const data = {
+    user_id: notif.userId || notif.user_id,
+    title: notif.title,
+    message: notif.message,
+    type: notif.type,
+    reference_id: notif.referenceId || notif.reference_id
+  };
   await apiFetch('/api/notifications', {
     method: 'POST',
-    body: JSON.stringify(notif)
+    body: JSON.stringify(data)
   });
 }
 

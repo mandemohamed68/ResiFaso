@@ -673,8 +673,16 @@ async function startServer() {
   app.post("/api/notifications", authenticateToken, async (req: AuthRequest, res) => {
     try {
       const id = 'not_' + Math.random().toString(36).substr(2, 9);
-      const { user_id, title, message, type, reference_id } = req.body;
-      await executeSql("INSERT INTO notifications (id, user_id, title, message, type, reference_id) VALUES (?, ?, ?, ?, ?, ?)", [id, user_id, title, message, type, reference_id]);
+      const { user_id, userId, title, message, type, reference_id, referenceId } = req.body;
+      const targetUserId = user_id || userId;
+      const targetReferenceId = reference_id || referenceId;
+      
+      if (!targetUserId) {
+        return res.status(400).json({ error: "user_id is required" });
+      }
+
+      await executeSql("INSERT INTO notifications (id, user_id, title, message, type, reference_id) VALUES (?, ?, ?, ?, ?, ?)", 
+        [id, targetUserId, title, message, type, targetReferenceId]);
       res.json({ success: true, id });
     } catch (err: any) {
       res.status(500).json({ error: err.message });
