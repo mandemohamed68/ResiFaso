@@ -725,6 +725,7 @@ export const OwnerDashboard: React.FC<{ isTestMode?: boolean; onBackToTraveler?:
   const [messages, setMessages] = useState<Message[]>([]);
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [newMessage, setNewMessage] = useState('');
+  const [participantsInfo, setParticipantsInfo] = useState<Record<string, any>>({});
 
   // Withdrawal features states
   const { allLocations } = useLocations();
@@ -973,26 +974,57 @@ export const OwnerDashboard: React.FC<{ isTestMode?: boolean; onBackToTraveler?:
     return () => clearInterval(interval);
   }, [user, lastRefresh]);
 
-  // Fetch real-time conversations for owner
+  // Fetch conversations from SQL API for owner
   useEffect(() => {
     if (!user || activeTab !== 'messages') return;
 
-    const q = query(
-      collection(db, 'conversations'),
-      where('participants', 'array-contains', user.uid),
-      orderBy('updatedAt', 'desc')
-    );
+    const fetchConversations = () => {
+      fetch('/api/conversations', { 
+        headers: { 'Authorization': `Bearer ${localStorage.getItem('auth_token')}` } 
+      })
+        .then(res => res.json())
+        .then(data => {
+          setConversations(data || []);
+        })
+        .catch(err => console.error("Error fetching conversations:", err));
+    };
 
-    const unsub = onSnapshot(q, (snap) => {
-      const list: Conversation[] = [];
-      snap.forEach(docSnap => {
-        list.push({ id: docSnap.id, ...docSnap.data() } as Conversation);
-      });
-      setConversations(list);
-    });
-
-    return unsub;
+    fetchConversations();
+    const intv = setInterval(fetchConversations, 5000);
+    return () => clearInterval(intv);
   }, [user, activeTab]);
+
+  // Fetch participant profiles for owner conversations
+  useEffect(() => {
+    if (conversations.length === 0 || !user) return;
+
+    const otherParticipants = Array.from(new Set(
+      conversations.flatMap(c => {
+        const parts = Array.isArray(c.participants) ? c.participants : [];
+        return parts.filter(p => p !== user?.uid);
+      })
+    ));
+
+    if (otherParticipants.length === 0) return;
+
+    const fetchProfiles = async () => {
+      try {
+        const res = await fetch('/api/users/public', {
+          method: 'POST',
+          headers: { 
+            'Content-Type': 'application/json', 
+            'Authorization': `Bearer ${localStorage.getItem('auth_token')}` 
+          },
+          body: JSON.stringify({ uids: otherParticipants })
+        });
+        const data = await res.json();
+        setParticipantsInfo(prev => ({ ...prev, ...data }));
+      } catch (err) {
+        console.error("Error fetching participant profiles:", err);
+      }
+    };
+    fetchProfiles();
+  }, [conversations, user]);
 
   // Fetch messages for selected conversation
   useEffect(() => {
@@ -1001,22 +1033,28 @@ export const OwnerDashboard: React.FC<{ isTestMode?: boolean; onBackToTraveler?:
       return;
     }
 
-    const q = query(
-      collection(db, 'conversations', selectedConversationId, 'messages'),
-      orderBy('createdAt', 'asc'),
-      limit(50)
-    );
+    const fetchMessages = () => {
+      fetch(`/api/conversations/${selectedConversationId}/messages`, { 
+        headers: { 'Authorization': `Bearer ${localStorage.getItem('auth_token')}` } 
+      })
+        .then(res => res.json())
+        .then(data => {
+          setMessages(data || []);
+        })
+        .catch(err => console.error("Error fetching messages:", err));
+    };
 
-    const unsubscribe = onSnapshot(q, (snapshot) => {
-      const list: Message[] = [];
-      snapshot.forEach(docSnap => {
-        list.push({ id: docSnap.id, ...docSnap.data() } as Message);
-      });
-      setMessages(list);
-    });
-
-    return () => unsubscribe();
+    fetchMessages();
+    const intv = setInterval(fetchMessages, 3000);
+    return () => clearInterval(intv);
   }, [selectedConversationId]);
+
+  // Selected conversation information computed properties
+  const activeSelectedConv = conversations.find(c => c.id === selectedConversationId);
+  const activeOpponentId = activeSelectedConv ? (Array.isArray(activeSelectedConv.participants) ? activeSelectedConv.participants.find(p => p !== user?.uid) : null) : null;
+  const activeOpponentProfile = activeOpponentId ? participantsInfo[activeOpponentId] : null;
+  const activeOpponentName = activeOpponentProfile?.displayName || activeOpponentProfile?.email || 'Voyageur';
+  const activeOpponentInitials = activeOpponentName.split(' ').map((n: string) => n[0]).join('').slice(0, 2).toUpperCase();
 
   // Group bookings by time
   const now = new Date();
@@ -1331,20 +1369,16 @@ export const OwnerDashboard: React.FC<{ isTestMode?: boolean; onBackToTraveler?:
       const text = newMessage;
       setNewMessage('');
 
-      await addDoc(collection(db, 'conversations', selectedConversationId, 'messages'), {
-        conversationId: selectedConversationId,
-        senderId: user.uid,
-        text,
-        createdAt: new Date().toISOString(),
-        isRead: false
-      });
-
-      await updateDoc(doc(db, 'conversations', selectedConversationId), {
-        lastMessage: text,
-        updatedAt: new Date().toISOString()
+      await fetch(`/api/conversations/${selectedConversationId}/messages`, {
+        method: 'POST',
+        headers: { 
+          'Content-Type': 'application/json', 
+          'Authorization': `Bearer ${localStorage.getItem('auth_token')}` 
+        },
+        body: JSON.stringify({ senderId: user.uid, text })
       });
     } catch (err) {
-      console.error(err);
+      console.error("Error sending message:", err);
     }
   };
 
@@ -2416,29 +2450,48 @@ export const OwnerDashboard: React.FC<{ isTestMode?: boolean; onBackToTraveler?:
                 </p>
               </div>
               <div className="flex-1 overflow-y-auto p-4 flex flex-col gap-3">
-                {conversations.length > 0 ? conversations.map((conv) => (
-                  <div 
-                    key={conv.id} 
-                    onClick={() => setSelectedConversationId(conv.id)}
-                    className={`p-4 rounded-[24px] cursor-pointer transition-all border ${
-                      selectedConversationId === conv.id 
-                        ? 'bg-white border-red-500 shadow-md ring-2 ring-red-500/10' 
-                        : 'bg-white border-slate-100 hover:border-red-200 shadow-sm'
-                    }`}
-                  >
-                    <div className="flex justify-between items-start mb-2">
-                      <span className="font-bold text-slate-900 text-sm truncate pr-2">
-                        {conv.participants.find(p => p !== user.uid)?.slice(0, 8)}...
-                      </span>
-                      <span className="text-[9px] text-slate-400 font-black uppercase whitespace-nowrap">
-                        {new Date(conv.updatedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                      </span>
+                {conversations.length > 0 ? conversations.map((conv) => {
+                  const opponentId = Array.isArray(conv.participants) ? conv.participants.find(p => p !== user.uid) : null;
+                  const opponentProfile = opponentId ? participantsInfo[opponentId] : null;
+                  const opponentName = opponentProfile?.displayName || opponentProfile?.email || (opponentId ? `${opponentId.slice(0, 8)}...` : 'Utilisateur');
+                  const isSelected = selectedConversationId === conv.id;
+                  
+                  // Generate visual initials
+                  const initials = opponentName.split(' ').map((n: string) => n[0]).join('').slice(0, 2).toUpperCase();
+
+                  return (
+                    <div 
+                      key={conv.id} 
+                      onClick={() => setSelectedConversationId(conv.id)}
+                      className={`p-4 rounded-[24px] cursor-pointer transition-all border flex items-center gap-3 ${
+                        isSelected 
+                          ? 'bg-white border-red-500 shadow-md ring-2 ring-red-500/10' 
+                          : 'bg-white border-slate-100 hover:border-red-200 shadow-sm'
+                      }`}
+                    >
+                      <div className="w-10 h-10 rounded-full flex-shrink-0 bg-slate-100 border border-slate-200 flex items-center justify-center font-bold text-slate-600 text-xs overflow-hidden">
+                        {(opponentProfile?.photoUrl || opponentProfile?.photoURL) ? (
+                          <img src={opponentProfile.photoUrl || opponentProfile.photoURL} alt="" className="w-full h-full object-cover" />
+                        ) : (
+                          initials || '?'
+                        )}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex justify-between items-start mb-1">
+                          <span className="font-bold text-slate-900 text-sm truncate pr-2">
+                            {opponentName}
+                          </span>
+                          <span className="text-[9px] text-slate-400 font-black uppercase whitespace-nowrap">
+                            {new Date(conv.updatedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                          </span>
+                        </div>
+                        <p className="text-[11px] text-slate-500 font-medium line-clamp-1 italic">
+                          {conv.lastMessage || "Nouvelle conversation"}
+                        </p>
+                      </div>
                     </div>
-                    <p className="text-[11px] text-slate-500 font-medium line-clamp-1 italic">
-                      {conv.lastMessage || "Nouvelle conversation"}
-                    </p>
-                  </div>
-                )) : (
+                  );
+                }) : (
                   <div className="text-center text-slate-400 text-sm mt-10 font-black uppercase tracking-widest opacity-40">Aucune conversation.</div>
                 )}
               </div>
@@ -2451,11 +2504,15 @@ export const OwnerDashboard: React.FC<{ isTestMode?: boolean; onBackToTraveler?:
                   {/* Chat Header */}
                   <div className="p-6 border-b border-slate-100 flex items-center justify-between">
                     <div className="flex items-center gap-4">
-                      <div className="w-12 h-12 rounded-2xl bg-red-600 text-yellow-400 flex items-center justify-center font-black text-xl shadow-lg shadow-red-100">
-                        ★
+                      <div className="w-12 h-12 rounded-2xl bg-red-600 text-yellow-400 flex items-center justify-center font-black text-xl shadow-lg shadow-red-100 overflow-hidden border border-red-700">
+                        {(activeOpponentProfile?.photoUrl || activeOpponentProfile?.photoURL) ? (
+                          <img src={activeOpponentProfile.photoUrl || activeOpponentProfile.photoURL} alt="" className="w-full h-full object-cover" />
+                        ) : (
+                          <span className="text-sm font-black text-white">{activeOpponentInitials || '★'}</span>
+                        )}
                       </div>
                       <div>
-                        <h4 className="font-black text-slate-900 text-base leading-none">Réponse Voyageur</h4>
+                        <h4 className="font-black text-slate-900 text-base leading-none">{activeOpponentName}</h4>
                         <p className="text-[10px] text-slate-400 font-black uppercase tracking-widest mt-1.5 flex items-center gap-1.5">
                           <span className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse"></span>
                           Canal Sécurisé

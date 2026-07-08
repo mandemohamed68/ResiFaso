@@ -20,7 +20,7 @@ export const MessagesView: React.FC<{ initialConversationId?: string | null }> =
     if (!user) return;
 
     const fetchConversations = () => {
-      fetch('/api/conversations', { headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` } })
+      fetch('/api/conversations', { headers: { 'Authorization': `Bearer ${localStorage.getItem('auth_token')}` } })
         .then(res => res.json())
         .then(data => {
           setConversations(data || []);
@@ -48,7 +48,10 @@ export const MessagesView: React.FC<{ initialConversationId?: string | null }> =
     if (conversations.length === 0) return;
 
     const otherParticipants = Array.from(new Set(
-      conversations.flatMap(c => c.participants.filter(p => p !== user?.uid))
+      conversations.flatMap(c => {
+        const parts = Array.isArray(c.participants) ? c.participants : [];
+        return parts.filter(p => p !== user?.uid);
+      })
     ));
 
     if (otherParticipants.length === 0) return;
@@ -57,7 +60,7 @@ export const MessagesView: React.FC<{ initialConversationId?: string | null }> =
       try {
         const res = await fetch('/api/users/public', {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${localStorage.getItem('token')}` },
+          headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${localStorage.getItem('auth_token')}` },
           body: JSON.stringify({ uids: otherParticipants })
         });
         const data = await res.json();
@@ -75,10 +78,18 @@ export const MessagesView: React.FC<{ initialConversationId?: string | null }> =
     }
 
     const fetchMessages = () => {
-      fetch(`/api/conversations/${selectedConversation.id}/messages`, { headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` } })
+      fetch(`/api/conversations/${selectedConversation.id}/messages`, { headers: { 'Authorization': `Bearer ${localStorage.getItem('auth_token')}` } })
         .then(res => res.json())
         .then(data => {
           setMessages(data || []);
+          // Mark as read when viewing
+          if (data && data.some((m: any) => !m.isRead && m.senderId !== user?.uid)) {
+            fetch(`/api/conversations/${selectedConversation.id}/read`, { 
+              method: 'PUT',
+              headers: { 'Authorization': `Bearer ${localStorage.getItem('auth_token')}` } 
+            }).catch(() => {});
+          }
+
           setTimeout(() => {
             messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
           }, 100);
@@ -87,7 +98,7 @@ export const MessagesView: React.FC<{ initialConversationId?: string | null }> =
     fetchMessages();
     const intv = setInterval(fetchMessages, 3000);
     return () => clearInterval(intv);
-  }, [selectedConversation]);
+  }, [selectedConversation, user]);
 
   const handleSendMessage = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -99,7 +110,7 @@ export const MessagesView: React.FC<{ initialConversationId?: string | null }> =
 
       await fetch(`/api/conversations/${selectedConversation.id}/messages`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${localStorage.getItem('token')}` },
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${localStorage.getItem('auth_token')}` },
         body: JSON.stringify({ senderId: user.uid, text: msgText })
       });
     } catch (err) {
@@ -108,7 +119,7 @@ export const MessagesView: React.FC<{ initialConversationId?: string | null }> =
   };
 
   const getOpponent = (conv: Conversation) => {
-    const oppId = conv.participants.find(p => p !== user?.uid);
+    const oppId = Array.isArray(conv.participants) ? conv.participants.find(p => p !== user?.uid) : null;
     return participantsInfo[oppId || ''] || null;
   };
 
@@ -159,8 +170,8 @@ export const MessagesView: React.FC<{ initialConversationId?: string | null }> =
                     )}
                   >
                     <div className="relative">
-                      {opponent?.photoURL ? (
-                        <img src={opponent.photoURL} alt="" className="w-12 h-12 rounded-full object-cover" />
+                      {(opponent?.photoUrl || opponent?.photoURL) ? (
+                        <img src={opponent.photoUrl || opponent.photoURL} alt="" className="w-12 h-12 rounded-full object-cover" />
                       ) : (
                         <div className="w-12 h-12 rounded-full bg-slate-100 flex items-center justify-center text-slate-500">
                           <UserIcon size={24} />
@@ -195,8 +206,8 @@ export const MessagesView: React.FC<{ initialConversationId?: string | null }> =
               {/* Chat Header */}
               <div className="p-4 bg-white border-b border-slate-100 flex items-center justify-between shadow-sm">
                 <div className="flex items-center gap-3">
-                  {getOpponent(selectedConversation)?.photoURL ? (
-                    <img src={getOpponent(selectedConversation)?.photoURL} alt="" className="w-10 h-10 rounded-full object-cover" />
+                  {(getOpponent(selectedConversation)?.photoUrl || getOpponent(selectedConversation)?.photoURL) ? (
+                    <img src={getOpponent(selectedConversation)?.photoUrl || getOpponent(selectedConversation)?.photoURL} alt="" className="w-10 h-10 rounded-full object-cover" />
                   ) : (
                     <div className="w-10 h-10 rounded-full bg-slate-100 flex items-center justify-center text-slate-500">
                       <UserIcon size={20} />

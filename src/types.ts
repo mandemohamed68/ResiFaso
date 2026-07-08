@@ -6,6 +6,7 @@ export interface UserProfile {
   displayName: string;
   phoneNumber?: string;
   photoURL?: string;
+  photoUrl?: string;
   role: UserRole;
   isVerified: boolean;
   createdAt: string;

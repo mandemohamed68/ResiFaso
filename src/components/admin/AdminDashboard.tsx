@@ -947,7 +947,7 @@ export const AdminDashboard: React.FC<{ onBackToTraveler?: () => void }> = ({ on
   // Approve identity verification document checklist 
   const handleApproveIdentity = async (uid: string, email: string, displayName: string) => {
     try {
-      await fetch(`/api/users/${uid}`, { method: 'PUT', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${localStorage.getItem('token')}` }, body: JSON.stringify({ 
+      await fetch(`/api/users/${uid}`, { method: 'PUT', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${localStorage.getItem('auth_token')}` }, body: JSON.stringify({ 
         isVerified: true,
         verificationStatus: 'verified'
       }) });

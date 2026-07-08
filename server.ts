@@ -296,7 +296,14 @@ async function startServer() {
     const result: any = {};
     for (const key in row) {
       const camelKey = key.replace(/_([a-z])/g, (g) => g[1].toUpperCase());
-      result[camelKey] = row[key];
+      let val = row[key];
+      // Auto-parse JSON strings for known fields
+      if (typeof val === 'string' && (key === 'participants' || key === 'amenities' || key === 'images')) {
+        try {
+          val = JSON.parse(val);
+        } catch (e) {}
+      }
+      result[camelKey] = val;
     }
     return result;
   };
@@ -545,6 +552,13 @@ async function startServer() {
     try {
       const list = await executeSql("SELECT * FROM messages WHERE conversation_id = ? ORDER BY created_at ASC", [req.params.id]);
       res.json(list.map(mapRowToCamelCase));
+    } catch (err: any) { res.status(500).json({ error: err.message }); }
+  });
+
+  app.put("/api/conversations/:id/read", authenticateToken, async (req: AuthRequest, res) => {
+    try {
+      await executeSql("UPDATE messages SET is_read = 1 WHERE conversation_id = ? AND sender_id != ?", [req.params.id, req.user?.uid]);
+      res.json({ success: true });
     } catch (err: any) { res.status(500).json({ error: err.message }); }
   });
 

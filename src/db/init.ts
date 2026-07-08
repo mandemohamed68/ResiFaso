@@ -160,6 +160,13 @@ export const initDatabase = async () => {
       console.warn("Avertissement migration MariaDB residences.utilities_included:", colErr.message);
     }
 
+    try {
+      await executeSql("ALTER TABLE residences MODIFY COLUMN type VARCHAR(100) NULL");
+      console.log("Migration MariaDB: Colonne type de residences modifiée en VARCHAR(100).");
+    } catch (typeErr: any) {
+      console.warn("Avertissement migration MariaDB residences.type:", typeErr.message);
+    }
+
     // Residence Amenities Table
     await executeSql(`
       CREATE TABLE IF NOT EXISTS residence_amenities (
@@ -313,7 +320,7 @@ export const initDatabase = async () => {
       await executeSql(`
         CREATE TABLE IF NOT EXISTS notifications (
           id VARCHAR(128) PRIMARY KEY,
-          user_id VARCHAR(255) NOT NULL,
+          user_id VARCHAR(128) NOT NULL,
           title VARCHAR(255),
           message TEXT,
           type VARCHAR(50),
@@ -330,6 +337,13 @@ export const initDatabase = async () => {
         }
       } catch (colErr: any) {
         // Fallback or ignore
+      }
+
+      // Explicitly modify existing user_id column to VARCHAR(128) to match users.uid VARCHAR(128)
+      try {
+        await executeSql("ALTER TABLE notifications MODIFY COLUMN user_id VARCHAR(128) NOT NULL");
+      } catch (modifyErr: any) {
+        // Ignored or already aligned
       }
       
       // Attempt FK creation separately so it doesn't block the whole table creation if it fails
