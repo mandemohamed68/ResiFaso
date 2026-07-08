@@ -235,8 +235,146 @@ async function startServer() {
 
   app.get("/api/residences", async (req, res) => {
     try {
-      const residences = await executeSql("SELECT * FROM residences");
+      const residences = await queries.getAllResidences();
       res.json(residences);
+    } catch (err: any) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  app.get("/api/residences/:id", async (req, res) => {
+    try {
+      const residence = await queries.getResidenceById(req.params.id);
+      if (!residence) return res.status(404).json({ error: "Résidence non trouvée" });
+      res.json(residence);
+    } catch (err: any) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  app.post("/api/residences", authenticateToken, async (req: AuthRequest, res) => {
+    try {
+      const data = { ...req.body, ownerId: req.user?.uid };
+      const id = 'res_' + Math.random().toString(36).substr(2, 9);
+      await queries.createResidence({ ...data, id });
+      res.json({ success: true, id });
+    } catch (err: any) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  app.put("/api/residences/:id", authenticateToken, async (req: AuthRequest, res) => {
+    try {
+      // Logic to check if owner matches
+      const existing = await queries.getResidenceById(req.params.id);
+      if (!existing) return res.status(404).json({ error: "Résidence non trouvée" });
+      if (existing.ownerId !== req.user?.uid && req.user?.role !== 'admin') {
+        return res.status(403).json({ error: "Non autorisé" });
+      }
+      await queries.updateResidence(req.params.id, req.body);
+      res.json({ success: true });
+    } catch (err: any) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  app.delete("/api/residences/:id", authenticateToken, async (req: AuthRequest, res) => {
+    try {
+      const existing = await queries.getResidenceById(req.params.id);
+      if (!existing) return res.status(404).json({ error: "Résidence non trouvée" });
+      if (existing.ownerId !== req.user?.uid && req.user?.role !== 'admin') {
+        return res.status(403).json({ error: "Non autorisé" });
+      }
+      await queries.deleteResidence(req.params.id);
+      res.json({ success: true });
+    } catch (err: any) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  // --- Bookings ---
+  app.get("/api/bookings", authenticateToken, async (req: AuthRequest, res) => {
+    try {
+      const role = req.user?.role;
+      const uid = req.user?.uid;
+      let sql = "SELECT * FROM bookings WHERE client_id = ? OR owner_id = ? ORDER BY created_at DESC";
+      if (role === 'admin') sql = "SELECT * FROM bookings ORDER BY created_at DESC";
+      
+      const bookings = await executeSql(sql, role === 'admin' ? [] : [uid, uid]);
+      res.json(bookings);
+    } catch (err: any) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  app.get("/api/residences/:id/bookings", async (req, res) => {
+    try {
+      const bookings = await executeSql("SELECT * FROM bookings WHERE residence_id = ?", [req.params.id]);
+      res.json(bookings);
+    } catch (err: any) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  app.post("/api/bookings", authenticateToken, async (req: AuthRequest, res) => {
+    try {
+      const id = 'bk_' + Math.random().toString(36).substr(2, 9);
+      const { residenceId, ownerId, checkIn, checkOut, guests, totalPrice, advancePaid, transactionId } = req.body;
+      await executeSql(`
+        INSERT INTO bookings (id, residence_id, client_id, owner_id, check_in, check_out, guests, total_price, advance_paid, transaction_id, booking_status, payment_status)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending', 'paid')
+      `, [id, residenceId, req.user?.uid, ownerId, checkIn, checkOut, guests, totalPrice, advancePaid, transactionId]);
+      res.json({ success: true, id });
+    } catch (err: any) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  // --- Conversations & Messages ---
+  app.get("/api/conversations", authenticateToken, async (req: AuthRequest, res) => {
+    try {
+      const convs = await executeSql("SELECT * FROM conversations WHERE participants LIKE ?", [`%${req.user?.uid}%`]);
+      res.json(convs);
+    } catch (err: any) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  app.get("/api/conversations/:id/messages", authenticateToken, async (req: AuthRequest, res) => {
+    try {
+      const messages = await executeSql("SELECT * FROM messages WHERE conversation_id = ? ORDER BY created_at ASC", [req.params.id]);
+      res.json(messages);
+    } catch (err: any) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  app.post("/api/conversations/:id/messages", authenticateToken, async (req: AuthRequest, res) => {
+    try {
+      const msgId = 'msg_' + Math.random().toString(36).substr(2, 9);
+      const { text } = req.body;
+      await executeSql("INSERT INTO messages (id, conversation_id, sender_id, text) VALUES (?, ?, ?, ?)", [msgId, req.params.id, req.user?.uid, text]);
+      await executeSql("UPDATE conversations SET last_message = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?", [text, req.params.id]);
+      res.json({ success: true, id: msgId });
+    } catch (err: any) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  // --- Users ---
+  app.get("/api/users/public", async (req, res) => {
+    try {
+      const users = await executeSql("SELECT uid, display_name as displayName, photo_url as photoUrl FROM users");
+      res.json(users);
+    } catch (err: any) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  app.put("/api/users/profile", authenticateToken, async (req: AuthRequest, res) => {
+    try {
+      await queries.updateUserProfile(req.user?.uid || '', req.body);
+      res.json({ success: true });
     } catch (err: any) {
       res.status(500).json({ error: err.message });
     }

@@ -1513,7 +1513,7 @@ export const OwnerDashboard: React.FC<{ isTestMode?: boolean; onBackToTraveler?:
     setCapacity(res.capacity.toString());
     setBedrooms(res.bedrooms.toString());
     setBeds(res.beds.toString());
-    setBathrooms(res.bathrooms.toString());
+    setBathrooms(res.bathrooms?.toString() || '0');
     setRooms((res.rooms || 1).toString());
     setOwnerPhone(res.ownerPhone || (res as any).owner_phone || '');
     setImages(res.images || []);
@@ -2980,7 +2980,7 @@ export const OwnerDashboard: React.FC<{ isTestMode?: boolean; onBackToTraveler?:
                           <span className="text-[10px] text-red-600 font-bold bg-red-50 px-2 py-0.5 rounded italic">OU cliquez sur la carte</span>
                         </div>
                       </div>
-                      <div className="h-[250px] rounded-2xl overflow-hidden border border-slate-100 shadow-inner z-0">
+                      <div className="h-[250px] rounded-2xl overflow-hidden border border-slate-100 shadow-inner z-0 relative">
                         <MapContainerAny center={[coordinates.lat, coordinates.lng]} zoom={13} style={{ height: '100%', width: '100%' }}>
                           <TileLayerAny
                             attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
