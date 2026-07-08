@@ -297,21 +297,17 @@ async function startServer() {
     try {
       const role = req.query.role;
       const uid = req.user?.uid;
-      let sql = "SELECT * FROM bookings WHERE client_id = ? OR owner_id = ? ORDER BY created_at DESC";
-      let params = [uid, uid];
+      const isAdmin = req.user?.role === 'admin' || req.user?.email === 'mandemohamed68@gmail.com';
       
-      if (req.user?.role === 'admin') {
-        sql = "SELECT * FROM bookings ORDER BY created_at DESC";
-        params = [];
-      } else if (role === 'client') {
-        sql = "SELECT * FROM bookings WHERE client_id = ? ORDER BY created_at DESC";
-        params = [uid];
-      } else if (role === 'owner') {
-        sql = "SELECT * FROM bookings WHERE owner_id = ? ORDER BY created_at DESC";
-        params = [uid];
+      const options: any = { isAdmin };
+      if (role === 'client') options.clientId = uid;
+      else if (role === 'owner') options.ownerId = uid;
+      else if (!isAdmin) {
+        options.clientId = uid;
+        options.ownerId = uid;
       }
       
-      const bookings = await executeSql(sql, params);
+      const bookings = await queries.getAllBookings(options);
       res.json(bookings);
     } catch (err: any) {
       res.status(500).json({ error: err.message });
@@ -353,7 +349,9 @@ async function startServer() {
   // --- Conversations & Messages ---
   app.get("/api/conversations", authenticateToken, async (req: AuthRequest, res) => {
     try {
-      const convs = await executeSql("SELECT * FROM conversations WHERE participants LIKE ?", [`%${req.user?.uid}%`]);
+      const uid = req.user?.uid || '';
+      const isAdmin = req.user?.role === 'admin' || req.user?.email === 'mandemohamed68@gmail.com';
+      const convs = await queries.getAllConversations(uid, isAdmin);
       res.json(convs);
     } catch (err: any) {
       res.status(500).json({ error: err.message });
@@ -380,7 +378,7 @@ async function startServer() {
 
   app.get("/api/conversations/:id/messages", authenticateToken, async (req: AuthRequest, res) => {
     try {
-      const messages = await executeSql("SELECT * FROM messages WHERE conversation_id = ? ORDER BY created_at ASC", [req.params.id]);
+      const messages = await queries.getMessages(req.params.id);
       res.json(messages);
     } catch (err: any) {
       res.status(500).json({ error: err.message });
@@ -558,7 +556,7 @@ async function startServer() {
   app.get("/api/contact-messages", authenticateToken, async (req: AuthRequest, res) => {
     try {
       if (req.user?.role !== 'admin') return res.status(403).json({ error: "Non autorisé" });
-      const messages = await executeSql("SELECT * FROM contact_messages ORDER BY created_at DESC");
+      const messages = await queries.getAllContactMessages();
       res.json(messages);
     } catch (err: any) {
       res.status(500).json({ error: err.message });
@@ -601,7 +599,7 @@ async function startServer() {
   // --- Reviews ---
   app.get("/api/reviews", async (req, res) => {
     try {
-      const reviews = await executeSql("SELECT * FROM reviews ORDER BY created_at DESC");
+      const reviews = await queries.getAllReviews();
       res.json(reviews);
     } catch (err: any) {
       res.status(500).json({ error: err.message });
@@ -621,19 +619,16 @@ async function startServer() {
   // --- Withdrawals ---
   app.get("/api/withdrawals", authenticateToken, async (req: AuthRequest, res) => {
     try {
-      const ownerId = req.query.ownerId;
-      let sql = "SELECT * FROM withdrawals ORDER BY created_at DESC";
-      let params: any[] = [];
+      const ownerId = req.query.ownerId as string;
+      let targetOwnerId: string | undefined = undefined;
       
       if (ownerId) {
-        sql = "SELECT * FROM withdrawals WHERE owner_id = ? ORDER BY created_at DESC";
-        params = [ownerId];
+        targetOwnerId = ownerId;
       } else if (req.user?.role !== 'admin') {
-        sql = "SELECT * FROM withdrawals WHERE owner_id = ? ORDER BY created_at DESC";
-        params = [req.user?.uid];
+        targetOwnerId = req.user?.uid;
       }
       
-      const withdrawals = await executeSql(sql, params);
+      const withdrawals = await queries.getAllWithdrawals(targetOwnerId);
       res.json(withdrawals);
     } catch (err: any) {
       res.status(500).json({ error: err.message });
@@ -666,7 +661,9 @@ async function startServer() {
   // --- Notifications ---
   app.get("/api/notifications", authenticateToken, async (req: AuthRequest, res) => {
     try {
-      const notifications = await executeSql("SELECT * FROM notifications WHERE user_id = ? ORDER BY created_at DESC", [req.user?.uid]);
+      const { userId } = req.query;
+      const targetId = (userId as string) || req.user?.uid || '';
+      const notifications = await queries.getNotifications(targetId);
       res.json(notifications);
     } catch (err: any) {
       res.status(500).json({ error: err.message });

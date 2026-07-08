@@ -97,6 +97,113 @@ export const getResidenceById = async (id: string) => {
   return residence;
 };
 
+// Bookings
+export const getAllBookings = async (options: { clientId?: string, ownerId?: string, isAdmin?: boolean, residenceId?: string } = {}) => {
+  let sql = `
+    SELECT 
+      id, residence_id as residenceId, client_id as clientId, owner_id as ownerId, 
+      check_in as checkIn, check_out as checkOut, guests, total_price as totalPrice, 
+      advance_paid as advancePaid, payment_status as paymentStatus, booking_status as bookingStatus, 
+      transaction_id as transactionId, cancelled_by as cancelledBy, cancellation_reason as cancellationReason, 
+      cancelled_at as cancelledAt, refund_status as refundStatus, refund_amount as refundAmount, 
+      refund_phone as refundPhone, refund_provider as refundProvider, refund_processed_at as refundProcessedAt, 
+      stay_status as stayStatus, checked_in_at as checkedInAt, checked_out_at as checkedOutAt, 
+      created_at as createdAt 
+    FROM bookings
+  `;
+  // For MariaDB, we might need to ensure the driver doesn't mangle aliases.
+  // Actually, let's keep it and if it fails, we'll try manual mapping in JS.
+  // But wait, I'll add a manual mapping step just to be safe.
+  
+  let params: any[] = [];
+  
+  const whereClauses: string[] = [];
+  if (options.residenceId) {
+    whereClauses.push("residence_id = ?");
+    params.push(options.residenceId);
+  }
+
+  if (!options.isAdmin) {
+    if (options.clientId && options.ownerId) {
+      whereClauses.push("(client_id = ? OR owner_id = ?)");
+      params.push(options.clientId, options.ownerId);
+    } else if (options.clientId) {
+      whereClauses.push("client_id = ?");
+      params.push(options.clientId);
+    } else if (options.ownerId) {
+      whereClauses.push("owner_id = ?");
+      params.push(options.ownerId);
+    }
+  }
+
+  if (whereClauses.length > 0) {
+    sql += " WHERE " + whereClauses.join(" AND ");
+  }
+
+  sql += " ORDER BY created_at DESC";
+
+  const rows = await executeSql(sql, params);
+  
+  // Manual mapping to ensure camelCase for MariaDB which sometimes returns snake_case even with aliases
+  return rows.map((row: any) => ({
+    id: row.id,
+    residenceId: row.residenceId || row.residence_id,
+    clientId: row.clientId || row.client_id,
+    ownerId: row.ownerId || row.owner_id,
+    checkIn: row.checkIn || row.check_in,
+    checkOut: row.checkOut || row.check_out,
+    guests: row.guests,
+    totalPrice: row.totalPrice !== undefined ? row.totalPrice : row.total_price,
+    advancePaid: row.advancePaid !== undefined ? row.advancePaid : row.advance_paid,
+    paymentStatus: row.paymentStatus || row.payment_status,
+    bookingStatus: row.bookingStatus || row.booking_status,
+    transactionId: row.transactionId || row.transaction_id,
+    cancelledBy: row.cancelledBy || row.cancelled_by,
+    cancellationReason: row.cancellationReason || row.cancellation_reason,
+    cancelledAt: row.cancelledAt || row.cancelled_at,
+    refundStatus: row.refundStatus || row.refund_status,
+    refundAmount: row.refundAmount !== undefined ? row.refundAmount : row.refund_amount,
+    refundPhone: row.refundPhone || row.refund_phone,
+    refundProvider: row.refundProvider || row.refund_provider,
+    refundProcessedAt: row.refundProcessedAt || row.refund_processed_at,
+    stayStatus: row.stayStatus || row.stay_status,
+    checkedInAt: row.checkedInAt || row.checked_in_at,
+    checkedOutAt: row.checkedOutAt || row.checked_out_at,
+    createdAt: row.createdAt || row.created_at
+  }));
+};
+
+export const getBookingById = async (id: string) => {
+  const results = await executeSql(`
+    SELECT 
+      id, residence_id as residenceId, client_id as clientId, owner_id as ownerId, 
+      check_in as checkIn, check_out as checkOut, guests, total_price as totalPrice, 
+      advance_paid as advancePaid, payment_status as paymentStatus, booking_status as bookingStatus, 
+      transaction_id as transactionId, created_at as createdAt 
+    FROM bookings 
+    WHERE id = ?
+  `, [id]);
+  
+  const row = results[0];
+  if (!row) return null;
+  
+  return {
+    id: row.id,
+    residenceId: row.residenceId || row.residence_id,
+    clientId: row.clientId || row.client_id,
+    ownerId: row.ownerId || row.owner_id,
+    checkIn: row.checkIn || row.check_in,
+    checkOut: row.checkOut || row.check_out,
+    guests: row.guests,
+    totalPrice: row.totalPrice !== undefined ? row.totalPrice : row.total_price,
+    advancePaid: row.advancePaid !== undefined ? row.advancePaid : row.advance_paid,
+    paymentStatus: row.paymentStatus || row.payment_status,
+    bookingStatus: row.bookingStatus || row.booking_status,
+    transactionId: row.transactionId || row.transaction_id,
+    createdAt: row.createdAt || row.created_at
+  };
+};
+
 // Settings
 export const getSettings = async (key: string) => {
   const results = await executeSql("SELECT value FROM settings WHERE `key` = ?", [key]);
@@ -136,7 +243,102 @@ export const saveSettings = async (key: string, value: any) => {
 
 // Ads
 export const getAllAds = async () => {
-  return await executeSql("SELECT * FROM advertisements ORDER BY created_at DESC");
+  const rows = await executeSql(`
+    SELECT 
+      id, title, description, image_url as imageUrl, link_url as linkUrl, 
+      is_active as isActive, frequency_seconds as frequencySeconds, 
+      start_at as startAt, end_at as endAt, created_at as createdAt 
+    FROM advertisements 
+    ORDER BY created_at DESC
+  `);
+  
+  return rows.map((row: any) => ({
+    id: row.id,
+    title: row.title,
+    description: row.description,
+    imageUrl: row.imageUrl || row.image_url,
+    linkUrl: row.linkUrl || row.link_url,
+    isActive: row.isActive !== undefined ? row.isActive : row.is_active,
+    frequencySeconds: row.frequencySeconds !== undefined ? row.frequencySeconds : row.frequency_seconds,
+    startAt: row.startAt || row.start_at,
+    endAt: row.endAt || row.end_at,
+    createdAt: row.createdAt || row.created_at
+  }));
+};
+
+// Reviews
+export const getAllReviews = async () => {
+  return await executeSql(`
+    SELECT 
+      id, booking_id as bookingId, residence_id as residenceId, client_id as clientId, 
+      rating, comment, created_at as createdAt 
+    FROM reviews 
+    ORDER BY created_at DESC
+  `);
+};
+
+// Withdrawals
+export const getAllWithdrawals = async (ownerId?: string) => {
+  let sql = `
+    SELECT 
+      id, owner_id as ownerId, amount, phone, provider, status, 
+      created_at as createdAt, approved_at as approvedAt 
+    FROM withdrawals
+  `;
+  let params: any[] = [];
+  if (ownerId) {
+    sql += " WHERE owner_id = ?";
+    params = [ownerId];
+  }
+  sql += " ORDER BY created_at DESC";
+  return await executeSql(sql, params);
+};
+
+// Contact Messages
+export const getAllContactMessages = async () => {
+  return await executeSql(`
+    SELECT 
+      id, name, email, subject, message, status, 
+      admin_notes as adminNotes, replied_at as repliedAt, created_at as createdAt 
+    FROM contact_messages 
+    ORDER BY created_at DESC
+  `);
+};
+
+// Conversations & Messages
+export const getAllConversations = async (uid: string, isAdmin: boolean = false) => {
+  let sql = `
+    SELECT id, participants, related_id as relatedId, updated_at as updatedAt 
+    FROM conversations 
+  `;
+  let params: any[] = [];
+  
+  if (!isAdmin) {
+    sql += " WHERE participants LIKE ?";
+    params = [`%${uid}%`];
+  }
+  
+  sql += " ORDER BY updated_at DESC";
+  
+  const conversations = await executeSql(sql, params);
+  
+  return conversations.map((c: any) => ({
+    id: c.id,
+    relatedId: c.relatedId || c.related_id,
+    updatedAt: c.updatedAt || c.updated_at,
+    participants: typeof c.participants === 'string' ? c.participants.split(',') : c.participants
+  }));
+};
+
+export const getMessages = async (conversationId: string) => {
+  return await executeSql(`
+    SELECT 
+      id, conversation_id as conversationId, sender_id as senderId, 
+      text, is_read as isRead, created_at as createdAt 
+    FROM messages 
+    WHERE conversation_id = ? 
+    ORDER BY created_at ASC
+  `, [conversationId]);
 };
 
 export const deleteResidence = async (id: string) => {
@@ -289,4 +491,26 @@ export const deleteUser = async (uid: string) => {
 
 export const deleteReview = async (id: string) => {
   await executeSql("DELETE FROM reviews WHERE id = ?", [id]);
+};
+
+export const getNotifications = async (userId: string) => {
+  const rows = await executeSql("SELECT * FROM notifications WHERE user_id = ? ORDER BY created_at DESC", [userId]);
+  return rows.map((row: any) => ({
+    id: row.id,
+    userId: row.user_id || row.userId,
+    title: row.title,
+    message: row.message,
+    type: row.type,
+    isRead: row.is_read !== undefined ? !!row.is_read : !!row.isRead,
+    referenceId: row.reference_id || row.referenceId,
+    createdAt: row.created_at || row.createdAt
+  }));
+};
+
+export const markNotificationAsRead = async (id: string) => {
+  await executeSql("UPDATE notifications SET is_read = 1 WHERE id = ?", [id]);
+};
+
+export const deleteNotification = async (id: string) => {
+  await executeSql("DELETE FROM notifications WHERE id = ?", [id]);
 };
