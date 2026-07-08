@@ -54,10 +54,10 @@ async function getSappayCredentials() {
       const docSnap = await adminDb.collection("settings").doc("global").get();
       if (docSnap.exists) {
         const data = docSnap.data();
-        if (data?.sappayClientId) finalCreds.clientId = data.sappayClientId.trim();
-        if (data?.sappayClientSecret) finalCreds.clientSecret = data.sappayClientSecret.trim();
-        if (data?.sappayUsername) finalCreds.username = data.sappayUsername.trim();
-        if (data?.sappayPassword) finalCreds.password = data.sappayPassword.trim();
+        if (data?.sappayClientId !== undefined) finalCreds.clientId = data.sappayClientId.trim();
+        if (data?.sappayClientSecret !== undefined) finalCreds.clientSecret = data.sappayClientSecret.trim();
+        if (data?.sappayUsername !== undefined) finalCreds.username = data.sappayUsername.trim();
+        if (data?.sappayPassword !== undefined) finalCreds.password = data.sappayPassword.trim();
         if (data?.isTestMode !== undefined) finalCreds.isTestMode = data.isTestMode;
       }
     } catch (e: any) {
@@ -68,10 +68,10 @@ async function getSappayCredentials() {
       const results = await executeSql("SELECT value FROM settings WHERE `key` = 'global'");
       if (results && results.length > 0) {
         const data = JSON.parse(results[0].value);
-        if (data?.sappayClientId) finalCreds.clientId = data.sappayClientId.trim();
-        if (data?.sappayClientSecret) finalCreds.clientSecret = data.sappayClientSecret.trim();
-        if (data?.sappayUsername) finalCreds.username = data.sappayUsername.trim();
-        if (data?.sappayPassword) finalCreds.password = data.sappayPassword.trim();
+        if (data?.sappayClientId !== undefined) finalCreds.clientId = data.sappayClientId.trim();
+        if (data?.sappayClientSecret !== undefined) finalCreds.clientSecret = data.sappayClientSecret.trim();
+        if (data?.sappayUsername !== undefined) finalCreds.username = data.sappayUsername.trim();
+        if (data?.sappayPassword !== undefined) finalCreds.password = data.sappayPassword.trim();
         if (data?.isTestMode !== undefined) finalCreds.isTestMode = data.isTestMode;
       }
     } catch (e: any) {

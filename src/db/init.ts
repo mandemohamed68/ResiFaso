@@ -144,10 +144,21 @@ export const initDatabase = async () => {
         monthly_discount DECIMAL(5, 2) DEFAULT 0,
         promo_price DECIMAL(10, 2),
         rejection_reason TEXT,
+        utilities_included TEXT,
         created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
         FOREIGN KEY(owner_id) REFERENCES users(uid) ON DELETE CASCADE
       ) ENGINE=InnoDB
     `);
+
+    try {
+      const cols = await executeSql("SHOW COLUMNS FROM residences LIKE 'utilities_included'");
+      if (!cols || cols.length === 0) {
+        await executeSql("ALTER TABLE residences ADD COLUMN utilities_included TEXT");
+        console.log("Migration MariaDB: Colonne utilities_included ajoutée à la table residences.");
+      }
+    } catch (colErr: any) {
+      console.warn("Avertissement migration MariaDB residences.utilities_included:", colErr.message);
+    }
 
     // Residence Amenities Table
     await executeSql(`
@@ -400,10 +411,18 @@ export const initDatabase = async () => {
         monthly_discount REAL DEFAULT 0,
         promo_price REAL,
         rejection_reason TEXT,
+        utilities_included TEXT,
         created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
         FOREIGN KEY(owner_id) REFERENCES users(uid)
       )
     `);
+
+    try {
+      await executeSql("ALTER TABLE residences ADD COLUMN utilities_included TEXT");
+      console.log("Migration SQLite: Colonne utilities_included ajoutée à la table residences.");
+    } catch (sqliteColErr: any) {
+      // Ignorer si la colonne existe déjà
+    }
 
     // Residence Amenities Table
     await executeSql(`

@@ -243,8 +243,8 @@ export const AdminDashboard: React.FC<{ onBackToTraveler?: () => void }> = ({ on
       if (messageList) setContactMessages(messageList);
 
       if (settingsData) {
-        if (settingsData.platformName) setPlatformName(settingsData.platformName);
-        if (settingsData.footerContent) setFooterContent(settingsData.footerContent);
+        if (settingsData.platformName !== undefined) setPlatformName(settingsData.platformName);
+        if (settingsData.footerContent !== undefined) setFooterContent(settingsData.footerContent);
         if (settingsData.commissionRate !== undefined) setCommissionRate(settingsData.commissionRate);
         if (settingsData.isTestMode !== undefined) setIsGlobalTestMode(settingsData.isTestMode);
         if (settingsData.enablePhoneCalls !== undefined) setEnablePhoneCalls(settingsData.enablePhoneCalls);
@@ -272,7 +272,7 @@ export const AdminDashboard: React.FC<{ onBackToTraveler?: () => void }> = ({ on
     const fetchDbType = async () => {
       try {
         const type = await getBackendDbType();
-        setDbType('sql');
+        setDbType(type);
       } catch (err) {
         console.error("Error fetching dbType:", err);
       }
@@ -1654,9 +1654,9 @@ export const AdminDashboard: React.FC<{ onBackToTraveler?: () => void }> = ({ on
           <div className="space-y-2 text-[10px]">
             <div className="flex justify-between items-center text-slate-600 font-bold">
               <span className="flex items-center gap-1.5">
-                <span className="w-1 h-1 bg-green-500 rounded-full"></span> Firebase Cloud
+                <span className="w-1 h-1 bg-green-500 rounded-full"></span> BD : {dbType === 'mariadb' ? 'MariaDB SQL' : dbType === 'sqlite' ? 'SQLite Local' : 'Firebase Cloud'}
               </span>
-              <span className="text-[9px] text-slate-400 font-mono">OK</span>
+              <span className="text-[9px] text-slate-400 font-mono">Actif</span>
             </div>
             <div className="flex justify-between items-center text-slate-600 font-bold">
               <span className="flex items-center gap-1.5">
@@ -3457,6 +3457,25 @@ export const AdminDashboard: React.FC<{ onBackToTraveler?: () => void }> = ({ on
                 <p className="text-xs font-medium text-slate-400 mt-1 leading-relaxed">
                   Générez un fichier d'export contenant les données actuelles de l'application. Vous pourrez exécuter ce fichier SQL sur un serveur MariaDB ou SQLite externe ou via PM2 sans Docker.
                 </p>
+              </div>
+
+              {/* Statut de Connexion Active de la Base de Données */}
+              <div className="bg-slate-800/80 p-4 rounded-2xl border border-slate-700/50 space-y-2">
+                <span className="text-[10px] font-black text-slate-400 uppercase tracking-wider block">Statut de Connexion Active</span>
+                <div className="flex items-center gap-3">
+                  <div className="relative flex h-3 w-3 shrink-0">
+                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                    <span className="relative inline-flex rounded-full h-3 w-3 bg-emerald-500"></span>
+                  </div>
+                  <div>
+                    <span className="text-sm font-black text-white block font-sans">
+                      {dbType === 'mariadb' ? 'MariaDB SQL (Actif & Connecté)' : dbType === 'sqlite' ? 'SQLite Local (Actif & Connecté)' : dbType === 'firebase' ? 'Firebase Firestore (Cloud)' : `Base de données active : ${dbType.toUpperCase()}`}
+                    </span>
+                    <span className="text-[10px] text-slate-400 font-medium block mt-1 leading-normal">
+                      {dbType === 'mariadb' ? 'L\'application est directement connectée à votre serveur de production MariaDB.' : dbType === 'sqlite' ? 'Base de données autonome stockée localement dans le fichier database.sqlite.' : 'Mode Cloud Firestore pour la synchronisation multi-utilisateurs.'}
+                    </span>
+                  </div>
+                </div>
               </div>
 
               <div className="flex gap-4">

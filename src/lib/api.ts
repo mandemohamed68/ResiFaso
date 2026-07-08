@@ -7,7 +7,6 @@ export function getApiUrl(): string {
   const isCapacitor = typeof window !== 'undefined' && (
     // @ts-ignore
     window.Capacitor || 
-    window.location.origin.includes('localhost') || 
     window.location.protocol === 'capacitor:' ||
     window.location.origin.startsWith('ionic:')
   );

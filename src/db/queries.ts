@@ -19,6 +19,7 @@ export const getAllResidences = async () => {
       city, neighborhood, street, capacity, bedrooms, beds, bathrooms, rooms, status, 
       availability_status as availabilityStatus, promoted, weekly_discount as weeklyDiscount, 
       monthly_discount as monthlyDiscount, promo_price as promoPrice, rejection_reason as rejectionReason, 
+      utilities_included as utilitiesIncludedRaw,
       created_at as createdAt 
     FROM residences
     ORDER BY created_at DESC
@@ -50,7 +51,9 @@ export const getAllResidences = async () => {
       neighborhood: res.neighborhood,
       street: res.street
     },
-    utilitiesIncluded: { water: true, electricity: true }
+    utilitiesIncluded: res.utilitiesIncludedRaw
+      ? (typeof res.utilitiesIncludedRaw === 'string' ? JSON.parse(res.utilitiesIncludedRaw) : res.utilitiesIncludedRaw)
+      : { water: false, electricity: false }
   }));
 };
 
@@ -62,6 +65,7 @@ export const getResidenceById = async (id: string) => {
       city, neighborhood, street, capacity, bedrooms, beds, bathrooms, rooms, status, 
       availability_status as availabilityStatus, promoted, weekly_discount as weeklyDiscount, 
       monthly_discount as monthlyDiscount, promo_price as promoPrice, rejection_reason as rejectionReason, 
+      utilities_included as utilitiesIncludedRaw,
       created_at as createdAt 
     FROM residences WHERE id = ?`, [id]);
   if (!res[0]) return null;
@@ -75,7 +79,9 @@ export const getResidenceById = async (id: string) => {
     neighborhood: residence.neighborhood,
     street: residence.street
   };
-  residence.utilitiesIncluded = { water: true, electricity: true };
+  residence.utilitiesIncluded = residence.utilitiesIncludedRaw
+    ? (typeof residence.utilitiesIncludedRaw === 'string' ? JSON.parse(res.utilitiesIncludedRaw) : residence.utilitiesIncludedRaw)
+    : { water: false, electricity: false };
   return residence;
 };
 
@@ -90,9 +96,9 @@ export const saveSettings = async (key: string, value: any) => {
   const dbType = process.env.DB_TYPE || 'sqlite';
   const valString = JSON.stringify(value);
   if (dbType === 'mariadb') {
-    await executeSql("INSERT INTO settings (`key`, value) VALUES (?, ?) ON DUPLICATE KEY UPDATE value = ?", [key, valString, valString]);
+    await executeSql("INSERT INTO settings (`key`, value) VALUES (?, ?) ON DUPLICATE KEY UPDATE value = VALUES(value)", [key, valString]);
   } else {
-    await executeSql("INSERT INTO settings (`key`, value) VALUES (?, ?) ON CONFLICT(`key`) DO UPDATE SET value = ?", [key, valString, valString]);
+    await executeSql("INSERT INTO settings (`key`, value) VALUES (?, ?) ON CONFLICT(`key`) DO UPDATE SET value = excluded.value", [key, valString]);
   }
 };
 
@@ -124,7 +130,7 @@ const VALID_RESIDENCE_COLS = new Set([
   'advance_percentage', 'cleaning_fee', 'service_fee', 'city', 'neighborhood',
   'street', 'capacity', 'bedrooms', 'beds', 'bathrooms', 'rooms', 'status',
   'availability_status', 'promoted', 'weekly_discount', 'monthly_discount',
-  'promo_price', 'rejection_reason', 'created_at'
+  'promo_price', 'rejection_reason', 'utilities_included', 'created_at'
 ]);
 
 export const updateResidence = async (id: string, updates: any) => {
@@ -141,6 +147,9 @@ export const updateResidence = async (id: string, updates: any) => {
     mappedUpdates.city = address.city;
     mappedUpdates.neighborhood = address.neighborhood;
     mappedUpdates.street = address.street;
+  }
+  if (utilitiesIncluded !== undefined) {
+    mappedUpdates.utilities_included = formatSqlValue(utilitiesIncluded);
   }
 
   const fields = Object.keys(mappedUpdates);
@@ -179,6 +188,9 @@ export const createResidence = async (res: any) => {
     mappedObj.city = address.city;
     mappedObj.neighborhood = address.neighborhood;
     mappedObj.street = address.street;
+  }
+  if (utilitiesIncluded !== undefined) {
+    mappedObj.utilities_included = formatSqlValue(utilitiesIncluded);
   }
   if (res.id) mappedObj.id = res.id;
 
