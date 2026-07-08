@@ -437,6 +437,7 @@ export const initDatabase = async () => {
         promo_price REAL,
         rejection_reason TEXT,
         utilities_included TEXT,
+        owner_phone TEXT,
         created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
         FOREIGN KEY(owner_id) REFERENCES users(uid)
       )
@@ -444,10 +445,10 @@ export const initDatabase = async () => {
 
     try {
       await executeSql("ALTER TABLE residences ADD COLUMN utilities_included TEXT");
-      console.log("Migration SQLite: Colonne utilities_included ajoutée à la table residences.");
-    } catch (sqliteColErr: any) {
-      // Ignorer si la colonne existe déjà
-    }
+    } catch (err) {}
+    try {
+      await executeSql("ALTER TABLE residences ADD COLUMN owner_phone TEXT");
+    } catch (err) {}
 
     // Residence Amenities Table
     await executeSql(`

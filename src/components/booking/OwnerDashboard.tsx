@@ -1658,6 +1658,16 @@ export const OwnerDashboard: React.FC<{ isTestMode?: boolean; onBackToTraveler?:
     }
   };
 
+  const handleNavigateToAdd = () => {
+    resetForm();
+    if (user && user.phoneNumber) {
+      setOwnerPhone(user.phoneNumber);
+    }
+    setEditingResidenceId(null);
+    setStep(1);
+    setIsAddOpen(true);
+  };
+
   if (!user) {
     return (
       <div className="flex flex-col items-center justify-center py-20 text-center max-w-7xl mx-auto px-4">
@@ -1695,7 +1705,7 @@ export const OwnerDashboard: React.FC<{ isTestMode?: boolean; onBackToTraveler?:
           <p className="text-slate-500 text-sm font-medium">Gérez vos biens immobiliers et optimisez vos rendements au Burkina.</p>
         </div>
         <button
-          onClick={() => setIsAddOpen(true)}
+          onClick={handleNavigateToAdd}
           className="flex items-center justify-center gap-2 px-5 py-3.5 bg-red-600 hover:bg-red-700 text-white rounded-2xl font-black text-xs uppercase tracking-wider transition-all hover:scale-[1.02] shadow-lg shadow-red-50 active:scale-[0.98] cursor-pointer shrink-0"
         >
           <Plus size={16} />

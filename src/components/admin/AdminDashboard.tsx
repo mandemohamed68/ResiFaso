@@ -3027,14 +3027,17 @@ export const AdminDashboard: React.FC<{ onBackToTraveler?: () => void }> = ({ on
                   </div>
 
                   <div>
-                    <label className="block text-[10px] font-black text-slate-400 uppercase tracking-wide mb-2">Message à diffuser</label>
+                    <label className="block text-[10px] font-black text-slate-400 uppercase tracking-wide mb-2">Message(s) à diffuser (Un par ligne pour une rotation)</label>
                     <textarea
                       value={announcementText}
                       onChange={(e) => setAnnouncementText(e.target.value)}
-                      rows={4}
+                      rows={6}
                       className="w-full bg-slate-50 border border-slate-200 rounded-2xl px-4 py-3 text-sm font-bold outline-none focus:ring-2 focus:ring-red-500 leading-relaxed"
-                      placeholder="Ex: Les réservations sont maintenant ouvertes pour la période du SIAO 2026 !"
+                      placeholder="Ligne 1: Premier message...&#10;Ligne 2: Deuxième message..."
                     />
+                    <p className="text-[9px] text-slate-400 font-medium mt-2 italic">
+                      Astuce : Saisissez plusieurs lignes pour faire défiler les messages automatiquement toutes les 5 secondes sur le site.
+                    </p>
                   </div>
 
                   <div className="pt-4">

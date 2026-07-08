@@ -32,7 +32,7 @@ const SAPPAY_BASE_PUBLIC_SANDBOX = "https://sandbox.sappay.net/api/v1";
 const SAPPAY_BASE_CHECKOUT_SANDBOX = "https://sandbox.sappay.net/api/v1/checkout";
 
 const SAPPAY_BASE_PUBLIC_PROD = "https://api.prod.sappay.net/api/public";
-const SAPPAY_BASE_CHECKOUT_PROD = "https://api.prod.sappay.net/api/checkout";
+const SAPPAY_BASE_CHECKOUT_PROD = "https://api.prod.sappay.net/api/v1/checkout";
 
 // Dynamically fetch administrator-configured Sappay credentials
 async function getSappayCredentials() {

@@ -229,6 +229,13 @@ export const PaymentModal: React.FC<Props> = ({ isOpen, onClose, amount, residen
         exit={{ opacity: 0, scale: 0.9, y: 20 }}
         className="relative w-full max-w-md bg-white rounded-3xl shadow-2xl overflow-hidden"
       >
+        <div className="flex h-1 bg-slate-100">
+          <div className={cn(
+            "h-full bg-red-600 transition-all duration-500",
+            step === 'provider' ? "w-1/4" : step === 'phone' ? "w-2/4" : step === 'otp' ? "w-3/4" : "w-full"
+          )} />
+        </div>
+
         {/* Header */}
         <div className="p-6 border-b border-slate-100 flex items-center justify-between relative overflow-hidden">
           {isTestMode && (

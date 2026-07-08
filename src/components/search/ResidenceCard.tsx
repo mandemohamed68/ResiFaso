@@ -76,27 +76,27 @@ export const ResidenceCard: React.FC<Props> = ({
           <div className="bg-white/90 backdrop-blur-sm px-2 py-1 rounded text-[10px] font-bold uppercase tracking-widest text-slate-900 shadow-sm self-start">
             {residence.type}
           </div>
-          {residence.promoted && (
+          {!!residence.promoted && (
             <div className="bg-red-600/90 text-white px-2 py-1 rounded text-[10px] font-black uppercase tracking-widest shadow-sm self-start border border-red-500/50">
               Coup de coeur Faso ★
             </div>
           )}
-          {(residence.weeklyDiscount || residence.monthlyDiscount || residence.weekly_discount || residence.monthly_discount) && (
+          {!!(residence.weeklyDiscount || residence.monthlyDiscount || residence.weekly_discount || residence.monthly_discount) && (
             <div className="bg-green-600/90 text-white px-2 py-1 rounded text-[10px] font-black uppercase tracking-widest shadow-sm self-start border border-green-500/50">
               -{residence.monthlyDiscount || residence.weeklyDiscount}% Durée
             </div>
           )}
-          {(residence.promoPrice || residence.promo_price) && (
+          {!!(residence.promoPrice || residence.promo_price) && (
             <div className="bg-yellow-400 text-slate-900 px-2 py-1 rounded text-[10px] font-black uppercase tracking-widest shadow-sm self-start animate-pulse">
               Promo Flash ⚡
             </div>
           )}
-          {residence.utilitiesIncluded?.water && (
+          {!!residence.utilitiesIncluded?.water && (
             <div className="bg-blue-600/90 text-white px-2 py-1 rounded text-[10px] font-black uppercase tracking-widest shadow-sm self-start border border-blue-500/50">
               Eau incluse 💧
             </div>
           )}
-          {residence.utilitiesIncluded?.electricity && (
+          {!!residence.utilitiesIncluded?.electricity && (
             <div className="bg-amber-500/90 text-white px-2 py-1 rounded text-[10px] font-black uppercase tracking-widest shadow-sm self-start border border-amber-400/50">
               Élec. incluse ⚡
             </div>
