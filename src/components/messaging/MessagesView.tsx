@@ -1,7 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
-import { db } from '../../lib/firebase';
-import { collection, query, where, orderBy, onSnapshot, addDoc, doc, updateDoc, Timestamp, limit } from 'firebase/firestore';
 import { Conversation, Message, UserProfile } from '../../types';
 import { Send, User as UserIcon, Check, CheckCheck, Clock, MessageSquare, Briefcase, Search } from 'lucide-react';
 import { cn } from '../../lib/utils';
@@ -21,22 +19,18 @@ export const MessagesView: React.FC<{ initialConversationId?: string | null }> =
   useEffect(() => {
     if (!user) return;
 
-    const q = query(
-      collection(db, 'conversations'),
-      where('participants', 'array-contains', user.uid),
-      orderBy('updatedAt', 'desc')
-    );
-
-    const unsubscribe = onSnapshot(q, (snapshot) => {
-      const list: Conversation[] = [];
-      snapshot.forEach(docSnap => {
-        list.push({ id: docSnap.id, ...docSnap.data() } as Conversation);
-      });
-      setConversations(list);
-      setLoading(false);
-    });
-
-    return () => unsubscribe();
+    const fetchConversations = () => {
+      fetch('/api/conversations', { headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` } })
+        .then(res => res.json())
+        .then(data => {
+          setConversations(data || []);
+          setLoading(false);
+        })
+        .catch(() => setLoading(false));
+    };
+    fetchConversations();
+    const intv = setInterval(fetchConversations, 10000);
+    return () => clearInterval(intv);
   }, [user]);
 
   // Handle initial selected conversation link
@@ -59,16 +53,18 @@ export const MessagesView: React.FC<{ initialConversationId?: string | null }> =
 
     if (otherParticipants.length === 0) return;
 
-    const q = query(collection(db, 'users'), where('uid', 'in', otherParticipants));
-    const unsubscribe = onSnapshot(q, (snapshot) => {
-      const profiles: Record<string, UserProfile> = {};
-      snapshot.forEach(docSnap => {
-        profiles[docSnap.id] = docSnap.data() as UserProfile;
-      });
-      setParticipantsInfo(prev => ({ ...prev, ...profiles }));
-    });
-
-    return unsubscribe;
+    const fetchProfiles = async () => {
+      try {
+        const res = await fetch('/api/users/public', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${localStorage.getItem('token')}` },
+          body: JSON.stringify({ uids: otherParticipants })
+        });
+        const data = await res.json();
+        setParticipantsInfo(prev => ({ ...prev, ...data }));
+      } catch (err) {}
+    };
+    fetchProfiles();
   }, [conversations, user]);
 
   // Fetch messages for selected conversation
@@ -78,26 +74,19 @@ export const MessagesView: React.FC<{ initialConversationId?: string | null }> =
       return;
     }
 
-    const q = query(
-      collection(db, 'conversations', selectedConversation.id, 'messages'),
-      orderBy('createdAt', 'asc'),
-      limit(50)
-    );
-
-    const unsubscribe = onSnapshot(q, (snapshot) => {
-      const list: Message[] = [];
-      snapshot.forEach(docSnap => {
-        list.push({ id: docSnap.id, ...docSnap.data() } as Message);
-      });
-      setMessages(list);
-      
-      // Auto-scroll to bottom
-      setTimeout(() => {
-        messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-      }, 100);
-    });
-
-    return () => unsubscribe();
+    const fetchMessages = () => {
+      fetch(`/api/conversations/${selectedConversation.id}/messages`, { headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` } })
+        .then(res => res.json())
+        .then(data => {
+          setMessages(data || []);
+          setTimeout(() => {
+            messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+          }, 100);
+        });
+    };
+    fetchMessages();
+    const intv = setInterval(fetchMessages, 3000);
+    return () => clearInterval(intv);
   }, [selectedConversation]);
 
   const handleSendMessage = async (e: React.FormEvent) => {
@@ -108,18 +97,10 @@ export const MessagesView: React.FC<{ initialConversationId?: string | null }> =
       const msgText = newMessage;
       setNewMessage(''); // Clear immediately for UX
 
-      await addDoc(collection(db, 'conversations', selectedConversation.id, 'messages'), {
-        conversationId: selectedConversation.id,
-        senderId: user.uid,
-        text: msgText,
-        createdAt: new Date().toISOString(),
-        isRead: false
-      });
-
-      // Update last message in conversation for the list view
-      await updateDoc(doc(db, 'conversations', selectedConversation.id), {
-        lastMessage: msgText,
-        updatedAt: new Date().toISOString()
+      await fetch(`/api/conversations/${selectedConversation.id}/messages`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${localStorage.getItem('token')}` },
+        body: JSON.stringify({ senderId: user.uid, text: msgText })
       });
     } catch (err) {
       console.error("Message send error:", err);

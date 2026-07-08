@@ -203,7 +203,7 @@ export async function hardResetDatabase() {
 // ==========================================
 
 export async function getBackendDbType(): Promise<string> {
-  return apiFetch('/api/admin/db-type').then(res => res.dbType).catch(() => 'firebase');
+  return 'sql';
 }
 
 export async function getGlobalSettings(): Promise<any> {

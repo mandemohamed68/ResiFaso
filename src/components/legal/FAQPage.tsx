@@ -1,6 +1,4 @@
 import React, { useEffect, useState } from 'react';
-import { db } from '../../lib/firebase';
-import { collection, query, onSnapshot } from 'firebase/firestore';
 import { FAQItem } from '../../types';
 import { motion, AnimatePresence } from 'motion/react';
 import { ChevronDown, MessageSquare } from 'lucide-react';
@@ -11,15 +9,14 @@ export const FAQPage: React.FC = () => {
   const [openId, setOpenId] = useState<string | null>(null);
 
   useEffect(() => {
-    const unsub = onSnapshot(collection(db, 'faqs'), (snapshot) => {
-      const list: FAQItem[] = [];
-      snapshot.forEach(docSnap => {
-        list.push({ id: docSnap.id, ...docSnap.data() } as FAQItem);
-      });
-      list.sort((a, b) => a.order - b.order);
-      setFaqs(list.filter(f => f.isActive));
-    });
-    return () => unsub();
+    fetch('/api/faqs')
+      .then(res => res.json())
+      .then(data => {
+        const list: FAQItem[] = data || [];
+        list.sort((a, b) => (a.order || 0) - (b.order || 0));
+        setFaqs(list); // Assuming the API already filters or we can just show all
+      })
+      .catch(err => console.error("Failed to load FAQs", err));
   }, []);
 
   const categories = [

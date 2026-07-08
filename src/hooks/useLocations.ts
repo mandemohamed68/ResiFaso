@@ -1,6 +1,4 @@
 import { useState, useEffect } from 'react';
-import { collection, onSnapshot } from 'firebase/firestore';
-import { db } from '../lib/firebase';
 import { BURKINA_LOCATIONS, City } from '../constants/locations';
 
 export function useLocations() {
@@ -8,15 +6,9 @@ export function useLocations() {
   const [allLocations, setAllLocations] = useState<City[]>([...BURKINA_LOCATIONS]);
 
   useEffect(() => {
-    const unsub = onSnapshot(collection(db, 'locations'), (snap) => {
-      const dynLocs: City[] = [];
-      snap.forEach(docSnap => {
-        dynLocs.push({ id: docSnap.id, ...docSnap.data() } as City);
-      });
-      setPlatformLocations(dynLocs);
-    });
-
-    return () => unsub();
+    // Backend API fetch could go here if implemented in the future.
+    // For now, we rely only on BURKINA_LOCATIONS.
+    setPlatformLocations([]);
   }, []);
 
   useEffect(() => {

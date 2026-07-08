@@ -1,8 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import heroBg from '../../assets/images/rond_point_martyrs_bg_1780477317904.png';
-import { db } from '../../lib/firebase';
-import { collection, onSnapshot } from 'firebase/firestore';
 import { Advertisement } from '../../types';
 
 interface HeroSlide {
@@ -18,26 +16,24 @@ export const Hero: React.FC = () => {
   const [activeAds, setActiveAds] = useState<Advertisement[]>([]);
   const [currentIndex, setCurrentIndex] = useState(0);
 
-  // Real-time subscription to active advertisements
+  // Fetch advertisements
   useEffect(() => {
-    const unsubscribe = onSnapshot(collection(db, 'ads'), (snapshot) => {
-      const list: Advertisement[] = [];
-      snapshot.forEach(docSnap => {
-        const item = { id: docSnap.id, ...docSnap.data() } as Advertisement;
-        if (item.isActive) {
-          list.push(item);
-        }
-      });
-      // Order ads newest first
-      list.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
-      setActiveAds(list);
-      // Reset slide index when ads data changes to avoid out of bounds
-      setCurrentIndex(0);
-    }, (error) => {
-      console.error("Hero ads snapshot error (silently falling back to premium default):", error);
-    });
-
-    return () => unsubscribe();
+    const fetchAds = async () => {
+      try {
+        const response = await fetch('/api/ads');
+        if (!response.ok) throw new Error('Failed to fetch ads');
+        const list: Advertisement[] = await response.json();
+        const activeOnly = list.filter(item => item.isActive);
+        activeOnly.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+        setActiveAds(activeOnly);
+      } catch (error) {
+        console.error("Hero ads fetch error (silently falling back to premium default):", error);
+      }
+    };
+    
+    fetchAds();
+    const intervalId = setInterval(fetchAds, 60000); // refresh every minute
+    return () => clearInterval(intervalId);
   }, []);
 
   // Filter advertisements dynamically based on active dates schedules

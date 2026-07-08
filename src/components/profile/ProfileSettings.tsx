@@ -5,8 +5,6 @@ import {
   User, Shield, CreditCard, Bell, Key, Eye, AlertTriangle, 
   CheckCircle, Upload, Check, Lock, Smartphone, RefreshCw, X, Camera 
 } from 'lucide-react';
-import { db } from '../../lib/firebase';
-import { doc, updateDoc } from 'firebase/firestore';
 import { resizeImage } from '../../lib/imageResize';
 
 type Tab = 'personal' | 'id' | 'photo' | 'payment' | 'notifications' | 'security' | 'privacy' | 'deactivate';
@@ -108,12 +106,12 @@ export const ProfileSettings: React.FC = () => {
     if (!user) return;
     setIsSaving(true);
     try {
-      const userRef = doc(db, 'users', user.uid);
-      await updateDoc(userRef, {
+      
+      await fetch('/api/users/profile', { method: 'PUT', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${localStorage.getItem('token')}` }, body: JSON.stringify({
         displayName: displayName,
         phoneNumber: phone,
         phone: phone // for backward compatibility
-      });
+      }) });
       await refreshProfile();
       triggerSuccess('Informations personnelles enregistrées avec succès !');
     } catch (e) {
@@ -220,14 +218,14 @@ export const ProfileSettings: React.FC = () => {
     }
     setIsSaving(true);
     try {
-      const userRef = doc(db, 'users', user.uid);
-      await updateDoc(userRef, {
+      
+      await fetch('/api/users/profile', { method: 'PUT', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${localStorage.getItem('token')}` }, body: JSON.stringify({
         idType: idType,
         idNumber: idNumber,
         idExpiry: idExpiry,
         idCardUrl: capturedImage,
         verificationStatus: 'pending'
-      });
+      }) });
       await refreshProfile();
       triggerSuccess(`Votre pièce d'identité (${idType}) a été enregistrée et soumise pour vérification. Notre équipe va l'analyser.`);
     } catch (e) {
@@ -243,10 +241,10 @@ export const ProfileSettings: React.FC = () => {
     if (!user) return;
     setIsSaving(true);
     try {
-      const userRef = doc(db, 'users', user.uid);
-      await updateDoc(userRef, {
+      
+      await fetch('/api/users/profile', { method: 'PUT', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${localStorage.getItem('token')}` }, body: JSON.stringify({
         photoURL: selectedPhotoURL
-      });
+      }) });
       await refreshProfile();
       triggerSuccess('Photo de profil mise à jour avec succès !');
     } catch (e) {
@@ -262,10 +260,10 @@ export const ProfileSettings: React.FC = () => {
     if (!user) return;
     setIsSaving(true);
     try {
-      const userRef = doc(db, 'users', user.uid);
-      await updateDoc(userRef, {
+      
+      await fetch('/api/users/profile', { method: 'PUT', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${localStorage.getItem('token')}` }, body: JSON.stringify({
         photoURL: ''
-      });
+      }) });
       setSelectedPhotoURL('');
       await refreshProfile();
       triggerSuccess('Photo de profil supprimée.');
@@ -283,14 +281,14 @@ export const ProfileSettings: React.FC = () => {
     if (!user) return;
     setIsSaving(true);
     try {
-      const userRef = doc(db, 'users', user.uid);
+      
       const updatedPrefs = {
         ...paymentPrefs,
         hasPreference: true
       };
-      await updateDoc(userRef, {
+      await fetch('/api/users/profile', { method: 'PUT', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${localStorage.getItem('token')}` }, body: JSON.stringify({
         paymentPreferences: updatedPrefs
-      });
+      }) });
       setPaymentPrefs(updatedPrefs);
       await refreshProfile();
       triggerSuccess('Préférences de paiement enregistrées avec succès !');
@@ -307,7 +305,7 @@ export const ProfileSettings: React.FC = () => {
     if (!user) return;
     setIsSaving(true);
     try {
-      const userRef = doc(db, 'users', user.uid);
+      
       const clearedPrefs = {
         hasPreference: false,
         mobileMoneyNumber: '',
@@ -315,9 +313,9 @@ export const ProfileSettings: React.FC = () => {
         bankAccountName: '',
         bankAccountNumber: '',
       };
-      await updateDoc(userRef, {
+      await fetch('/api/users/profile', { method: 'PUT', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${localStorage.getItem('token')}` }, body: JSON.stringify({
         paymentPreferences: clearedPrefs
-      });
+      }) });
       setPaymentPrefs(clearedPrefs);
       await refreshProfile();
       triggerSuccess('Moyen de paiement favori retiré.');
@@ -334,10 +332,10 @@ export const ProfileSettings: React.FC = () => {
     if (!user) return;
     setIsSaving(true);
     try {
-      const userRef = doc(db, 'users', user.uid);
-      await updateDoc(userRef, {
+      
+      await fetch('/api/users/profile', { method: 'PUT', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${localStorage.getItem('token')}` }, body: JSON.stringify({
         notifications: notifications
-      });
+      }) });
       await refreshProfile();
       triggerSuccess('Préférences d\'alertes et notifications enregistrées avec succès !');
     } catch (e) {
@@ -353,10 +351,10 @@ export const ProfileSettings: React.FC = () => {
     if (!user) return;
     setIsSaving(true);
     try {
-      const userRef = doc(db, 'users', user.uid);
-      await updateDoc(userRef, {
+      
+      await fetch('/api/users/profile', { method: 'PUT', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${localStorage.getItem('token')}` }, body: JSON.stringify({
         privacy: privacy
-      });
+      }) });
       await refreshProfile();
       triggerSuccess('Paramètres de confidentialité enregistrés avec succès !');
     } catch (e) {
@@ -399,10 +397,10 @@ export const ProfileSettings: React.FC = () => {
     if (!confirm) return;
     setIsSaving(true);
     try {
-      const userRef = doc(db, 'users', user.uid);
-      await updateDoc(userRef, {
+      
+      await fetch('/api/users/profile', { method: 'PUT', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${localStorage.getItem('token')}` }, body: JSON.stringify({
         deactivated: true
-      });
+      }) });
       addToast("Votre compte a été désactivé. À bientôt sur ResiFaso !", "error");
       await logOut();
     } catch (e) {
@@ -420,12 +418,12 @@ export const ProfileSettings: React.FC = () => {
     if (!confirm) return;
     setIsSaving(true);
     try {
-      const userRef = doc(db, 'users', user.uid);
-      await updateDoc(userRef, {
+      
+      await fetch('/api/users/profile', { method: 'PUT', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${localStorage.getItem('token')}` }, body: JSON.stringify({
         deactivated: true,
         displayName: "[Utilisateur Supprimé]",
         phoneNumber: ""
-      });
+      }) });
       addToast("Vos données ont été supprimées. Déconnexion en cours.", "error");
       await logOut();
     } catch (e) {

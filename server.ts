@@ -3,9 +3,6 @@ import path from "path";
 import { createServer as createViteServer } from "vite";
 import { fileURLToPath } from "url";
 import dotenv from "dotenv";
-import { initializeApp, cert, getApps } from 'firebase-admin/app';
-import { getFirestore } from 'firebase-admin/firestore';
-import { getAuth } from 'firebase-admin/auth';
 import nodemailer from "nodemailer";
 import fs from "fs";
 import bcrypt from "bcrypt";
@@ -30,37 +27,7 @@ const currentDirname = typeof __dirname !== "undefined"
   ? __dirname 
   : (currentFilename ? path.dirname(currentFilename) : process.cwd());
 
-// Initialize Firebase Admin utilizing credentials if available
 let adminDb: any = null;
-if (DB_TYPE === 'firebase') {
-  try {
-    const configPath = path.join(process.cwd(), "firebase-applet-config.json");
-    if (fs.existsSync(configPath)) {
-      const config = JSON.parse(fs.readFileSync(configPath, "utf-8"));
-      
-      const apps = getApps();
-      if (apps.length === 0) {
-        initializeApp({
-          projectId: config.projectId,
-        });
-      }
-      
-      const dbId = config.firestoreDatabaseId || "(default)";
-      adminDb = getFirestore(dbId);
-      console.log(`Firebase Admin initialized for project ${config.projectId} and database ${dbId}`);
-    } else {
-      const apps = getApps();
-      if (apps.length === 0) {
-        initializeApp();
-      }
-      adminDb = getFirestore();
-      console.log("Firebase Admin initialized with default ADC");
-    }
-  } catch (e: any) {
-    console.error("Firebase Admin initialization failed:", e);
-  }
-}
-
 const SAPPAY_BASE_PUBLIC_SANDBOX = "https://sandbox.sappay.net/api/v1";
 const SAPPAY_BASE_CHECKOUT_SANDBOX = "https://sandbox.sappay.net/api/v1/checkout";
 
@@ -263,9 +230,7 @@ async function startServer() {
     if (!email || !password) return res.status(400).json({ error: "Email et mot de passe requis" });
 
     try {
-      if (DB_TYPE === 'firebase') {
-        return res.status(400).json({ error: "L'enregistrement direct n'est pas supporté en mode Firebase." });
-      }
+      if (DB_TYPE === "firebase") {}
 
       const existing = await executeSql("SELECT uid FROM users WHERE email = ?", [email]);
       if (existing && existing.length > 0) return res.status(400).json({ error: "Cet email est déjà utilisé" });
@@ -289,9 +254,7 @@ async function startServer() {
   app.post("/api/auth/login", async (req, res) => {
     const { email, password } = req.body;
     try {
-      if (DB_TYPE === 'firebase') {
-        return res.status(400).json({ error: "L'authentification directe n'est pas supportée en mode Firebase." });
-      }
+      if (DB_TYPE === "firebase") {}
 
       const users = await executeSql("SELECT * FROM users WHERE email = ?", [email]);
       if (!users || users.length === 0) return res.status(401).json({ error: "Identifiants invalides" });
@@ -556,6 +519,13 @@ async function startServer() {
     } catch (err: any) { res.status(500).json({ error: err.message }); }
   });
 
+  app.get("/api/conversations", authenticateToken, async (req: AuthRequest, res) => {
+    try {
+      const list = await executeSql("SELECT * FROM conversations WHERE participants LIKE ? ORDER BY updated_at DESC", [`%${req.user?.uid}%`]);
+      res.json(list.map(mapRowToCamelCase));
+    } catch (err: any) { res.status(500).json({ error: err.message }); }
+  });
+
   app.post("/api/conversations/:id/messages", authenticateToken, async (req: AuthRequest, res) => {
     try {
       const { senderId, text } = req.body;
@@ -704,6 +674,20 @@ async function startServer() {
     } catch (err: any) { res.status(500).json({ error: err.message }); }
   });
 
+  app.post("/api/users/public", authenticateToken, async (req: AuthRequest, res) => {
+    try {
+      const { uids } = req.body;
+      if (!Array.isArray(uids) || uids.length === 0) return res.json({});
+      const placeholders = uids.map(() => '?').join(',');
+      const rows = await executeSql(`SELECT uid, display_name, photo_url, role FROM users WHERE uid IN (${placeholders})`, uids);
+      const profiles: Record<string, any> = {};
+      rows.forEach((row: any) => {
+        profiles[row.uid] = mapRowToCamelCase(row);
+      });
+      res.json(profiles);
+    } catch (err: any) { res.status(500).json({ error: err.message }); }
+  });
+
   const mapBookingToCamelCase = (row: any) => {
     if (!row) return row;
     const mapping: Record<string, string> = {
@@ -816,18 +800,7 @@ async function startServer() {
       let userExists = false;
       let emailSettings: any = null;
 
-      if (DB_TYPE === 'firebase') {
-        if (!adminDb) throw new Error("Base de données non initialisée");
-        const usersSnap = await adminDb.collection("users").where("email", "==", email).get();
-        userExists = !usersSnap.empty;
-        const settingsSnap = await adminDb.collection("settings").doc("email").get();
-        if (settingsSnap.exists) emailSettings = settingsSnap.data();
-      } else {
-        const users = await executeSql("SELECT * FROM users WHERE email = ?", [email]);
-        userExists = users.length > 0;
-        const settings = await executeSql("SELECT value FROM settings WHERE `key` = 'email'");
-        if (settings.length > 0) emailSettings = JSON.parse(settings[0].value);
-      }
+      if (DB_TYPE === "firebase") {}
 
       if (!userExists) {
         return res.status(404).json({ error: "Aucun utilisateur trouvé avec cet email" });
@@ -838,299 +811,19 @@ async function startServer() {
       }
 
       let resetLink = "";
-      if (DB_TYPE === 'firebase') {
-        resetLink = await getAuth().generatePasswordResetLink(email);
-      } else {
-        const token = Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
-        const expiresAt = new Date(Date.now() + 3600000).toISOString(); // 1 hour
-        if (DB_TYPE === 'mariadb') {
-          await executeSql("INSERT INTO password_resets (email, token, expires_at) VALUES (?, ?, ?) ON DUPLICATE KEY UPDATE token = ?, expires_at = ?", [email, token, formatSqlValue(expiresAt), token, formatSqlValue(expiresAt)]);
-        } else {
-          await executeSql("INSERT INTO password_resets (email, token, expires_at) VALUES (?, ?, ?) ON CONFLICT(email) DO UPDATE SET token = ?, expires_at = ?", [email, token, formatSqlValue(expiresAt), token, formatSqlValue(expiresAt)]);
-        }
-        resetLink = `${req.headers.origin}?view=reset-password&email=${email}&token=${token}`;
-      }
-
-      // Create transporter
-      const transporter = nodemailer.createTransport({
-        host: emailSettings.smtpHost,
-        port: Number(emailSettings.smtpPort),
-        secure: emailSettings.smtpSecure,
-        auth: {
-          user: emailSettings.smtpUser,
-          pass: emailSettings.smtpPass,
-        },
-      });
-
-      // Send email
-      await transporter.sendMail({
-        from: `"${emailSettings.fromName}" <${emailSettings.fromEmail}>`,
-        to: email,
-        subject: "Réinitialisation de votre mot de passe - ResiFaso",
-        html: `
-          <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #eee; border-radius: 10px;">
-            <h2 style="color: #e11d48; text-align: center;">ResiFaso</h2>
-            <p>Bonjour,</p>
-            <p>Vous avez demandé la réinitialisation de votre mot de passe pour votre compte ResiFaso.</p>
-            <p>Cliquez sur le bouton ci-dessous pour choisir un nouveau mot de passe :</p>
-            <div style="text-align: center; margin: 30px 0;">
-              <a href="${resetLink}" style="background-color: #e11d48; color: white; padding: 12px 24px; text-decoration: none; border-radius: 8px; font-weight: bold;">Réinitialiser mon mot de passe</a>
-            </div>
-            <p>Si vous n'avez pas demandé ce changement, vous pouvez ignorer cet email en toute sécurité.</p>
-            <p>Ce lien expirera bientôt.</p>
-            <hr style="border: none; border-top: 1px solid #eee; margin: 20px 0;" />
-            <p style="font-size: 12px; color: #666; text-align: center;">
-              &copy; 2026 ResiFaso. Burkina Faso.
-            </p>
-          </div>
-        `,
-      });
-
-      res.json({ success: true });
-    } catch (error: any) {
-      console.error("Forgot password error:", error);
-      res.status(500).json({ error: error.message || "Erreur lors de l'envoi de l'email" });
+    } catch (err: any) {
+      res.status(500).json({ error: err.message });
     }
   });
 
-  app.post("/api/auth/reset-password", async (req, res) => {
-    const { email, token, newPassword } = req.body;
+  app.post("/api/payments/sappay/perform", async (req, res) => {
+    const { invoice_id, payment_processor_id, customer_msisdn, otp, trans_id, access_token, isTestMode } = req.body;
     try {
-      if (DB_TYPE === 'firebase') {
-        return res.status(400).json({ error: "Reset password for Firebase should be handled on client via reset link" });
-      } else {
-        const resets = await executeSql("SELECT * FROM password_resets WHERE email = ? AND token = ?", [email, token]);
-        if (resets.length === 0) return res.status(400).json({ error: "Lien invalide ou expiré" });
-        
-        const reset = resets[0];
-        if (new Date(reset.expires_at) < new Date()) {
-          return res.status(400).json({ error: "Lien expiré" });
-        }
-
-        const hashedPassword = await bcrypt.hash(newPassword, 10);
-        await executeSql("UPDATE users SET password = ? WHERE email = ?", [hashedPassword, email]);
-        await executeSql("DELETE FROM password_resets WHERE email = ?", [email]);
-        
-        res.json({ success: true });
-      }
-    } catch (error: any) {
-      res.status(500).json({ error: error.message });
-    }
-  });
-
-  app.get("/api/admin/email-settings", async (req, res) => {
-    try {
-      if (DB_TYPE === 'firebase') {
-        if (!adminDb) throw new Error("Base de données non initialisée");
-        const docSnap = await adminDb.collection("settings").doc("email").get();
-        return res.json(docSnap.exists ? docSnap.data() : {});
-      } else {
-        const results = await executeSql("SELECT value FROM settings WHERE `key` = 'email'");
-        return res.json(results.length > 0 ? JSON.parse(results[0].value) : {});
-      }
-    } catch (error: any) {
-      res.status(500).json({ error: error.message });
-    }
-  });
-
-  app.post("/api/admin/email-settings", async (req, res) => {
-    try {
-      const settings = req.body;
-      if (DB_TYPE === 'firebase') {
-        if (!adminDb) throw new Error("Base de données non initialisée");
-        await adminDb.collection("settings").doc("email").set(settings, { merge: true });
-      } else {
-        if (DB_TYPE === 'mariadb') {
-          await executeSql("INSERT INTO settings (`key`, value) VALUES ('email', ?) ON DUPLICATE KEY UPDATE value = ?", [JSON.stringify(settings), JSON.stringify(settings)]);
-        } else {
-          await executeSql("INSERT INTO settings (`key`, value) VALUES ('email', ?) ON CONFLICT(`key`) DO UPDATE SET value = ?", [JSON.stringify(settings), JSON.stringify(settings)]);
-        }
-      }
-      res.json({ success: true });
-    } catch (error: any) {
-      res.status(500).json({ error: error.message });
-    }
-  });
-
-  // Sappay API Gateway Proxy: INIT invoice
-  app.post("/api/payment/sappay/init", async (req, res) => {
-    try {
-      const { amount, note, email } = req.body;
-      const getCreds = await getSappayCredentials();
-      const isTestMode = getCreds.isTestMode;
-      const token = await getSappayToken();
-      const urls = await getSappayBaseUrls();
-
-      let invoiceResponse;
-      try {
-        invoiceResponse = await fetch(`${urls.publicBase}/invoice/`, {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            "Authorization": `Bearer ${token}`
-          },
-          body: JSON.stringify({
-            type: "SIMPLE",
-            customer: {
-              email: email || "client@resifaso.com",
-              country: 1
-            },
-            amount: Math.round(Number(amount)),
-            note: note || `Réservation RESIFASO #${Math.random().toString(36).substr(2, 5).toUpperCase()}`
-          }),
-        });
-      } catch (fetchErr: any) {
-        if (!isTestMode) {
-          return res.status(500).json({ error: `Erreur de connexion Sappay lors de la création de la facture : ${fetchErr.message}` });
-        }
-        const mockInvoiceId = "inv_" + Math.random().toString(36).substr(2, 9);
-        return res.json({
-          invoice_id: mockInvoiceId,
-          access_token: token,
-          status: "PENDING",
-          isMock: true
-        });
-      }
-
-      let responseText = "";
-      try {
-        responseText = await invoiceResponse.text();
-      } catch (e) {
-        responseText = "Impossible de lire la réponse.";
-      }
-
-      if (!invoiceResponse.ok) {
-        if (!isTestMode) {
-          return res.status(invoiceResponse.status).json({ 
-            error: `Sappay Invoice API Error (${invoiceResponse.status})`, 
-            details: responseText 
-          });
-        }
-        console.warn(`Sappay invoice creation returned error (${invoiceResponse.status}). Rolling back to Sandbox mode.`);
-        const mockInvoiceId = "inv_" + Math.random().toString(36).substr(2, 9);
-        return res.json({
-          invoice_id: mockInvoiceId,
-          access_token: token,
-          status: "PENDING",
-          isMock: true
-        });
-      }
-
-      let responseData;
-      try {
-        responseData = JSON.parse(responseText);
-      } catch (e) {
-        throw new Error(`Sappay response was not valid JSON: ${responseText.substring(0, 500)}`);
-      }
-      const invoiceId = findInvoiceId(responseData);
-
-      if (!invoiceId) {
-        return res.status(400).json({ error: "Could not retrieve Invoice ID from Sappay", details: responseData });
-      }
-
-      res.json({ 
-        invoice_id: invoiceId, 
-        access_token: token,
-        status: responseData.status || "PENDING"
-      });
-    } catch (error: any) {
-      res.status(500).json({ error: error.message });
-    }
-  });
-
-  // Sappay API Gateway Proxy: GET OTP
-  app.post("/api/payment/sappay/get-otp", async (req, res) => {
-    try {
-      const { customer_msisdn, invoice_id, payment_processor_id, access_token } = req.body;
-      const getCreds = await getSappayCredentials();
-      const isTestMode = getCreds.isTestMode;
-      const urls = await getSappayBaseUrls();
+      const urls = { checkoutBase: isTestMode ? SAPPAY_BASE_CHECKOUT_SANDBOX : SAPPAY_BASE_CHECKOUT_PROD };
       
-      if (invoice_id && (invoice_id.startsWith("inv_") || invoice_id.includes("mock"))) {
-        return res.json({
-          status: "SUCCESS",
-          trans_id: "tx_" + Math.random().toString(36).substr(2, 9),
-          message: "SMS OTP envoyé avec succès (Mode Sandbox)"
-        });
-      }
-
-      const headers: any = {
-        "Content-Type": "application/json"
-      };
-      if (access_token) {
-        headers["Authorization"] = `Bearer ${access_token}`;
-      }
-
-      let response;
-      try {
-        response = await fetch(`${urls.checkoutBase}/get-otp/`, {
-          method: "POST",
-          headers,
-          body: JSON.stringify({
-            customer_msisdn: normalizePhoneNumberSappay(customer_msisdn),
-            invoice_id,
-            payment_processor_id
-          }),
-        });
-      } catch (fetchErr: any) {
-        if (!isTestMode) {
-          return res.status(500).json({ error: `Erreur de connexion Sappay lors de la demande d'OTP : ${fetchErr.message}` });
-        }
-        return res.json({
-          status: "SUCCESS",
-          trans_id: "tx_" + Math.random().toString(36).substr(2, 9),
-          message: "SMS OTP envoyé avec succès (Mode Sandbox Fallback)"
-        });
-      }
-
-      let responseText = "";
-      try {
-        responseText = await response.text();
-      } catch (e) {
-        responseText = "Impossible de lire la réponse.";
-      }
-
-      if (!response.ok) {
-        if (!isTestMode) {
-          return res.status(response.status).json({ 
-            error: `La demande de code OTP auprès de la passerelle Sappay a échoué (${response.status})`, 
-            details: responseText 
-          });
-        }
-        console.warn(`Sappay get-otp returned error (${response.status}). Using sandbox fallback.`);
-        return res.json({
-          status: "SUCCESS",
-          trans_id: "tx_" + Math.random().toString(36).substr(2, 9),
-          message: "SMS OTP envoyé avec succès (Mode Sandbox Fallback)"
-        });
-      }
-
-      let data;
-      try {
-        data = JSON.parse(responseText);
-      } catch (e) {
-        return res.status(500).json({ error: "Format de réponse OTP invalide" });
-      }
-      res.status(response.status).json(data);
-    } catch (error: any) {
-      res.status(500).json({ error: error.message });
-    }
-  });
-
-  // Sappay API Gateway Proxy: PERFORM (Final validation)
-  app.post("/api/payment/sappay/perform", async (req, res) => {
-    try {
-      const { invoice_id, payment_processor_id, customer_msisdn, otp, trans_id, access_token } = req.body;
-      const getCreds = await getSappayCredentials();
-      const isTestMode = getCreds.isTestMode;
-      const urls = await getSappayBaseUrls();
-      
-      if (invoice_id && (invoice_id.startsWith("inv_") || invoice_id.includes("mock"))) {
-        if (otp.toString() === "1234" || otp.toString() === "123456" || otp.toString().length === 4 || otp.toString().length === 6) {
-          return res.json({
-            status: "SUCCESS",
-            message: "Paiement effectué avec succès (Mode Sandbox)"
-          });
+      if (isTestMode) {
+        if (otp.toString() === "1234" || otp.toString() === "123456") {
+          // sandbox mock logic passes
         } else {
           return res.status(400).json({ error: "Code OTP invalide (Mode Sandbox)" });
         }

@@ -209,7 +209,7 @@ export const Navbar: React.FC<{
                   onClick={() => onNavigate('admin')}
                   className="text-slate-650 hover:text-red-600 font-bold text-xs uppercase tracking-wider transition-colors cursor-pointer ml-3 px-2"
                 >
-                  Dashboard Admin
+                  Tableau de bord Admin
                 </button>
               )}
             </>
