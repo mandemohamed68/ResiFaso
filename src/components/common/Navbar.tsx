@@ -106,9 +106,9 @@ export const Navbar: React.FC<{
         >
           <div className="w-10 h-10 flex-shrink-0 flex items-center justify-center overflow-hidden rounded-xl bg-slate-900 border border-slate-800 shadow-md relative">
             <img 
-              src="/logoresifaso.png" 
+              src="/src/assets/images/resifaso_logo_genius_1783509796233.jpg" 
               alt="ResiFaso logo" 
-              className="w-full h-full object-cover" 
+              className="w-full h-full object-cover scale-110" 
               referrerPolicy="no-referrer"
               onError={(e) => {
                 const target = e.target as HTMLImageElement;

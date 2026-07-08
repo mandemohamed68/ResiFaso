@@ -518,7 +518,7 @@ function AppContent() {
                 <Megaphone size={14} className="stroke-[3]" />
               </div>
               
-              <div className="flex items-center gap-3 overflow-hidden h-6 relative w-full justify-center sm:justify-start">
+              <div className="flex items-center gap-4 overflow-hidden py-1 h-full min-w-0 flex-1 ml-4 sm:ml-10">
                 <AnimatePresence mode="wait">
                   <motion.div
                     key={currentAnnouncementIndex}
@@ -532,9 +532,9 @@ function AppContent() {
                       "text-[9px] uppercase font-black tracking-[0.2em] opacity-85 shrink-0 px-2 py-0.5 rounded bg-black/10",
                       globalAnnouncement.type === 'warning' ? "text-slate-900 bg-black/5" : "text-white"
                     )}>
-                      {globalAnnouncement.type === 'danger' ? 'ALERTE' : `INFO ${announcementsList.length > 1 ? `${currentAnnouncementIndex + 1}/${announcementsList.length}` : ''}`}
+                      {globalAnnouncement.type === 'danger' ? 'ALERTE' : `ANNONCE ${announcementsList.length > 1 ? `${currentAnnouncementIndex + 1}/${announcementsList.length}` : ''}`}
                     </span>
-                    <p className="text-xs sm:text-sm font-black tracking-tight leading-tight truncate max-w-[90%]">
+                    <p className="text-xs sm:text-sm font-black tracking-tight leading-tight whitespace-nowrap overflow-hidden">
                       {announcementsList[currentAnnouncementIndex]}
                     </p>
                   </motion.div>

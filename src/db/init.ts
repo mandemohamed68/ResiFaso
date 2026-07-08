@@ -145,10 +145,21 @@ export const initDatabase = async () => {
         promo_price DECIMAL(10, 2),
         rejection_reason TEXT,
         utilities_included TEXT,
+        owner_phone VARCHAR(50),
         created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
         FOREIGN KEY(owner_id) REFERENCES users(uid) ON DELETE CASCADE
       ) ENGINE=InnoDB
     `);
+
+    try {
+      const phoneCols = await executeSql("SHOW COLUMNS FROM residences LIKE 'owner_phone'");
+      if (!phoneCols || phoneCols.length === 0) {
+        await executeSql("ALTER TABLE residences ADD COLUMN owner_phone VARCHAR(50)");
+        console.log("Migration MariaDB: Colonne owner_phone ajoutée à la table residences.");
+      }
+    } catch (phoneErr: any) {
+      console.warn("Avertissement migration MariaDB residences.owner_phone:", phoneErr.message);
+    }
 
     try {
       const cols = await executeSql("SHOW COLUMNS FROM residences LIKE 'utilities_included'");

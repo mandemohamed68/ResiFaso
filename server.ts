@@ -175,17 +175,24 @@ async function getSappayToken(): Promise<string> {
       }
       return token || "mock_sappay_token_success";
     } else {
-      const errorText = await response.text();
-      console.error(`[Sappay] AUTH FAILED [${response.status}]:`, errorText);
+      const status = response.status;
+      const errorBody = await response.text();
+      
+      console.error(`[Sappay] AUTH FAILED [${status}]:`, errorBody.substring(0, 500));
       console.error(`[Sappay] SENT PAYLOAD INFO: client_id=${credentials.clientId.substring(0, 8)}..., username=${credentials.username}`);
       
+      if (errorBody.toLowerCase().includes('<html>')) {
+        console.error("[Sappay] Server returned HTML instead of JSON. Possible infrastructure error or invalid credentials causing redirect.");
+        throw new Error("Sappay authentication failed: Server returned an error page (HTML). Check your credentials or Sappay account status.");
+      }
+
       if (!credentials.isTestMode) {
-        let parsedError = errorText;
+        let parsedError = errorBody;
         try { 
-          const errObj = JSON.parse(errorText);
-          parsedError = errObj.error_description || errObj.error || errObj.message || errorText; 
+          const errObj = JSON.parse(errorBody);
+          parsedError = errObj.error_description || errObj.error || errObj.message || errorBody; 
         } catch(e) {}
-        throw new Error(`Échec de l'authentification Sappay (${response.status}): ${parsedError}`);
+        throw new Error(`Échec de l'authentification Sappay (${status}): ${parsedError}`);
       }
       return "mock_sappay_token_fallback";
     }

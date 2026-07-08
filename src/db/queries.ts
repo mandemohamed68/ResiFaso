@@ -19,7 +19,7 @@ export const getAllResidences = async () => {
       city, neighborhood, street, capacity, bedrooms, beds, bathrooms, rooms, status, 
       availability_status as availabilityStatus, promoted, weekly_discount as weeklyDiscount, 
       monthly_discount as monthlyDiscount, promo_price as promoPrice, rejection_reason as rejectionReason, 
-      utilities_included as utilitiesIncludedRaw,
+      utilities_included as utilitiesIncludedRaw, owner_phone as ownerPhone,
       created_at as createdAt 
     FROM residences
     ORDER BY created_at DESC
@@ -65,7 +65,7 @@ export const getResidenceById = async (id: string) => {
       city, neighborhood, street, capacity, bedrooms, beds, bathrooms, rooms, status, 
       availability_status as availabilityStatus, promoted, weekly_discount as weeklyDiscount, 
       monthly_discount as monthlyDiscount, promo_price as promoPrice, rejection_reason as rejectionReason, 
-      utilities_included as utilitiesIncludedRaw,
+      utilities_included as utilitiesIncludedRaw, owner_phone as ownerPhone,
       created_at as createdAt 
     FROM residences WHERE id = ?`, [id]);
   if (!res[0]) return null;
@@ -88,7 +88,27 @@ export const getResidenceById = async (id: string) => {
 // Settings
 export const getSettings = async (key: string) => {
   const results = await executeSql("SELECT value FROM settings WHERE `key` = ?", [key]);
-  return results.length > 0 ? JSON.parse(results[0].value) : {};
+  if (results.length === 0) return {};
+  
+  try {
+    const data = JSON.parse(results[0].value);
+    
+    // Harmonize types for 'global' settings
+    if (key === 'global') {
+      if (data.commissionRate !== undefined) data.commissionRate = Number(data.commissionRate);
+      if (data.isTestMode !== undefined) data.isTestMode = Boolean(data.isTestMode);
+      if (data.enablePhoneCalls !== undefined) data.enablePhoneCalls = Boolean(data.enablePhoneCalls);
+      if (data.enableWhatsApp !== undefined) data.enableWhatsApp = Boolean(data.enableWhatsApp);
+      if (data.announcement && data.announcement.active !== undefined) {
+        data.announcement.active = Boolean(data.announcement.active);
+      }
+    }
+    
+    return data;
+  } catch (e) {
+    console.error(`[Error] Failed to parse settings for key ${key}:`, e);
+    return {};
+  }
 };
 
 export const saveSettings = async (key: string, value: any) => {
@@ -130,7 +150,7 @@ const VALID_RESIDENCE_COLS = new Set([
   'advance_percentage', 'cleaning_fee', 'service_fee', 'city', 'neighborhood',
   'street', 'capacity', 'bedrooms', 'beds', 'bathrooms', 'rooms', 'status',
   'availability_status', 'promoted', 'weekly_discount', 'monthly_discount',
-  'promo_price', 'rejection_reason', 'utilities_included', 'created_at'
+  'promo_price', 'rejection_reason', 'utilities_included', 'owner_phone', 'created_at'
 ]);
 
 export const updateResidence = async (id: string, updates: any) => {
