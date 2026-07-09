@@ -172,16 +172,16 @@ export const ResidenceCard: React.FC<Props> = ({
           )}
 
           <div className="flex items-center justify-between border-t border-slate-50 pt-3 gap-2">
-            <div className="flex flex-col min-w-0">
+            <div className="flex flex-col flex-1">
               <span className="text-[9px] text-slate-400 font-bold uppercase tracking-tighter">Dès</span>
-              <div className="flex items-baseline gap-0.5 overflow-hidden">
+              <div className="flex items-baseline gap-0.5">
                 {(residence.promoPrice || residence.promo_price) ? (
                   <>
-                    <span className="text-sm font-black text-red-600 truncate">{formatFCFA(residence.promoPrice || residence.promo_price)}</span>
+                    <span className="text-sm font-black text-red-600 whitespace-nowrap">{formatFCFA(residence.promoPrice || residence.promo_price)}</span>
                     <span className="text-[8px] text-slate-400 font-medium line-through shrink-0">{(residence.pricePerNight || residence.price_per_night)}</span>
                   </>
                 ) : (
-                  <span className="text-sm font-black text-slate-900 truncate">{formatFCFA(residence.pricePerNight || residence.price_per_night)}</span>
+                  <span className="text-sm font-black text-slate-900 whitespace-nowrap">{formatFCFA(residence.pricePerNight || residence.price_per_night)}</span>
                 )}
                 <span className="text-[9px] text-slate-500 font-bold shrink-0 lowercase">/nuit</span>
               </div>
@@ -192,7 +192,7 @@ export const ResidenceCard: React.FC<Props> = ({
                 e.stopPropagation();
                 onClick(residence.id);
               }}
-              className="bg-slate-900 text-white px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-wider hover:bg-red-600 transition-colors shrink-0"
+              className="bg-slate-900 text-white px-2 py-1 rounded-lg text-[9px] font-black uppercase tracking-wider hover:bg-red-600 transition-colors shrink-0"
             >
               Détails
             </button>
