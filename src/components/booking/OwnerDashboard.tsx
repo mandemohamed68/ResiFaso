@@ -510,7 +510,7 @@ const BookingTable: React.FC<BookingTableProps> = ({
                     <div className="space-y-1">
                       <span className="text-base font-extrabold text-slate-900 block">{currentRes?.title || "Logement Supprimé"}</span>
                       <p className="text-xs text-slate-500 font-bold leading-normal">
-                        {currentRes?.address?.street && `${currentRes.address.street}, `}
+                        {currentRes?.address?.street && `${currentRes.address.street === 'Secteur non configuré' ? 'Secteur non précisé' : currentRes.address.street}, `}
                         {currentRes?.address?.neighborhood && `${currentRes.address.neighborhood}, `}
                         <strong className="text-slate-800 font-bold">{currentRes?.address?.city || "Burkina Faso"}</strong>
                       </p>
@@ -691,7 +691,7 @@ export const PREDEFINED_TYPES = [
 ];
 
 export const OwnerDashboard: React.FC<{ isTestMode?: boolean; onBackToTraveler?: () => void }> = ({ isTestMode, onBackToTraveler }) => {
-  const { user } = useAuth();
+  const { user, profile } = useAuth();
   const { lastRefresh, refreshData } = useDataRefresh();
   const [residences, setResidences] = useState<Residence[]>([]);
   const [bookings, setBookings] = useState<Booking[]>([]);
@@ -1516,7 +1516,7 @@ export const OwnerDashboard: React.FC<{ isTestMode?: boolean; onBackToTraveler?:
     setBeds(res.beds.toString());
     setBathrooms(res.bathrooms?.toString() || '0');
     setRooms((res.rooms || 1).toString());
-    setOwnerPhone(res.ownerPhone || (res as any).owner_phone || '');
+    setOwnerPhone(res.ownerPhone || (res as any).owner_phone || profile?.phoneNumber || '');
     setImages(res.images || []);
     setAmenities(res.amenities || []);
     if (res.address?.coordinates || (res.lat && res.lng)) {
@@ -1615,7 +1615,7 @@ export const OwnerDashboard: React.FC<{ isTestMode?: boolean; onBackToTraveler?:
       address: {
         city: currentCity?.name || selectedCityId || 'Ouagadougou',
         neighborhood: currentCity?.neighborhoods.find(n => n.id === selectedNeighborhoodId)?.name || selectedNeighborhoodId || 'Inconnu',
-        street: street || 'Secteur non configuré',
+        street: street || 'Secteur non précisé',
         coordinates: coordinates
       },
       amenities,
@@ -1664,6 +1664,8 @@ export const OwnerDashboard: React.FC<{ isTestMode?: boolean; onBackToTraveler?:
     resetForm();
     if (user && user.phoneNumber) {
       setOwnerPhone(user.phoneNumber);
+    } else if (profile && profile.phoneNumber) {
+      setOwnerPhone(profile.phoneNumber);
     }
     setEditingResidenceId(null);
     setStep(1);

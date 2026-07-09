@@ -450,6 +450,10 @@ function AppContent() {
       }
 
       const totalAmount = calculateTotal(selectedResidence);
+      if (totalAmount < 5000) {
+        addToast("Le montant total du séjour doit être d'au moins 5 000 F CFA pour pouvoir réserver.", "error");
+        return;
+      }
       const advanceAmount = calculateAdvance(selectedResidence);
 
       const bookingPayload = {
@@ -988,7 +992,7 @@ function AppContent() {
                   </div>
                   
                   <div className="flex items-center gap-2 text-slate-500 font-medium text-lg mb-8">
-                    <span>{selectedResidence.address?.street || selectedResidence.street}, {selectedResidence.address?.neighborhood || selectedResidence.neighborhood}, {selectedResidence.address?.city || selectedResidence.city}</span>
+                    <span>{((selectedResidence.address?.street || selectedResidence.street) === 'Secteur non configuré' ? 'Secteur non précisé' : (selectedResidence.address?.street || selectedResidence.street || 'Secteur non précisé'))}, {selectedResidence.address?.neighborhood || selectedResidence.neighborhood}, {selectedResidence.address?.city || selectedResidence.city}</span>
                   </div>
 
                   <hr className="border-slate-100 mb-8" />
@@ -1370,6 +1374,12 @@ function AppContent() {
                       </div>
                     </div>
 
+                    {calculateTotal(selectedResidence) < 5000 && (
+                      <div className="bg-red-50 border border-red-200 text-red-700 rounded-xl p-3 text-xs font-bold mb-4">
+                        ⚠️ Le montant total de votre séjour ({formatFCFA(calculateTotal(selectedResidence))}) est inférieur au minimum requis de {formatFCFA(5000)}. Veuillez allonger la durée du séjour.
+                      </div>
+                    )}
+
                     <div className="bg-orange-50 border border-orange-100 rounded-xl p-4 mb-6">
                       <div className="flex items-center justify-between mb-2">
                         <span className="text-xs font-bold text-orange-800 uppercase tracking-tighter">Avance requise ({selectedResidence.advancePercentage || selectedResidence.advance_percentage || 100}%)</span>
@@ -1380,7 +1390,8 @@ function AppContent() {
 
                     <button 
                       onClick={handleConfirmBooking}
-                      className="w-full bg-red-600 text-white py-4 rounded-xl font-bold text-xs uppercase tracking-widest hover:bg-red-700 shadow-xl shadow-red-50 active:scale-95 transition-transform cursor-pointer"
+                      disabled={calculateTotal(selectedResidence) < 5000}
+                      className="w-full bg-red-600 disabled:opacity-50 text-white py-4 rounded-xl font-bold text-xs uppercase tracking-widest hover:bg-red-700 shadow-xl shadow-red-50 active:scale-95 transition-transform cursor-pointer"
                     >
                       CONFIRMER LA DEMANDE
                     </button>

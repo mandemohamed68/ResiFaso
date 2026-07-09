@@ -1,5 +1,10 @@
 import { executeSql } from './index';
 
+const cleanSecteur = (val: string | any): string | any => {
+  if (!val || typeof val !== 'string') return val;
+  return val.replace(/\bS[EÉ]C\b/gi, 'Secteur');
+};
+
 // Users
 export const getUserProfile = async (uid: string) => {
   const users = await executeSql("SELECT uid, email, display_name as displayName, role, photo_url as photoUrl, is_verified as isVerified, created_at as createdAt FROM users WHERE uid = ?", [uid]);
@@ -55,37 +60,37 @@ export const getAllResidences = async (ownerId?: string) => {
 
   return rows.map((res: any) => ({
     id: res.id,
-    ownerId: res.ownerId || res.owner_id,
+    ownerId: res.ownerId || res.owner_id || res.ownerid,
     title: res.title,
     description: res.description,
     type: res.type,
-    pricePerNight: res.pricePerNight !== undefined ? res.pricePerNight : res.price_per_night,
-    advancePercentage: res.advancePercentage !== undefined ? res.advancePercentage : res.advance_percentage,
-    cleaningFee: res.cleaningFee !== undefined ? res.cleaningFee : res.cleaning_fee,
-    serviceFee: res.serviceFee !== undefined ? res.serviceFee : res.service_fee,
-    city: res.city,
-    neighborhood: res.neighborhood,
-    street: res.street,
+    pricePerNight: res.pricePerNight !== undefined ? res.pricePerNight : (res.price_per_night !== undefined ? res.price_per_night : res.pricepernight),
+    advancePercentage: res.advancePercentage !== undefined ? res.advancePercentage : (res.advance_percentage !== undefined ? res.advance_percentage : res.advancepercentage),
+    cleaningFee: res.cleaningFee !== undefined ? res.cleaningFee : (res.cleaning_fee !== undefined ? res.cleaning_fee : res.cleaningfee),
+    serviceFee: res.serviceFee !== undefined ? res.serviceFee : (res.service_fee !== undefined ? res.service_fee : res.servicefee),
+    city: cleanSecteur(res.city),
+    neighborhood: cleanSecteur(res.neighborhood),
+    street: cleanSecteur(res.street),
     capacity: res.capacity,
     bedrooms: res.bedrooms,
     beds: res.beds,
     bathrooms: res.bathrooms,
     rooms: res.rooms,
     status: res.status,
-    availabilityStatus: res.availabilityStatus || res.availability_status,
+    availabilityStatus: res.availabilityStatus || res.availability_status || res.availabilitystatus,
     promoted: res.promoted !== undefined ? !!res.promoted : !!res.promoted,
-    weeklyDiscount: res.weeklyDiscount !== undefined ? res.weeklyDiscount : res.weekly_discount,
-    monthlyDiscount: res.monthlyDiscount !== undefined ? res.monthlyDiscount : res.monthly_discount,
-    promoPrice: res.promoPrice !== undefined ? res.promoPrice : res.promo_price,
-    rejectionReason: res.rejectionReason || res.rejection_reason,
-    ownerPhone: res.ownerPhone || res.owner_phone,
-    createdAt: res.createdAt || res.created_at,
+    weeklyDiscount: res.weeklyDiscount !== undefined ? res.weeklyDiscount : (res.weekly_discount !== undefined ? res.weekly_discount : res.weeklydiscount),
+    monthlyDiscount: res.monthlyDiscount !== undefined ? res.monthlyDiscount : (res.monthly_discount !== undefined ? res.monthly_discount : res.monthlydiscount),
+    promoPrice: res.promoPrice !== undefined ? res.promoPrice : (res.promo_price !== undefined ? res.promo_price : res.promoprice),
+    rejectionReason: res.rejectionReason || res.rejection_reason || res.rejectionreason,
+    ownerPhone: res.ownerPhone || res.owner_phone || res.ownerphone,
+    createdAt: res.createdAt || res.created_at || res.createdat,
     amenities: amenitiesMap[res.id] || [],
     images: imagesMap[res.id] || [],
     address: {
-      city: res.city,
-      neighborhood: res.neighborhood,
-      street: res.street
+      city: cleanSecteur(res.city),
+      neighborhood: cleanSecteur(res.neighborhood),
+      street: cleanSecteur(res.street)
     },
     utilitiesIncluded: (() => {
       try {
@@ -118,37 +123,37 @@ export const getResidenceById = async (id: string) => {
   
   return {
     id: row.id,
-    ownerId: row.ownerId || row.owner_id,
+    ownerId: row.ownerId || row.owner_id || row.ownerid,
     title: row.title,
     description: row.description,
     type: row.type,
-    pricePerNight: row.pricePerNight !== undefined ? row.pricePerNight : row.price_per_night,
-    advancePercentage: row.advancePercentage !== undefined ? row.advancePercentage : row.advance_percentage,
-    cleaningFee: row.cleaningFee !== undefined ? row.cleaningFee : row.cleaning_fee,
-    serviceFee: row.serviceFee !== undefined ? row.serviceFee : row.service_fee,
-    city: row.city,
-    neighborhood: row.neighborhood,
-    street: row.street,
+    pricePerNight: row.pricePerNight !== undefined ? row.pricePerNight : (row.price_per_night !== undefined ? row.price_per_night : row.pricepernight),
+    advancePercentage: row.advancePercentage !== undefined ? row.advancePercentage : (row.advance_percentage !== undefined ? row.advance_percentage : row.advancepercentage),
+    cleaningFee: row.cleaningFee !== undefined ? row.cleaningFee : (row.cleaning_fee !== undefined ? row.cleaning_fee : row.cleaningfee),
+    serviceFee: row.serviceFee !== undefined ? row.serviceFee : (row.service_fee !== undefined ? row.service_fee : row.servicefee),
+    city: cleanSecteur(row.city),
+    neighborhood: cleanSecteur(row.neighborhood),
+    street: cleanSecteur(row.street),
     capacity: row.capacity,
     bedrooms: row.bedrooms,
     beds: row.beds,
     bathrooms: row.bathrooms,
     rooms: row.rooms,
     status: row.status,
-    availabilityStatus: row.availabilityStatus || row.availability_status,
+    availabilityStatus: row.availabilityStatus || row.availability_status || row.availabilitystatus,
     promoted: row.promoted !== undefined ? !!row.promoted : !!row.promoted,
-    weeklyDiscount: row.weeklyDiscount !== undefined ? row.weeklyDiscount : row.weekly_discount,
-    monthlyDiscount: row.monthlyDiscount !== undefined ? row.monthlyDiscount : row.monthly_discount,
-    promoPrice: row.promoPrice !== undefined ? row.promoPrice : row.promo_price,
-    rejectionReason: row.rejectionReason || row.rejection_reason,
-    ownerPhone: row.ownerPhone || row.owner_phone,
-    createdAt: row.createdAt || row.created_at,
+    weeklyDiscount: row.weeklyDiscount !== undefined ? row.weeklyDiscount : (row.weekly_discount !== undefined ? row.weekly_discount : row.weeklydiscount),
+    monthlyDiscount: row.monthlyDiscount !== undefined ? row.monthlyDiscount : (row.monthly_discount !== undefined ? row.monthly_discount : row.monthlydiscount),
+    promoPrice: row.promoPrice !== undefined ? row.promoPrice : (row.promo_price !== undefined ? row.promo_price : row.promoprice),
+    rejectionReason: row.rejectionReason || row.rejection_reason || row.rejectionreason,
+    ownerPhone: row.ownerPhone || row.owner_phone || row.ownerphone,
+    createdAt: row.createdAt || row.created_at || row.createdat,
     amenities: amenities.map((a: any) => a.amenity),
     images: images.map((i: any) => i.image_url || i.imageUrl),
     address: {
-      city: row.city,
-      neighborhood: row.neighborhood,
-      street: row.street
+      city: cleanSecteur(row.city),
+      neighborhood: cleanSecteur(row.neighborhood),
+      street: cleanSecteur(row.street)
     },
     utilitiesIncluded: (() => {
       try {
@@ -213,29 +218,29 @@ export const getAllBookings = async (options: { clientId?: string, ownerId?: str
   // Manual mapping to ensure camelCase for MariaDB which sometimes returns snake_case even with aliases
   return rows.map((row: any) => ({
     id: row.id,
-    residenceId: row.residenceId || row.residence_id,
-    clientId: row.clientId || row.client_id,
-    ownerId: row.ownerId || row.owner_id,
-    checkIn: row.checkIn || row.check_in,
-    checkOut: row.checkOut || row.check_out,
+    residenceId: row.residenceId || row.residence_id || row.residenceid,
+    clientId: row.clientId || row.client_id || row.clientid,
+    ownerId: row.ownerId || row.owner_id || row.ownerid,
+    checkIn: row.checkIn || row.check_in || row.checkin,
+    checkOut: row.checkOut || row.check_out || row.checkout,
     guests: row.guests,
-    totalPrice: row.totalPrice !== undefined ? row.totalPrice : row.total_price,
-    advancePaid: row.advancePaid !== undefined ? row.advancePaid : row.advance_paid,
-    paymentStatus: row.paymentStatus || row.payment_status,
-    bookingStatus: row.bookingStatus || row.booking_status,
-    transactionId: row.transactionId || row.transaction_id,
-    cancelledBy: row.cancelledBy || row.cancelled_by,
-    cancellationReason: row.cancellationReason || row.cancellation_reason,
-    cancelledAt: row.cancelledAt || row.cancelled_at,
-    refundStatus: row.refundStatus || row.refund_status,
-    refundAmount: row.refundAmount !== undefined ? row.refundAmount : row.refund_amount,
-    refundPhone: row.refundPhone || row.refund_phone,
-    refundProvider: row.refundProvider || row.refund_provider,
-    refundProcessedAt: row.refundProcessedAt || row.refund_processed_at,
-    stayStatus: row.stayStatus || row.stay_status,
-    checkedInAt: row.checkedInAt || row.checked_in_at,
-    checkedOutAt: row.checkedOutAt || row.checked_out_at,
-    createdAt: row.createdAt || row.created_at
+    totalPrice: row.totalPrice !== undefined ? row.totalPrice : (row.total_price !== undefined ? row.total_price : row.totalprice),
+    advancePaid: row.advancePaid !== undefined ? row.advancePaid : (row.advance_paid !== undefined ? row.advance_paid : row.advancepaid),
+    paymentStatus: row.paymentStatus || row.payment_status || row.paymentstatus,
+    bookingStatus: row.bookingStatus || row.booking_status || row.bookingstatus,
+    transactionId: row.transactionId || row.transaction_id || row.transactionid,
+    cancelledBy: row.cancelledBy || row.cancelled_by || row.cancelledby,
+    cancellationReason: row.cancellationReason || row.cancellation_reason || row.cancellationreason,
+    cancelledAt: row.cancelledAt || row.cancelled_at || row.cancelledat,
+    refundStatus: row.refundStatus || row.refund_status || row.refundstatus,
+    refundAmount: row.refundAmount !== undefined ? row.refundAmount : (row.refund_amount !== undefined ? row.refund_amount : row.refundamount),
+    refundPhone: row.refundPhone || row.refund_phone || row.refundphone,
+    refundProvider: row.refundProvider || row.refund_provider || row.refundprovider,
+    refundProcessedAt: row.refundProcessedAt || row.refund_processed_at || row.refundprocessedat,
+    stayStatus: row.stayStatus || row.stay_status || row.staystatus,
+    checkedInAt: row.checkedInAt || row.checked_in_at || row.checkedinat,
+    checkedOutAt: row.checkedOutAt || row.checked_out_at || row.checkedoutat,
+    createdAt: row.createdAt || row.created_at || row.createdat
   }));
 };
 
@@ -255,18 +260,18 @@ export const getBookingById = async (id: string) => {
   
   return {
     id: row.id,
-    residenceId: row.residenceId || row.residence_id,
-    clientId: row.clientId || row.client_id,
-    ownerId: row.ownerId || row.owner_id,
-    checkIn: row.checkIn || row.check_in,
-    checkOut: row.checkOut || row.check_out,
+    residenceId: row.residenceId || row.residence_id || row.residenceid,
+    clientId: row.clientId || row.client_id || row.clientid,
+    ownerId: row.ownerId || row.owner_id || row.ownerid,
+    checkIn: row.checkIn || row.check_in || row.checkin,
+    checkOut: row.checkOut || row.check_out || row.checkout,
     guests: row.guests,
-    totalPrice: row.totalPrice !== undefined ? row.totalPrice : row.total_price,
-    advancePaid: row.advancePaid !== undefined ? row.advancePaid : row.advance_paid,
-    paymentStatus: row.paymentStatus || row.payment_status,
-    bookingStatus: row.bookingStatus || row.booking_status,
-    transactionId: row.transactionId || row.transaction_id,
-    createdAt: row.createdAt || row.created_at
+    totalPrice: row.totalPrice !== undefined ? row.totalPrice : (row.total_price !== undefined ? row.total_price : row.totalprice),
+    advancePaid: row.advancePaid !== undefined ? row.advancePaid : (row.advance_paid !== undefined ? row.advance_paid : row.advancepaid),
+    paymentStatus: row.paymentStatus || row.payment_status || row.paymentstatus,
+    bookingStatus: row.bookingStatus || row.booking_status || row.bookingstatus,
+    transactionId: row.transactionId || row.transaction_id || row.transactionid,
+    createdAt: row.createdAt || row.created_at || row.createdat
   };
 };
 
@@ -276,8 +281,30 @@ export const getSettings = async (key: string) => {
   if (results.length === 0) return {};
   
   try {
-    const data = typeof results[0].value === 'string' ? JSON.parse(results[0].value) : results[0].value;
+    let data = typeof results[0].value === 'string' ? JSON.parse(results[0].value) : results[0].value;
     
+    // Replace old bad slogans
+    if (data && typeof data === 'object') {
+      const replaceSlogan = (obj: any): any => {
+        if (!obj) return obj;
+        if (typeof obj === 'string') {
+          return obj.replace(/HOSPITALIT[ÉE]\s+MORTS?\s+COMFORT/gi, "HOSPITALITÉ, CONFORT, SÉRÉNITÉ");
+        }
+        if (Array.isArray(obj)) {
+          return obj.map(replaceSlogan);
+        }
+        if (typeof obj === 'object') {
+          const res: any = {};
+          for (const [k, v] of Object.entries(obj)) {
+            res[k] = replaceSlogan(v);
+          }
+          return res;
+        }
+        return obj;
+      };
+      data = replaceSlogan(data);
+    }
+
     // Harmonize types for 'global' settings
     if (key === 'global' && data) {
       if (data.commissionRate !== undefined) data.commissionRate = Number(data.commissionRate);
@@ -298,12 +325,12 @@ export const getSettings = async (key: string) => {
 
 export const saveSettings = async (key: string, value: any) => {
   console.log(`[DEBUG] Saving settings for key: ${key}, value:`, JSON.stringify(value));
-  const dbType = process.env.DB_TYPE || 'sqlite';
   const valString = JSON.stringify(value);
-  if (dbType === 'mariadb') {
-    await executeSql("INSERT INTO settings (`key`, value) VALUES (?, ?) ON DUPLICATE KEY UPDATE value = VALUES(value)", [key, valString]);
+  const existing = await executeSql("SELECT `key` FROM settings WHERE `key` = ?", [key]);
+  if (existing.length > 0) {
+    await executeSql("UPDATE settings SET value = ? WHERE `key` = ?", [valString, key]);
   } else {
-    await executeSql("INSERT INTO settings (`key`, value) VALUES (?, ?) ON CONFLICT(`key`) DO UPDATE SET value = excluded.value", [key, valString]);
+    await executeSql("INSERT INTO settings (`key`, value) VALUES (?, ?)", [key, valString]);
   }
 };
 
@@ -522,7 +549,7 @@ export const updateBookingStatus = async (id: string, updates: any) => {
 };
 
 export const updateUserProfile = async (uid: string, updates: any) => {
-  const mappedUpdates: any = { uid };
+  const mappedUpdates: any = {};
   for (const [k, v] of Object.entries(updates)) {
     if (k === 'uid') continue;
     
@@ -536,18 +563,19 @@ export const updateUserProfile = async (uid: string, updates: any) => {
     else if (k === 'createdAt') mappedUpdates.created_at = dbValue;
     else mappedUpdates[toSnakeCase(k)] = dbValue;
   }
-  const fields = Object.keys(mappedUpdates);
-  if (fields.length === 0) return;
-  const placeholders = fields.map(() => '?').join(', ');
   
-  const dbType = process.env.DB_TYPE || 'sqlite';
-  if (dbType === 'mariadb') {
-    const updateClause = fields.filter(f => f !== 'uid').map(f => `${f} = VALUES(${f})`).join(', ');
-    await executeSql(`INSERT INTO users (${fields.join(', ')}) VALUES (${placeholders}) ON DUPLICATE KEY UPDATE ${updateClause}`, Object.values(mappedUpdates));
+  const existing = await executeSql("SELECT uid FROM users WHERE uid = ?", [uid]);
+  if (existing.length > 0) {
+    const fields = Object.keys(mappedUpdates);
+    if (fields.length > 0) {
+      const setClause = fields.map(f => `${f} = ?`).join(', ');
+      await executeSql(`UPDATE users SET ${setClause} WHERE uid = ?`, [...Object.values(mappedUpdates), uid]);
+    }
   } else {
-    const updateClause = fields.filter(f => f !== 'uid').map(f => `${f} = ?`).join(', ');
-    const updateValues = fields.filter(f => f !== 'uid').map(f => mappedUpdates[f]);
-    await executeSql(`INSERT INTO users (${fields.join(', ')}) VALUES (${placeholders}) ON CONFLICT(uid) DO UPDATE SET ${updateClause}`, [...Object.values(mappedUpdates), ...updateValues]);
+    const fullFields = { uid, ...mappedUpdates };
+    const fields = Object.keys(fullFields);
+    const placeholders = fields.map(() => '?').join(', ');
+    await executeSql(`INSERT INTO users (${fields.join(', ')}) VALUES (${placeholders})`, Object.values(fullFields));
   }
 };
 

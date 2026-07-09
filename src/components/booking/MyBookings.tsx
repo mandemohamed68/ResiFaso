@@ -550,15 +550,16 @@ export const MyBookings: React.FC<{ onContactHost: (ownerId: string, resId: stri
     return days > 0 ? days : 0;
   };
 
-  const getStatusBadge = (bStatus: string, pStatus: string) => {
+  const getStatusBadge = (bStatus: string, pStatus: string, bookingObj?: any) => {
     switch (bStatus) {
       case 'pending':
         return <span className="px-3 py-1 bg-amber-50 border border-amber-200 text-amber-700 rounded-full text-[10px] font-black uppercase tracking-wider">En Attente d'Approbation</span>;
       case 'confirmed':
         if (pStatus === 'advance_paid') {
-          return <span className="px-3 py-1 bg-red-50 border border-red-200 text-red-700 rounded-full text-[10px] font-black uppercase tracking-wider">Confirmée & Avance Payée</span>;
+          const rest = bookingObj ? (bookingObj.totalPrice - bookingObj.advancePaid) : 0;
+          return <span className="px-3 py-1 bg-red-50 border border-red-200 text-red-700 rounded-full text-[10px] font-black uppercase tracking-wider">Paiement partiel – Solde restant : {formatCurrency(rest > 0 ? rest : 0)} F CFA</span>;
         } else if (pStatus === 'fully_paid') {
-          return <span className="px-3 py-1 bg-blue-50 border border-blue-200 text-blue-700 rounded-full text-[10px] font-black uppercase tracking-wider">Séjour Validé (Payé)</span>;
+          return <span className="px-3 py-1 bg-blue-50 border border-blue-200 text-blue-700 rounded-full text-[10px] font-black uppercase tracking-wider">Séjour Validé (Entièrement Payé)</span>;
         } else {
           return <span className="px-3 py-1 bg-amber-100 text-amber-800 rounded-full text-[10px] font-black uppercase tracking-wider">Approuvée, En Attente d'Avance</span>;
         }
@@ -644,7 +645,7 @@ export const MyBookings: React.FC<{ onContactHost: (ownerId: string, resId: stri
                 <div className="flex-1 flex flex-col justify-between py-1">
                   <div>
                     <div className="flex flex-wrap items-center gap-3 mb-2">
-                      {getStatusBadge(booking.bookingStatus, booking.paymentStatus)}
+                      {getStatusBadge(booking.bookingStatus, booking.paymentStatus, booking)}
                       <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">ID: {booking.id.slice(0, 8)}</span>
                     </div>
 
@@ -665,7 +666,7 @@ export const MyBookings: React.FC<{ onContactHost: (ownerId: string, resId: stri
                     <div className="flex flex-wrap gap-x-6 gap-y-2 text-slate-600 text-xs">
                       <div>Du <strong className="text-slate-900 font-bold">{booking.checkIn}</strong> au <strong className="text-slate-900 font-bold">{booking.checkOut}</strong></div>
                       <div className="w-1 h-1 bg-slate-300 rounded-full self-center hidden md:block"></div>
-                      <div>Voyageurs : <strong className="text-slate-900 font-bold">{booking.guests} persist.</strong></div>
+                      <div>Voyageurs : <strong className="text-slate-900 font-bold">{booking.guests} pers.</strong></div>
                     </div>
 
                     {booking.bookingStatus === 'cancelled' && (

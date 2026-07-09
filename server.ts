@@ -486,8 +486,18 @@ async function startServer() {
     try {
       if (req.user?.role !== 'admin') return res.status(403).json({ error: "Non autorisé" });
       const id = req.body.id || 'ad_' + Math.random().toString(36).substr(2, 9);
-      const fields = ['id', 'title', 'description', 'image_url', 'link_url', 'is_active', 'frequency_seconds'];
-      const vals = [id, req.body.title, req.body.description, req.body.image_url, req.body.link_url, req.body.is_active ? 1 : 0, req.body.frequency_seconds];
+      const fields = ['id', 'title', 'description', 'image_url', 'link_url', 'is_active', 'frequency_seconds', 'start_at', 'end_at'];
+      const vals = [
+        id,
+        req.body.title,
+        req.body.description,
+        req.body.image_url || req.body.imageUrl,
+        req.body.link_url || req.body.linkUrl,
+        (req.body.is_active !== undefined ? req.body.is_active : req.body.isActive) ? 1 : 0,
+        req.body.frequency_seconds || req.body.frequencySeconds || 10,
+        req.body.start_at || req.body.startAt || null,
+        req.body.end_at || req.body.endAt || null
+      ];
       
       const placeholders = fields.map(() => '?').join(', ');
       

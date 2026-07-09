@@ -2274,16 +2274,23 @@ export const AdminDashboard: React.FC<{ onBackToTraveler?: () => void }> = ({ on
                       <div className="bg-slate-50 border text-xs border-slate-200 rounded-2xl p-4 space-y-3 mt-1 shadow-sm">
                         <div className="flex items-center justify-between border-b border-slate-200 pb-1.5 flex-wrap gap-2">
                           <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest">📂 Pièce d'Identité : {usr.idType || 'Document'}</span>
-                          <span className={cn(
-                            "px-2 py-0.5 rounded text-[8px] font-black uppercase",
-                            usr.verificationStatus === 'verified' 
-                              ? 'bg-green-100 text-green-800' 
-                              : usr.verificationStatus === 'pending'
-                                ? 'bg-amber-100 text-amber-800 animate-pulse'
-                                : 'bg-slate-200 text-slate-650'
-                          )}>
-                            {usr.verificationStatus === 'verified' ? 'Certifié' : usr.verificationStatus === 'pending' ? 'Attente d\'Validation' : 'Non Validé'}
-                          </span>
+                          <div className="flex items-center gap-1.5">
+                            {usr.idExpiry && new Date(usr.idExpiry) < new Date() && (
+                              <span className="px-2 py-0.5 rounded text-[8px] font-black uppercase bg-red-100 text-red-800 font-extrabold animate-pulse">
+                                ⚠️ Expiré
+                              </span>
+                            )}
+                            <span className={cn(
+                              "px-2 py-0.5 rounded text-[8px] font-black uppercase",
+                              usr.verificationStatus === 'verified' 
+                                ? 'bg-green-100 text-green-800' 
+                                : usr.verificationStatus === 'pending'
+                                  ? 'bg-amber-100 text-amber-800 animate-pulse'
+                                  : 'bg-slate-200 text-slate-650'
+                            )}>
+                              {usr.verificationStatus === 'verified' ? 'Certifié' : usr.verificationStatus === 'pending' ? 'Attente d\'Validation' : 'Non Validé'}
+                            </span>
+                          </div>
                         </div>
                         <div className="grid grid-cols-2 gap-3 text-xs">
                           <div>
@@ -2322,7 +2329,7 @@ export const AdminDashboard: React.FC<{ onBackToTraveler?: () => void }> = ({ on
                           </div>
                         )}
 
-                        {usr.verificationStatus === 'pending' && (
+                        {(usr.verificationStatus === 'pending' || (usr.idExpiry && new Date(usr.idExpiry) < new Date())) && (
                           <div className="flex gap-2 pt-2 border-t border-slate-200">
                             <button
                               onClick={() => handleApproveIdentity(usr.uid, usr.email, usr.displayName || 'Utilisateur')}
