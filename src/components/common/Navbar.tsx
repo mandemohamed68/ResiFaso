@@ -104,11 +104,11 @@ export const Navbar: React.FC<{
           onClick={() => onNavigate('home')} 
           className="flex items-center gap-2.5 cursor-pointer group select-none"
         >
-          <div className="w-24 h-24 flex-shrink-0 flex items-center justify-center overflow-hidden rounded-xl bg-white border border-slate-200 shadow-sm relative">
+          <div className="w-16 h-16 flex-shrink-0 flex items-center justify-center overflow-hidden rounded-xl bg-white border border-slate-200 shadow-sm relative">
             <img 
-              src="/logoresifaso_new.jpg" 
+              src="/logoresifasoORG.png" 
               alt="ResiFaso logo" 
-              className="w-full h-full object-contain scale-110" 
+              className="w-full h-full object-contain p-0.5" 
               referrerPolicy="no-referrer"
               onError={(e) => {
                 const target = e.target as HTMLImageElement;

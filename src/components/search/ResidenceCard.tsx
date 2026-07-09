@@ -113,46 +113,46 @@ export const ResidenceCard: React.FC<Props> = ({
       </div>
 
       {/* Content */}
-      <div className="p-4 flex flex-col flex-1">
-        <div className="flex items-start justify-between mb-1">
-          <h3 className="font-bold text-slate-900 leading-tight line-clamp-1 group-hover:text-red-600 transition-colors uppercase text-sm tracking-tight">{residence.title}</h3>
-          <div className="flex items-center gap-1 text-sm font-black text-slate-900 shrink-0">
-            <Star size={14} className={cn("text-yellow-500", residence.rating ? "fill-yellow-500" : "fill-none")} />
+      <div className="p-3.5 flex flex-col flex-1">
+        <div className="flex items-start justify-between mb-1 gap-2">
+          <h3 className="font-extrabold text-slate-900 leading-tight group-hover:text-red-600 transition-colors uppercase text-[12px] tracking-tight flex-1">{residence.title}</h3>
+          <div className="flex items-center gap-1 text-[11px] font-black text-slate-900 shrink-0">
+            <Star size={12} className={cn("text-yellow-500", residence.rating ? "fill-yellow-500" : "fill-none")} />
             <span>{residence.rating || "4.8"}</span>
           </div>
         </div>
         
-        <div className="flex items-center gap-1 text-slate-400 text-[10px] mb-1 font-bold uppercase tracking-wider">
-          <MapPin size={10} className="text-red-500" />
+        <div className="flex items-center gap-1 text-slate-400 text-[9px] mb-1.5 font-bold uppercase tracking-wider">
+          <MapPin size={9} className="text-red-500 shrink-0" />
           <span className="line-clamp-1">{residence.address?.neighborhood || residence.neighborhood}, {residence.address?.city || residence.city}</span>
         </div>
 
-        <div className="flex items-center gap-3 mb-3">
-          <div className="flex items-center gap-1 text-slate-500 text-[10px] font-black uppercase">
-            <LayoutGrid size={10} className="text-slate-400" />
+        <div className="flex items-center gap-3 mb-4">
+          <div className="flex items-center gap-1 text-slate-500 text-[9px] font-black uppercase">
+            <LayoutGrid size={9} className="text-slate-400" />
             <span>{residence.rooms || 1} Pièces</span>
           </div>
           {residence.ownerName && (
-            <div className="text-[10px] text-slate-400 font-bold uppercase tracking-wider border-l border-slate-200 pl-3">
+            <div className="text-[9px] text-slate-400 font-bold uppercase tracking-wider border-l border-slate-200 pl-3 line-clamp-1">
               Hôte: <span className="text-slate-600">{residence.ownerName}</span>
             </div>
           )}
         </div>
 
-        <div className="mt-auto">
+        <div className="mt-auto space-y-3">
           {/* Quick Contact Actions (Mobile focus) */}
           {(enablePhoneCalls || enableWhatsApp) && (
             <div className={cn(
-              "grid gap-2 mb-4",
+              "grid gap-2",
               enablePhoneCalls && enableWhatsApp ? "grid-cols-2" : "grid-cols-1"
             )}>
               {enablePhoneCalls && (
                 <a 
                   href={`tel:${residence.ownerPhone || '70000000'}`}
                   onClick={(e) => e.stopPropagation()}
-                  className="flex items-center justify-center gap-2 py-2 bg-slate-50 hover:bg-slate-100 rounded-xl text-[10px] font-black text-slate-600 uppercase tracking-widest transition-all border border-slate-100"
+                  className="flex items-center justify-center gap-1.5 py-1.5 bg-slate-50 hover:bg-slate-100 rounded-lg text-[9px] font-black text-slate-600 uppercase tracking-widest transition-all border border-slate-100"
                 >
-                  <Phone size={12} />
+                  <Phone size={10} />
                   Appeler
                 </a>
               )}
@@ -162,28 +162,28 @@ export const ResidenceCard: React.FC<Props> = ({
                   target="_blank"
                   rel="noopener noreferrer"
                   onClick={(e) => e.stopPropagation()}
-                  className="flex items-center justify-center gap-2 py-2 bg-green-50 hover:bg-green-100 rounded-xl text-[10px] font-black text-green-700 uppercase tracking-widest transition-all border border-green-100"
+                  className="flex items-center justify-center gap-1.5 py-1.5 bg-green-50 hover:bg-green-100 rounded-lg text-[9px] font-black text-green-700 uppercase tracking-widest transition-all border border-green-100"
                 >
-                  <MessageCircle size={12} />
+                  <MessageCircle size={10} />
                   WhatsApp
                 </a>
               )}
             </div>
           )}
 
-          <div className="flex items-baseline justify-between border-t border-slate-50 pt-4">
-            <div className="flex flex-col">
-              <span className="text-xs text-slate-400 font-medium">À partir de</span>
-              <div className="flex items-baseline gap-1">
+          <div className="flex items-center justify-between border-t border-slate-50 pt-3 gap-2">
+            <div className="flex flex-col min-w-0">
+              <span className="text-[9px] text-slate-400 font-bold uppercase tracking-tighter">Dès</span>
+              <div className="flex items-baseline gap-0.5 overflow-hidden">
                 {(residence.promoPrice || residence.promo_price) ? (
                   <>
-                    <span className="text-lg font-black text-red-600">{formatFCFA(residence.promoPrice || residence.promo_price)}</span>
-                    <span className="text-[10px] text-slate-400 font-medium line-through">{formatFCFA(residence.pricePerNight || residence.price_per_night)}</span>
+                    <span className="text-sm font-black text-red-600 truncate">{formatFCFA(residence.promoPrice || residence.promo_price)}</span>
+                    <span className="text-[8px] text-slate-400 font-medium line-through shrink-0">{(residence.pricePerNight || residence.price_per_night)}</span>
                   </>
                 ) : (
-                  <span className="text-lg font-black text-slate-900">{formatFCFA(residence.pricePerNight || residence.price_per_night)}</span>
+                  <span className="text-sm font-black text-slate-900 truncate">{formatFCFA(residence.pricePerNight || residence.price_per_night)}</span>
                 )}
-                <span className="text-[10px] text-slate-500 font-medium lowercase">/ nuit</span>
+                <span className="text-[9px] text-slate-500 font-bold shrink-0 lowercase">/nuit</span>
               </div>
             </div>
             <button 
@@ -192,7 +192,7 @@ export const ResidenceCard: React.FC<Props> = ({
                 e.stopPropagation();
                 onClick(residence.id);
               }}
-              className="bg-slate-900 text-white px-4 py-2 rounded-lg text-sm font-bold hover:bg-green-600 transition-colors"
+              className="bg-slate-900 text-white px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-wider hover:bg-red-600 transition-colors shrink-0"
             >
               Détails
             </button>
