@@ -189,7 +189,7 @@ export async function getAllWithdrawals(): Promise<WithdrawalRequest[]> {
 export async function updateWithdrawalStatus(id: string, status: WithdrawalStatus, approvedAt?: string): Promise<void> {
   await apiFetch(`/api/withdrawals/${id}`, {
     method: 'PATCH',
-    body: JSON.stringify({ status, approvedAt })
+    body: JSON.stringify({ status, approved_at: approvedAt })
   });
 }
 

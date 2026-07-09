@@ -10,13 +10,8 @@ export let queryDatabase: (query: string, params?: any[]) => Promise<any>;
 
 if (dbType === 'mariadb') {
   queryDatabase = mariadbQuery;
-} else if (dbType === 'sqlite') {
-  queryDatabase = sqliteQuery;
 } else {
-  // Use Firebase
-  queryDatabase = async () => {
-      throw new Error("Local query execution is disabled when using Firebase natively.");
-  };
+  queryDatabase = sqliteQuery;
 }
 
 export const executeSql = async (sql: string, params: any[] = []) => {

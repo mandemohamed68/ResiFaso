@@ -15,7 +15,7 @@ export const initDatabase = async () => {
         email VARCHAR(255) UNIQUE NOT NULL,
         display_name VARCHAR(255),
         phone_number VARCHAR(50),
-        photo_url TEXT,
+        photo_url LONGTEXT,
         role VARCHAR(50) DEFAULT 'client',
         is_verified BOOLEAN DEFAULT 0,
         is_suspended BOOLEAN DEFAULT 0,
@@ -23,6 +23,10 @@ export const initDatabase = async () => {
         created_at DATETIME DEFAULT CURRENT_TIMESTAMP
       ) ENGINE=InnoDB
     `);
+
+    try {
+      await executeSql("ALTER TABLE users MODIFY COLUMN photo_url LONGTEXT");
+    } catch (err) {}
 
     // Ensure 'uid' column exists in MariaDB for compatibility with imported SQL dumps
     try {
@@ -193,10 +197,14 @@ export const initDatabase = async () => {
       CREATE TABLE IF NOT EXISTS residence_images (
         id INT AUTO_INCREMENT PRIMARY KEY,
         residence_id VARCHAR(128),
-        image_url TEXT NOT NULL,
+        image_url LONGTEXT NOT NULL,
         FOREIGN KEY(residence_id) REFERENCES residences(id) ON DELETE CASCADE
       ) ENGINE=InnoDB
     `);
+
+    try {
+      await executeSql("ALTER TABLE residence_images MODIFY COLUMN image_url LONGTEXT");
+    } catch (err) {}
 
     // Bookings Table
     await executeSql(`
@@ -268,7 +276,7 @@ export const initDatabase = async () => {
         id VARCHAR(128) PRIMARY KEY,
         title VARCHAR(255),
         description TEXT,
-        image_url TEXT,
+        image_url LONGTEXT,
         link_url TEXT,
         is_active BOOLEAN DEFAULT 1,
         frequency_seconds INTEGER DEFAULT 10,
@@ -277,6 +285,10 @@ export const initDatabase = async () => {
         created_at DATETIME DEFAULT CURRENT_TIMESTAMP
       ) ENGINE=InnoDB
     `);
+
+    try {
+      await executeSql("ALTER TABLE advertisements MODIFY COLUMN image_url LONGTEXT");
+    } catch (err) {}
 
     // Settings Table
     await executeSql(`

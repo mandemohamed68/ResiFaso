@@ -301,7 +301,7 @@ export const AdminDashboard: React.FC<{ onBackToTraveler?: () => void }> = ({ on
   }, []);
 
   useEffect(() => {
-    if (dbType !== 'firebase' && user) {
+    if (user) {
       reloadData();
       const interval = setInterval(reloadData, 30000);
       return () => clearInterval(interval);
@@ -327,103 +327,6 @@ export const AdminDashboard: React.FC<{ onBackToTraveler?: () => void }> = ({ on
     
     fetchEmailSettings();
   }, [user]);
-
-  // Real-time listener for residences, users, bookings, reviews and global settings
-  useEffect(() => {
-    if (!user || dbType !== 'firebase') return;
-
-    // Residences listener
-    const unsubRes = onSnapshot(collection(db, 'residences'), (snapshot) => {
-      const list: Residence[] = [];
-      snapshot.forEach(docSnap => {
-        list.push({ id: docSnap.id, ...docSnap.data() } as Residence);
-      });
-      list.sort((a, b) => new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime());
-      setResidences(list);
-    }, (error) => console.error("AdminDashboard residences snapshot error:", error));
-
-    // Users listener
-    const unsubUsers = onSnapshot(collection(db, 'users'), (snapshot) => {
-      const list: UserProfile[] = [];
-      snapshot.forEach(docSnap => {
-        list.push({ uid: docSnap.id, ...docSnap.data() } as UserProfile);
-      });
-      list.sort((a, b) => new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime());
-      setUsers(list);
-    }, (error) => console.error("AdminDashboard users snapshot error:", error));
-
-    // Bookings listener
-    const unsubBookings = () => {};
-
-    // Reviews listener
-    const unsubReviews = () => {};
-
-    // Settings listener
-    const unsubSettings = () => {};
-
-    // Ads listener
-    const unsubAds = onSnapshot(collection(db, 'ads'), (snapshot) => {
-      const list: Advertisement[] = [];
-      snapshot.forEach(docSnap => {
-        list.push({ id: docSnap.id, ...docSnap.data() } as Advertisement);
-      });
-      // Sort ads by creation or title
-      list.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
-      setAds(list);
-    }, (error) => console.error("AdminDashboard ads snapshot error:", error));
-
-    // Withdrawals listener
-    const unsubWithdrawals = onSnapshot(collection(db, 'withdrawals'), (snapshot) => {
-      const list: WithdrawalRequest[] = [];
-      snapshot.forEach(docSnap => {
-        list.push({ id: docSnap.id, ...docSnap.data() } as WithdrawalRequest);
-      });
-      list.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
-      setWithdrawals(list);
-    }, (error) => console.error("AdminDashboard withdrawals snapshot error:", error));
-
-    // FAQs listener
-    const unsubFaqs = onSnapshot(collection(db, 'faqs'), (snapshot) => {
-      const list: FAQItem[] = [];
-      snapshot.forEach(docSnap => {
-        list.push({ id: docSnap.id, ...docSnap.data() } as FAQItem);
-      });
-      list.sort((a, b) => a.order - b.order);
-      setFaqs(list);
-    }, (error) => console.error("AdminDashboard faqs snapshot error:", error));
-
-    // Contact settings listener
-    const unsubContactSettings = onSnapshot(doc(db, 'settings', 'contactSettings'), (docSnap) => {
-      if (docSnap.exists()) {
-        setContactSettings(docSnap.data() as ContactSettings);
-      }
-    }, (error) => console.error("AdminDashboard contactSettings snapshot error:", error));
-
-    // Contact messages listener
-    const unsubContactMessages = onSnapshot(collection(db, 'contactMessages'), (snapshot) => {
-      const list: ContactMessage[] = [];
-      snapshot.forEach(docSnap => {
-        list.push({ id: docSnap.id, ...docSnap.data() } as ContactMessage);
-      });
-      // Sort messages descending by creation date
-      list.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
-      setContactMessages(list);
-    }, (error) => console.error("AdminDashboard contactMessages snapshot error:", error));
-
-    return () => {
-      unsubRes();
-      unsubUsers();
-      unsubBookings();
-      unsubReviews();
-      unsubSettings();
-      unsubAds();
-      unsubWithdrawals();
-      unsubFaqs();
-      unsubContactSettings();
-      unsubContactMessages();
-    };
-  }, [user, dbType]);
-
   // Logging Helper
   const logAction = (text: string) => {
     const timeStr = new Date().toLocaleTimeString();
@@ -438,7 +341,7 @@ export const AdminDashboard: React.FC<{ onBackToTraveler?: () => void }> = ({ on
   const handleApproveWithdrawalReq = async (item: WithdrawalRequest) => {
     try {
       await updateWithdrawalStatus(item.id, 'approved', new Date().toISOString());
-      if (dbType !== 'firebase') await reloadData();
+      await reloadData();
       logAction(`Retrait approuvé pour l'hôte ${item.ownerName} (${item.amount} F CFA) via ${item.provider.toUpperCase()}.`);
       
       await sendNotification({
@@ -459,7 +362,7 @@ export const AdminDashboard: React.FC<{ onBackToTraveler?: () => void }> = ({ on
     if (reason === null) return;
     try {
       await updateWithdrawalStatus(item.id, 'rejected');
-      if (dbType !== 'firebase') await reloadData();
+      await reloadData();
       logAction(`Retrait rejeté pour l'hôte ${item.ownerName} (${item.amount} F CFA). Motif: ${reason}`);
       
       await sendNotification({
@@ -3032,7 +2935,7 @@ export const AdminDashboard: React.FC<{ onBackToTraveler?: () => void }> = ({ on
                                     onClick={async () => {
                                       if (confirm(`Voulez-vous marquer comme PAYÉ le retrait de ${withd.amount} F pour ${owner?.displayName || 'cet hôte'} ?`)) {
                                         await updateWithdrawalStatus(withd.id, 'approved', new Date().toISOString());
-                                        if (dbType !== 'firebase') await reloadData();
+                                        await reloadData();
                                         triggerSuccess("Retrait marqué comme payé.");
                                         logAction(`Validation retrait #${withd.id} pour ${withd.amount} F`);
                                       }
@@ -3046,7 +2949,7 @@ export const AdminDashboard: React.FC<{ onBackToTraveler?: () => void }> = ({ on
                                     onClick={async () => {
                                       if (confirm("Voulez-vous rejeter cette demande de retrait ?")) {
                                         await updateWithdrawalStatus(withd.id, 'rejected');
-                                        if (dbType !== 'firebase') await reloadData();
+                                        await reloadData();
                                         triggerSuccess("Retrait rejeté.");
                                         logAction(`REJET retrait #${withd.id}`);
                                       }
