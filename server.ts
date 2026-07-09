@@ -588,9 +588,17 @@ async function startServer() {
   app.put("/api/contact-messages/:id", authenticateToken, async (req: AuthRequest, res) => {
     try {
       if (req.user?.role !== 'admin') return res.status(403).json({ error: "Non autorisé" });
-      const fields = Object.keys(req.body);
-      const setClause = fields.map(f => `${f} = ?`).join(', ');
-      await executeSql(`UPDATE contact_messages SET ${setClause} WHERE id = ?`, [...Object.values(req.body), req.params.id]);
+      const mappedUpdates: any = {};
+      for (const [k, v] of Object.entries(req.body)) {
+        let key = k;
+        if (k === 'repliedAt') key = 'replied_at';
+        mappedUpdates[key] = formatSqlValue(v);
+      }
+      const fields = Object.keys(mappedUpdates);
+      if (fields.length > 0) {
+        const setClause = fields.map(f => `${f} = ?`).join(', ');
+        await executeSql(`UPDATE contact_messages SET ${setClause} WHERE id = ?`, [...Object.values(mappedUpdates), req.params.id]);
+      }
       res.json({ success: true });
     } catch (err: any) {
       res.status(500).json({ error: err.message });
@@ -661,15 +669,15 @@ async function startServer() {
     try {
       if (req.user?.role !== 'admin') return res.status(403).json({ error: "Non autorisé" });
       const body: any = {};
-      for (const key of Object.keys(req.body)) {
+      for (const [key, value] of Object.entries(req.body)) {
         if (key === 'approvedAt') {
-          body['approved_at'] = req.body[key];
+          body['approved_at'] = formatSqlValue(value);
         } else if (key === 'ownerId') {
-          body['owner_id'] = req.body[key];
+          body['owner_id'] = formatSqlValue(value);
         } else if (key === 'createdAt') {
-          body['created_at'] = req.body[key];
+          body['created_at'] = formatSqlValue(value);
         } else {
-          body[key] = req.body[key];
+          body[key] = formatSqlValue(value);
         }
       }
       const fields = Object.keys(body);
