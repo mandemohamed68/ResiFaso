@@ -1164,7 +1164,7 @@ export const OwnerDashboard: React.FC<{ isTestMode?: boolean; onBackToTraveler?:
     }
 
     const totalEarned = bookings.filter(b => b.paymentStatus === 'fully_paid').reduce((acc, curr) => acc + Math.round(curr.totalPrice * (1 - (commissionRate / 100))), 0);
-    const totalWithdrawnAndPending = withdrawals.reduce((acc, w) => acc + w.amount, 0);
+    const totalWithdrawnAndPending = withdrawals.filter(w => w.status !== 'rejected').reduce((acc, w) => acc + w.amount, 0);
     const availableBalance = totalEarned - totalWithdrawnAndPending;
 
     if (amountNum > availableBalance && !isTestMode) {
@@ -2230,7 +2230,7 @@ export const OwnerDashboard: React.FC<{ isTestMode?: boolean; onBackToTraveler?:
                     <span className="text-xs font-bold text-slate-500">Gains nets restants</span>
                   </div>
                   <span className="text-xl font-black text-red-700 underline underline-offset-4">
-                    {formatCurrency(bookings.filter(b => b.paymentStatus === 'fully_paid').reduce((acc, curr) => acc + Math.round(curr.totalPrice * (1 - (commissionRate / 100))), 0) - withdrawals.reduce((acc, w) => acc + w.amount, 0))} F CFA
+                    {formatCurrency(bookings.filter(b => b.paymentStatus === 'fully_paid').reduce((acc, curr) => acc + Math.round(curr.totalPrice * (1 - (commissionRate / 100))), 0) - withdrawals.filter(w => w.status !== 'rejected').reduce((acc, w) => acc + w.amount, 0))} F CFA
                   </span>
                 </div>
 

@@ -660,9 +660,21 @@ async function startServer() {
   app.patch("/api/withdrawals/:id", authenticateToken, async (req: AuthRequest, res) => {
     try {
       if (req.user?.role !== 'admin') return res.status(403).json({ error: "Non autorisé" });
-      const fields = Object.keys(req.body);
+      const body: any = {};
+      for (const key of Object.keys(req.body)) {
+        if (key === 'approvedAt') {
+          body['approved_at'] = req.body[key];
+        } else if (key === 'ownerId') {
+          body['owner_id'] = req.body[key];
+        } else if (key === 'createdAt') {
+          body['created_at'] = req.body[key];
+        } else {
+          body[key] = req.body[key];
+        }
+      }
+      const fields = Object.keys(body);
       const setClause = fields.map(f => `${f} = ?`).join(', ');
-      await executeSql(`UPDATE withdrawals SET ${setClause} WHERE id = ?`, [...Object.values(req.body), req.params.id]);
+      await executeSql(`UPDATE withdrawals SET ${setClause} WHERE id = ?`, [...Object.values(body), req.params.id]);
       res.json({ success: true });
     } catch (err: any) {
       res.status(500).json({ error: err.message });

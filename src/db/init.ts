@@ -694,6 +694,82 @@ export const initDatabase = async () => {
     console.warn("Could not seed default settings:", seedErr.message);
   }
 
+  // Seed default FAQs if they do not exist
+  try {
+    const existingFaqs = await executeSql("SELECT id FROM faqs LIMIT 1");
+    if (!existingFaqs || existingFaqs.length === 0) {
+      console.log("Seeding default FAQs...");
+      const defaultFaqs = [
+        {
+          id: 'faq_gen_1',
+          question: "Qu'est-ce que ResiFaso ?",
+          answer: "ResiFaso est la plateforme de référence au Burkina Faso pour la réservation de résidences meublées, d'appartements et de chambres d'hôtes. Nous connectons des hôtes locaux de confiance avec des voyageurs à la recherche d'un séjour confortable et sécurisé.",
+          category: 'general',
+          order: 1
+        },
+        {
+          id: 'faq_gen_2',
+          question: "Comment puis-je contacter l'assistance clientèle ?",
+          answer: "Vous pouvez nous contacter directement en remplissant notre formulaire sur la page de Contact, ou nous envoyer un message via WhatsApp ou par appel téléphonique pour obtenir une réponse rapide de nos équipes.",
+          category: 'general',
+          order: 2
+        },
+        {
+          id: 'faq_book_1',
+          question: "Comment réserver une résidence sur ResiFaso ?",
+          answer: "Recherchez la ville ou le quartier de votre choix, sélectionnez la résidence qui répond à vos besoins, choisissez vos dates et cliquez sur 'Réserver'. Vous devrez ensuite verser un acompte de garantie (généralement 30%) par Mobile Money pour confirmer votre réservation.",
+          category: 'booking',
+          order: 1
+        },
+        {
+          id: 'faq_book_2',
+          question: "Puis-je modifier ou annuler ma réservation ?",
+          answer: "Oui, vous pouvez demander l'annulation de votre séjour depuis votre espace client dans l'onglet 'Mes Séjours'. Selon la politique d'annulation de l'hôte et la proximité de votre séjour, un remboursement complet ou partiel de l'acompte pourra être accordé.",
+          category: 'booking',
+          order: 2
+        },
+        {
+          id: 'faq_pay_1',
+          question: "Quels sont les moyens de paiement acceptés ?",
+          answer: "Nous acceptons les paiements mobiles les plus populaires au Burkina Faso : Orange Money et Moov Money. Toutes les transactions sont chiffrées et hautement sécurisées pour votre sérénité.",
+          category: 'payment',
+          order: 1
+        },
+        {
+          id: 'faq_pay_2',
+          question: "Comment fonctionne l'acompte et le solde restant ?",
+          answer: "Pour réserver une résidence, vous payez un acompte de 30% en ligne via Mobile Money lors de la confirmation. Les 70% restants (le solde) doivent être réglés directement à l'hôte lors de votre arrivée et de la remise des clés.",
+          category: 'payment',
+          order: 2
+        },
+        {
+          id: 'faq_host_1',
+          question: "Comment inscrire ma résidence ou mon appartement ?",
+          answer: "Inscrivez-vous sur ResiFaso, accédez à votre profil et demandez à activer l'espace Hôte. Une fois activé, vous pourrez lister vos propriétés avec des photos, descriptifs, tarifs, secteur et équipements gratuitement.",
+          category: 'host',
+          order: 1
+        },
+        {
+          id: 'faq_host_2',
+          question: "Comment et quand puis-je retirer mes gains d'hôte ?",
+          answer: "Les acomptes payés en ligne par vos clients sont ajoutés à votre portefeuille hôte. Vous pouvez soumettre une demande de retrait vers votre compte Orange Money ou Moov Money directement depuis votre tableau de bord dès que vous le souhaitez.",
+          category: 'host',
+          order: 2
+        }
+      ];
+
+      for (const faq of defaultFaqs) {
+        await executeSql(
+          "INSERT INTO faqs (id, question, answer, category, `order`) VALUES (?, ?, ?, ?, ?)",
+          [faq.id, faq.question, faq.answer, faq.category, faq.order]
+        );
+      }
+      console.log("Seeded 8 default FAQ questions successfully.");
+    }
+  } catch (faqErr: any) {
+    console.warn("Could not seed default FAQs:", faqErr.message);
+  }
+
   // --- SEEDING SUPER ADMIN ---
   try {
     const superAdminEmail = 'mandemohamed68@gmail.com';

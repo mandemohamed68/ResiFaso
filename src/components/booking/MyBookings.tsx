@@ -5,7 +5,7 @@ import { getClientBookings, updateBookingStatus, sendNotification, getBackendDbT
 import { Booking, Residence } from '../../types';
 import { MOCK_RESIDENCES } from '../../mockData';
 import { motion, AnimatePresence } from 'motion/react';
-import { Calendar, CreditCard, MessageSquare, Compass, Send, CheckCircle2, RefreshCw, X, AlertCircle, Star, Download, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Calendar, CreditCard, MessageSquare, Compass, Send, CheckCircle2, RefreshCw, X, AlertCircle, Star, Download, ChevronLeft, ChevronRight, Clock, MapPin, User, Check } from 'lucide-react';
 import { cn } from '../../lib/utils';
 import { PaymentModal } from './PaymentModal';
 import { apiFetch } from '../../lib/api';
@@ -453,9 +453,300 @@ const CancellationModal: React.FC<CancellationModalProps> = ({ isOpen, onClose, 
   );
 };
 
+interface SuiviReservationModalProps {
+  isOpen: boolean;
+  onClose: () => void;
+  booking: Booking;
+  residence: Residence;
+}
+
+const SuiviReservationModal: React.FC<SuiviReservationModalProps> = ({ isOpen, onClose, booking, residence }) => {
+  if (!isOpen) return null;
+
+  const formatBookingDate = (dateStr: string) => {
+    if (!dateStr) return '';
+    try {
+      const d = new Date(dateStr);
+      if (isNaN(d.getTime())) return dateStr;
+      return d.toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' });
+    } catch (e) {
+      return dateStr;
+    }
+  };
+
+  const getNights = (start: string, end: string) => {
+    const s = new Date(start);
+    const e = new Date(end);
+    const diff = e.getTime() - s.getTime();
+    return Math.max(1, Math.ceil(diff / (1000 * 60 * 60 * 24)));
+  };
+
+  const totalNights = getNights(booking.checkIn, booking.checkOut);
+
+  // Define booking timeline steps
+  const steps = [
+    {
+      id: 'creation',
+      label: 'Demande créée',
+      description: 'Votre demande de séjour a été enregistrée avec succès sur ResiFaso.',
+      date: formatBookingDate(booking.createdAt),
+      status: 'completed', // always completed if booking exists
+    },
+    {
+      id: 'validation',
+      label: "Validation par l'hôte",
+      description: booking.bookingStatus === 'cancelled' 
+        ? 'La réservation a été annulée.' 
+        : booking.bookingStatus === 'pending'
+          ? "L'hôte examine actuellement votre demande."
+          : 'Votre réservation a été acceptée et confirmée par l\'hôte.',
+      date: booking.bookingStatus !== 'pending' && booking.createdAt ? formatBookingDate(booking.createdAt) : undefined, // fallback date
+      status: booking.bookingStatus === 'cancelled' 
+        ? 'cancelled' 
+        : booking.bookingStatus === 'pending' 
+          ? 'current' 
+          : 'completed',
+    },
+    {
+      id: 'payment',
+      label: "Paiement de l'acompte (30%)",
+      description: booking.paymentStatus === 'pending'
+        ? "Versez l'acompte requis de 30% pour verrouiller définitivement vos dates."
+        : booking.paymentStatus === 'advance_paid' || booking.paymentStatus === 'fully_paid'
+          ? `Acompte de ${formatCurrency(booking.advancePaid)} F CFA reçu par l'hôte.`
+          : "Paiement en attente.",
+      date: (booking.paymentStatus === 'advance_paid' || booking.paymentStatus === 'fully_paid') ? formatBookingDate(booking.createdAt) : undefined,
+      status: (booking.paymentStatus === 'advance_paid' || booking.paymentStatus === 'fully_paid')
+        ? 'completed'
+        : booking.bookingStatus === 'confirmed'
+          ? 'current'
+          : 'pending',
+    },
+    {
+      id: 'checkin',
+      label: "Arrivée & Remise des clés",
+      description: booking.stayStatus === 'completed' || booking.stayStatus === 'ongoing'
+        ? "Vous êtes installé dans la résidence. Bienvenue !"
+        : `Présentez-vous le ${formatBookingDate(booking.checkIn)} pour la remise des clés et réglez le solde restant.`,
+      date: booking.checkedInAt ? formatBookingDate(booking.checkedInAt) : undefined,
+      status: booking.stayStatus === 'completed' || booking.stayStatus === 'ongoing'
+        ? 'completed'
+        : (booking.paymentStatus === 'advance_paid' || booking.paymentStatus === 'fully_paid') && booking.bookingStatus === 'confirmed'
+          ? 'current'
+          : 'pending',
+    },
+    {
+      id: 'checkout',
+      label: "Départ & Libération",
+      description: booking.stayStatus === 'completed'
+        ? "Votre séjour est terminé. Merci pour votre confiance !"
+        : `Libération de la résidence prévue le ${formatBookingDate(booking.checkOut)}.`,
+      date: booking.checkedOutAt ? formatBookingDate(booking.checkedOutAt) : undefined,
+      status: booking.stayStatus === 'completed'
+        ? 'completed'
+        : booking.stayStatus === 'ongoing'
+          ? 'current'
+          : 'pending',
+    },
+  ];
+
+  const totalPaid = booking.paymentStatus === 'fully_paid' 
+    ? booking.totalPrice 
+    : (booking.paymentStatus === 'advance_paid' ? booking.advancePaid : 0);
+
+  const remainingToPay = booking.paymentStatus === 'fully_paid' 
+    ? 0 
+    : (booking.paymentStatus === 'advance_paid' ? (booking.totalPrice - booking.advancePaid) : booking.totalPrice);
+
+  return (
+    <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[9999] flex items-center justify-center p-4 overflow-y-auto">
+      <motion.div 
+        initial={{ opacity: 0, scale: 0.95 }}
+        animate={{ opacity: 1, scale: 1 }}
+        exit={{ opacity: 0, scale: 0.95 }}
+        className="bg-white rounded-[32px] w-full max-w-2xl overflow-hidden shadow-2xl border border-slate-100 flex flex-col max-h-[90vh]"
+      >
+        {/* Header */}
+        <div className="px-8 py-6 bg-slate-900 text-white flex justify-between items-center shrink-0">
+          <div>
+            <span className="text-[10px] font-black text-red-500 uppercase tracking-widest block mb-1">Suivi & Détails du Séjour</span>
+            <h3 className="text-xl font-black tracking-tight">{residence.title}</h3>
+          </div>
+          <button 
+            onClick={onClose}
+            className="w-10 h-10 bg-white/10 hover:bg-white/20 text-white rounded-full flex items-center justify-center transition-colors cursor-pointer"
+          >
+            <X size={20} />
+          </button>
+        </div>
+
+        {/* Content */}
+        <div className="p-8 overflow-y-auto space-y-8 flex-1">
+          {/* Tracking Timeline */}
+          <div>
+            <h4 className="text-sm font-black text-slate-900 uppercase tracking-wider mb-6 flex items-center gap-2">
+              <Clock size={16} className="text-red-600" />
+              État d'avancement du séjour
+            </h4>
+
+            <div className="relative pl-8 space-y-6">
+              {/* Timeline continuous line */}
+              <div className="absolute left-3.5 top-2 bottom-2 w-0.5 bg-slate-100"></div>
+
+              {steps.map((step, idx) => {
+                const isCompleted = step.status === 'completed';
+                const isCurrent = step.status === 'current';
+                const isCancelled = step.status === 'cancelled';
+
+                return (
+                  <div key={step.id} className="relative">
+                    {/* Circle Indicator */}
+                    <div className={cn(
+                      "absolute -left-8 top-1 w-7.5 h-7.5 rounded-full flex items-center justify-center border-2 transition-all",
+                      isCompleted 
+                        ? "bg-green-500 border-green-500 text-white" 
+                        : isCurrent 
+                          ? "bg-amber-500 border-amber-500 text-white animate-pulse"
+                          : isCancelled
+                            ? "bg-red-500 border-red-500 text-white"
+                            : "bg-white border-slate-200 text-slate-400"
+                    )}>
+                      {isCompleted ? (
+                        <Check size={14} className="stroke-[3]" />
+                      ) : isCancelled ? (
+                        <X size={14} className="stroke-[3]" />
+                      ) : (
+                        <span className="text-xs font-black">{idx + 1}</span>
+                      )}
+                    </div>
+
+                    {/* Step details */}
+                    <div>
+                      <div className="flex items-baseline justify-between gap-2">
+                        <span className={cn(
+                          "text-sm font-black",
+                          isCompleted ? "text-slate-900" : isCurrent ? "text-amber-600" : isCancelled ? "text-red-600" : "text-slate-400"
+                        )}>
+                          {step.label}
+                        </span>
+                        {step.date && (
+                          <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
+                            {step.date}
+                          </span>
+                        )}
+                      </div>
+                      <p className={cn(
+                        "text-xs mt-1 leading-relaxed",
+                        isCompleted || isCurrent ? "text-slate-600 font-medium" : "text-slate-400 font-normal"
+                      )}>
+                        {step.description}
+                      </p>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+
+          <hr className="border-slate-100" />
+
+          {/* Core Information Grid */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="bg-slate-50 p-5 rounded-2xl border border-slate-100">
+              <h5 className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3 flex items-center gap-1.5">
+                <MapPin size={12} className="text-red-500" />
+                Hébergement
+              </h5>
+              <div className="space-y-2 text-xs">
+                <p className="font-bold text-slate-800">{residence.title}</p>
+                <p className="text-slate-500 font-medium">{residence.type === 'chambre' ? 'Chambre' : residence.type === 'appartement' ? 'Appartement' : residence.type === 'villa' ? 'Villa' : 'Auberge'}</p>
+                <p className="text-slate-500 font-medium">
+                  Secteur {residence.address?.neighborhood || residence.neighborhood}, {residence.address?.city || residence.city}
+                </p>
+                {residence.ownerName && (
+                  <p className="text-slate-600 font-bold mt-2 pt-2 border-t border-slate-200/50 flex items-center gap-1">
+                    <User size={12} className="text-slate-400" />
+                    Hôte: <span className="text-slate-900">{residence.ownerName}</span>
+                  </p>
+                )}
+              </div>
+            </div>
+
+            <div className="bg-slate-50 p-5 rounded-2xl border border-slate-100">
+              <h5 className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3 flex items-center gap-1.5">
+                <Calendar size={12} className="text-red-500" />
+                Détails du Séjour
+              </h5>
+              <div className="space-y-2 text-xs font-medium text-slate-600">
+                <p>Du <strong className="text-slate-800 font-bold">{formatBookingDate(booking.checkIn)}</strong></p>
+                <p>Au <strong className="text-slate-800 font-bold">{formatBookingDate(booking.checkOut)}</strong></p>
+                <p className="pt-2 border-t border-slate-200/50">Durée : <strong className="text-slate-800 font-bold">{totalNights} nuit(s)</strong></p>
+                <p>Voyageurs : <strong className="text-slate-800 font-bold">{booking.guests} personne(s)</strong></p>
+              </div>
+            </div>
+          </div>
+
+          {/* Pricing Harmonization Details */}
+          <div className="bg-red-50/30 border border-red-100/50 p-6 rounded-2xl space-y-4">
+            <h5 className="text-xs font-black text-red-800 uppercase tracking-wider flex items-center gap-2">
+              <CreditCard size={14} />
+              Détails Financiers & Paiements
+            </h5>
+
+            <div className="divide-y divide-red-100/40 text-xs">
+              <div className="py-2.5 flex justify-between items-center">
+                <span className="text-slate-500 font-bold">Tarif de la résidence</span>
+                <span className="font-black text-slate-800">{formatCurrency(residence.pricePerNight)} F CFA / nuit</span>
+              </div>
+              <div className="py-2.5 flex justify-between items-center">
+                <span className="text-slate-500 font-bold">Montant Total du Séjour</span>
+                <span className="font-black text-slate-950 text-sm">{formatCurrency(booking.totalPrice)} F CFA</span>
+              </div>
+              <div className="py-2.5 flex justify-between items-center">
+                <span className="text-slate-500 font-bold">Acompte Payé (30%)</span>
+                <span className="font-black text-green-600">{formatCurrency(totalPaid)} F CFA</span>
+              </div>
+              <div className="py-2.5 flex justify-between items-center bg-red-100/10 px-2 -mx-2 rounded-lg">
+                <span className="text-red-800 font-bold">Reste à payer (à l'arrivée)</span>
+                <span className="font-black text-red-600 text-sm">{formatCurrency(remainingToPay)} F CFA</span>
+              </div>
+            </div>
+
+            <div className="text-[10px] text-slate-500 leading-relaxed font-medium bg-white p-3 rounded-xl border border-slate-100">
+              💡 <strong>Rappel crucial :</strong> L'acompte de 30% a été versé et sécurisé en ligne. Le solde restant de <strong>{formatCurrency(remainingToPay)} F CFA</strong> est à régler directement à l'hôte lors de la remise des clés de la résidence (en espèces ou par Mobile Money local).
+            </div>
+          </div>
+        </div>
+
+        {/* Footer */}
+        <div className="px-8 py-5 bg-slate-50 border-t border-slate-100 flex justify-end shrink-0">
+          <button 
+            onClick={onClose}
+            className="px-6 py-3 bg-slate-900 text-white rounded-xl text-xs font-black uppercase tracking-wider hover:bg-slate-850 transition-colors cursor-pointer"
+          >
+            Fermer le suivi
+          </button>
+        </div>
+      </motion.div>
+    </div>
+  );
+};
+
 export const MyBookings: React.FC<{ onContactHost: (ownerId: string, resId: string) => void, isTestMode?: boolean }> = ({ onContactHost, isTestMode }) => {
   const { user } = useAuth();
   const { addToast } = useToast();
+
+  const formatBookingDate = (dateStr: string) => {
+    if (!dateStr) return '';
+    try {
+      const d = new Date(dateStr);
+      if (isNaN(d.getTime())) return dateStr;
+      return d.toLocaleDateString('fr-FR', { day: 'numeric', month: 'short', year: 'numeric' });
+    } catch (e) {
+      return dateStr;
+    }
+  };
+
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [currentPage, setCurrentPage] = useState(1);
 
@@ -469,6 +760,7 @@ export const MyBookings: React.FC<{ onContactHost: (ownerId: string, resId: stri
   const [selectedBookingForReview, setSelectedBookingForReview] = useState<Booking | null>(null);
   const [selectedBookingForCancel, setSelectedBookingForCancel] = useState<Booking | null>(null);
   const [selectedBookingForInvoice, setSelectedBookingForInvoice] = useState<Booking | null>(null);
+  const [selectedBookingForDetail, setSelectedBookingForDetail] = useState<Booking | null>(null);
 
   // Load residences map from MOCK and Firestore
   useEffect(() => {
@@ -664,7 +956,7 @@ export const MyBookings: React.FC<{ onContactHost: (ownerId: string, resId: stri
                     )}
 
                     <div className="flex flex-wrap gap-x-6 gap-y-2 text-slate-600 text-xs">
-                      <div>Du <strong className="text-slate-900 font-bold">{booking.checkIn}</strong> au <strong className="text-slate-900 font-bold">{booking.checkOut}</strong></div>
+                      <div>Du <strong className="text-slate-900 font-bold">{formatBookingDate(booking.checkIn)}</strong> au <strong className="text-slate-900 font-bold">{formatBookingDate(booking.checkOut)}</strong></div>
                       <div className="w-1 h-1 bg-slate-300 rounded-full self-center hidden md:block"></div>
                       <div>Voyageurs : <strong className="text-slate-900 font-bold">{booking.guests} pers.</strong></div>
                     </div>
@@ -703,39 +995,43 @@ export const MyBookings: React.FC<{ onContactHost: (ownerId: string, resId: stri
 
                   <div className="flex flex-wrap items-center justify-between gap-4 mt-6 pt-4 border-t border-slate-50">
                     {/* Price structure */}
-                    <div className="flex flex-wrap gap-4">
+                    <div className="grid grid-cols-2 md:flex md:flex-wrap gap-x-6 gap-y-4">
                       <div>
-                        <span className="block text-[8px] font-black text-slate-400 uppercase tracking-widest">Prix Total</span>
-                        <span className="text-lg font-black text-slate-900 tracking-tight">{formatCurrency(booking.totalPrice)} F CFA</span>
+                        <span className="block text-[8px] font-black text-slate-400 uppercase tracking-widest font-mono">Nuitée Résidence</span>
+                        <span className="text-sm font-black text-slate-900 tracking-tight">{formatCurrency(res.pricePerNight)} F CFA</span>
                       </div>
                       <div className="border-l border-slate-100 pl-4">
-                        <span className="block text-[8px] font-black text-slate-400 uppercase tracking-widest">
-                          {booking.paymentStatus === 'fully_paid' 
-                            ? 'Total Payé' 
-                            : booking.paymentStatus === 'advance_paid' 
-                              ? 'Acompte Payé' 
-                              : 'Acompte Requis'}
-                        </span>
-                        <span className={`text-lg font-black tracking-tight ${
-                          booking.paymentStatus === 'fully_paid' 
-                            ? 'text-green-600' 
-                            : booking.paymentStatus === 'advance_paid' 
-                              ? 'text-green-600' 
-                              : 'text-amber-600'
-                        }`}>
-                          {formatCurrency(booking.advancePaid)} F CFA
+                        <span className="block text-[8px] font-black text-slate-400 uppercase tracking-widest font-mono">Montant Total</span>
+                        <span className="text-sm font-black text-slate-950 tracking-tight">{formatCurrency(booking.totalPrice)} F CFA</span>
+                      </div>
+                      <div className="border-l border-slate-100 pl-4">
+                        <span className="block text-[8px] font-black text-slate-400 uppercase tracking-widest font-mono">Acompte Payé</span>
+                        <span className="text-sm font-black text-green-600 tracking-tight">
+                          {booking.paymentStatus === 'fully_paid' || booking.paymentStatus === 'advance_paid' 
+                            ? `${formatCurrency(booking.advancePaid)} F CFA` 
+                            : '0 F CFA'}
                         </span>
                       </div>
-                      {booking.paymentStatus === 'advance_paid' && (
-                        <div className="border-l border-slate-100 pl-4">
-                          <span className="block text-[8px] font-black text-slate-400 uppercase tracking-widest">Solde Restant</span>
-                          <span className="text-lg font-black text-red-600 tracking-tight">{formatCurrency(booking.totalPrice - booking.advancePaid)} F CFA</span>
-                        </div>
-                      )}
+                      <div className="border-l border-slate-100 pl-4">
+                        <span className="block text-[8px] font-black text-slate-400 uppercase tracking-widest font-mono">Reste à Payer</span>
+                        <span className="text-sm font-black text-red-650 text-red-650 text-red-600 tracking-tight">
+                          {booking.paymentStatus === 'fully_paid' 
+                            ? '0 F CFA' 
+                            : `${formatCurrency(booking.totalPrice - (booking.paymentStatus === 'advance_paid' ? booking.advancePaid : 0))} F CFA`}
+                        </span>
+                      </div>
                     </div>
 
                     {/* Action Panel */}
                     <div className="flex items-center gap-2">
+                      <button 
+                        onClick={() => setSelectedBookingForDetail(booking)}
+                        className="px-4 py-2.5 bg-red-50 border border-red-100 text-red-600 rounded-xl font-bold text-xs hover:bg-red-100 transition-colors flex items-center gap-1.5 cursor-pointer"
+                      >
+                        <Clock size={14} className="text-red-600" />
+                        Détails & Suivi
+                      </button>
+
                       <button 
                         onClick={() => onContactHost(booking.ownerId, booking.residenceId)}
                         className="px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl font-bold text-xs text-slate-700 hover:bg-slate-100 transition-colors flex items-center gap-2 cursor-pointer"
@@ -952,6 +1248,17 @@ export const MyBookings: React.FC<{ onContactHost: (ownerId: string, resId: stri
         residence={selectedBookingForInvoice ? residencesMap[selectedBookingForInvoice.residenceId] : null}
         clientName={user?.displayName || user?.email || undefined}
       />
+
+      <AnimatePresence>
+        {selectedBookingForDetail && residencesMap[selectedBookingForDetail.residenceId] && (
+          <SuiviReservationModal
+            isOpen={!!selectedBookingForDetail}
+            onClose={() => setSelectedBookingForDetail(null)}
+            booking={selectedBookingForDetail}
+            residence={residencesMap[selectedBookingForDetail.residenceId]}
+          />
+        )}
+      </AnimatePresence>
     </div>
   );
 };
