@@ -720,9 +720,19 @@ async function startServer() {
     }
   });
 
-  app.post("/api/notifications/:id/read", authenticateToken, async (req: AuthRequest, res) => {
+  app.post("/api/notifications/:id/read", authenticateToken, async (req, res) => {
     try {
-      await executeSql("UPDATE notifications SET is_read = 1 WHERE id = ? AND user_id = ?", [req.params.id, req.user?.uid]);
+      await executeSql("UPDATE notifications SET is_read = 1 WHERE id = ?", [req.params.id]);
+      res.json({ success: true });
+    } catch (err: any) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  app.post("/api/notifications/read-all", authenticateToken, async (req: AuthRequest, res) => {
+    try {
+      const userId = req.body.userId || req.user?.uid;
+      await executeSql("UPDATE notifications SET is_read = 1 WHERE user_id = ?", [userId]);
       res.json({ success: true });
     } catch (err: any) {
       res.status(500).json({ error: err.message });

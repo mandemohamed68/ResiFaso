@@ -13,24 +13,6 @@ import { InvoiceModal } from './InvoiceModal';
 
 import { useToast } from '../../contexts/ToastContext';
 
-// DUMMY FIREBASE STUBS TO FIX BUILD
-const db = {};
-const doc = (...args: any[]) => ({});
-const collection = (...args: any[]) => ({});
-const query = (...args: any[]) => ({});
-const where = (...args: any[]) => ({});
-const orderBy = (...args: any[]) => ({});
-const limit = (...args: any[]) => ({});
-const getDoc = async (...args: any[]) => ({ exists: () => false, data: () => ({}) });
-const getDocs = async (...args: any[]) => ({ forEach: () => {} });
-const setDoc = async (...args: any[]) => {};
-const updateDoc = async (...args: any[]) => {};
-const deleteDoc = async (...args: any[]) => {};
-const addDoc = async (...args: any[]) => ({ id: 'dummy' });
-const onSnapshot = (...args: any[]) => () => {};
-// END DUMMY
-
-
 interface ReviewModalProps {
   isOpen: boolean;
   onClose: () => void;
@@ -175,9 +157,9 @@ const CancellationModal: React.FC<CancellationModalProps> = ({ isOpen, onClose, 
     let active = true;
     async function fetchHostPolicy() {
       try {
-        const hostDoc = await getDoc(doc(db, 'users', booking.ownerId));
-        if (hostDoc.exists() && active) {
-          const data: any = hostDoc.data();
+        const response = await fetch(`/api/users/${booking.ownerId}`);
+        if (response.ok && active) {
+          const data = await response.json();
           if (data.hostCancellationFee !== undefined) {
             setHostCancellationFee(Number(data.hostCancellationFee));
           }

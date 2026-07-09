@@ -10,6 +10,11 @@ export enum OperationType {
   WRITE = 'write',
 }
 
+// Helper to format date for MySQL DATETIME (YYYY-MM-DD HH:MM:SS)
+const formatToMySQLDateTime = (date: Date): string => {
+  return date.toISOString().slice(0, 19).replace('T', ' ');
+};
+
 // Helper for fetch
 const apiFetch = async (endpoint: string, options: any = {}) => {
   const token = typeof window !== 'undefined' ? localStorage.getItem('auth_token') : null;
@@ -147,6 +152,19 @@ export async function sendNotification(notif: any): Promise<void> {
   });
 }
 
+export async function markNotificationAsRead(id: string): Promise<void> {
+  await apiFetch(`/api/notifications/${id}/read`, {
+    method: 'POST'
+  });
+}
+
+export async function markAllNotificationsAsRead(userId: string): Promise<void> {
+  await apiFetch(`/api/notifications/read-all`, {
+    method: 'POST',
+    body: JSON.stringify({ userId })
+  });
+}
+
 // ==========================================
 // MESSAGING
 // ==========================================
@@ -187,9 +205,10 @@ export async function getAllWithdrawals(): Promise<WithdrawalRequest[]> {
 }
 
 export async function updateWithdrawalStatus(id: string, status: WithdrawalStatus, approvedAt?: string): Promise<void> {
+  const formattedDate = approvedAt ? formatToMySQLDateTime(new Date(approvedAt)) : undefined;
   await apiFetch(`/api/withdrawals/${id}`, {
     method: 'PATCH',
-    body: JSON.stringify({ status, approved_at: approvedAt })
+    body: JSON.stringify({ status, approved_at: formattedDate })
   });
 }
 

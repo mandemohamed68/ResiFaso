@@ -41,24 +41,6 @@ const DEFAULT_CONTACT_SETTINGS: ContactSettings = {
 
 import { useToast } from '../../contexts/ToastContext';
 
-// DUMMY FIREBASE STUBS TO FIX BUILD
-const db = {};
-const doc = (...args: any[]) => ({});
-const collection = (...args: any[]) => ({});
-const query = (...args: any[]) => ({});
-const where = (...args: any[]) => ({});
-const orderBy = (...args: any[]) => ({});
-const limit = (...args: any[]) => ({});
-const getDoc = async (...args: any[]) => ({ exists: () => false, data: () => ({}) });
-const getDocs = async (...args: any[]) => ({ forEach: () => {} });
-const setDoc = async (...args: any[]) => {};
-const updateDoc = async (...args: any[]) => {};
-const deleteDoc = async (...args: any[]) => {};
-const addDoc = async (...args: any[]) => ({ id: 'dummy' });
-const onSnapshot = (...args: any[]) => () => {};
-// END DUMMY
-
-
 export const AdminDashboard: React.FC<{ onBackToTraveler?: () => void }> = ({ onBackToTraveler }) => {
   const { user } = useAuth();
   const { addToast } = useToast();
@@ -1394,7 +1376,7 @@ export const AdminDashboard: React.FC<{ onBackToTraveler?: () => void }> = ({ on
     e.preventDefault();
     setIsSavingContactSettings(true);
     try {
-      await setDoc(doc(db, 'settings', 'contactSettings'), contactSettings, { merge: true });
+      await saveContactSettings(contactSettings);
       logAction("Mise à jour des coordonnées et paramètres de contact de la plateforme.");
       triggerSuccess("Les paramètres de la page de contact ont été enregistrés avec succès !");
     } catch (err) {
@@ -2268,8 +2250,7 @@ export const AdminDashboard: React.FC<{ onBackToTraveler?: () => void }> = ({ on
                               return;
                             }
                             if (window.confirm(`Voulez-vous supprimer définitivement le compte de ${usr.email} ?`)) {
-                              await deleteDoc(doc(db, 'users', usr.uid));
-                              triggerSuccess("Utilisateur supprimé.");
+                              handleDeleteUser(usr.uid, usr.email);
                             }
                           }}
                           className="p-2 bg-red-50 border border-red-200 text-red-600 hover:bg-red-100 rounded-xl transition cursor-pointer"
@@ -2771,23 +2752,12 @@ export const AdminDashboard: React.FC<{ onBackToTraveler?: () => void }> = ({ on
               <div className="bg-slate-50 border border-slate-100 p-12 rounded-[32px] text-center space-y-4">
                 <p className="text-slate-400 font-black text-sm">Aucun commentaire n'a été rédigé pour le moment.</p>
                 <button 
-                  onClick={async () => {
-                    // Seed dynamic mockup reviews inside Firestore for user safety
-                    const mockRevId = `rev-${Date.now()}`;
-                    await setDoc(doc(db, 'reviews', mockRevId), {
-                      bookingId: "b-999-sample",
-                      residenceId: "res-1",
-                      clientId: "client-sample-99",
-                      rating: 2,
-                      comment: "Publicité mensongère sous l'immeuble. Très bruyant !",
-                      createdAt: new Date().toISOString()
-                    });
-                    logAction("Génération d'un avis d'évaluation témoin à modérer pour test.");
-                    triggerSuccess("Avis de test généré !");
+                  onClick={() => {
+                    triggerSuccess("Fonctionnalité de test désactivée pour la production.");
                   }}
                   className="bg-slate-900 text-white px-5 py-2.5 rounded-xl text-xs font-black uppercase tracking-wider hover:bg-slate-800 transition cursor-pointer"
                 >
-                  Générer un commentaire témoin à modérer
+                  Générer un commentaire témoin à modérer (Désactivé)
                 </button>
               </div>
             ) : (

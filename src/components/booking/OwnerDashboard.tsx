@@ -16,7 +16,10 @@ import {
   getBackendDbType,
   getAllResidences,
   getAllBookings,
-  updateUserProfile
+  updateUserProfile,
+  getGlobalSettings,
+  markNotificationAsRead,
+  markAllNotificationsAsRead
 } from '../../lib/db';
 import { CustomSelect } from '../common/CustomSelect';
 import { Message, Conversation, Residence, Booking, WithdrawalRequest, MobileMoneyProvider } from '../../types';
@@ -39,24 +42,6 @@ import 'leaflet/dist/leaflet.css';
 // Fix Leaflet icons
 import markerIcon from 'leaflet/dist/images/marker-icon.png';
 import markerShadow from 'leaflet/dist/images/marker-shadow.png';
-
-// DUMMY FIREBASE STUBS TO FIX BUILD
-const db = {};
-const doc = (...args: any[]) => ({});
-const collection = (...args: any[]) => ({});
-const query = (...args: any[]) => ({});
-const where = (...args: any[]) => ({});
-const orderBy = (...args: any[]) => ({});
-const limit = (...args: any[]) => ({});
-const getDoc = async (...args: any[]) => ({ exists: () => false, data: () => ({}) });
-const getDocs = async (...args: any[]) => ({ forEach: () => {} });
-const setDoc = async (...args: any[]) => {};
-const updateDoc = async (...args: any[]) => {};
-const deleteDoc = async (...args: any[]) => {};
-const addDoc = async (...args: any[]) => ({ id: 'dummy' });
-const onSnapshot = (...args: any[]) => () => {};
-// END DUMMY
-
 
 const DefaultIcon = L.icon({
   iconUrl: markerIcon,
@@ -802,73 +787,71 @@ export const OwnerDashboard: React.FC<{ isTestMode?: boolean; onBackToTraveler?:
     autoProcessStays();
   }, [user, bookings, residences]);
 
-  // Load withdrawals in real-time
-  useEffect(() => {
+  const [dbType, setDbType] = useState<string>('sql');
+
+  const fetchData = async () => {
     if (!user) return;
-    
-    // Watch host user profile settings (cancellation policy)
-    const unsubUser = onSnapshot(doc(db, 'users', user.uid), (docSnap) => {
-      if (docSnap.exists()) {
-        const data = docSnap.data();
-        if (data.hostCancellationFee !== undefined) {
-          setHostCancellationFee(Number(data.hostCancellationFee));
+    setLoading(true);
+    try {
+      const type = await getBackendDbType();
+      setDbType(type);
+      
+      const isAdmin = user.role === 'admin' || user.email === 'mandemohamed68@gmail.com';
+      const [resList, bookList, withList, settingsData] = await Promise.all([
+        isAdmin ? getAllResidences() : getOwnerResidences(user.uid),
+        isAdmin ? getAllBookings() : getOwnerBookings(user.uid),
+        getOwnerWithdrawals(user.uid),
+        getGlobalSettings()
+      ]);
+      
+      if (resList) {
+        const sortedRes = (resList || []).sort((a, b) => 
+          new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime()
+        );
+        setResidences(sortedRes);
+      }
+      
+      if (bookList) {
+        const sortedBookings = (bookList || []).sort((a, b) => 
+          new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime()
+        );
+        setBookings(sortedBookings);
+      }
+
+      if (withList) {
+        setWithdrawals(withList);
+      }
+
+      if (settingsData && settingsData.commissionRate !== undefined) {
+        setCommissionRate(settingsData.commissionRate);
+      }
+
+      // Fetch user profile for policy
+      const response = await fetch(`/api/users/${user.uid}`);
+      if (response.ok) {
+        const profile = await response.json();
+        if (profile.hostCancellationFee !== undefined) {
+          setHostCancellationFee(Number(profile.hostCancellationFee));
         }
-        if (data.hostCancellationRulesText !== undefined) {
-          setHostCancellationRulesText(data.hostCancellationRulesText);
+        if (profile.hostCancellationRulesText !== undefined) {
+          setHostCancellationRulesText(profile.hostCancellationRulesText);
         }
       }
-    });
 
-    // Watch actual real-time notifications from Firestore
-    const qNotifs = query(
-      collection(db, 'notifications'),
-      where('userId', '==', user.uid)
-    );
-    const unsubNotifs = onSnapshot(qNotifs, (snap) => {
-      const list: any[] = [];
-      snap.forEach(docSnap => {
-        list.push({ id: docSnap.id, ...docSnap.data() });
-      });
-      // Sort on client by date (most recent first)
-      list.sort((a,b) => (b.createdAt || '').localeCompare(a.createdAt || ''));
-      setDbNotifications(list);
-    }, (err) => console.error("Error watching notifications: ", err));
+    } catch (err) {
+      console.error("Error fetching data:", err);
+      // addToast("Erreur lors de la récupération des données.", "error");
+    } finally {
+      setLoading(false);
+    }
+  };
 
-    return () => {
-      unsubUser();
-      unsubNotifs();
-    };
-  }, [user]);
-
-  // Load withdrawals in real-time
   useEffect(() => {
-    if (!user) return;
-    const qWith = query(
-      collection(db, 'withdrawals'),
-      where('ownerId', '==', user.uid),
-      orderBy('createdAt', 'desc')
-    );
-    const unsubWith = onSnapshot(qWith, (snap) => {
-      const list: WithdrawalRequest[] = [];
-      snap.forEach(docSnap => {
-        list.push({ id: docSnap.id, ...docSnap.data() } as WithdrawalRequest);
-      });
-      setWithdrawals(list);
-    }, (error) => console.error("OwnerDashboard withdrawals snapshot error:", error));
-
-    const unsubSettings = onSnapshot(doc(db, 'settings', 'global'), (docSnap) => {
-      if (docSnap.exists()) {
-        const data = docSnap.data();
-        if (data.commissionRate !== undefined) {
-          setCommissionRate(data.commissionRate);
-        }
-      }
-    });
-
-    return () => {
-      unsubWith();
-      unsubSettings();
-    };
+    if (user) {
+      fetchData();
+      const interval = setInterval(fetchData, 30000);
+      return () => clearInterval(interval);
+    }
   }, [user]);
 
   // Modification/Decline flows
@@ -932,47 +915,6 @@ export const OwnerDashboard: React.FC<{ isTestMode?: boolean; onBackToTraveler?:
   const availableAmenities = [
     'Wi-Fi', 'Climatisation', 'Piscine', 'Parking', 'Sécurité 24/7', 'Cuisine équipée', 'Jardin', 'Groupe Électrogène', 'Forage Eau'
   ];
-
-  // Fetch data for owners
-  const fetchData = async () => {
-    if (!user) return;
-    setLoading(true);
-    try {
-      const dbType = await getBackendDbType();
-      
-      const isAdmin = user.role === 'admin' || user.email === 'mandemohamed68@gmail.com';
-                const [resList, bookList] = await Promise.all([
-                  isAdmin ? getAllResidences() : getOwnerResidences(user.uid),
-                  isAdmin ? getAllBookings() : getOwnerBookings(user.uid)
-                ]);
-                
-                const sortedRes = (resList || []).sort((a, b) => 
-                  new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime()
-                );
-                setResidences(sortedRes);
-                
-                const sortedBookings = (bookList || []).sort((a, b) => 
-                  new Date(b.createdAt || b.checkIn || 0).getTime() - new Date(a.createdAt || a.checkIn || 0).getTime()
-                );
-                setBookings(sortedBookings);
-    } catch (err) {
-      console.error("Error fetching owner dashboard data:", err);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    if (!user) {
-      setLoading(false);
-      return;
-    }
-
-    fetchData();
-    // Refresh every 60 seconds if not firebase
-    const interval = setInterval(fetchData, 60000);
-    return () => clearInterval(interval);
-  }, [user, lastRefresh]);
 
   // Fetch conversations from SQL API for owner
   useEffect(() => {
@@ -1092,7 +1034,7 @@ export const OwnerDashboard: React.FC<{ isTestMode?: boolean; onBackToTraveler?:
     setIsUpdatingStatus(resId);
     try {
       await updateResidence(resId, { availabilityStatus: newStatus });
-      // The onSnapshot listener will handle the UI update
+      await fetchData();
     } catch (err) {
       console.error(err);
       addToast("Erreur lors de la mise à jour de la disponibilité.", "error");
@@ -1250,6 +1192,7 @@ export const OwnerDashboard: React.FC<{ isTestMode?: boolean; onBackToTraveler?:
       });
       triggerSuccess("Réservation refusée avec succès et le voyageur a été notifié.");
       setBookingToDecline(null);
+      await fetchData();
     } catch (err) {
       console.error(err);
       addToast("Erreur lors du traitement du refus.", "error");
@@ -1423,16 +1366,18 @@ export const OwnerDashboard: React.FC<{ isTestMode?: boolean; onBackToTraveler?:
 
   const handleMarkNotificationAsRead = async (id: string) => {
     try {
-      await updateDoc(doc(db, 'notifications', id), { isRead: true });
+      await markNotificationAsRead(id);
+      await fetchData();
     } catch (err) {
       console.error("Error marking notification as read:", err);
     }
   };
 
   const handleClearAllNotifications = async () => {
+    if (!user) return;
     try {
-      const unread = dbNotifications.filter(n => !n.isRead);
-      await Promise.all(unread.map(n => updateDoc(doc(db, 'notifications', n.id), { isRead: true })));
+      await markAllNotificationsAsRead(user.uid);
+      await fetchData();
     } catch (err) {
       console.error("Error clearing all notifications:", err);
     }
@@ -1941,6 +1886,7 @@ export const OwnerDashboard: React.FC<{ isTestMode?: boolean; onBackToTraveler?:
                                 onClick={async () => {
                                   await deleteResidence(res.id);
                                   setConfirmDeleteId(null);
+                                  await fetchData();
                                 }}
                                 className="px-2 py-1 bg-red-600 text-white hover:bg-red-700 rounded text-[10px] font-bold"
                               >

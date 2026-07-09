@@ -29,6 +29,7 @@ export const ResidenceCard: React.FC<Props> = ({
   });
 
   const handleWishlist = (e: React.MouseEvent) => {
+    e.preventDefault();
     e.stopPropagation();
     try {
       const favsRaw = localStorage.getItem('resifaso_favorites') || '[]';
@@ -103,8 +104,9 @@ export const ResidenceCard: React.FC<Props> = ({
           )}
         </div>
         <button 
+          type="button"
           onClick={handleWishlist}
-          className="absolute top-3 right-3 p-2 bg-white/70 backdrop-blur-md rounded-full text-slate-400 hover:text-red-500 transition-colors z-10"
+          className="absolute top-3 right-3 p-2 bg-white/70 backdrop-blur-md rounded-full text-slate-400 hover:text-red-500 transition-colors z-10 pointer-events-auto"
         >
           <Heart size={18} fill={isWishlist ? "currentColor" : "none"} className={isWishlist ? "text-red-500" : ""} />
         </button>
@@ -184,7 +186,14 @@ export const ResidenceCard: React.FC<Props> = ({
                 <span className="text-[10px] text-slate-500 font-medium lowercase">/ nuit</span>
               </div>
             </div>
-            <button className="bg-slate-900 text-white px-4 py-2 rounded-lg text-sm font-bold hover:bg-green-600 transition-colors">
+            <button 
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                onClick(residence.id);
+              }}
+              className="bg-slate-900 text-white px-4 py-2 rounded-lg text-sm font-bold hover:bg-green-600 transition-colors"
+            >
               Détails
             </button>
           </div>

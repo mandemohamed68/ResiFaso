@@ -120,11 +120,11 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onNavigat
 
         <div className="mb-6 text-center select-none">
           <div className="inline-flex items-center gap-3 justify-center mb-1">
-            <div className="w-12 h-12 flex-shrink-0 flex items-center justify-center overflow-hidden rounded-2xl bg-white border border-slate-200 shadow-sm relative">
+            <div className="w-32 h-32 flex-shrink-0 flex items-center justify-center overflow-hidden rounded-2xl bg-white border border-slate-200 shadow-sm relative">
               <img 
-                src="/logoresifaso.png?v=3" 
+                src="/logoresifaso_new.jpg" 
                 alt="ResiFaso logo" 
-                className="w-full h-full object-contain p-1" 
+                className="w-full h-full object-contain scale-110" 
                 referrerPolicy="no-referrer"
                 onError={(e) => {
                   const target = e.target as HTMLImageElement;
