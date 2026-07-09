@@ -1441,15 +1441,21 @@ export const AdminDashboard: React.FC<{ onBackToTraveler?: () => void }> = ({ on
     if (!selectedContactMessage) return;
     setIsSavingAdminNote(true);
     try {
-      // Just mock updating local state for notes if SQL table doesn't have notes col
-                setSelectedContactMessage({
-                  ...selectedContactMessage,
-                  adminNotes: adminNoteText,
-                  status: 'replied',
-                  repliedAt: new Date().toISOString()
-                });
+      const repliedAt = new Date().toISOString();
+      await updateContactMessage(selectedContactMessage.id, {
+        admin_notes: adminNoteText,
+        status: 'replied',
+        replied_at: repliedAt
+      });
+      setSelectedContactMessage({
+        ...selectedContactMessage,
+        adminNotes: adminNoteText,
+        status: 'replied',
+        repliedAt: repliedAt
+      });
       logAction(`Note d'administration ajoutée sur le message de contact #${selectedContactMessage.id}.`);
       triggerSuccess("Remarques / Notes de réponse enregistrées et statut mis à jour !");
+      await reloadData();
     } catch (err) {
       console.error(err);
       addToast("Erreur lors de l'enregistrement de la note.", "error");

@@ -18,7 +18,6 @@ export const dbQuery = async (query: string, params?: any[]) => {
     const rows = await conn.query(query, params);
     return rows;
   } catch (err) {
-    console.error("MariaDB Query Error:", err);
     throw err;
   } finally {
     if (conn) conn.release();

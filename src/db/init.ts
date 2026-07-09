@@ -25,7 +25,7 @@ export const initDatabase = async () => {
     `);
 
     try {
-      await executeSql("ALTER TABLE users MODIFY COLUMN photo_url LONGTEXT");
+      await executeSql("ALTER TABLE users CHANGE photo_url photo_url LONGTEXT");
     } catch (err) {}
 
     // Ensure 'uid' column exists in MariaDB for compatibility with imported SQL dumps
@@ -203,7 +203,7 @@ export const initDatabase = async () => {
     `);
 
     try {
-      await executeSql("ALTER TABLE residence_images MODIFY COLUMN image_url LONGTEXT");
+      await executeSql("ALTER TABLE residence_images CHANGE image_url image_url LONGTEXT");
     } catch (err) {}
 
     // Bookings Table
@@ -287,7 +287,7 @@ export const initDatabase = async () => {
     `);
 
     try {
-      await executeSql("ALTER TABLE advertisements MODIFY COLUMN image_url LONGTEXT");
+      await executeSql("ALTER TABLE advertisements CHANGE image_url image_url LONGTEXT");
     } catch (err) {}
 
     // Settings Table
@@ -338,12 +338,28 @@ export const initDatabase = async () => {
       ) ENGINE=InnoDB
     `);
 
-    // Notifications Table (with corrected user_id length)
+    // Notifications Table (with corrected user_id length matching users.uid)
     try {
+      let uidLength = 128; // Default fallback
+      try {
+        const uidCols: any = await executeSql(`
+          SELECT CHARACTER_MAXIMUM_LENGTH 
+          FROM INFORMATION_SCHEMA.COLUMNS 
+          WHERE TABLE_SCHEMA = DATABASE() 
+            AND TABLE_NAME = 'users' 
+            AND COLUMN_NAME = 'uid'
+        `);
+        if (uidCols && uidCols.length > 0 && uidCols[0].CHARACTER_MAXIMUM_LENGTH) {
+          uidLength = Number(uidCols[0].CHARACTER_MAXIMUM_LENGTH);
+        }
+      } catch (lenErr) {
+        // Fallback to 128
+      }
+
       await executeSql(`
         CREATE TABLE IF NOT EXISTS notifications (
           id VARCHAR(128) PRIMARY KEY,
-          user_id VARCHAR(255) NOT NULL,  -- 🔥 MODIFIED: now VARCHAR(255) to match users.uid
+          user_id VARCHAR(${uidLength}) NOT NULL,
           title VARCHAR(255),
           message TEXT,
           type VARCHAR(50),
@@ -364,14 +380,17 @@ export const initDatabase = async () => {
 
       // Explicitly modify existing user_id column to match users.uid length
       try {
-        await executeSql("ALTER TABLE notifications MODIFY COLUMN user_id VARCHAR(255) NOT NULL");
+        await executeSql(`ALTER TABLE notifications MODIFY COLUMN user_id VARCHAR(${uidLength}) NOT NULL`);
       } catch (modifyErr: any) {
         // Ignored or already aligned
       }
       
       // Attempt FK creation separately so it doesn't block the whole table creation if it fails
       try {
-        await executeSql("ALTER TABLE notifications ADD CONSTRAINT fk_notifications_user FOREIGN KEY(user_id) REFERENCES users(uid) ON DELETE CASCADE");
+        const existingFks = await executeSql("SELECT CONSTRAINT_NAME FROM information_schema.TABLE_CONSTRAINTS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'notifications' AND CONSTRAINT_NAME = 'fk_notifications_user'");
+        if (!existingFks || existingFks.length === 0) {
+          await executeSql("ALTER TABLE notifications ADD CONSTRAINT fk_notifications_user FOREIGN KEY(user_id) REFERENCES users(uid) ON DELETE CASCADE");
+        }
       } catch (fkErr: any) {
         // FK might already exist or user table doesn't match
         console.warn("FK notification creation warning (maybe already exists):", fkErr.message);
@@ -405,8 +424,14 @@ export const initDatabase = async () => {
     `);
 
     try {
-      await executeSql("ALTER TABLE contact_messages ADD COLUMN admin_notes TEXT").catch(() => {});
-      await executeSql("ALTER TABLE contact_messages ADD COLUMN replied_at VARCHAR(50)").catch(() => {});
+      const cols_msg = await executeSql("SHOW COLUMNS FROM contact_messages LIKE 'admin_notes'");
+      if (!cols_msg || cols_msg.length === 0) {
+        await executeSql("ALTER TABLE contact_messages ADD COLUMN admin_notes TEXT");
+      }
+      const cols_msg_replied = await executeSql("SHOW COLUMNS FROM contact_messages LIKE 'replied_at'");
+      if (!cols_msg_replied || cols_msg_replied.length === 0) {
+        await executeSql("ALTER TABLE contact_messages ADD COLUMN replied_at VARCHAR(50)");
+      }
       console.log("Migration MariaDB: Colonnes admin_notes et replied_at vérifiées pour contact_messages.");
     } catch (msgColErr: any) {
       console.warn("Avertissement migration MariaDB contact_messages:", msgColErr.message);
