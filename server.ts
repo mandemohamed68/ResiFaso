@@ -489,14 +489,14 @@ async function startServer() {
       const fields = ['id', 'title', 'description', 'image_url', 'link_url', 'is_active', 'frequency_seconds', 'start_at', 'end_at'];
       const vals = [
         id,
-        req.body.title,
-        req.body.description,
-        req.body.image_url || req.body.imageUrl,
-        req.body.link_url || req.body.linkUrl,
+        req.body.title ?? null,
+        req.body.description ?? null,
+        (req.body.image_url || req.body.imageUrl) ?? null,
+        (req.body.link_url || req.body.linkUrl) ?? null,
         (req.body.is_active !== undefined ? req.body.is_active : req.body.isActive) ? 1 : 0,
-        req.body.frequency_seconds || req.body.frequencySeconds || 10,
-        req.body.start_at || req.body.startAt || null,
-        req.body.end_at || req.body.endAt || null
+        (req.body.frequency_seconds || req.body.frequencySeconds) ?? 10,
+        (req.body.start_at || req.body.startAt) ?? null,
+        (req.body.end_at || req.body.endAt) ?? null
       ];
       
       const placeholders = fields.map(() => '?').join(', ');

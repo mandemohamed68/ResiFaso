@@ -137,6 +137,12 @@ export const AdminDashboard: React.FC<{ onBackToTraveler?: () => void }> = ({ on
   const [announcementText, setAnnouncementText] = useState('');
   const [announcementType, setAnnouncementType] = useState<'info' | 'warning' | 'success' | 'danger'>('info');
   const [announcementActive, setAnnouncementActive] = useState(false);
+  const [announcements, setAnnouncements] = useState<any[]>([]);
+  const [newAnnText, setNewAnnText] = useState('');
+  const [newAnnType, setNewAnnType] = useState<'info' | 'warning' | 'success' | 'danger'>('info');
+  const [newAnnActive, setNewAnnActive] = useState(true);
+  const [newAnnEmoji, setNewAnnEmoji] = useState('📢');
+  const [editingAnnId, setEditingAnnId] = useState<string | null>(null);
   const [enablePhoneCalls, setEnablePhoneCalls] = useState(true);
   const [enableWhatsApp, setEnableWhatsApp] = useState(true);
   
@@ -253,6 +259,20 @@ export const AdminDashboard: React.FC<{ onBackToTraveler?: () => void }> = ({ on
         if (settingsData.sappayClientSecret !== undefined) setSappayClientSecret(settingsData.sappayClientSecret);
         if (settingsData.sappayUsername !== undefined) setSappayUsername(settingsData.sappayUsername);
         if (settingsData.sappayPassword !== undefined) setSappayPassword(settingsData.sappayPassword);
+        
+        if (settingsData.announcements && settingsData.announcements.length > 0) {
+          setAnnouncements(settingsData.announcements);
+        } else if (settingsData.announcement) {
+          const fallbackList = (settingsData.announcement.text || '').split('\n').filter((l: string) => l.trim().length > 0);
+          setAnnouncements(fallbackList.map((t: string, i: number) => ({
+            id: `ann_fallback_${i}`,
+            text: t.trim(),
+            type: settingsData.announcement.type || 'info',
+            active: !!settingsData.announcement.active,
+            emoji: '📢'
+          })));
+        }
+
         if (settingsData.announcement) {
           setAnnouncementText(settingsData.announcement.text || '');
           setAnnouncementType(settingsData.announcement.type || 'info');
@@ -293,7 +313,7 @@ export const AdminDashboard: React.FC<{ onBackToTraveler?: () => void }> = ({ on
     
     const fetchEmailSettings = async () => {
       try {
-        const response = await fetch('/api/admin/email-settings');
+        const response = await fetch('/api/settings/emailSettings');
         if (response.ok) {
           const data = await response.json();
           if (data && Object.keys(data).length > 0) {
@@ -1032,6 +1052,87 @@ export const AdminDashboard: React.FC<{ onBackToTraveler?: () => void }> = ({ on
   };
 
   // Save changes under global platform settings
+  const handleSaveAllAnnouncements = async (updatedList: any[]) => {
+    setIsSaving(true);
+    try {
+      const currentSettings = await getGlobalSettings();
+      const settingsPayload = {
+        ...currentSettings,
+        announcements: updatedList,
+        announcement: {
+          text: updatedList.map(a => a.text).join('\n'),
+          type: updatedList[0]?.type || 'info',
+          active: updatedList.some(a => a.active),
+          updatedAt: new Date().toISOString()
+        }
+      };
+      await saveGlobalSettings(settingsPayload);
+      setAnnouncements(updatedList);
+      logAction(`Liste des messages d'infos du Flash Défilant synchronisée (${updatedList.length} messages)`);
+      triggerSuccess("Liste des messages d'infos synchronisée !");
+      await reloadData();
+    } catch (err) {
+      console.error(err);
+      addToast("Erreur lors de la synchronisation de l'annonce.", "error");
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const handleAddOrEditAnnouncement = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newAnnText.trim()) return;
+
+    let updated: any[];
+    if (editingAnnId) {
+      updated = announcements.map(a => a.id === editingAnnId ? {
+        ...a,
+        text: newAnnText.trim(),
+        type: newAnnType,
+        emoji: newAnnEmoji,
+        active: newAnnActive
+      } : a);
+      setEditingAnnId(null);
+    } else {
+      const newItem = {
+        id: `ann_${Date.now()}`,
+        text: newAnnText.trim(),
+        type: newAnnType,
+        emoji: newAnnEmoji,
+        active: newAnnActive,
+        createdAt: new Date().toISOString()
+      };
+      updated = [newItem, ...announcements];
+    }
+
+    setNewAnnText('');
+    setNewAnnEmoji('📢');
+    setNewAnnType('info');
+    setNewAnnActive(true);
+
+    await handleSaveAllAnnouncements(updated);
+  };
+
+  const handleToggleAnnActive = async (id: string) => {
+    const updated = announcements.map(a => a.id === id ? { ...a, active: !a.active } : a);
+    await handleSaveAllAnnouncements(updated);
+  };
+
+  const handleDeleteAnn = async (id: string) => {
+    if (window.confirm("Voulez-vous vraiment supprimer ce message d'info ?")) {
+      const updated = announcements.filter(a => a.id !== id);
+      await handleSaveAllAnnouncements(updated);
+    }
+  };
+
+  const handleStartEditAnn = (ann: any) => {
+    setEditingAnnId(ann.id);
+    setNewAnnText(ann.text);
+    setNewAnnType(ann.type || 'info');
+    setNewAnnEmoji(ann.emoji || '📢');
+    setNewAnnActive(ann.active !== undefined ? ann.active : true);
+  };
+
   const handleSaveGlobalSettings = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSaving(true);
@@ -1051,12 +1152,13 @@ export const AdminDashboard: React.FC<{ onBackToTraveler?: () => void }> = ({ on
         type: announcementType,
         active: announcementActive,
         updatedAt: new Date().toISOString()
-      }
+      },
+      announcements: announcements
     };
 
     try {
       await saveGlobalSettings(settingsPayload);
-                await reloadData();
+      await reloadData();
       logAction(`Paramètres globaux sauvegardés avec message d'annonce (Plateforme: ${platformName}, Commission: ${commissionRate}%)`);
       triggerSuccess("Configuration de la plateforme enregistrée avec succès !");
       await reloadData();
@@ -2968,141 +3070,276 @@ export const AdminDashboard: React.FC<{ onBackToTraveler?: () => void }> = ({ on
           </div>
         )}
 
-        {/* TAB 12: FLASH INFO & ANNOUNCEMENTS */}
+              {/* TAB 12: FLASH INFO & ANNOUNCEMENTS */}
         {activeTab === 'flash-info' && (
-          <div className="space-y-8 animate-in fade-in max-w-4xl">
+          <div className="space-y-8 animate-in fade-in max-w-6xl" id="flash-info-admin-tab">
             <div>
-              <h2 className="text-3xl font-black text-slate-900 tracking-tight leading-none mb-1">Flash Info & Communications</h2>
-              <p className="text-slate-500 font-medium text-sm">Gérez le bandeau d'alerte global qui s'affiche en haut de toutes les pages de la plateforme.</p>
+              <h2 className="text-3xl font-black text-slate-900 tracking-tight leading-none mb-1">Flash Info Défilant (Marquee)</h2>
+              <p className="text-slate-500 font-medium text-sm">Créez et gérez des messages d'information défilants pour capter l'attention de vos visiteurs.</p>
             </div>
 
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-              {/* Configuration Form */}
-              <div className="bg-white border border-slate-200 rounded-[32px] p-8 shadow-sm space-y-6">
-                <div className="flex items-center justify-between">
-                  <h3 className="text-lg font-black text-slate-900">Configuration de l'Alerte</h3>
-                  <button
-                    type="button"
-                    onClick={() => setAnnouncementActive(!announcementActive)}
-                    className={cn(
-                      "relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-red-500",
-                      announcementActive ? "bg-red-600" : "bg-slate-200"
-                    )}
-                  >
-                    <span
-                      className={cn(
-                        "pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out",
-                        announcementActive ? "translate-x-5" : "translate-x-0"
-                      )}
-                    />
-                  </button>
+            {/* Marquee Live Preview Section */}
+            <div className="bg-slate-900 border border-slate-800 rounded-3xl p-6 shadow-xl relative overflow-hidden">
+              <div className="flex items-center justify-between mb-3 border-b border-slate-800 pb-3">
+                <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-2">
+                  <span className="flex h-2 w-2 relative">
+                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
+                    <span className="relative inline-flex rounded-full h-2 w-2 bg-red-500"></span>
+                  </span>
+                  Aperçu du Bandeau Défilant (Défilement continu)
+                </span>
+                <span className="text-[9px] text-slate-500 font-bold uppercase">Passez la souris pour suspendre</span>
+              </div>
+              
+              {announcements.filter(a => a.active).length === 0 ? (
+                <div className="text-center py-6 text-slate-500 italic text-sm">
+                  Aucun message d'information n'est actif pour le moment.
                 </div>
+              ) : (
+                <div className="relative overflow-hidden bg-slate-950 py-3 rounded-2xl flex items-center select-none border border-slate-800/60">
+                  <div className="absolute left-0 top-0 bottom-0 px-4 bg-gradient-to-r from-slate-950 to-transparent flex items-center z-10 text-xs font-black uppercase text-red-500">
+                    Flash Info
+                  </div>
+                  <div className="w-full overflow-hidden flex items-center h-8 ml-24 pr-8">
+                    <div className="animate-marquee hover:[animation-play-state:paused] flex items-center gap-16 py-1">
+                      {[...announcements.filter(a => a.active), ...announcements.filter(a => a.active)].map((ann, idx) => {
+                        const badgeColors: Record<string, string> = {
+                          info: 'bg-blue-500/10 text-blue-400 border border-blue-500/20',
+                          warning: 'bg-amber-500/10 text-amber-400 border border-amber-500/20',
+                          success: 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20',
+                          danger: 'bg-red-500/10 text-red-400 border border-red-500/20 font-bold animate-pulse'
+                        };
+                        return (
+                          <div key={`${ann.id}-${idx}`} className="flex items-center gap-2.5 shrink-0">
+                            <span className="text-lg">{ann.emoji || '📢'}</span>
+                            <span className={cn("px-2 py-0.5 rounded text-[9px] font-black uppercase tracking-wider", badgeColors[ann.type || 'info'])}>
+                              {ann.type === 'danger' ? 'ALERTE' : 'INFO'}
+                            </span>
+                            <p className="text-xs md:text-sm font-semibold tracking-wide text-slate-200">
+                              {ann.text}
+                            </p>
+                            <span className="text-slate-600 font-bold mx-2">•</span>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
 
-                <div className="space-y-4">
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start">
+              {/* Form to Create/Edit */}
+              <div className="bg-white border border-slate-200 rounded-[32px] p-6 shadow-sm space-y-5 lg:col-span-1">
+                <h3 className="text-lg font-black text-slate-900 border-b border-slate-100 pb-3">
+                  {editingAnnId ? "Modifier le Message d'Info" : "Créer un Message d'Info"}
+                </h3>
+                
+                <form onSubmit={handleAddOrEditAnnouncement} className="space-y-4">
+                  {/* Text Input */}
                   <div>
-                    <label className="block text-[10px] font-black text-slate-400 uppercase tracking-wide mb-2">Style visuel (Gravité)</label>
+                    <label className="block text-[10px] font-black text-slate-400 uppercase tracking-wide mb-1.5">Contenu du Message</label>
+                    <textarea
+                      value={newAnnText}
+                      onChange={(e) => setNewAnnText(e.target.value)}
+                      rows={3}
+                      className="w-full bg-slate-50 border border-slate-200 rounded-2xl px-4 py-3 text-sm font-bold outline-none focus:ring-2 focus:ring-red-500 leading-relaxed"
+                      placeholder="Ex: Profitez de 10% de réduction ce week-end sur toutes les résidences !"
+                      required
+                    />
+                  </div>
+
+                  {/* Emoji selection grid */}
+                  <div>
+                    <label className="block text-[10px] font-black text-slate-400 uppercase tracking-wide mb-1.5">Émoticône du Message</label>
+                    <div className="grid grid-cols-6 gap-1.5 bg-slate-50 border border-slate-200 rounded-2xl p-2">
+                      {['📢', '🎉', '🔥', '✨', '🚨', '⚠️', '💡', '🏡', '⭐', '💎', '🔔', '🌍', '✈️', '💰', '🔑', '🛡️', '☀️', '🌙'].map((em) => (
+                        <button
+                          key={em}
+                          type="button"
+                          onClick={() => setNewAnnEmoji(em)}
+                          className={cn(
+                            "h-8 flex items-center justify-center text-lg rounded-lg hover:bg-white hover:shadow-xs transition cursor-pointer select-none",
+                            newAnnEmoji === em ? "bg-white shadow-sm scale-110 border border-slate-200" : ""
+                          )}
+                        >
+                          {em}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Visual Style Selection */}
+                  <div>
+                    <label className="block text-[10px] font-black text-slate-400 uppercase tracking-wide mb-1.5">Style / Gravité</label>
                     <div className="grid grid-cols-2 gap-2">
                       {(['info', 'warning', 'success', 'danger'] as const).map((type) => {
                         const styleColors: Record<string, string> = {
-                          info: 'bg-blue-50 text-blue-700 border-blue-100',
-                          warning: 'bg-amber-50 text-amber-700 border-amber-100',
-                          success: 'bg-emerald-50 text-emerald-700 border-emerald-100',
-                          danger: 'bg-rose-50 text-rose-700 border-rose-100'
+                          info: 'bg-blue-50 text-blue-700 border-blue-200',
+                          warning: 'bg-amber-50 text-amber-700 border-amber-200',
+                          success: 'bg-emerald-50 text-emerald-700 border-emerald-200',
+                          danger: 'bg-rose-50 text-rose-700 border-rose-200'
                         };
-                        const labelFrench: Record<string, string> = {
-                          info: 'Information (Bleu)',
-                          warning: 'Avertissement (Jaune)',
-                          success: 'Succès (Vert)',
-                          danger: 'Urgent / Alerte (Rouge)'
+                        const labels: Record<string, string> = {
+                          info: 'Bleu',
+                          warning: 'Jaune',
+                          success: 'Vert',
+                          danger: 'Rouge'
                         };
                         return (
                           <button
                             key={type}
                             type="button"
-                            onClick={() => setAnnouncementType(type)}
+                            onClick={() => setNewAnnType(type)}
                             className={cn(
-                              "border text-[10px] py-3 px-2 rounded-xl font-black transition text-center uppercase tracking-wider cursor-pointer",
+                              "border text-[10px] py-2 px-1.5 rounded-xl font-black transition text-center uppercase tracking-wider cursor-pointer",
                               styleColors[type],
-                              announcementType === type ? "ring-2 ring-slate-900 border-transparent" : "opacity-60 hover:opacity-100"
+                              newAnnType === type ? "ring-2 ring-slate-900 border-transparent scale-[1.02]" : "opacity-65 hover:opacity-100"
                             )}
                           >
-                            {labelFrench[type]}
+                            {labels[type]}
                           </button>
                         );
                       })}
                     </div>
                   </div>
 
-                  <div>
-                    <label className="block text-[10px] font-black text-slate-400 uppercase tracking-wide mb-2">Message(s) à diffuser (Un par ligne pour une rotation)</label>
-                    <textarea
-                      value={announcementText}
-                      onChange={(e) => setAnnouncementText(e.target.value)}
-                      rows={6}
-                      className="w-full bg-slate-50 border border-slate-200 rounded-2xl px-4 py-3 text-sm font-bold outline-none focus:ring-2 focus:ring-red-500 leading-relaxed"
-                      placeholder="Ligne 1: Premier message...&#10;Ligne 2: Deuxième message..."
-                    />
-                    <p className="text-[9px] text-slate-400 font-medium mt-2 italic">
-                      Astuce : Saisissez plusieurs lignes pour faire défiler les messages automatiquement toutes les 5 secondes sur le site.
-                    </p>
-                  </div>
-
-                  <div className="pt-4">
+                  {/* Active / Suspended toggle */}
+                  <div className="flex items-center justify-between bg-slate-50 p-3 rounded-2xl border border-slate-100">
+                    <div>
+                      <p className="text-xs font-bold text-slate-800">Bandeau Actif ?</p>
+                      <p className="text-[9px] text-slate-400 font-medium">S'il est suspendu, il ne défilera pas.</p>
+                    </div>
                     <button
-                      onClick={handleSaveGlobalSettings}
-                      disabled={isSaving}
-                      className="w-full bg-slate-900 text-white px-6 py-4 rounded-2xl text-xs font-black uppercase tracking-widest hover:bg-slate-800 transition shadow-lg shadow-slate-200 flex items-center justify-center gap-2"
+                      type="button"
+                      onClick={() => setNewAnnActive(!newAnnActive)}
+                      className={cn(
+                        "relative inline-flex h-5 w-10 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none",
+                        newAnnActive ? "bg-red-600" : "bg-slate-200"
+                      )}
                     >
-                      {isSaving ? 'Mise à jour...' : 'Appliquer et Publier'}
+                      <span
+                        className={cn(
+                          "pointer-events-none inline-block h-4 w-4 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out",
+                          newAnnActive ? "translate-x-5" : "translate-x-0"
+                        )}
+                      />
                     </button>
                   </div>
-                </div>
+
+                  {/* Action Buttons */}
+                  <div className="flex gap-2 pt-2">
+                    {editingAnnId && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setEditingAnnId(null);
+                          setNewAnnText('');
+                          setNewAnnEmoji('📢');
+                          setNewAnnType('info');
+                          setNewAnnActive(true);
+                        }}
+                        className="flex-1 bg-slate-100 text-slate-700 px-4 py-3.5 rounded-xl text-xs font-black uppercase tracking-wider hover:bg-slate-200 transition"
+                      >
+                        Annuler
+                      </button>
+                    )}
+                    <button
+                      type="submit"
+                      disabled={isSaving}
+                      className="flex-2 bg-slate-900 text-white px-4 py-3.5 rounded-xl text-xs font-black uppercase tracking-wider hover:bg-slate-800 transition shadow-md flex items-center justify-center gap-1.5"
+                    >
+                      {isSaving ? "Synchronisation..." : editingAnnId ? "Modifier" : "Ajouter Message"}
+                    </button>
+                  </div>
+                </form>
               </div>
 
-              {/* Live Preview Card */}
-              <div className="space-y-6">
-                <h3 className="text-lg font-black text-slate-900">Aperçu en temps réel</h3>
-                <div className="bg-slate-100 rounded-[32px] p-8 border border-slate-200 border-dashed relative overflow-hidden h-[300px] flex items-start justify-center">
-                  <div className="absolute top-0 left-0 right-0 p-4 text-center">
-                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-4">Vue Utilisateur (Haut de page)</p>
-                    
-                    {announcementActive ? (
-                      <motion.div 
-                        initial={{ y: -20, opacity: 0 }}
-                        animate={{ y: 0, opacity: 1 }}
-                        className={cn(
-                          "p-4 rounded-2xl border shadow-xl flex items-center justify-center gap-3",
-                          announcementType === 'info' && "bg-blue-600 text-white border-blue-700",
-                          announcementType === 'warning' && "bg-amber-500 text-slate-900 border-amber-600",
-                          announcementType === 'success' && "bg-emerald-600 text-white border-emerald-700",
-                          announcementType === 'danger' && "bg-red-600 text-white border-red-700 font-extrabold"
-                        )}
-                      >
-                        <Megaphone size={16} className={cn(announcementType === 'danger' && "animate-bounce")} />
-                        <span className="text-xs font-bold leading-snug">
-                          {announcementText || "Votre message s'affichera ici..."}
-                        </span>
-                      </motion.div>
-                    ) : (
-                      <div className="bg-white border border-slate-200 rounded-2xl p-8 text-center text-slate-400 font-bold text-xs">
-                        Le Flash Info est actuellement désactivé.
-                      </div>
-                    )}
-                  </div>
+              {/* Announcements List (takes 2/3 cols) */}
+              <div className="bg-white border border-slate-200 rounded-[32px] p-6 shadow-sm lg:col-span-2 space-y-4">
+                <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+                  <h3 className="text-lg font-black text-slate-900">Liste des Messages d'Infos ({announcements.length})</h3>
+                  <span className="text-[9px] bg-slate-100 text-slate-500 font-black px-2 py-0.5 rounded-full uppercase">Maximum: Illimité</span>
                 </div>
 
-                <div className="bg-blue-50 border border-blue-100 p-6 rounded-3xl">
-                  <h4 className="text-sm font-black text-blue-900 uppercase tracking-wider mb-2">Conseils de Modération</h4>
-                  <ul className="space-y-2 text-xs text-blue-700 font-medium">
-                    <li className="flex items-start gap-2">
-                      <span className="text-blue-900 font-black">•</span>
-                      Utilisez le style <strong>Danger</strong> uniquement pour les urgences techniques ou interruptions.
-                    </li>
-                    <li className="flex items-start gap-2">
-                      <span className="text-blue-900 font-black">•</span>
-                      Gardez les messages courts (moins de 100 caractères) pour une lisibilité optimale sur mobile.
-                    </li>
-                  </ul>
+                <div className="space-y-3 max-h-[500px] overflow-y-auto pr-1">
+                  {announcements.length === 0 ? (
+                    <div className="text-center py-16 text-slate-400 italic font-bold text-xs">
+                      Aucun message configuré pour le moment. Créez-en un à gauche !
+                    </div>
+                  ) : (
+                    announcements.map((ann) => {
+                      const badgeStyles: Record<string, string> = {
+                        info: 'bg-blue-50 text-blue-700 border-blue-100',
+                        warning: 'bg-amber-50 text-amber-700 border-amber-100',
+                        success: 'bg-emerald-50 text-emerald-700 border-emerald-100',
+                        danger: 'bg-rose-50 text-rose-700 border-rose-100'
+                      };
+                      return (
+                        <div key={ann.id} className={cn(
+                          "p-4 rounded-2xl border transition-all flex flex-col md:flex-row md:items-center justify-between gap-4",
+                          ann.active ? "bg-white border-slate-200 shadow-sm" : "bg-slate-50/50 border-slate-100 opacity-60"
+                        )}>
+                          <div className="flex items-start gap-3 flex-1">
+                            <span className="text-2xl mt-0.5 select-none">{ann.emoji || '📢'}</span>
+                            <div className="space-y-1 flex-1">
+                              <div className="flex items-center gap-2 flex-wrap">
+                                <span className={cn("px-2 py-0.5 rounded text-[8px] font-black uppercase border tracking-widest", badgeStyles[ann.type || 'info'])}>
+                                  {ann.type || 'info'}
+                                </span>
+                                {ann.active ? (
+                                  <span className="px-1.5 py-0.5 rounded text-[8px] font-black uppercase bg-green-100 text-green-800">
+                                    En Diffusion
+                                  </span>
+                                ) : (
+                                  <span className="px-1.5 py-0.5 rounded text-[8px] font-black uppercase bg-slate-200 text-slate-500">
+                                    Suspendu
+                                  </span>
+                                )}
+                              </div>
+                              <p className="text-xs font-bold text-slate-800 leading-relaxed pr-4">
+                                {ann.text}
+                              </p>
+                            </div>
+                          </div>
+
+                          <div className="flex items-center gap-1.5 self-end md:self-center">
+                            {/* Suspend / Resume toggle */}
+                            <button
+                              onClick={() => handleToggleAnnActive(ann.id)}
+                              className={cn(
+                                "px-3 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-wider transition cursor-pointer border",
+                                ann.active 
+                                  ? "bg-amber-50 text-amber-700 border-amber-200 hover:bg-amber-100" 
+                                  : "bg-emerald-50 text-emerald-700 border-emerald-200 hover:bg-emerald-100"
+                              )}
+                              title={ann.active ? "Suspendre la diffusion" : "Activer la diffusion"}
+                            >
+                              {ann.active ? "Suspendre" : "Diffuser"}
+                            </button>
+
+                            {/* Edit Button */}
+                            <button
+                              onClick={() => handleStartEditAnn(ann)}
+                              className="p-1.5 bg-slate-50 hover:bg-slate-900 hover:text-white rounded-xl transition cursor-pointer text-slate-600 border border-slate-200"
+                              title="Modifier"
+                            >
+                              <Edit3 size={13} />
+                            </button>
+
+                            {/* Delete Button */}
+                            <button
+                              onClick={() => handleDeleteAnn(ann.id)}
+                              className="p-1.5 bg-rose-50 hover:bg-rose-600 hover:text-white rounded-xl transition cursor-pointer text-rose-600 border border-rose-200"
+                              title="Supprimer"
+                            >
+                              <Trash2 size={13} />
+                            </button>
+                          </div>
+                        </div>
+                      );
+                    })
+                  )}
                 </div>
               </div>
             </div>
@@ -3122,9 +3359,13 @@ export const AdminDashboard: React.FC<{ onBackToTraveler?: () => void }> = ({ on
                 e.preventDefault();
                 setIsSavingEmailSettings(true);
                 try {
-                  const response = await fetch('/api/admin/email-settings', {
+                  const token = localStorage.getItem('auth_token');
+                  const response = await fetch('/api/settings/emailSettings', {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
+                    headers: { 
+                      'Content-Type': 'application/json',
+                      ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+                    },
                     body: JSON.stringify(emailSettings)
                   });
                   if (response.ok) {

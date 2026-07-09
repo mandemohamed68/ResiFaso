@@ -78,6 +78,7 @@ function AppContent() {
     }
   }, [isDarkMode]);
   const [wishlistRefresh, setWishlistRefresh] = useState(0);
+  const [announcements, setAnnouncements] = useState<any[]>([]);
   const [globalAnnouncement, setGlobalAnnouncement] = useState<{
     text: string;
     type: 'info' | 'warning' | 'success' | 'danger';
@@ -158,6 +159,20 @@ function AppContent() {
           if (data.commissionRate !== undefined) setCommissionRate(data.commissionRate);
           if (data.enablePhoneCalls !== undefined) setEnablePhoneCalls(data.enablePhoneCalls);
           if (data.enableWhatsApp !== undefined) setEnableWhatsApp(data.enableWhatsApp);
+          
+          if (data.announcements && data.announcements.length > 0) {
+            setAnnouncements(data.announcements);
+          } else if (data.announcement) {
+            const fallbackList = (data.announcement.text || '').split('\n').filter((l: string) => l.trim().length > 0);
+            setAnnouncements(fallbackList.map((t: string, i: number) => ({
+              id: `ann_fallback_${i}`,
+              text: t.trim(),
+              type: data.announcement.type || 'info',
+              active: !!data.announcement.active,
+              emoji: '📢'
+            })));
+          }
+
           if (data.announcement) {
             setGlobalAnnouncement({
               text: data.announcement.text || '',
@@ -500,87 +515,52 @@ function AppContent() {
   return (
     <div className="min-h-screen bg-slate-50 pb-20 md:pb-0 font-sans">
 
-      {globalAnnouncement && globalAnnouncement.active && !isAnnouncementDismissed && announcementsList.length > 0 && (
-        <div className={cn(
-          "relative overflow-hidden border-b transition-all duration-500 z-[100] shadow-lg",
-          globalAnnouncement.type === 'info' && "bg-slate-900 text-white border-slate-800",
-          globalAnnouncement.type === 'warning' && "bg-amber-400 text-slate-950 border-amber-500 shadow-amber-100/20",
-          globalAnnouncement.type === 'success' && "bg-emerald-600 text-white border-emerald-700",
-          globalAnnouncement.type === 'danger' && "bg-red-600 text-white border-red-700 font-extrabold"
-        )} id="app-global-announcement-banner">
-          {/* Decorative background pulse */}
-          <div className="absolute inset-0 opacity-10 pointer-events-none">
-            <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-white via-transparent to-transparent animate-pulse scale-150"></div>
+      {announcements && announcements.filter(a => a.active).length > 0 && !isAnnouncementDismissed && (
+        <div className="relative overflow-hidden bg-slate-900 border-b border-slate-800 text-white py-2 z-[100] shadow-md flex items-center select-none" id="app-global-announcement-banner">
+          {/* Left Megaphone Icon Fixed Overlay with live pulse */}
+          <div className="absolute left-0 top-0 bottom-0 px-4 bg-gradient-to-r from-slate-950 via-slate-900 to-transparent flex items-center z-10 gap-2 font-black text-xs uppercase tracking-wider text-red-500">
+            <span className="flex h-2 w-2 relative">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
+              <span className="relative inline-flex rounded-full h-2 w-2 bg-red-500"></span>
+            </span>
+            <span className="hidden md:inline text-white/90">Flash Info</span>
           </div>
-          
-          <div className="max-w-7xl mx-auto px-4 py-3 sm:py-3.5 pr-20 flex items-center justify-between gap-4 relative min-h-[52px]">
-            <div className="flex items-center gap-3 overflow-hidden flex-1 justify-center sm:justify-start">
-              <div className={cn(
-                "p-2 rounded-full flex-shrink-0 animate-bounce shadow-inner hidden sm:flex",
-                globalAnnouncement.type === 'warning' ? "bg-amber-500 text-slate-950" : "bg-white/10 text-white"
-              )}>
-                <Megaphone size={14} className="stroke-[3]" />
-              </div>
-              
-              <div className="flex items-center gap-4 overflow-hidden py-1 h-full min-w-0 flex-1 ml-4 sm:ml-10">
-                <AnimatePresence mode="wait">
-                  <motion.div
-                    key={currentAnnouncementIndex}
-                    initial={{ y: 15, opacity: 0 }}
-                    animate={{ y: 0, opacity: 1 }}
-                    exit={{ y: -15, opacity: 0 }}
-                    transition={{ duration: 0.3, ease: "easeOut" }}
-                    className="flex items-center gap-2 text-center sm:text-left justify-center sm:justify-start w-full"
-                  >
-                    <span className={cn(
-                      "text-[9px] uppercase font-black tracking-[0.2em] opacity-85 shrink-0 px-2 py-0.5 rounded bg-black/10",
-                      globalAnnouncement.type === 'warning' ? "text-slate-900 bg-black/5" : "text-white"
-                    )}>
-                      {globalAnnouncement.type === 'danger' ? 'ALERTE' : `ANNONCE ${announcementsList.length > 1 ? `${currentAnnouncementIndex + 1}/${announcementsList.length}` : ''}`}
+
+          {/* Marquee Wrapper */}
+          <div className="w-full overflow-hidden flex items-center h-8 ml-8 md:ml-32 pr-12">
+            <div className="animate-marquee hover:[animation-play-state:paused] flex items-center gap-16 py-1">
+              {/* Duplicate list to make infinite continuous marquee scroll without cutoffs */}
+              {[...announcements.filter(a => a.active), ...announcements.filter(a => a.active)].map((ann, idx) => {
+                const badgeColors: Record<string, string> = {
+                  info: 'bg-blue-500/10 text-blue-400 border border-blue-500/20',
+                  warning: 'bg-amber-500/10 text-amber-400 border border-amber-500/20',
+                  success: 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20',
+                  danger: 'bg-red-500/10 text-red-400 border border-red-500/20 font-bold animate-pulse'
+                };
+                return (
+                  <div key={`${ann.id}-${idx}`} className="flex items-center gap-2.5 shrink-0">
+                    <span className="text-base select-none">{ann.emoji || '📢'}</span>
+                    <span className={cn("px-2 py-0.5 rounded text-[9px] font-black uppercase tracking-wider", badgeColors[ann.type || 'info'])}>
+                      {ann.type === 'danger' ? 'ALERTE' : 'INFO'}
                     </span>
-                    <p className="text-xs sm:text-sm font-black tracking-tight leading-tight whitespace-nowrap overflow-hidden">
-                      {announcementsList[currentAnnouncementIndex]}
+                    <p className="text-xs md:text-sm font-semibold tracking-wide text-slate-100">
+                      {ann.text}
                     </p>
-                  </motion.div>
-                </AnimatePresence>
-              </div>
+                    <span className="text-slate-600 font-bold mx-2">•</span>
+                  </div>
+                );
+              })}
             </div>
+          </div>
 
-            {/* Slider Controls for Multi-announcements */}
-            {announcementsList.length > 1 && (
-              <div className="flex items-center gap-1.5 shrink-0 mr-6 absolute right-12 sm:right-14">
-                <button
-                  onClick={() => setCurrentAnnouncementIndex((prev) => (prev - 1 + announcementsList.length) % announcementsList.length)}
-                  className={cn(
-                    "p-1 rounded hover:bg-black/10 transition-colors cursor-pointer",
-                    globalAnnouncement.type === 'warning' ? "text-slate-900" : "text-white"
-                  )}
-                  title="Précédent"
-                >
-                  <ChevronLeft size={14} />
-                </button>
-                <button
-                  onClick={() => setCurrentAnnouncementIndex((prev) => (prev + 1) % announcementsList.length)}
-                  className={cn(
-                    "p-1 rounded hover:bg-black/10 transition-colors cursor-pointer",
-                    globalAnnouncement.type === 'warning' ? "text-slate-900" : "text-white"
-                  )}
-                  title="Suivant"
-                >
-                  <ChevronRight size={14} />
-                </button>
-              </div>
-            )}
-
+          {/* Close button at the right */}
+          <div className="absolute right-0 top-0 bottom-0 px-3 bg-gradient-to-l from-slate-950 via-slate-900 to-transparent flex items-center z-10">
             <button 
               onClick={() => setIsAnnouncementDismissed(true)}
-              className={cn(
-                "absolute right-4 top-1/2 -translate-y-1/2 p-2 rounded-xl hover:bg-black/10 transition-all cursor-pointer outline-none focus:ring-2 focus:ring-current group",
-                globalAnnouncement.type === 'warning' ? "text-slate-900" : "text-white"
-              )}
-              title="Masquer l'annonce"
+              className="p-1 rounded-full text-slate-400 hover:text-white hover:bg-white/10 transition-colors cursor-pointer"
+              title="Masquer"
             >
-              <X size={16} className="group-hover:rotate-90 transition-transform duration-300" />
+              <X size={14} />
             </button>
           </div>
         </div>
