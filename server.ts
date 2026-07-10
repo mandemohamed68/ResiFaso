@@ -528,6 +528,11 @@ async function startServer() {
 
       const { verificationId, status } = req.body;
       const currentStatus = booking.verificationsStatus ? (typeof booking.verificationsStatus === 'string' ? JSON.parse(booking.verificationsStatus) : booking.verificationsStatus) : {};
+      
+      if (currentStatus[verificationId] === true && status === false) {
+        return res.status(403).json({ error: "Cette vérification est déjà validée et ne peut pas être modifiée." });
+      }
+
       currentStatus[verificationId] = status;
 
       await executeSql(

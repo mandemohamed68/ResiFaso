@@ -61,7 +61,7 @@ export const BookingVerificationSection: React.FC<BookingVerificationSectionProp
   }, [bookingId, clientId]);
 
   const toggleVerification = async (id: string) => {
-    if (!canEdit || isPast) return;
+    if (!canEdit || isPast || status[id]) return;
 
     const newStatus = !status[id];
     try {
