@@ -86,7 +86,8 @@ export const Navbar: React.FC<{
   const roleLabels: Record<UserRole, string> = {
     client: 'Voyageur',
     owner: 'Hôte',
-    admin: isSuperAdmin ? 'Super Admin' : 'Admin'
+    admin: isSuperAdmin ? 'Super Admin' : 'Admin',
+    manager: 'Manager'
   };
 
   return (

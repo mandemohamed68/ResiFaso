@@ -695,7 +695,7 @@ export const initDatabase = async () => {
     // Verification Types table
     await executeSql(`
       CREATE TABLE IF NOT EXISTS verification_types (
-        id TEXT PRIMARY KEY,
+        id VARCHAR(100) PRIMARY KEY,
         label TEXT NOT NULL,
         description TEXT,
         is_active INTEGER DEFAULT 1,
@@ -715,6 +715,9 @@ export const initDatabase = async () => {
     } catch (err) {}
     try {
       await executeSql("ALTER TABLE users ADD COLUMN identity_document_back TEXT");
+    } catch (err) {}
+    try {
+      await executeSql("ALTER TABLE users ADD COLUMN permissions TEXT");
     } catch (err) {}
 
     // Seed default verification types

@@ -5,7 +5,7 @@ import {
   LayoutDashboard, Home, Users, BarChart3, Settings, ShieldCheck, 
   Activity, Search, Trash2, Edit3, Plus, ArrowUpRight, TrendingUp, Calendar, Check, X, Eye,
   FileText, Download, Award, ShieldAlert, Megaphone, Upload, Wallet, ArrowLeft, MapPin, MessageSquare, Mail, Phone, Clock,
-  ChevronLeft, ChevronRight
+  ChevronLeft, ChevronRight, RefreshCw
 } from 'lucide-react';
 import { CustomSelect } from '../common/CustomSelect';
 import { Residence, UserProfile, UserRole, Booking, Review, BookingStatus, PaymentStatus, Advertisement, WithdrawalRequest, WithdrawalStatus, FAQItem, ContactMessage, ContactSettings } from '../../types';
@@ -41,6 +41,19 @@ const DEFAULT_CONTACT_SETTINGS: ContactSettings = {
 };
 
 import { useToast } from '../../contexts/ToastContext';
+
+export const AVAILABLE_PERMISSIONS = [
+  { id: 'manage_listings', label: 'Gérer les résidences' },
+  { id: 'manage_bookings', label: 'Gérer les réservations' },
+  { id: 'manage_users', label: 'Gérer les utilisateurs' },
+  { id: 'manage_verifications', label: 'Valider les pièces d\'identité' },
+  { id: 'manage_withdrawals', label: 'Gérer les retraits' },
+  { id: 'manage_reviews', label: 'Modérer les avis' },
+  { id: 'manage_ads', label: 'Gérer les publicités' },
+  { id: 'manage_faq', label: 'Gérer la FAQ' },
+  { id: 'manage_contact', label: 'Gérer les messages contact' },
+  { id: 'manage_settings', label: 'Gérer les paramètres globaux' }
+];
 
 export const AdminDashboard: React.FC<{ onBackToTraveler?: () => void }> = ({ onBackToTraveler }) => {
   const { user } = useAuth();
@@ -184,8 +197,16 @@ export const AdminDashboard: React.FC<{ onBackToTraveler?: () => void }> = ({ on
   const [newUserEmail, setNewUserEmail] = useState('');
   const [newUserRole, setNewUserRole] = useState<UserRole>('client');
   const [newUserPhone, setNewUserPhone] = useState('');
+  const [newUserPassword, setNewUserPassword] = useState('');
+  const [newUserPermissions, setNewUserPermissions] = useState<string[]>([]);
   const [isCreatingUser, setIsCreatingUser] = useState(false);
   const [showAddUserForm, setShowAddUserForm] = useState(false);
+
+  // Security and rights editing states for existing users
+  const [expandedUserSecurityUid, setExpandedUserSecurityUid] = useState<string | null>(null);
+  const [editUserPassword, setEditUserPassword] = useState('');
+  const [editUserPermissions, setEditUserPermissions] = useState<string[]>([]);
+  const [isUpdatingUserSecurity, setIsUpdatingUserSecurity] = useState(false);
 
   // Scroll to top when tab changes as requested
   useEffect(() => {
@@ -203,8 +224,10 @@ export const AdminDashboard: React.FC<{ onBackToTraveler?: () => void }> = ({ on
   }, [activeTab]);
 
   const [dbType, setDbType] = useState<string>('sql');
+  const [isReloading, setIsReloading] = useState(false);
 
   const reloadData = async () => {
+    setIsReloading(true);
     try {
       const [
         resList,
@@ -281,6 +304,8 @@ export const AdminDashboard: React.FC<{ onBackToTraveler?: () => void }> = ({ on
       }
     } catch (err) {
       console.error("Error reloading admin data:", err);
+    } finally {
+      setIsReloading(false);
     }
   };
 
@@ -645,14 +670,23 @@ export const AdminDashboard: React.FC<{ onBackToTraveler?: () => void }> = ({ on
   const isSuperAdminEmail = (emailStr?: string | null) => {
     if (!emailStr) return false;
     const cleanEmail = emailStr.trim().toLowerCase();
-    const isSuper = cleanEmail === 'mandemohamed68@gmail.com' || cleanEmail === 'mandemohamed68@gamil.com';
-    if (!isSuper) {
-      addToast("Action refusée : Seul le Super Administrateur principal est habilité.", "warning");
-    }
-    return isSuper;
+    return cleanEmail === 'mandemohamed68@gmail.com' || cleanEmail === 'mandemohamed68@gamil.com';
   };
 
-  const isCurrentUserSU = isSuperAdminEmail(user?.email);
+  const isCurrentUserSU = user?.role === 'admin';
+
+  const hasPermission = (permissionId: string) => {
+    if (!user) return false;
+    const cleanEmail = user.email?.trim().toLowerCase();
+    const isSU = cleanEmail === 'mandemohamed68@gmail.com' || cleanEmail === 'mandemohamed68@gamil.com';
+    if (isSU || user.role === 'admin') return true;
+    if (user.role === 'manager') {
+      if (!user.permissions) return false;
+      const permList = user.permissions.split(',').map(p => p.trim());
+      return permList.includes(permissionId);
+    }
+    return false;
+  };
 
   // Change user role
   const handleChangeRole = async (uid: string, email: string, currentRole: UserRole, targetRole: UserRole) => {
@@ -679,10 +713,15 @@ export const AdminDashboard: React.FC<{ onBackToTraveler?: () => void }> = ({ on
       return;
     }
 
+    if (!newUserPassword || newUserPassword.length < 6) {
+      addToast("Veuillez définir un mot de passe d'au moins 6 caractères pour cet utilisateur.", "error");
+      return;
+    }
+
     setIsCreatingUser(true);
     try {
       const generatedUid = `usr_onboard_${Date.now()}`;
-      const newUserProfile: UserProfile = {
+      const newUserProfile: any = {
         uid: generatedUid,
         email: newUserEmail.trim().toLowerCase(),
         displayName: newUserName.trim(),
@@ -690,7 +729,9 @@ export const AdminDashboard: React.FC<{ onBackToTraveler?: () => void }> = ({ on
         phoneNumber: newUserPhone.trim() || undefined,
         isVerified: true,
         createdAt: new Date().toISOString(),
-        isSuspended: false
+        isSuspended: false,
+        password: newUserPassword,
+        permissions: newUserPermissions.join(',')
       };
 
       await updateUserProfile(generatedUid, newUserProfile);
@@ -703,12 +744,46 @@ export const AdminDashboard: React.FC<{ onBackToTraveler?: () => void }> = ({ on
       setNewUserEmail('');
       setNewUserRole('client');
       setNewUserPhone('');
+      setNewUserPassword('');
+      setNewUserPermissions([]);
       setShowAddUserForm(false);
     } catch (err) {
       console.error(err);
       addToast("Erreur lors de la création de l'utilisateur.", "error");
     } finally {
       setIsCreatingUser(false);
+    }
+  };
+
+  const handleUpdateUserSecurity = async (uid: string, email: string) => {
+    setIsUpdatingUserSecurity(true);
+    try {
+      const updates: any = {
+        permissions: editUserPermissions.join(',')
+      };
+      if (editUserPassword) {
+        if (editUserPassword.length < 6) {
+          addToast("Le mot de passe doit comporter au moins 6 caractères.", "error");
+          setIsUpdatingUserSecurity(false);
+          return;
+        }
+        updates.password = editUserPassword;
+      }
+      
+      await updateUserProfile(uid, updates);
+                await reloadData();
+      logAction(`Mise à jour des droits/sécurité pour l'utilisateur ${email}`);
+      triggerSuccess(`Droits et mot de passe de ${email} mis à jour avec succès !`);
+      
+      // Clear security states
+      setExpandedUserSecurityUid(null);
+      setEditUserPassword('');
+      setEditUserPermissions([]);
+    } catch (err) {
+      console.error(err);
+      addToast("Erreur lors de la mise à jour de la sécurité de l'utilisateur.", "error");
+    } finally {
+      setIsUpdatingUserSecurity(false);
     }
   };
 
@@ -1638,35 +1713,38 @@ export const AdminDashboard: React.FC<{ onBackToTraveler?: () => void }> = ({ on
             {
               category: "Gestion & Modération",
               items: [
-                { id: 'listings', label: 'Hébergements', icon: Home },
-                { id: 'users', label: 'Utilisateurs', icon: Users },
-                { id: 'verifications', label: 'Vérifications', icon: ShieldCheck },
-                { id: 'reviews', label: 'Avis & Modération', icon: Activity },
+                { id: 'listings', label: 'Hébergements', icon: Home, permission: 'manage_listings' },
+                { id: 'users', label: 'Utilisateurs', icon: Users, permission: 'manage_users' },
+                { id: 'verifications', label: 'Vérifications', icon: ShieldCheck, permission: 'manage_verifications' },
+                { id: 'reviews', label: 'Avis & Modération', icon: Activity, permission: 'manage_reviews' },
               ]
             },
             {
               category: "Flux & Opérations",
               items: [
-                { id: 'bookings', label: 'Réservations', icon: Calendar, badge: bookings.filter(b=>b.bookingStatus==='pending').length, badgeColor: 'bg-blue-600' },
-                { id: 'revenue', label: 'Finances', icon: TrendingUp },
-                { id: 'withdrawals', label: 'Demandes de Retrait', icon: Download, badge: withdrawals.filter(w=>w.status==='pending').length, badgeColor: 'bg-yellow-500' },
-                { id: 'locations', label: 'Villes & Quartiers', icon: MapPin },
-                { id: 'ads', label: 'Affiches & Pubs', icon: Megaphone, badge: ads.filter(a => a.isActive).length, badgeColor: 'bg-green-600' },
-                { id: 'flash-info', label: 'Flash Info', icon: Megaphone, badge: announcementActive ? 1 : 0, badgeColor: 'bg-red-500' },
+                { id: 'bookings', label: 'Réservations', icon: Calendar, badge: bookings.filter(b=>b.bookingStatus==='pending').length, badgeColor: 'bg-blue-600', permission: 'manage_bookings' },
+                { id: 'revenue', label: 'Finances', icon: TrendingUp, permission: 'manage_bookings' },
+                { id: 'withdrawals', label: 'Demandes de Retrait', icon: Download, badge: withdrawals.filter(w=>w.status==='pending').length, badgeColor: 'bg-yellow-500', permission: 'manage_withdrawals' },
+                { id: 'locations', label: 'Villes & Quartiers', icon: MapPin, permission: 'manage_listings' },
+                { id: 'ads', label: 'Affiches & Pubs', icon: Megaphone, badge: ads.filter(a => a.isActive).length, badgeColor: 'bg-green-600', permission: 'manage_ads' },
+                { id: 'flash-info', label: 'Flash Info', icon: Megaphone, badge: announcementActive ? 1 : 0, badgeColor: 'bg-red-500', permission: 'manage_settings' },
               ]
             },
             {
               category: "Outils & Systèmes",
               items: [
-                { id: 'reports', label: 'Rapports d\'Audit', icon: FileText },
-                { id: 'settings', label: 'Paramètres', icon: Settings },
-                { id: 'email', label: 'Config Email (SMTP)', icon: Mail },
-                { id: 'logs', label: 'Logs en Temps Réel', icon: Activity },
-                { id: 'faq', label: 'Gestion FAQ', icon: MessageSquare },
-                { id: 'contact', label: 'Gestion Contact', icon: Mail, badge: contactMessages.filter(m => m.status === 'unread').length, badgeColor: 'bg-[#EF2B2D]' },
+                { id: 'reports', label: 'Rapports d\'Audit', icon: FileText, permission: 'manage_users' },
+                { id: 'settings', label: 'Paramètres', icon: Settings, permission: 'manage_settings' },
+                { id: 'email', label: 'Config Email (SMTP)', icon: Mail, permission: 'manage_settings' },
+                { id: 'logs', label: 'Logs en Temps Réel', icon: Activity, permission: 'manage_users' },
+                { id: 'faq', label: 'Gestion FAQ', icon: MessageSquare, permission: 'manage_faq' },
+                { id: 'contact', label: 'Gestion Contact', icon: Mail, badge: contactMessages.filter(m => m.status === 'unread').length, badgeColor: 'bg-[#EF2B2D]', permission: 'manage_contact' },
               ]
             }
-          ].map((group, groupIdx) => (
+          ].map(group => ({
+            ...group,
+            items: (group.items as any[]).filter(item => !item.permission || hasPermission(item.permission))
+          })).filter(group => group.items.length > 0).map((group, groupIdx) => (
             <div key={groupIdx} className="space-y-1.5">
               <h4 className="text-[9px] font-black text-slate-400 uppercase tracking-[0.15em] px-3 mb-1.5">{group.category}</h4>
               <div className="space-y-1">
@@ -1766,7 +1844,26 @@ export const AdminDashboard: React.FC<{ onBackToTraveler?: () => void }> = ({ on
       </aside>
 
       {/* Main Content */}
-      <main className="flex-1 overflow-y-auto p-10 bg-white">
+      <main className="flex-1 overflow-y-auto p-10 bg-white relative">
+        {/* Floating Refresh/Sync bar */}
+        <div className="absolute top-8 right-10 z-20 flex items-center gap-3">
+          <button
+            onClick={async () => {
+              try {
+                await reloadData();
+                addToast("Plateforme actualisée avec succès !", "success");
+              } catch (e) {
+                addToast("Erreur lors de l'actualisation", "error");
+              }
+            }}
+            disabled={isReloading}
+            className="flex items-center gap-2 px-4 py-2 bg-slate-50 hover:bg-slate-100 border border-slate-200 text-slate-700 hover:text-slate-900 rounded-xl text-xs font-black uppercase tracking-wider transition-all duration-200 cursor-pointer shadow-sm disabled:opacity-50"
+            title="Actualiser manuellement toutes les données de la plateforme"
+          >
+            <RefreshCw size={13} className={cn("text-red-600", isReloading && "animate-spin")} />
+            {isReloading ? "Actualisation..." : "Actualiser"}
+          </button>
+        </div>
         
         {/* TAB 1: OVERVIEW */}
         {activeTab === 'overview' && (
@@ -2380,14 +2477,84 @@ export const AdminDashboard: React.FC<{ onBackToTraveler?: () => void }> = ({ on
                     <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1.5 font-bold">Attribution du Rôle</label>
                     <select
                       value={newUserRole}
-                      onChange={(e) => setNewUserRole(e.target.value as UserRole)}
+                      onChange={(e) => {
+                        const r = e.target.value as UserRole;
+                        setNewUserRole(r);
+                        // Pre-populate permissions for admin
+                        if (r === 'admin') {
+                          setNewUserPermissions(AVAILABLE_PERMISSIONS.map(p => p.id));
+                        } else if (r === 'client' || r === 'owner') {
+                          setNewUserPermissions([]);
+                        }
+                      }}
                       className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-xs font-black outline-none focus:ring-2 focus:ring-red-500 h-[44px]"
                     >
                       <option value="client">Voyageur (Client)</option>
                       <option value="owner">Hôte (Propriétaire)</option>
                       <option value="admin">Administrateur</option>
+                      <option value="manager">Manager (Gestionnaire)</option>
                     </select>
                   </div>
+                  <div>
+                    <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1.5 font-bold">Mot de passe</label>
+                    <div className="relative">
+                      <input 
+                        type="text" 
+                        required
+                        value={newUserPassword}
+                        onChange={(e) => setNewUserPassword(e.target.value)}
+                        placeholder="Min. 6 caractères"
+                        className="w-full bg-slate-50 border border-slate-200 rounded-xl pl-4 pr-10 py-3 text-xs font-bold outline-none focus:ring-2 focus:ring-red-500" 
+                      />
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const chars = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#%&*";
+                          let pass = "";
+                          for (let i = 0; i < 10; i++) {
+                            pass += chars.charAt(Math.floor(Math.random() * chars.length));
+                          }
+                          setNewUserPassword(pass);
+                          addToast("Mot de passe généré !", "success");
+                        }}
+                        className="absolute right-2 top-2 p-1 text-slate-400 hover:text-slate-650 rounded-lg hover:bg-slate-100 cursor-pointer"
+                        title="Générer un mot de passe sécurisé"
+                      >
+                        <RefreshCw size={14} />
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Permissions Selection Grid */}
+                  <div className="sm:col-span-2 md:col-span-4 bg-slate-50 p-4 rounded-xl border border-slate-150 mt-2">
+                    <h4 className="text-[10px] font-black text-slate-700 uppercase tracking-widest mb-3 flex items-center gap-1.5">
+                      <span>🛡️ Droits d'accès et Permissions</span>
+                      <span className="text-[9px] text-slate-400 font-bold normal-case font-normal">(Requis pour les rôles Manager et Administrateur)</span>
+                    </h4>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
+                      {AVAILABLE_PERMISSIONS.map((perm) => {
+                        const isChecked = newUserPermissions.includes(perm.id);
+                        return (
+                          <label key={perm.id} className="flex items-center gap-2.5 p-2 bg-white rounded-lg border border-slate-100 hover:border-slate-200 transition cursor-pointer select-none">
+                            <input
+                              type="checkbox"
+                              checked={isChecked}
+                              onChange={() => {
+                                if (isChecked) {
+                                  setNewUserPermissions(newUserPermissions.filter(p => p !== perm.id));
+                                } else {
+                                  setNewUserPermissions([...newUserPermissions, perm.id]);
+                                }
+                              }}
+                              className="w-4 h-4 text-red-650 accent-red-600 rounded border-slate-300 focus:ring-red-500 cursor-pointer"
+                            />
+                            <span className="text-xs font-semibold text-slate-700">{perm.label}</span>
+                          </label>
+                        );
+                      })}
+                    </div>
+                  </div>
+
                   <div className="sm:col-span-2 md:col-span-4 flex justify-end gap-2 pt-4 border-t border-slate-100">
                     <button
                       type="button"
@@ -2397,6 +2564,8 @@ export const AdminDashboard: React.FC<{ onBackToTraveler?: () => void }> = ({ on
                         setNewUserEmail('');
                         setNewUserRole('client');
                         setNewUserPhone('');
+                        setNewUserPassword('');
+                        setNewUserPermissions([]);
                       }}
                       className="px-4 py-2 text-slate-500 text-[10px] font-black uppercase tracking-widest hover:bg-slate-50 rounded-xl transition cursor-pointer"
                     >
@@ -2415,7 +2584,7 @@ export const AdminDashboard: React.FC<{ onBackToTraveler?: () => void }> = ({ on
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              {filteredUsers.slice((usersPage - 1) * 6, usersPage * 6).map(usr => {
+              {filteredUsers.slice((usersPage - 1) * 50, usersPage * 50).map(usr => {
                 const isListedSU = isSuperAdminEmail(usr.email);
                 const isSuspended = usr.isSuspended === true;
                 return (
@@ -2444,6 +2613,28 @@ export const AdminDashboard: React.FC<{ onBackToTraveler?: () => void }> = ({ on
                         </div>
                       </div>
                       <div className="flex gap-2 shrink-0">
+                        <button
+                          onClick={() => {
+                            if (expandedUserSecurityUid === usr.uid) {
+                              setExpandedUserSecurityUid(null);
+                              setEditUserPassword('');
+                              setEditUserPermissions([]);
+                            } else {
+                              setExpandedUserSecurityUid(usr.uid);
+                              setEditUserPassword('');
+                              setEditUserPermissions(usr.permissions ? usr.permissions.split(',') : []);
+                            }
+                          }}
+                          className={cn(
+                            "p-2 rounded-xl border transition cursor-pointer",
+                            expandedUserSecurityUid === usr.uid
+                              ? "bg-slate-900 border-slate-900 text-white"
+                              : "bg-blue-50 border-blue-200 text-blue-600 hover:bg-blue-100"
+                          )}
+                          title="Gérer les droits et le mot de passe"
+                        >
+                          <ShieldCheck size={16} />
+                        </button>
                         <button
                           onClick={() => handleToggleSuspension(usr.uid, isSuspended, usr.email)}
                           className={cn(
@@ -2569,7 +2760,7 @@ export const AdminDashboard: React.FC<{ onBackToTraveler?: () => void }> = ({ on
                           )}
                         </span>
                         <div className="flex gap-1.5 flex-wrap">
-                          {['client', 'owner', 'admin'].map((rCode) => {
+                          {['client', 'owner', 'admin', 'manager'].map((rCode) => {
                             const isCurrent = usr.role === rCode;
                             return (
                               <button
@@ -2583,7 +2774,7 @@ export const AdminDashboard: React.FC<{ onBackToTraveler?: () => void }> = ({ on
                                     : "bg-white border-slate-200 text-slate-600 hover:bg-slate-100 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
                                 )}
                               >
-                                {rCode === 'client' ? 'Voyageur' : rCode === 'owner' ? 'Hôte' : 'Admin'}
+                                {rCode === 'client' ? 'Voyageur' : rCode === 'owner' ? 'Hôte' : rCode === 'admin' ? 'Admin' : 'Manager'}
                               </button>
                             );
                           })}
@@ -2617,13 +2808,105 @@ export const AdminDashboard: React.FC<{ onBackToTraveler?: () => void }> = ({ on
                         </button>
                       </div>
                     )}
+
+                    {/* Collapsible Security & Permissions Panel */}
+                    {expandedUserSecurityUid === usr.uid && (
+                      <div className="border-t border-slate-100 pt-4 mt-2 space-y-4 animate-in slide-in-from-top-2 duration-200">
+                        <div className="bg-slate-100/60 p-4 rounded-2xl border border-slate-200 space-y-4">
+                          <h5 className="text-[11px] font-black text-slate-800 uppercase tracking-widest flex items-center gap-1.5">
+                            <span>🛡️ Droits & Sécurité de {usr.displayName || 'l\'utilisateur'}</span>
+                          </h5>
+                          
+                          {/* Password modification input */}
+                          <div className="space-y-1.5">
+                            <label className="block text-[9px] font-black text-slate-500 uppercase tracking-widest font-bold">Définir un Nouveau Mot de passe</label>
+                            <div className="flex gap-2">
+                              <div className="relative flex-1">
+                                <input
+                                  type="text"
+                                  placeholder="Laisser vide pour ne pas modifier"
+                                  value={editUserPassword}
+                                  onChange={(e) => setEditUserPassword(e.target.value)}
+                                  className="w-full bg-white border border-slate-200 rounded-xl pl-4 pr-10 py-2.5 text-xs font-bold outline-none focus:ring-2 focus:ring-red-500"
+                                />
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    const chars = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#%&*";
+                                    let pass = "";
+                                    for (let i = 0; i < 10; i++) {
+                                      pass += chars.charAt(Math.floor(Math.random() * chars.length));
+                                    }
+                                    setEditUserPassword(pass);
+                                    addToast("Mot de passe généré !", "success");
+                                  }}
+                                  className="absolute right-2 top-2 p-1 text-slate-400 hover:text-slate-650 rounded-lg hover:bg-slate-100 cursor-pointer"
+                                  title="Générer un mot de passe fort"
+                                >
+                                  <RefreshCw size={13} />
+                                </button>
+                              </div>
+                            </div>
+                          </div>
+
+                          {/* Permissions list checkboxes */}
+                          <div className="space-y-2">
+                            <label className="block text-[9px] font-black text-slate-500 uppercase tracking-widest font-bold">Permissions / Droits d'Accès</label>
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                              {AVAILABLE_PERMISSIONS.map((perm) => {
+                                const isChecked = editUserPermissions.includes(perm.id);
+                                return (
+                                  <label key={perm.id} className="flex items-center gap-2 p-1.5 bg-white rounded-lg border border-slate-150 hover:border-slate-200 transition cursor-pointer select-none">
+                                    <input
+                                      type="checkbox"
+                                      checked={isChecked}
+                                      onChange={() => {
+                                        if (isChecked) {
+                                          setEditUserPermissions(editUserPermissions.filter(p => p !== perm.id));
+                                        } else {
+                                          setEditUserPermissions([...editUserPermissions, perm.id]);
+                                        }
+                                      }}
+                                      className="w-3.5 h-3.5 text-red-650 accent-red-600 rounded border-slate-300 focus:ring-red-500 cursor-pointer"
+                                    />
+                                    <span className="text-[11px] font-semibold text-slate-700">{perm.label}</span>
+                                  </label>
+                                );
+                              })}
+                            </div>
+                          </div>
+
+                          <div className="flex justify-end gap-2 pt-2 border-t border-slate-200">
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setExpandedUserSecurityUid(null);
+                                setEditUserPassword('');
+                                setEditUserPermissions([]);
+                              }}
+                              className="px-3 py-1.5 text-slate-500 text-[9px] font-black uppercase tracking-widest hover:bg-slate-200 rounded-lg transition cursor-pointer"
+                            >
+                              Annuler
+                            </button>
+                            <button
+                              type="button"
+                              disabled={isUpdatingUserSecurity}
+                              onClick={() => handleUpdateUserSecurity(usr.uid, usr.email)}
+                              className="px-4 py-1.5 bg-red-600 hover:bg-red-700 disabled:opacity-50 text-white text-[9px] font-black uppercase tracking-widest rounded-lg transition cursor-pointer shadow-sm"
+                            >
+                              {isUpdatingUserSecurity ? "Enregistrement..." : "Enregistrer"}
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    )}
                   </div>
                 );
               })}
             </div>
 
             {/* Pagination UI for Admin Users */}
-            {filteredUsers.length > 6 && (
+            {filteredUsers.length > 50 && (
               <div className="flex items-center justify-between border-t border-slate-100 pt-5 px-6 mt-4 pb-4">
                 <div className="flex flex-1 justify-between sm:hidden">
                   <button
@@ -2636,9 +2919,9 @@ export const AdminDashboard: React.FC<{ onBackToTraveler?: () => void }> = ({ on
                     Précédent
                   </button>
                   <button
-                    disabled={usersPage === Math.ceil(filteredUsers.length / 6)}
+                    disabled={usersPage === Math.ceil(filteredUsers.length / 50)}
                     onClick={() => {
-                      setUsersPage(prev => Math.min(prev + 1, Math.ceil(filteredUsers.length / 6)));
+                      setUsersPage(prev => Math.min(prev + 1, Math.ceil(filteredUsers.length / 50)));
                     }}
                     className="relative ml-3 inline-flex items-center rounded-xl border border-slate-200 bg-white px-4 py-2 text-xs font-black uppercase text-slate-700 hover:bg-slate-50 disabled:opacity-50 transition cursor-pointer"
                   >
@@ -2648,8 +2931,8 @@ export const AdminDashboard: React.FC<{ onBackToTraveler?: () => void }> = ({ on
                 <div className="hidden sm:flex sm:flex-1 sm:items-center sm:justify-between">
                   <div>
                     <p className="text-xs text-slate-500 font-bold">
-                      Affichage de <span className="font-extrabold text-slate-800">{Math.min((usersPage - 1) * 6 + 1, filteredUsers.length)}</span> à{' '}
-                      <span className="font-extrabold text-slate-800">{Math.min(usersPage * 6, filteredUsers.length)}</span> sur{' '}
+                      Affichage de <span className="font-extrabold text-slate-800">{Math.min((usersPage - 1) * 50 + 1, filteredUsers.length)}</span> à{' '}
+                      <span className="font-extrabold text-slate-800">{Math.min(usersPage * 50, filteredUsers.length)}</span> sur{' '}
                       <span className="font-extrabold text-slate-800">{filteredUsers.length}</span> utilisateurs
                     </p>
                   </div>
@@ -2665,7 +2948,7 @@ export const AdminDashboard: React.FC<{ onBackToTraveler?: () => void }> = ({ on
                         <ChevronLeft size={16} />
                       </button>
                       
-                      {Array.from({ length: Math.ceil(filteredUsers.length / 6) }, (_, i) => i + 1).map((p) => (
+                      {Array.from({ length: Math.ceil(filteredUsers.length / 50) }, (_, i) => i + 1).map((p) => (
                         <button
                           key={p}
                           onClick={() => {

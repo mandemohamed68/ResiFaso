@@ -7,12 +7,32 @@ const cleanSecteur = (val: string | any): string | any => {
 
 // Users
 export const getUserProfile = async (uid: string) => {
-  const users = await executeSql("SELECT uid, email, display_name as displayName, role, photo_url as photoUrl, is_verified as isVerified, created_at as createdAt FROM users WHERE uid = ?", [uid]);
+  const users = await executeSql(`
+    SELECT 
+      uid, email, display_name as displayName, role, photo_url as photoUrl, 
+      is_verified as isVerified, created_at as createdAt, is_suspended as isSuspended, 
+      permissions, identity_document_front as identityDocumentFront, 
+      identity_document_back as identityDocumentBack, id_number as idNumber, 
+      id_type as idType, id_expiry as idExpiry, id_card_url as idCardUrl, 
+      verification_status as verificationStatus, phone_number as phoneNumber
+    FROM users 
+    WHERE uid = ?
+  `, [uid]);
   return users[0] || null;
 };
 
 export const getAllUsers = async () => {
-  return await executeSql("SELECT uid, email, display_name as displayName, role, photo_url as photoUrl, is_verified as isVerified, created_at as createdAt FROM users ORDER BY created_at DESC");
+  return await executeSql(`
+    SELECT 
+      uid, email, display_name as displayName, role, photo_url as photoUrl, 
+      is_verified as isVerified, created_at as createdAt, is_suspended as isSuspended, 
+      permissions, identity_document_front as identityDocumentFront, 
+      identity_document_back as identityDocumentBack, id_number as idNumber, 
+      id_type as idType, id_expiry as idExpiry, id_card_url as idCardUrl, 
+      verification_status as verificationStatus, phone_number as phoneNumber
+    FROM users 
+    ORDER BY created_at DESC
+  `);
 };
 
 // Residences

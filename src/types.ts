@@ -1,4 +1,4 @@
-export type UserRole = "client" | "owner" | "admin";
+export type UserRole = "client" | "owner" | "admin" | "manager";
 
 export interface UserProfile {
   uid: string;
@@ -23,6 +23,7 @@ export interface UserProfile {
   hostCancellationFee?: number;
   hostCancellationRulesText?: string;
   identityDocumentFront?: string;
+  permissions?: string;
   identityDocumentBack?: string;
 }
 

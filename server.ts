@@ -432,7 +432,12 @@ async function startServer() {
       if (req.user?.uid !== req.params.uid && req.user?.role !== 'admin') {
         return res.status(403).json({ error: "Non autorisé" });
       }
-      await queries.updateUserProfile(req.params.uid, req.body);
+      const updates = { ...req.body };
+      if (updates.password) {
+        updates.passwordHash = await bcrypt.hash(updates.password, 10);
+        delete updates.password;
+      }
+      await queries.updateUserProfile(req.params.uid, updates);
       res.json({ success: true });
     } catch (err: any) {
       res.status(500).json({ error: err.message });
