@@ -236,6 +236,7 @@ const BookingTable: React.FC<BookingTableProps> = ({
 }) => {
   const { user } = useAuth();
   const [selectedBookingForDetails, setSelectedBookingForDetails] = useState<Booking | null>(null);
+  const [selectedBookingForVerifications, setSelectedBookingForVerifications] = useState<Booking | null>(null);
   const [selectedBookingForInvoice, setSelectedBookingForInvoice] = useState<Booking | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
 
@@ -278,13 +279,22 @@ const BookingTable: React.FC<BookingTableProps> = ({
                 <td className="py-4 px-6">
                   <span className="block font-black text-slate-900">ID: {b.id.slice(0, 8)}</span>
                   <span className="text-[10px] text-slate-400 font-bold uppercase">Client: {b.clientPhone || b.clientId.slice(0, 5)}</span>
+                  <div className="flex items-center gap-2 mt-1.5">
                   <button
                     onClick={() => setSelectedBookingForDetails(b)}
-                    className="mt-1.5 flex items-center gap-1 bg-slate-50 hover:bg-red-50 hover:text-red-650 border border-slate-200 hover:border-red-100 rounded-lg text-[9px] font-black uppercase tracking-wider transition-all cursor-pointer w-fit p-1 px-1.5"
+                    className="flex items-center gap-1 bg-slate-50 hover:bg-red-50 hover:text-red-650 border border-slate-200 hover:border-red-100 rounded-lg text-[9px] font-black uppercase tracking-wider transition-all cursor-pointer w-fit p-1 px-1.5"
                   >
                     <Eye size={12} className="text-red-600" />
                     Détails
                   </button>
+                  <button
+                    onClick={() => setSelectedBookingForVerifications(b)}
+                    className="flex items-center gap-1 bg-amber-50 text-amber-700 hover:bg-amber-100 border border-amber-200 rounded-lg text-[9px] font-black uppercase tracking-wider transition-all cursor-pointer w-fit p-1 px-1.5"
+                  >
+                    <ShieldAlert size={12} />
+                    Vérifications
+                  </button>
+                  </div>
                 </td>
                 <td className="py-4 px-6">
                   <span className="block font-bold text-slate-800 text-xs truncate max-w-[150px]">{res?.title || "Logement Supprimé"}</span>

@@ -130,14 +130,14 @@ export const BookingVerificationSection: React.FC<BookingVerificationSectionProp
             <button
               key={type.id}
               onClick={() => toggleVerification(type.id)}
-              disabled={!canEdit || isPast}
+              disabled={!canEdit || isPast || isVerified}
               className={cn(
                 "group relative flex items-center justify-between p-3 rounded-xl border transition-all duration-300 text-left",
                 isVerified 
-                  ? "bg-green-50 border-green-200 text-green-800" 
+                  ? "bg-green-50 border-green-200 text-green-800 cursor-default" 
                   : isPast 
-                    ? "bg-red-50 border-red-100 text-red-700"
-                    : "bg-amber-50 border-amber-200 text-amber-800 animate-[blink_2s_infinite]"
+                    ? "bg-red-50 border-red-100 text-red-700 cursor-not-allowed"
+                    : "bg-amber-50 border-amber-200 text-amber-800 animate-[blink_2s_infinite] cursor-pointer hover:bg-amber-100"
               )}
             >
               <div className="flex flex-col gap-0.5">

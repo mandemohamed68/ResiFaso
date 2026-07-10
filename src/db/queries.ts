@@ -1,7 +1,8 @@
 import { executeSql } from './index';
 
 const cleanSecteur = (val: string | any): string | any => {
-  if (!val || typeof val !== 'string') return val;
+  if (!val || typeof val !== 'string') if (val === undefined) return null;
+  return val;
   return val.replace(/\bS[EÉ]C\b/gi, 'Secteur');
 };
 
@@ -467,12 +468,16 @@ export const deleteResidence = async (id: string) => {
 const toSnakeCase = (str: string) => str.replace(/[A-Z]/g, letter => `_${letter.toLowerCase()}`);
 
 export const formatSqlValue = (val: any) => {
+  if (typeof val === 'boolean') {
+    return val ? 1 : 0;
+  }
   if (typeof val === 'string' && /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}/.test(val)) {
     return val.replace('T', ' ').substring(0, 19);
   }
   if (val !== null && typeof val === 'object') {
     return JSON.stringify(val);
   }
+  if (val === undefined) return null;
   return val;
 };
 
@@ -585,6 +590,7 @@ export const updateUserProfile = async (uid: string, updates: any) => {
     else if (k === 'isSuspended') mappedUpdates.is_suspended = dbValue;
     else if (k === 'phoneNumber') mappedUpdates.phone_number = dbValue;
     else if (k === 'createdAt') mappedUpdates.created_at = dbValue;
+    else if (k === 'password') mappedUpdates.password_hash = dbValue;
     else mappedUpdates[toSnakeCase(k)] = dbValue;
   }
   
