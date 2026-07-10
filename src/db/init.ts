@@ -20,6 +20,14 @@ export const initDatabase = async () => {
         is_verified BOOLEAN DEFAULT 0,
         is_suspended BOOLEAN DEFAULT 0,
         password_hash VARCHAR(255),
+        identity_document_front TEXT,
+        identity_document_back TEXT,
+        permissions TEXT,
+        id_number VARCHAR(255),
+        id_type VARCHAR(255),
+        id_expiry VARCHAR(255),
+        id_card_url LONGTEXT,
+        verification_status VARCHAR(50) DEFAULT 'none',
         created_at DATETIME DEFAULT CURRENT_TIMESTAMP
       ) ENGINE=InnoDB
     `);
@@ -97,6 +105,30 @@ export const initDatabase = async () => {
       } else if (!hasPasswordHash && !hasPassword) {
         console.log("Migration MariaDB: Ajout de la colonne 'password_hash'...");
         await executeSql("ALTER TABLE users ADD COLUMN password_hash VARCHAR(255)");
+      }
+
+      // Ensure all extra user columns exist for MariaDB
+      const extraCols = ['identity_document_front', 'identity_document_back', 'permissions', 'id_number', 'id_type', 'id_expiry', 'id_card_url', 'verification_status'];
+      for (const col of extraCols) {
+        const columns: any = await executeSql(`
+          SELECT COLUMN_NAME 
+          FROM INFORMATION_SCHEMA.COLUMNS 
+          WHERE TABLE_SCHEMA = DATABASE() 
+            AND TABLE_NAME = 'users' 
+            AND COLUMN_NAME = ?
+        `, [col]);
+        if (!columns || columns.length === 0) {
+          console.log(`Migration MariaDB: Ajout de la colonne '${col}'...`);
+          let typeDef = "TEXT NULL";
+          if (col === 'verification_status') {
+            typeDef = "VARCHAR(50) DEFAULT 'none'";
+          } else if (col === 'id_card_url') {
+            typeDef = "LONGTEXT NULL";
+          } else if (col === 'id_number' || col === 'id_type' || col === 'id_expiry') {
+            typeDef = "VARCHAR(255) NULL";
+          }
+          await executeSql(`ALTER TABLE users ADD COLUMN ${col} ${typeDef}`);
+        }
       }
     } catch (err: any) {
       console.warn("Migration MariaDB users check failed:", err.message);
@@ -453,6 +485,14 @@ export const initDatabase = async () => {
         is_verified BOOLEAN DEFAULT 0,
         is_suspended BOOLEAN DEFAULT 0,
         password_hash TEXT,
+        identity_document_front TEXT,
+        identity_document_back TEXT,
+        permissions TEXT,
+        id_number TEXT,
+        id_type TEXT,
+        id_expiry TEXT,
+        id_card_url TEXT,
+        verification_status TEXT DEFAULT 'none',
         created_at DATETIME DEFAULT CURRENT_TIMESTAMP
       )
     `);
@@ -718,6 +758,21 @@ export const initDatabase = async () => {
     } catch (err) {}
     try {
       await executeSql("ALTER TABLE users ADD COLUMN permissions TEXT");
+    } catch (err) {}
+    try {
+      await executeSql("ALTER TABLE users ADD COLUMN id_number TEXT");
+    } catch (err) {}
+    try {
+      await executeSql("ALTER TABLE users ADD COLUMN id_type TEXT");
+    } catch (err) {}
+    try {
+      await executeSql("ALTER TABLE users ADD COLUMN id_expiry TEXT");
+    } catch (err) {}
+    try {
+      await executeSql("ALTER TABLE users ADD COLUMN id_card_url TEXT");
+    } catch (err) {}
+    try {
+      await executeSql("ALTER TABLE users ADD COLUMN verification_status TEXT DEFAULT 'none'");
     } catch (err) {}
 
     // Seed default verification types
