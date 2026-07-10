@@ -692,6 +692,48 @@ export const initDatabase = async () => {
     } catch (err) {}
   }
 
+    // Verification Types table
+    await executeSql(`
+      CREATE TABLE IF NOT EXISTS verification_types (
+        id TEXT PRIMARY KEY,
+        label TEXT NOT NULL,
+        description TEXT,
+        is_active INTEGER DEFAULT 1,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+      )
+    `);
+
+    // Add verifications_status to bookings if not exists
+    try {
+      await executeSql("ALTER TABLE bookings ADD COLUMN verifications_status TEXT");
+    } catch (err) {}
+
+    // Add identity documents to users if not exists
+    try {
+      await executeSql("ALTER TABLE users ADD COLUMN identity_document_front TEXT");
+    } catch (err) {}
+    try {
+      await executeSql("ALTER TABLE users ADD COLUMN identity_document_back TEXT");
+    } catch (err) {}
+
+    // Seed default verification types
+    const existingTypes = await executeSql("SELECT id FROM verification_types LIMIT 1");
+    if (existingTypes.length === 0) {
+      const defaultTypes = [
+        { id: 'id_valid', label: 'Pièce d’identité valide (recto/verso)', description: 'Vérifier que la pièce est originale et en cours de validité.' },
+        { id: 'age_check', label: 'Âge ≥ 18 ans', description: 'Vérifier que le client est majeur.' },
+        { id: 'name_match', label: 'Correspondance du nom', description: 'Le nom sur la pièce doit correspondre au nom de la réservation.' },
+        { id: 'contract_sign', label: 'Signature du contrat', description: 'Si applicable, le contrat de location a été signé.' }
+      ];
+      for (const type of defaultTypes) {
+        await executeSql(
+          "INSERT INTO verification_types (id, label, description, is_active) VALUES (?, ?, ?, 1)",
+          [type.id, type.label, type.description]
+        );
+      }
+    }
+
   // Seed default settings if they do not exist
   try {
     const existingGlobal = await executeSql("SELECT * FROM settings WHERE `key` = 'global'");

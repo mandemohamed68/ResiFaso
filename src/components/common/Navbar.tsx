@@ -97,25 +97,25 @@ export const Navbar: React.FC<{
         {/* Logo */}
         <div 
           onClick={() => onNavigate('home')} 
-          className="flex items-center gap-2.5 cursor-pointer group select-none"
+          className="flex items-center gap-3 cursor-pointer group select-none"
         >
-          <div className="w-16 h-16 flex-shrink-0 flex items-center justify-center overflow-hidden rounded-xl bg-white border border-slate-200 shadow-sm relative">
+          <div className="w-20 h-20 md:w-24 md:h-24 flex-shrink-0 flex items-center justify-center overflow-hidden rounded-2xl bg-white border border-slate-200 shadow-sm relative">
             <img 
-              src="/logoresifasoORG.png" 
+              src="/logoresifaso_new.jpg" 
               alt="ResiFaso logo" 
               className="w-full h-full object-contain p-0.5" 
               referrerPolicy="no-referrer"
               onError={(e) => {
                 const target = e.target as HTMLImageElement;
-                target.src = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23dc2626' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z'/%3E%3Cpolyline points='9 22 9 12 15 12 15 22'/%3E%3C/svg%3E";
+                target.src = "/logoresifasoORG.png";
               }}
             />
           </div>
           <div className="flex flex-col">
-            <span className="text-lg font-black tracking-tighter text-slate-900 leading-none group-hover:text-red-600 transition-colors">
+            <span className="text-xl md:text-2xl font-black tracking-tighter text-slate-900 leading-none group-hover:text-red-600 transition-colors">
               Resi<span className="text-red-600 group-hover:text-slate-900 transition-colors">Faso</span>
             </span>
-            <span className="text-[7.5px] font-black uppercase tracking-[0.2em] text-slate-400 mt-1">
+            <span className="text-[8px] md:text-[9px] font-black uppercase tracking-[0.2em] text-slate-400 mt-1.5">
               Résidences du Burkina
             </span>
           </div>

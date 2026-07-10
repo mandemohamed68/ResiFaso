@@ -38,6 +38,7 @@ import { InvoiceModal } from './InvoiceModal';
 import { MapContainer, TileLayer, Marker, useMapEvents } from 'react-leaflet';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
+import { BookingVerificationSection } from './BookingVerificationSection';
 
 // Fix Leaflet icons
 import markerIcon from 'leaflet/dist/images/marker-icon.png';
@@ -233,6 +234,7 @@ const BookingTable: React.FC<BookingTableProps> = ({
   isPast,
   isProcessingPayment 
 }) => {
+  const { user } = useAuth();
   const [selectedBookingForDetails, setSelectedBookingForDetails] = useState<Booking | null>(null);
   const [selectedBookingForInvoice, setSelectedBookingForInvoice] = useState<Booking | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
@@ -568,6 +570,16 @@ const BookingTable: React.FC<BookingTableProps> = ({
                         </button>
                       )}
                     </div>
+                  </div>
+
+                  {/* Verification Section */}
+                  <div className="md:col-span-2">
+                    <BookingVerificationSection 
+                      bookingId={selectedBookingForDetails.id}
+                      clientId={selectedBookingForDetails.clientId}
+                      isPast={isPast || selectedBookingForDetails.bookingStatus === 'completed'}
+                      canEdit={user?.uid === selectedBookingForDetails.ownerId || user?.role === 'admin'}
+                    />
                   </div>
 
                   {/* Sec 4: Tracking cancellation and refund if applicable */}

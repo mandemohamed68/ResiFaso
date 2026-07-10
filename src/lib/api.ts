@@ -12,8 +12,10 @@ export function getApiUrl(): string {
   );
   
   if (isCapacitor) {
-    // Hardcoded fallback to the active hosted app URL
-    return 'https://ais-pre-aeirvgp5kf4pmbaewxhixl-252816219526.europe-west1.run.app';
+    // If Capacitor, we need the origin of where the app is hosted
+    // In many cases, window.location.origin works if the app is served via HTTPS
+    if (typeof window !== 'undefined') return window.location.origin;
+    return '';
   }
   
   if (typeof window !== 'undefined') {
@@ -39,8 +41,20 @@ export async function apiFetch(path: string, options: RequestInit = {}): Promise
     headers.set('Content-Type', 'application/json');
   }
 
-  return fetch(fullUrl, {
-    ...options,
-    headers
-  });
+  try {
+    const res = await fetch(fullUrl, {
+      ...options,
+      headers
+    });
+    return res;
+  } catch (err) {
+    console.error("apiFetch network error:", err);
+    // Return a mock response object to prevent downstream .json() crashes if not checked
+    return {
+      ok: false,
+      status: 0,
+      json: async () => ({ error: "Network error" }),
+      text: async () => "Network error"
+    } as Response;
+  }
 }

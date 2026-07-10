@@ -9,7 +9,7 @@ interface AuthContextType {
   logOut: () => Promise<void>;
   refreshProfile: () => Promise<void>;
   login: (email: string, password: string) => Promise<void>;
-  register: (email: string, password: string, displayName: string) => Promise<void>;
+  register: (email: string, password: string, displayName: string, role?: string, idFront?: string, idBack?: string) => Promise<void>;
   loginAsMock: (role: UserRole) => Promise<void>;
 }
 
@@ -74,12 +74,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
-  const register = async (email: string, password: string, displayName: string) => {
+  const register = async (email: string, password: string, displayName: string, role?: string, idFront?: string, idBack?: string) => {
     const baseUrl = getApiUrl();
     const response = await fetch(`${baseUrl}/api/auth/register`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email, password, displayName })
+      body: JSON.stringify({ email, password, displayName, role, identity_document_front: idFront, identity_document_back: idBack })
     });
 
     if (response.ok) {

@@ -18,6 +18,8 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onNavigat
   const [password, setPassword] = useState('');
   const [displayName, setDisplayName] = useState('');
   const [phoneNumber, setPhoneNumber] = useState('');
+  const [identityDocumentFront, setIdentityDocumentFront] = useState<string | null>(null);
+  const [identityDocumentBack, setIdentityDocumentBack] = useState<string | null>(null);
   const [selectedRole, setSelectedRole] = useState<UserRole>('client');
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
@@ -72,7 +74,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onNavigat
         if (!displayName) {
           throw new Error("Veuillez saisir votre nom complet.");
         }
-        await register(email, password, displayName);
+        await register(email, password, displayName, selectedRole, identityDocumentFront || undefined, identityDocumentBack || undefined);
         setSuccess("Votre compte a été créé avec succès ! En cours de connexion...");
       } else {
         await login(email, password);
@@ -250,6 +252,56 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onNavigat
                         placeholder="+226 70 12 34 56"
                         className="w-full bg-slate-50 border border-slate-100 hover:border-slate-200 focus:bg-white focus:border-red-500 rounded-2xl py-3.5 pl-12 pr-4 outline-none text-sm font-bold transition-all placeholder:text-slate-300"
                       />
+                    </div>
+                  </div>
+
+                  <div className="space-y-4 pt-2">
+                    <div className="bg-slate-50 p-4 rounded-2xl border border-dashed border-slate-200">
+                      <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 font-bold">Pièce d'Identité (Optionnel)</label>
+                      <div className="grid grid-cols-2 gap-3">
+                        <div className="space-y-2">
+                          <span className="text-[9px] font-bold text-slate-500 block">Recto</span>
+                          <input 
+                            type="file" 
+                            accept="image/*"
+                            onChange={async (e) => {
+                              const file = e.target.files?.[0];
+                              if (file) {
+                                const reader = new FileReader();
+                                reader.onloadend = () => setIdentityDocumentFront(reader.result as string);
+                                reader.readAsDataURL(file);
+                              }
+                            }}
+                            className="text-[9px] w-full file:mr-2 file:py-1 file:px-2 file:rounded-md file:border-0 file:text-[9px] file:font-black file:bg-red-50 file:text-red-700 hover:file:bg-red-100 cursor-pointer"
+                          />
+                          {identityDocumentFront && (
+                            <div className="h-10 w-full rounded-lg bg-white border border-slate-100 overflow-hidden">
+                              <img src={identityDocumentFront} className="w-full h-full object-cover" alt="ID Front" />
+                            </div>
+                          )}
+                        </div>
+                        <div className="space-y-2">
+                          <span className="text-[9px] font-bold text-slate-500 block">Verso</span>
+                          <input 
+                            type="file" 
+                            accept="image/*"
+                            onChange={async (e) => {
+                              const file = e.target.files?.[0];
+                              if (file) {
+                                const reader = new FileReader();
+                                reader.onloadend = () => setIdentityDocumentBack(reader.result as string);
+                                reader.readAsDataURL(file);
+                              }
+                            }}
+                            className="text-[9px] w-full file:mr-2 file:py-1 file:px-2 file:rounded-md file:border-0 file:text-[9px] file:font-black file:bg-red-50 file:text-red-700 hover:file:bg-red-100 cursor-pointer"
+                          />
+                          {identityDocumentBack && (
+                            <div className="h-10 w-full rounded-lg bg-white border border-slate-100 overflow-hidden">
+                              <img src={identityDocumentBack} className="w-full h-full object-cover" alt="ID Back" />
+                            </div>
+                          )}
+                        </div>
+                      </div>
                     </div>
                   </div>
 

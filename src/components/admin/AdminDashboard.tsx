@@ -1,5 +1,6 @@
 import { formatCurrency } from '../../utils/currency';
 import React, { useState, useEffect } from 'react';
+import { apiFetch } from '../../lib/api';
 import { 
   LayoutDashboard, Home, Users, BarChart3, Settings, ShieldCheck, 
   Activity, Search, Trash2, Edit3, Plus, ArrowUpRight, TrendingUp, Calendar, Check, X, Eye,
@@ -44,7 +45,13 @@ import { useToast } from '../../contexts/ToastContext';
 export const AdminDashboard: React.FC<{ onBackToTraveler?: () => void }> = ({ onBackToTraveler }) => {
   const { user } = useAuth();
   const { addToast } = useToast();
-  const [activeTab, setActiveTab] = useState<'overview' | 'alerts' | 'listings' | 'users' | 'bookings' | 'revenue' | 'reviews' | 'reports' | 'settings' | 'logs' | 'ads' | 'withdrawals' | 'locations' | 'flash-info' | 'faq' | 'contact' | 'email'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'alerts' | 'listings' | 'users' | 'bookings' | 'revenue' | 'reviews' | 'reports' | 'settings' | 'logs' | 'ads' | 'withdrawals' | 'locations' | 'flash-info' | 'faq' | 'contact' | 'email' | 'verifications'>('overview');
+  const [verificationTypes, setVerificationTypes] = useState<any[]>([]);
+  const [editingVerifType, setEditingVerifType] = useState<any | null>(null);
+  const [isSavingVerifType, setIsSavingVerifType] = useState(false);
+  const [verifLabel, setVerifLabel] = useState('');
+  const [verifDescription, setVerifDescription] = useState('');
+  const [verifIsActive, setVerifIsActive] = useState(true);
   
   // Contact page & messages states
   const [contactSettings, setContactSettings] = useState<ContactSettings>(DEFAULT_CONTACT_SETTINGS);
@@ -209,7 +216,8 @@ export const AdminDashboard: React.FC<{ onBackToTraveler?: () => void }> = ({ on
         withdrawalList,
         faqList,
         contactSettingsData,
-        messageList
+        messageList,
+        verifTypeList
       ] = await Promise.all([
         getAllResidences().catch(() => []),
         getAllUsers().catch(() => []),
@@ -220,7 +228,8 @@ export const AdminDashboard: React.FC<{ onBackToTraveler?: () => void }> = ({ on
         getAllWithdrawals().catch(() => []),
         getAllFaqs().catch(() => []),
         getContactSettings().catch(() => ({})),
-        getAllContactMessages().catch(() => [])
+        getAllContactMessages().catch(() => []),
+        apiFetch('/api/admin/verification-types').then(r => r.ok ? r.json() : []).catch(() => [])
       ]);
 
       if (resList) setResidences(resList);
@@ -231,6 +240,7 @@ export const AdminDashboard: React.FC<{ onBackToTraveler?: () => void }> = ({ on
       if (withdrawalList) setWithdrawals(withdrawalList);
       if (faqList) setFaqs(faqList);
       if (messageList) setContactMessages(messageList);
+      if (verifTypeList && Array.isArray(verifTypeList)) setVerificationTypes(verifTypeList);
 
       if (settingsData) {
         if (settingsData.platformName !== undefined) setPlatformName(settingsData.platformName);
@@ -1452,6 +1462,53 @@ export const AdminDashboard: React.FC<{ onBackToTraveler?: () => void }> = ({ on
     }
   };
 
+  const handleSaveVerifType = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!verifLabel) return;
+    setIsSavingVerifType(true);
+    try {
+      const payload = {
+        label: verifLabel,
+        description: verifDescription,
+        is_active: verifIsActive
+      };
+      const url = editingVerifType ? `/api/admin/verification-types/${editingVerifType.id}` : '/api/admin/verification-types';
+      const method = editingVerifType ? 'PUT' : 'POST';
+      
+      const res = await apiFetch(url, {
+        method,
+        body: JSON.stringify(payload)
+      });
+      
+      if (res.ok) {
+        triggerSuccess(editingVerifType ? "Type de vérification mis à jour" : "Type de vérification ajouté");
+        setVerifLabel('');
+        setVerifDescription('');
+        setVerifIsActive(true);
+        setEditingVerifType(null);
+        await reloadData();
+      }
+    } catch (err) {
+      console.error(err);
+      addToast("Erreur lors de la sauvegarde", "error");
+    } finally {
+      setIsSavingVerifType(false);
+    }
+  };
+
+  const handleDeleteVerifType = async (id: number) => {
+    if (!window.confirm("Supprimer ce type de vérification ?")) return;
+    try {
+      const res = await apiFetch(`/api/admin/verification-types/${id}`, { method: 'DELETE' });
+      if (res.ok) {
+        triggerSuccess("Type de vérification supprimé");
+        await reloadData();
+      }
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
   // Hard Reset Handler
   const handleHardResetTrigger = () => {
     setResetPassword('');
@@ -1583,6 +1640,7 @@ export const AdminDashboard: React.FC<{ onBackToTraveler?: () => void }> = ({ on
               items: [
                 { id: 'listings', label: 'Hébergements', icon: Home },
                 { id: 'users', label: 'Utilisateurs', icon: Users },
+                { id: 'verifications', label: 'Vérifications', icon: ShieldCheck },
                 { id: 'reviews', label: 'Avis & Modération', icon: Activity },
               ]
             },
@@ -2094,6 +2152,155 @@ export const AdminDashboard: React.FC<{ onBackToTraveler?: () => void }> = ({ on
                     </div>
                   </div>
                 )}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* TAB 4.5: VERIFICATION TYPES MANAGEMENT */}
+        {activeTab === 'verifications' && (
+          <div className="space-y-8 animate-in fade-in duration-500">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+              <div>
+                <h2 className="text-3xl font-black text-slate-900 tracking-tight leading-none mb-1">Types de Vérifications</h2>
+                <p className="text-slate-500 font-medium text-sm">Gérez dynamiquement la liste des vérifications que les hôtes doivent effectuer.</p>
+              </div>
+              <button
+                onClick={() => {
+                  setEditingVerifType(null);
+                  setVerifLabel('');
+                  setVerifDescription('');
+                  setVerifIsActive(true);
+                }}
+                className="bg-slate-900 text-white px-5 py-3 rounded-2xl text-[10px] font-black uppercase tracking-widest hover:bg-slate-800 transition flex items-center gap-2 cursor-pointer shadow-sm"
+              >
+                <Plus size={14} /> Nouveau Type
+              </button>
+            </div>
+
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+              {/* Form */}
+              <div className="lg:col-span-1">
+                <form onSubmit={handleSaveVerifType} className="bg-slate-50 p-6 rounded-[32px] border border-slate-150 shadow-sm space-y-4">
+                  <h3 className="font-black text-slate-900 text-base">{editingVerifType ? "Modifier Type" : "Nouveau Type"}</h3>
+                  <div>
+                    <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1.5">Libellé</label>
+                    <input 
+                      type="text" 
+                      required
+                      value={verifLabel}
+                      onChange={(e) => setVerifLabel(e.target.value)}
+                      placeholder="Ex: Identité vérifiée"
+                      className="w-full bg-white border border-slate-200 rounded-xl px-4 py-3 text-xs font-bold outline-none focus:ring-2 focus:ring-red-500" 
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1.5">Description (Optionnel)</label>
+                    <textarea 
+                      value={verifDescription}
+                      onChange={(e) => setVerifDescription(e.target.value)}
+                      placeholder="Ex: Vérifier que la pièce correspond au client"
+                      className="w-full bg-white border border-slate-200 rounded-xl px-4 py-3 text-xs font-bold outline-none focus:ring-2 focus:ring-red-500 h-24" 
+                    />
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <input 
+                      type="checkbox" 
+                      id="verif_active"
+                      checked={verifIsActive}
+                      onChange={(e) => setVerifIsActive(e.target.checked)}
+                      className="w-4 h-4 rounded text-red-600 focus:ring-red-500 border-slate-300" 
+                    />
+                    <label htmlFor="verif_active" className="text-xs font-black text-slate-700 uppercase tracking-wider cursor-pointer">Actif</label>
+                  </div>
+                  <div className="flex gap-2 pt-4">
+                    <button
+                      type="submit"
+                      disabled={isSavingVerifType}
+                      className="flex-1 px-6 py-3 bg-red-600 hover:bg-red-700 disabled:opacity-50 text-white text-[10px] font-black uppercase tracking-widest rounded-xl transition cursor-pointer shadow-md shadow-red-100"
+                    >
+                      {isSavingVerifType ? "Enregistrement..." : "Enregistrer"}
+                    </button>
+                    {editingVerifType && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setEditingVerifType(null);
+                          setVerifLabel('');
+                          setVerifDescription('');
+                          setVerifIsActive(true);
+                        }}
+                        className="px-4 py-3 bg-white border border-slate-200 text-slate-600 text-[10px] font-black uppercase tracking-widest rounded-xl transition cursor-pointer"
+                      >
+                        Annuler
+                      </button>
+                    )}
+                  </div>
+                </form>
+              </div>
+
+              {/* List */}
+              <div className="lg:col-span-2">
+                <div className="bg-white border border-slate-100 rounded-[32px] overflow-hidden shadow-sm">
+                  <table className="w-full text-left border-collapse">
+                    <thead>
+                      <tr className="border-b border-slate-100 bg-slate-50/40 text-[10px] font-black text-slate-400 uppercase tracking-widest">
+                        <th className="py-5 px-6">Libellé</th>
+                        <th className="py-5 px-6">Description</th>
+                        <th className="py-5 px-6">Statut</th>
+                        <th className="py-5 px-6 text-center">Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-50 text-sm font-bold text-slate-700">
+                      {Array.isArray(verificationTypes) && verificationTypes.map((type) => (
+                        <tr key={type.id}>
+                          <td className="py-4 px-6">
+                            <span className="block font-black text-slate-900 leading-tight uppercase text-xs">{type.label}</span>
+                          </td>
+                          <td className="py-4 px-6 text-xs text-slate-500 font-medium max-w-[200px] truncate">
+                            {type.description || '-'}
+                          </td>
+                          <td className="py-4 px-6">
+                            <span className={cn(
+                              "px-2.5 py-1 rounded-full text-[9px] font-black uppercase",
+                              type.is_active ? "bg-green-50 text-green-700" : "bg-red-50 text-red-700"
+                            )}>
+                              {type.is_active ? 'Actif' : 'Inactif'}
+                            </span>
+                          </td>
+                          <td className="py-4 px-6 text-center">
+                            <div className="flex items-center justify-center gap-2">
+                              <button
+                                onClick={() => {
+                                  setEditingVerifType(type);
+                                  setVerifLabel(type.label);
+                                  setVerifDescription(type.description || '');
+                                  setVerifIsActive(!!type.is_active);
+                                }}
+                                className="bg-slate-50 hover:bg-slate-100 border border-slate-200 text-slate-600 p-2 rounded-xl transition cursor-pointer"
+                              >
+                                <Edit3 size={14} />
+                              </button>
+                              <button
+                                onClick={() => handleDeleteVerifType(type.id)}
+                                className="bg-red-50 hover:bg-red-600 hover:text-white border border-red-200 p-2 rounded-xl text-red-600 transition cursor-pointer"
+                              >
+                                <Trash2 size={14} />
+                              </button>
+                            </div>
+                          </td>
+                        </tr>
+                      ))}
+                      {verificationTypes.length === 0 && (
+                        <tr>
+                          <td colSpan={4} className="py-10 text-center text-slate-400 font-bold italic">
+                            Aucun type de vérification configuré.
+                          </td>
+                        </tr>
+                      )}
+                    </tbody>
+                  </table>
+                </div>
               </div>
             </div>
           </div>

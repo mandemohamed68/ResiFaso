@@ -664,7 +664,7 @@ function AppContent() {
                           initial={{ opacity: 0, y: 15 }}
                           animate={{ opacity: 1, y: 0 }}
                           exit={{ opacity: 0, y: -15 }}
-                          className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-6"
+                          className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8"
                         >
                           {filteredResidences.slice((homePage - 1) * 40, homePage * 40).map((res) => (
                             <div key={res.id} className="relative">

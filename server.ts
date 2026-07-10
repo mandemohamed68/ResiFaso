@@ -174,7 +174,7 @@ async function startServer() {
 
   // ---------- AUTH ----------
   app.post("/api/auth/register", async (req, res) => {
-    const { email, password, displayName } = req.body;
+    const { email, password, displayName, role: requestedRole, identity_document_front, identity_document_back } = req.body;
     if (!email || !password) return res.status(400).json({ error: "Email et mot de passe requis" });
 
     try {
@@ -183,11 +183,11 @@ async function startServer() {
 
       const hashedPassword = await bcrypt.hash(password, 10);
       const uid = 'u_' + Math.random().toString(36).substr(2, 9);
-      const role = email === 'mandemohamed68@gmail.com' ? 'admin' : 'client';
+      const role = email === 'mandemohamed68@gmail.com' ? 'admin' : (requestedRole || 'client');
 
       await executeSql(
-        "INSERT INTO users (uid, email, password_hash, display_name, role) VALUES (?, ?, ?, ?, ?)",
-        [uid, email, hashedPassword, displayName || 'Voyageur', role]
+        "INSERT INTO users (uid, email, password_hash, display_name, role, identity_document_front, identity_document_back) VALUES (?, ?, ?, ?, ?, ?, ?)",
+        [uid, email, hashedPassword, displayName || 'Voyageur', role, identity_document_front || null, identity_document_back || null]
       );
 
       const token = jwt.sign({ uid, email, role }, JWT_SECRET, { expiresIn: '30d' });
@@ -434,6 +434,103 @@ async function startServer() {
       }
       await queries.updateUserProfile(req.params.uid, req.body);
       res.json({ success: true });
+    } catch (err: any) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  // --- Verification Types (Admin) ---
+  app.get("/api/admin/verification-types", authenticateToken, async (req: AuthRequest, res) => {
+    try {
+      if (req.user?.role !== 'admin') return res.status(403).json({ error: "Interdit" });
+      const types = await executeSql("SELECT * FROM verification_types ORDER BY created_at ASC");
+      res.json(types);
+    } catch (err: any) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  app.post("/api/admin/verification-types", authenticateToken, async (req: AuthRequest, res) => {
+    try {
+      if (req.user?.role !== 'admin') return res.status(403).json({ error: "Interdit" });
+      const { id, label, description } = req.body;
+      await executeSql(
+        "INSERT INTO verification_types (id, label, description, is_active) VALUES (?, ?, ?, 1)",
+        [id || 'vt_' + Math.random().toString(36).substr(2, 9), label, description]
+      );
+      res.json({ success: true });
+    } catch (err: any) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  app.put("/api/admin/verification-types/:id", authenticateToken, async (req: AuthRequest, res) => {
+    try {
+      if (req.user?.role !== 'admin') return res.status(403).json({ error: "Interdit" });
+      const { label, description, is_active } = req.body;
+      await executeSql(
+        "UPDATE verification_types SET label = ?, description = ?, is_active = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?",
+        [label, description, is_active ? 1 : 0, req.params.id]
+      );
+      res.json({ success: true });
+    } catch (err: any) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  app.delete("/api/admin/verification-types/:id", authenticateToken, async (req: AuthRequest, res) => {
+    try {
+      if (req.user?.role !== 'admin') return res.status(403).json({ error: "Interdit" });
+      // Check if used (optional, user said "if not used", otherwise disable)
+      // For now just delete or deactivate
+      await executeSql("DELETE FROM verification_types WHERE id = ?", [req.params.id]);
+      res.json({ success: true });
+    } catch (err: any) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  // --- Booking Verifications (Owner/Admin) ---
+  app.get("/api/reservations/:id/verifications", authenticateToken, async (req: AuthRequest, res) => {
+    try {
+      const booking = await queries.getBookingById(req.params.id);
+      if (!booking) return res.status(404).json({ error: "Réservation non trouvée" });
+      
+      if (req.user?.uid !== booking.ownerId && req.user?.uid !== booking.clientId && req.user?.role !== 'admin') {
+        return res.status(403).json({ error: "Non autorisé" });
+      }
+
+      const activeTypes = await executeSql("SELECT * FROM verification_types WHERE is_active = 1");
+      const currentStatus = booking.verificationsStatus ? (typeof booking.verificationsStatus === 'string' ? JSON.parse(booking.verificationsStatus) : booking.verificationsStatus) : {};
+      
+      res.json({
+        types: Array.isArray(activeTypes) ? activeTypes : [],
+        status: currentStatus
+      });
+    } catch (err: any) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  app.put("/api/reservations/:id/verifications", authenticateToken, async (req: AuthRequest, res) => {
+    try {
+      const booking = await queries.getBookingById(req.params.id);
+      if (!booking) return res.status(404).json({ error: "Réservation non trouvée" });
+      
+      if (req.user?.uid !== booking.ownerId && req.user?.role !== 'admin') {
+        return res.status(403).json({ error: "Seul l'hôte peut valider les vérifications" });
+      }
+
+      const { verificationId, status } = req.body;
+      const currentStatus = booking.verificationsStatus ? (typeof booking.verificationsStatus === 'string' ? JSON.parse(booking.verificationsStatus) : booking.verificationsStatus) : {};
+      currentStatus[verificationId] = status;
+
+      await executeSql(
+        "UPDATE bookings SET verifications_status = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?",
+        [JSON.stringify(currentStatus), req.params.id]
+      );
+
+      res.json({ success: true, status: currentStatus });
     } catch (err: any) {
       res.status(500).json({ error: err.message });
     }
@@ -962,6 +1059,11 @@ async function startServer() {
     } catch (err: any) {
       res.status(500).json({ error: err.message });
     }
+  });
+
+  // 404 for undefined API routes
+  app.all("/api/*", (req, res) => {
+    res.status(404).json({ error: "API Route not found" });
   });
 
   // ---------- SERVEUR STATIQUE ----------

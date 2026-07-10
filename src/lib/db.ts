@@ -31,10 +31,15 @@ const apiFetch = async (endpoint: string, options: any = {}) => {
   try {
     const response = await fetch(fullUrl, { ...options, headers });
     if (!response.ok) {
-      const errorData = await response.json().catch(() => ({}));
+      const contentType = response.headers.get("content-type");
+      const errorData = (contentType && contentType.includes("application/json")) ? await response.json().catch(() => ({})) : {};
       throw new Error(errorData.error || `API Error: ${response.status} ${response.statusText}`);
     }
-    return response.json();
+    const contentType = response.headers.get("content-type");
+    if (contentType && contentType.includes("application/json")) {
+      return response.json();
+    }
+    return {} as any;
   } catch (err: any) {
     console.error(`Fetch error at ${endpoint}:`, err);
     throw err;

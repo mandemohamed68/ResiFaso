@@ -179,6 +179,7 @@ export const getAllBookings = async (options: { clientId?: string, ownerId?: str
       cancelled_at as cancelledAt, refund_status as refundStatus, refund_amount as refundAmount, 
       refund_phone as refundPhone, refund_provider as refundProvider, refund_processed_at as refundProcessedAt, 
       stay_status as stayStatus, checked_in_at as checkedInAt, checked_out_at as checkedOutAt, 
+      verifications_status as verificationsStatus,
       created_at as createdAt 
     FROM bookings
   `;
@@ -240,6 +241,7 @@ export const getAllBookings = async (options: { clientId?: string, ownerId?: str
     stayStatus: row.stayStatus || row.stay_status || row.staystatus,
     checkedInAt: row.checkedInAt || row.checked_in_at || row.checkedinat,
     checkedOutAt: row.checkedOutAt || row.checked_out_at || row.checkedoutat,
+    verificationsStatus: row.verificationsStatus || row.verifications_status || row.verificationsstatus,
     createdAt: row.createdAt || row.created_at || row.createdat
   }));
 };
@@ -250,7 +252,8 @@ export const getBookingById = async (id: string) => {
       id, residence_id as residenceId, client_id as clientId, owner_id as ownerId, 
       check_in as checkIn, check_out as checkOut, guests, total_price as totalPrice, 
       advance_paid as advancePaid, payment_status as paymentStatus, booking_status as bookingStatus, 
-      transaction_id as transactionId, created_at as createdAt 
+      transaction_id as transactionId, verifications_status as verificationsStatus,
+      created_at as createdAt 
     FROM bookings 
     WHERE id = ?
   `, [id]);
@@ -271,6 +274,7 @@ export const getBookingById = async (id: string) => {
     paymentStatus: row.paymentStatus || row.payment_status || row.paymentstatus,
     bookingStatus: row.bookingStatus || row.booking_status || row.bookingstatus,
     transactionId: row.transactionId || row.transaction_id || row.transactionid,
+    verificationsStatus: row.verificationsStatus || row.verifications_status || row.verificationsstatus,
     createdAt: row.createdAt || row.created_at || row.createdat
   };
 };

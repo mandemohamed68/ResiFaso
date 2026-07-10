@@ -22,6 +22,17 @@ export interface UserProfile {
   paymentPreferences?: any;
   hostCancellationFee?: number;
   hostCancellationRulesText?: string;
+  identityDocumentFront?: string;
+  identityDocumentBack?: string;
+}
+
+export interface VerificationType {
+  id: string;
+  label: string;
+  description?: string;
+  isActive: boolean;
+  createdAt?: string;
+  updatedAt?: string;
 }
 
 export type ResidenceType = "appartement" | "chambre" | "villa" | "auberge";
@@ -124,6 +135,7 @@ export interface Booking {
   totalAmount?: number;
   status?: string;
   clientPhone?: string;
+  verificationsStatus?: string; // JSON string
 }
 
 export interface Review {
