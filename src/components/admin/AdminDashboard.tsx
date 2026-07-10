@@ -5,7 +5,7 @@ import {
   LayoutDashboard, Home, Users, BarChart3, Settings, ShieldCheck, 
   Activity, Search, Trash2, Edit3, Plus, ArrowUpRight, TrendingUp, Calendar, Check, X, Eye,
   FileText, Download, Award, ShieldAlert, Megaphone, Upload, Wallet, ArrowLeft, MapPin, MessageSquare, Mail, Phone, Clock,
-  ChevronLeft, ChevronRight, RefreshCw
+  ChevronLeft, ChevronRight, RefreshCw, KeyRound, Shield
 } from 'lucide-react';
 import { CustomSelect } from '../common/CustomSelect';
 import { Residence, UserProfile, UserRole, Booking, Review, BookingStatus, PaymentStatus, Advertisement, WithdrawalRequest, WithdrawalStatus, FAQItem, ContactMessage, ContactSettings } from '../../types';
@@ -2583,329 +2583,180 @@ export const AdminDashboard: React.FC<{ onBackToTraveler?: () => void }> = ({ on
               )}
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              {filteredUsers.slice((usersPage - 1) * 50, usersPage * 50).map(usr => {
-                const isListedSU = isSuperAdminEmail(usr.email);
-                const isSuspended = usr.isSuspended === true;
-                return (
-                  <div 
-                    key={usr.uid} 
-                    className={cn(
-                      "p-6 rounded-[28px] border transition-all hover:shadow-md flex flex-col justify-between gap-4",
-                      isListedSU ? "bg-red-50/50 border-red-200" : isSuspended ? "bg-amber-50/45 border-amber-200 opacity-90" : "bg-slate-50/40 border-slate-100"
-                    )}
-                  >
-                    <div className="flex items-center gap-5">
-                      <div className={cn(
-                        "w-12 h-12 rounded-xl flex items-center justify-center font-black text-white shrink-0",
-                        isListedSU ? "bg-red-600 shadow-[0_0_12px_rgba(239,43,45,0.3)]" : "bg-slate-900"
-                      )}>
-                        {usr.displayName?.[0] || 'U'}
-                      </div>
-                      <div>
-                        <h4 className="font-extrabold text-slate-900 leading-tight">{usr.displayName || "Sans Nom"}</h4>
-                        <p className="text-xs text-slate-400 font-semibold">{usr.email}</p>
-                        <div className="flex items-center gap-2 mt-2 flex-wrap">
-                          <span className="px-2 py-0.5 bg-white border border-slate-200 rounded text-[9px] font-black uppercase text-slate-500">{usr.role}</span>
-                          {usr.isVerified && <span className="px-2 py-0.5 bg-green-100 text-green-800 rounded text-[9px] font-black uppercase">Compte Certifié</span>}
-                          {isListedSU && <span className="px-2 py-0.5 bg-red-100 text-red-800 rounded text-[9px] font-black uppercase">Super Administrateur</span>}
-                          {isSuspended && <span className="px-2 py-0.5 bg-red-600 text-white rounded text-[9px] font-black uppercase">Compte Suspendu</span>}
-                        </div>
-                      </div>
-                      <div className="flex gap-2 shrink-0">
-                        <button
-                          onClick={() => {
-                            if (expandedUserSecurityUid === usr.uid) {
-                              setExpandedUserSecurityUid(null);
-                              setEditUserPassword('');
-                              setEditUserPermissions([]);
-                            } else {
-                              setExpandedUserSecurityUid(usr.uid);
-                              setEditUserPassword('');
-                              setEditUserPermissions(usr.permissions ? usr.permissions.split(',') : []);
-                            }
-                          }}
-                          className={cn(
-                            "p-2 rounded-xl border transition cursor-pointer",
-                            expandedUserSecurityUid === usr.uid
-                              ? "bg-slate-900 border-slate-900 text-white"
-                              : "bg-blue-50 border-blue-200 text-blue-600 hover:bg-blue-100"
-                          )}
-                          title="Gérer les droits et le mot de passe"
-                        >
-                          <ShieldCheck size={16} />
-                        </button>
-                        <button
-                          onClick={() => handleToggleSuspension(usr.uid, isSuspended, usr.email)}
-                          className={cn(
-                            "p-2 rounded-xl border transition cursor-pointer",
-                            isSuspended 
-                              ? "bg-green-50 border-green-200 text-green-600 hover:bg-green-100" 
-                              : "bg-amber-50 border-amber-200 text-amber-600 hover:bg-amber-100"
-                          )}
-                          title={isSuspended ? "Réactiver le compte" : "Suspendre le compte"}
-                        >
-                          {isSuspended ? <Check size={16} /> : <ShieldAlert size={16} />}
-                        </button>
-                        <button
-                          onClick={async () => {
-                            if (isSuperAdminEmail(usr.email)) {
-                              addToast("Impossible de supprimer un Super Admin.", "error");
-                              return;
-                            }
-                            if (window.confirm(`Voulez-vous supprimer définitivement le compte de ${usr.email} ?`)) {
-                              handleDeleteUser(usr.uid, usr.email);
-                            }
-                          }}
-                          className="p-2 bg-red-50 border border-red-200 text-red-600 hover:bg-red-100 rounded-xl transition cursor-pointer"
-                          title="Supprimer définitivement"
-                        >
-                          <Trash2 size={16} />
-                        </button>
-                      </div>
+            <div className="overflow-x-auto bg-white border border-slate-200 rounded-[24px] shadow-sm">
+  <table className="w-full text-left border-collapse">
+    <thead>
+      <tr className="border-b border-slate-200 bg-slate-50/50">
+        <th className="p-4 text-[10px] font-black text-slate-500 uppercase tracking-widest">Utilisateur</th>
+        <th className="p-4 text-[10px] font-black text-slate-500 uppercase tracking-widest">Contact</th>
+        <th className="p-4 text-[10px] font-black text-slate-500 uppercase tracking-widest">Rôle / Statut</th>
+        <th className="p-4 text-[10px] font-black text-slate-500 uppercase tracking-widest">ID & Vérification</th>
+        <th className="p-4 text-[10px] font-black text-slate-500 uppercase tracking-widest text-right">Actions</th>
+      </tr>
+    </thead>
+    <tbody className="divide-y divide-slate-100">
+      {filteredUsers.slice((usersPage - 1) * 50, usersPage * 50).map(usr => {
+        const isListedSU = isSuperAdminEmail(usr.email);
+        const isSuspended = usr.isSuspended === true;
+        return (
+          <React.Fragment key={usr.uid}>
+            <tr className={cn(
+              "transition-colors hover:bg-slate-50/80",
+              isListedSU ? "bg-red-50/30" : isSuspended ? "bg-amber-50/30" : ""
+            )}>
+              <td className="p-4">
+                <div className="flex items-center gap-3">
+                  <div className={cn(
+                    "w-10 h-10 rounded-xl flex items-center justify-center font-black text-white shrink-0",
+                    isListedSU ? "bg-red-600 shadow-sm" : "bg-slate-900"
+                  )}>
+                    {usr.displayName?.[0] || 'U'}
+                  </div>
+                  <div>
+                    <h4 className="font-extrabold text-slate-900">{usr.displayName || "Sans Nom"}</h4>
+                  </div>
+                </div>
+              </td>
+              <td className="p-4">
+                <p className="text-xs text-slate-600 font-bold">{usr.email}</p>
+                {usr.phoneNumber && <p className="text-xs text-slate-500">{usr.phoneNumber}</p>}
+              </td>
+              <td className="p-4">
+                <div className="flex flex-wrap items-center gap-1.5">
+                  <span className="px-2 py-0.5 bg-slate-100 border border-slate-200 rounded text-[9px] font-black uppercase text-slate-600">{usr.role}</span>
+                  {usr.isVerified && <span className="px-2 py-0.5 bg-green-100 text-green-800 rounded text-[9px] font-black uppercase">Certifié</span>}
+                  {isListedSU && <span className="px-2 py-0.5 bg-red-100 text-red-800 rounded text-[9px] font-black uppercase">Super Admin</span>}
+                  {isSuspended && <span className="px-2 py-0.5 bg-amber-100 text-amber-800 rounded text-[9px] font-black uppercase">Suspendu</span>}
+                </div>
+              </td>
+              <td className="p-4">
+                {(usr.idNumber || usr.idCardUrl) ? (
+                  <div className="space-y-1.5">
+                    <div className="text-[10px] font-black text-slate-500 uppercase tracking-widest">
+                      {usr.idType || 'Document'} {usr.idNumber && <span className="ml-1 text-slate-800 font-mono">#{usr.idNumber}</span>}
                     </div>
-
-                    {/* ID Document Review for Admins */}
-                    {(usr.idNumber || usr.idCardUrl) && (
-                      <div className="bg-slate-50 border text-xs border-slate-200 rounded-2xl p-4 space-y-3 mt-1 shadow-sm">
-                        <div className="flex items-center justify-between border-b border-slate-200 pb-1.5 flex-wrap gap-2">
-                          <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest">📂 Pièce d'Identité : {usr.idType || 'Document'}</span>
-                          <div className="flex items-center gap-1.5">
-                            {usr.idExpiry && new Date(usr.idExpiry) < new Date() && (
-                              <span className="px-2 py-0.5 rounded text-[8px] font-black uppercase bg-red-100 text-red-800 font-extrabold animate-pulse">
-                                ⚠️ Expiré
-                              </span>
-                            )}
-                            <span className={cn(
-                              "px-2 py-0.5 rounded text-[8px] font-black uppercase",
-                              usr.verificationStatus === 'verified' 
-                                ? 'bg-green-100 text-green-800' 
-                                : usr.verificationStatus === 'pending'
-                                  ? 'bg-amber-100 text-amber-800 animate-pulse'
-                                  : 'bg-slate-200 text-slate-650'
-                            )}>
-                              {usr.verificationStatus === 'verified' ? 'Certifié' : usr.verificationStatus === 'pending' ? 'Attente d\'Validation' : 'Non Validé'}
-                            </span>
-                          </div>
-                        </div>
-                        <div className="grid grid-cols-2 gap-3 text-xs">
-                          <div>
-                            <span className="text-[9px] text-slate-400 font-bold uppercase block">Numéro</span>
-                            <span className="font-extrabold text-slate-900 font-mono">{usr.idNumber || 'N/A'}</span>
-                          </div>
-                          <div>
-                            <span className="text-[9px] text-slate-400 font-bold uppercase block">Expiration</span>
-                            <span className="font-extrabold text-slate-900">{usr.idExpiry || 'N/A'}</span>
-                          </div>
-                        </div>
-                        
-                        {usr.idCardUrl && (
-                          <div className="space-y-1.5 pt-1.5 border-t border-slate-150">
-                            <span className="text-[9px] text-slate-400 font-bold uppercase block">Document téléversé :</span>
-                            <div className="relative border border-slate-200 rounded-xl overflow-hidden aspect-video bg-white group max-h-[140px]">
-                              <img 
-                                src={usr.idCardUrl} 
-                                alt="ID document preview" 
-                                className="w-full h-full object-contain cursor-zoom-in"
-                                referrerPolicy="no-referrer"
-                                onClick={() => {
-                                  // Preview zoomable document
-                                  const win = window.open();
-                                  if (win) {
-                                    win.document.write(`<div style="display:flex; justify-content:center; align-items:center; height:100vh; background:#0f172a;"><img src="${usr.idCardUrl}" style="max-width:100%; max-height:100%; object-fit:contain; border-radius:12px; box-shadow:0 25px 50px -12px rgba(0,0,0,0.5);" /></div>`);
-                                  } else {
-                                    addToast("Impossible d'ouvrir l'onglet. Veuillez autoriser les popups.", "error");
-                                  }
-                                }}
-                              />
-                              <div className="absolute inset-x-0 bottom-0 bg-slate-950/70 p-1 text-center text-[8px] font-black text-white uppercase tracking-wider opacity-0 group-hover:opacity-100 transition-opacity">
-                                Ouvrir en grand format
-                              </div>
-                            </div>
-                          </div>
-                        )}
-
-                        {(usr.verificationStatus === 'pending' || (usr.idExpiry && new Date(usr.idExpiry) < new Date())) && (
-                          <div className="flex gap-2 pt-2 border-t border-slate-200">
-                            <button
-                              onClick={() => handleApproveIdentity(usr.uid, usr.email, usr.displayName || 'Utilisateur')}
-                              className="flex-1 py-1.5 bg-green-600 hover:bg-green-700 text-white rounded-lg text-[9px] font-black uppercase tracking-wider transition-all cursor-pointer text-center"
-                            >
-                              Approuver
-                            </button>
-                            <button
-                              onClick={() => {
-                                if (confirm("Voulez-vous rejeter cette pièce d'identité ?")) {
-                                  handleRejectIdentity(usr.uid, usr.email, usr.displayName || 'Utilisateur');
-                                }
-                              }}
-                              className="flex-1 py-1.5 bg-red-650 bg-red-600 hover:bg-red-700 text-white rounded-lg text-[9px] font-black uppercase tracking-wider transition-all cursor-pointer text-center"
-                            >
-                              Rejeter (Reset)
-                            </button>
-                          </div>
-                        )}
+                    {usr.idExpiry && new Date(usr.idExpiry) < new Date() && (
+                      <span className="px-2 py-0.5 rounded text-[8px] font-black uppercase bg-red-100 text-red-800 mr-1 inline-block">Expiré</span>
+                    )}
+                    <span className={cn(
+                      "px-2 py-0.5 rounded text-[8px] font-black uppercase inline-block",
+                      usr.verificationStatus === 'verified' ? 'bg-green-100 text-green-800' :
+                      usr.verificationStatus === 'rejected' ? 'bg-red-100 text-red-800' :
+                      'bg-amber-100 text-amber-800'
+                    )}>
+                      {usr.verificationStatus === 'verified' ? 'Vérifié' : usr.verificationStatus === 'rejected' ? 'Rejeté' : 'En attente'}
+                    </span>
+                    {(usr.verificationStatus === 'pending' || (usr.idExpiry && new Date(usr.idExpiry) < new Date())) && (
+                      <div className="flex gap-1 mt-1">
+                        <button onClick={() => handleApproveIdentity(usr.uid, usr.email, usr.displayName || 'Utilisateur')} className="px-2 py-1 bg-green-600 hover:bg-green-700 text-white rounded text-[8px] font-black uppercase cursor-pointer">Approuver</button>
+                        <button onClick={() => { if(confirm("Rejeter ?")) handleRejectIdentity(usr.uid, usr.email, usr.displayName || 'Utilisateur'); }} className="px-2 py-1 bg-red-600 hover:bg-red-700 text-white rounded text-[8px] font-black uppercase cursor-pointer">Rejeter</button>
                       </div>
                     )}
-
-                    {/* Change Roles bar */}
-                    {!isListedSU ? (
-                      <div className="border-t border-slate-100 pt-4 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
-                        <span className="text-[10px] font-black text-slate-400 uppercase tracking-wider">
-                          Changer rôle :
-                          {!isCurrentUserSU && (
-                            <span className="text-[8px] text-red-500 font-bold block normal-case mt-0.5">
-                              (Réservé au Super Admin)
-                            </span>
-                          )}
-                        </span>
+                  </div>
+                ) : (
+                  <span className="text-[10px] text-slate-400 font-bold italic">Aucune pièce</span>
+                )}
+              </td>
+              <td className="p-4 text-right">
+                <div className="flex items-center justify-end gap-1">
+                  <button onClick={() => {
+                    if (expandedUserSecurityUid === usr.uid) {
+                      setExpandedUserSecurityUid(null);
+                      setEditUserPassword('');
+                      setEditUserPermissions([]);
+                    } else {
+                      setExpandedUserSecurityUid(usr.uid);
+                      setEditUserPassword('');
+                      setEditUserPermissions(usr.permissions ? usr.permissions.split(',') : []);
+                    }
+                  }} className={cn("p-1.5 rounded-lg border transition cursor-pointer", expandedUserSecurityUid === usr.uid ? "bg-slate-900 text-white border-slate-900" : "bg-blue-50 text-blue-600 border-blue-200 hover:bg-blue-100")} title="Droits & Mdp"><ShieldCheck size={14} /></button>
+                  
+                  {!isListedSU && (
+                    <>
+                      <button onClick={() => handleToggleSuspension(usr.uid, isSuspended, usr.email)} className={cn("p-1.5 rounded-lg border transition cursor-pointer", isSuspended ? "bg-green-50 text-green-600 border-green-200" : "bg-amber-50 text-amber-600 border-amber-200")} title={isSuspended ? "Réactiver" : "Suspendre"}>
+                        {isSuspended ? <Check size={14} /> : <ShieldAlert size={14} />}
+                      </button>
+                      <button onClick={() => {
+                        if (window.confirm(`Supprimer définitivement ${usr.email} ?`)) {
+                          handleDeleteUser(usr.uid, usr.email);
+                        }
+                      }} className="p-1.5 rounded-lg bg-red-50 text-red-600 border-red-200 hover:bg-red-100 cursor-pointer" title="Supprimer">
+                        <Trash2 size={14} />
+                      </button>
+                    </>
+                  )}
+                </div>
+              </td>
+            </tr>
+            {expandedUserSecurityUid === usr.uid && (
+              <tr className="bg-slate-50/50">
+                <td colSpan={5} className="p-4 border-b border-slate-200">
+                  <div className="space-y-4 animate-in slide-in-from-top-2 duration-200">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <span className="text-[10px] font-black text-slate-500 uppercase tracking-wider">Changer rôle :</span>
+                      {isListedSU ? (
+                        <span className="text-[10px] font-black text-red-600 bg-red-50 px-2 py-0.5 rounded uppercase">Statut Intouchable</span>
+                      ) : (
                         <div className="flex gap-1.5 flex-wrap">
-                          {['client', 'owner', 'admin', 'manager'].map((rCode) => {
+                          {['client', 'owner', 'admin', 'manager'].map(rCode => {
                             const isCurrent = usr.role === rCode;
                             return (
-                              <button
-                                key={rCode}
-                                disabled={!isCurrentUserSU}
-                                onClick={() => handleChangeRole(usr.uid, usr.email, usr.role, rCode as UserRole)}
-                                className={cn(
-                                  "px-2.5 py-1 rounded-xl text-[10px] font-bold uppercase transition-all border",
-                                  isCurrent
-                                    ? "bg-slate-900 border-slate-900 text-white"
-                                    : "bg-white border-slate-200 text-slate-600 hover:bg-slate-100 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
-                                )}
-                              >
+                              <button key={rCode} disabled={!isCurrentUserSU} onClick={() => handleChangeRole(usr.uid, usr.email, usr.role, rCode as UserRole)} className={cn("px-2.5 py-1 rounded-lg text-[10px] font-bold uppercase transition-all border", isCurrent ? "bg-slate-900 border-slate-900 text-white" : "bg-white border-slate-200 text-slate-600 hover:bg-slate-100 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer")}>
                                 {rCode === 'client' ? 'Voyageur' : rCode === 'owner' ? 'Hôte' : rCode === 'admin' ? 'Admin' : 'Manager'}
                               </button>
                             );
                           })}
                         </div>
-                      </div>
-                    ) : (
-                      <div className="border-t border-slate-100 pt-4 text-center text-xs font-black text-red-800 uppercase tracking-widest bg-red-50/50 py-2 rounded-xl">
-                        Statut Intouchable
-                      </div>
-                    )}
-
-                    {/* Suspend or Delete User action controls */}
-                    {!isListedSU && (
-                      <div className="flex gap-2 justify-end border-t border-slate-100/80 pt-4">
-                        <button
-                          onClick={() => handleToggleSuspendUser(usr.uid, usr.email, isSuspended)}
-                          className={cn(
-                            "px-3 py-1.5 rounded-xl text-[10px] font-extrabold uppercase transition cursor-pointer border",
-                            isSuspended 
-                              ? "bg-green-50 border-green-200 text-green-700 hover:bg-green-100" 
-                              : "bg-amber-50 border-amber-200 text-amber-700 hover:bg-amber-100"
-                          )}
-                        >
-                          {isSuspended ? "Réactiver" : "Suspendre"}
-                        </button>
-                        <button
-                          onClick={() => handleDeleteUser(usr.uid, usr.email)}
-                          className="px-3 py-1.5 rounded-xl text-[10px] font-extrabold uppercase transition cursor-pointer border bg-red-50 hover:bg-red-650 hover:text-white text-red-700 duration-200 border-red-200"
-                        >
-                          Supprimer
-                        </button>
-                      </div>
-                    )}
-
-                    {/* Collapsible Security & Permissions Panel */}
-                    {expandedUserSecurityUid === usr.uid && (
-                      <div className="border-t border-slate-100 pt-4 mt-2 space-y-4 animate-in slide-in-from-top-2 duration-200">
-                        <div className="bg-slate-100/60 p-4 rounded-2xl border border-slate-200 space-y-4">
-                          <h5 className="text-[11px] font-black text-slate-800 uppercase tracking-widest flex items-center gap-1.5">
-                            <span>🛡️ Droits & Sécurité de {usr.displayName || 'l\'utilisateur'}</span>
-                          </h5>
-                          
-                          {/* Password modification input */}
-                          <div className="space-y-1.5">
-                            <label className="block text-[9px] font-black text-slate-500 uppercase tracking-widest font-bold">Définir un Nouveau Mot de passe</label>
-                            <div className="flex gap-2">
-                              <div className="relative flex-1">
-                                <input
-                                  type="text"
-                                  placeholder="Laisser vide pour ne pas modifier"
-                                  value={editUserPassword}
-                                  onChange={(e) => setEditUserPassword(e.target.value)}
-                                  className="w-full bg-white border border-slate-200 rounded-xl pl-4 pr-10 py-2.5 text-xs font-bold outline-none focus:ring-2 focus:ring-red-500"
-                                />
-                                <button
-                                  type="button"
-                                  onClick={() => {
-                                    const chars = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#%&*";
-                                    let pass = "";
-                                    for (let i = 0; i < 10; i++) {
-                                      pass += chars.charAt(Math.floor(Math.random() * chars.length));
-                                    }
-                                    setEditUserPassword(pass);
-                                    addToast("Mot de passe généré !", "success");
-                                  }}
-                                  className="absolute right-2 top-2 p-1 text-slate-400 hover:text-slate-650 rounded-lg hover:bg-slate-100 cursor-pointer"
-                                  title="Générer un mot de passe fort"
-                                >
-                                  <RefreshCw size={13} />
-                                </button>
-                              </div>
-                            </div>
-                          </div>
-
-                          {/* Permissions list checkboxes */}
-                          <div className="space-y-2">
-                            <label className="block text-[9px] font-black text-slate-500 uppercase tracking-widest font-bold">Permissions / Droits d'Accès</label>
-                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                              {AVAILABLE_PERMISSIONS.map((perm) => {
-                                const isChecked = editUserPermissions.includes(perm.id);
-                                return (
-                                  <label key={perm.id} className="flex items-center gap-2 p-1.5 bg-white rounded-lg border border-slate-150 hover:border-slate-200 transition cursor-pointer select-none">
-                                    <input
-                                      type="checkbox"
-                                      checked={isChecked}
-                                      onChange={() => {
-                                        if (isChecked) {
-                                          setEditUserPermissions(editUserPermissions.filter(p => p !== perm.id));
-                                        } else {
-                                          setEditUserPermissions([...editUserPermissions, perm.id]);
-                                        }
-                                      }}
-                                      className="w-3.5 h-3.5 text-red-650 accent-red-600 rounded border-slate-300 focus:ring-red-500 cursor-pointer"
-                                    />
-                                    <span className="text-[11px] font-semibold text-slate-700">{perm.label}</span>
-                                  </label>
-                                );
-                              })}
-                            </div>
-                          </div>
-
-                          <div className="flex justify-end gap-2 pt-2 border-t border-slate-200">
-                            <button
-                              type="button"
-                              onClick={() => {
-                                setExpandedUserSecurityUid(null);
-                                setEditUserPassword('');
-                                setEditUserPermissions([]);
-                              }}
-                              className="px-3 py-1.5 text-slate-500 text-[9px] font-black uppercase tracking-widest hover:bg-slate-200 rounded-lg transition cursor-pointer"
-                            >
-                              Annuler
-                            </button>
-                            <button
-                              type="button"
-                              disabled={isUpdatingUserSecurity}
-                              onClick={() => handleUpdateUserSecurity(usr.uid, usr.email)}
-                              className="px-4 py-1.5 bg-red-600 hover:bg-red-700 disabled:opacity-50 text-white text-[9px] font-black uppercase tracking-widest rounded-lg transition cursor-pointer shadow-sm"
-                            >
-                              {isUpdatingUserSecurity ? "Enregistrement..." : "Enregistrer"}
-                            </button>
-                          </div>
+                      )}
+                    </div>
+                    
+                    <div className="space-y-4 pt-3 border-t border-slate-200">
+                      <div>
+                        <label className="block text-[10px] font-black text-slate-500 uppercase tracking-widest mb-2">Modifier le mot de passe (laisser vide si inchangé)</label>
+                        <div className="relative">
+                          <input type="text" placeholder="Nouveau mot de passe fort" value={editUserPassword} onChange={e => setEditUserPassword(e.target.value)} className="w-full pl-10 pr-4 py-2 border-2 border-slate-200 rounded-xl text-sm font-semibold focus:outline-none focus:border-red-500" />
+                          <KeyRound className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
                         </div>
                       </div>
-                    )}
+                      
+                      {(usr.role === 'admin' || usr.role === 'manager') && (
+                        <div>
+                          <label className="block text-[10px] font-black text-slate-500 uppercase tracking-widest mb-3 flex items-center gap-1.5"><Shield size={12}/> Permissions d'accès</label>
+                          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
+                            {AVAILABLE_PERMISSIONS.map(perm => {
+                              const checked = editUserPermissions.includes(perm.id);
+                              return (
+                                <label key={perm.id} className={cn("flex items-center gap-3 p-2.5 rounded-xl border-2 transition-all cursor-pointer hover:bg-white", checked ? "border-red-200 bg-red-50/30" : "border-slate-100 bg-slate-50/50")}>
+                                  <input type="checkbox" checked={checked} onChange={(e) => {
+                                    if(e.target.checked) setEditUserPermissions([...editUserPermissions, perm.id]);
+                                    else setEditUserPermissions(editUserPermissions.filter(p => p !== perm.id));
+                                  }} className="w-4 h-4 text-red-600 rounded border-slate-300 focus:ring-red-500" />
+                                  <span className="text-xs font-semibold text-slate-700">{perm.label}</span>
+                                </label>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      )}
+                      
+                      <div className="flex justify-end pt-2">
+                        <button type="button" disabled={isUpdatingUserSecurity} onClick={() => handleUpdateUserSecurity(usr.uid, usr.email)} className="px-4 py-2 bg-slate-900 hover:bg-black text-white text-[10px] font-black uppercase tracking-widest rounded-xl transition cursor-pointer disabled:opacity-50">
+                          {isUpdatingUserSecurity ? "Enregistrement..." : "Enregistrer la sécurité"}
+                        </button>
+                      </div>
+                    </div>
                   </div>
-                );
-              })}
-            </div>
+                </td>
+              </tr>
+            )}
+          </React.Fragment>
+        );
+      })}
+    </tbody>
+  </table>
+</div>
 
-            {/* Pagination UI for Admin Users */}
+                        {/* Pagination UI for Admin Users */}
             {filteredUsers.length > 50 && (
               <div className="flex items-center justify-between border-t border-slate-100 pt-5 px-6 mt-4 pb-4">
                 <div className="flex flex-1 justify-between sm:hidden">
@@ -2966,9 +2817,9 @@ export const AdminDashboard: React.FC<{ onBackToTraveler?: () => void }> = ({ on
                       ))}
 
                       <button
-                        disabled={usersPage === Math.ceil(filteredUsers.length / 6)}
+                        disabled={usersPage === Math.ceil(filteredUsers.length / 50)}
                         onClick={() => {
-                          setUsersPage(prev => Math.min(prev + 1, Math.ceil(filteredUsers.length / 6)));
+                          setUsersPage(prev => Math.min(prev + 1, Math.ceil(filteredUsers.length / 50)));
                         }}
                         className="relative inline-flex items-center rounded-xl border border-slate-150 bg-white p-2 text-slate-500 hover:bg-slate-100 disabled:opacity-40 transition cursor-pointer"
                       >
