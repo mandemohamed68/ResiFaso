@@ -15,6 +15,11 @@ export function getApiUrl(): string {
     // Hardcoded fallback to the active hosted app URL
     return 'https://ais-pre-aeirvgp5kf4pmbaewxhixl-252816219526.europe-west1.run.app';
   }
+  
+  if (typeof window !== 'undefined') {
+    return window.location.origin;
+  }
+  
   return '';
 }
 

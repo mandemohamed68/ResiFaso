@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import heroBg from '../../assets/images/rond_point_martyrs_bg_1780477317904.png';
 import { Advertisement } from '../../types';
+import { apiFetch } from '../../lib/api';
 
 interface HeroSlide {
   isDefault: boolean;
@@ -20,7 +21,7 @@ export const Hero: React.FC = () => {
   useEffect(() => {
     const fetchAds = async () => {
       try {
-        const response = await fetch('/api/ads');
+        const response = await apiFetch('/api/ads');
         if (!response.ok) throw new Error('Failed to fetch ads');
         const list: Advertisement[] = await response.json();
         const activeOnly = list.filter(item => item.isActive);

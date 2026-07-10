@@ -678,9 +678,18 @@ export const initDatabase = async () => {
         subject TEXT,
         message TEXT,
         status TEXT DEFAULT 'unread',
+        admin_notes TEXT,
+        replied_at TEXT,
         created_at DATETIME DEFAULT CURRENT_TIMESTAMP
       )
     `);
+
+    try {
+      await executeSql("ALTER TABLE contact_messages ADD COLUMN admin_notes TEXT");
+    } catch (err) {}
+    try {
+      await executeSql("ALTER TABLE contact_messages ADD COLUMN replied_at TEXT");
+    } catch (err) {}
   }
 
   // Seed default settings if they do not exist

@@ -88,6 +88,8 @@ function AppContent() {
   const [currentAnnouncementIndex, setCurrentAnnouncementIndex] = useState(0);
   const [enablePhoneCalls, setEnablePhoneCalls] = useState<boolean>(true);
   const [enableWhatsApp, setEnableWhatsApp] = useState<boolean>(true);
+  const [minReservationAmountEnabled, setMinReservationAmountEnabled] = useState<boolean>(false);
+  const [minReservationAmount, setMinReservationAmount] = useState<number>(5000);
 
   const announcementsList = globalAnnouncement && globalAnnouncement.text
     ? globalAnnouncement.text.split('\n').map(t => t.trim()).filter(t => t.length > 0)
@@ -159,6 +161,8 @@ function AppContent() {
           if (data.commissionRate !== undefined) setCommissionRate(data.commissionRate);
           if (data.enablePhoneCalls !== undefined) setEnablePhoneCalls(data.enablePhoneCalls);
           if (data.enableWhatsApp !== undefined) setEnableWhatsApp(data.enableWhatsApp);
+          if (data.minReservationAmountEnabled !== undefined) setMinReservationAmountEnabled(data.minReservationAmountEnabled);
+          if (data.minReservationAmount !== undefined) setMinReservationAmount(data.minReservationAmount);
           
           if (data.announcements && data.announcements.length > 0) {
             setAnnouncements(data.announcements);
@@ -465,8 +469,8 @@ function AppContent() {
       }
 
       const totalAmount = calculateTotal(selectedResidence);
-      if (totalAmount < 5000) {
-        addToast("Le montant total du séjour doit être d'au moins 5 000 F CFA pour pouvoir réserver.", "error");
+      if (minReservationAmountEnabled && totalAmount < minReservationAmount) {
+        addToast(`Le montant total du séjour doit être d'au moins ${formatFCFA(minReservationAmount)} pour pouvoir réserver.`, "error");
         return;
       }
       const advanceAmount = calculateAdvance(selectedResidence);
@@ -1354,9 +1358,9 @@ function AppContent() {
                       </div>
                     </div>
 
-                    {calculateTotal(selectedResidence) < 5000 && (
+                    {minReservationAmountEnabled && calculateTotal(selectedResidence) < minReservationAmount && (
                       <div className="bg-red-50 border border-red-200 text-red-700 rounded-xl p-3 text-xs font-bold mb-4">
-                        ⚠️ Le montant total de votre séjour ({formatFCFA(calculateTotal(selectedResidence))}) est inférieur au minimum requis de {formatFCFA(5000)}. Veuillez allonger la durée du séjour.
+                        ⚠️ Le montant total de votre séjour ({formatFCFA(calculateTotal(selectedResidence))}) est inférieur au minimum requis de {formatFCFA(minReservationAmount)}. Veuillez allonger la durée du séjour.
                       </div>
                     )}
 
@@ -1370,7 +1374,7 @@ function AppContent() {
 
                     <button 
                       onClick={handleConfirmBooking}
-                      disabled={calculateTotal(selectedResidence) < 5000}
+                      disabled={minReservationAmountEnabled && calculateTotal(selectedResidence) < minReservationAmount}
                       className="w-full bg-red-600 disabled:opacity-50 text-white py-4 rounded-xl font-bold text-xs uppercase tracking-widest hover:bg-red-700 shadow-xl shadow-red-50 active:scale-95 transition-transform cursor-pointer"
                     >
                       CONFIRMER LA DEMANDE

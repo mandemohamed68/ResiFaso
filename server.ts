@@ -4,6 +4,7 @@ import { createServer as createViteServer } from "vite";
 import dotenv from "dotenv";
 import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
+import cors from "cors";
 import { executeSql } from './src/db/index';
 import { initDatabase } from './src/db/init';
 import { formatSqlValue } from './src/db/queries';
@@ -984,5 +985,13 @@ async function startServer() {
     console.log(`✅ Serveur démarré sur http://localhost:${PORT}`);
   });
 }
+
+process.on('unhandledRejection', (reason, promise) => {
+  console.error('Unhandled Rejection at:', promise, 'reason:', reason);
+});
+
+process.on('uncaughtException', (err) => {
+  console.error('Uncaught Exception thrown:', err);
+});
 
 startServer();

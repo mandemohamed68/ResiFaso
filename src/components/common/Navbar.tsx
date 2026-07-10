@@ -10,6 +10,7 @@ import {
 import { cn } from '../../lib/utils';
 import { UserRole } from '../../types';
 import { AuthModal } from './AuthModal';
+import { apiFetch } from '../../lib/api';
 
 export const Navbar: React.FC<{ 
   onNavigate: (view: any) => void;
@@ -32,9 +33,7 @@ export const Navbar: React.FC<{
     if (!token) return;
 
     try {
-      const response = await fetch('/api/notifications', {
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
+      const response = await apiFetch('/api/notifications');
       if (response.ok) {
         const data = await response.json();
         setNotifications(data);
@@ -52,11 +51,9 @@ export const Navbar: React.FC<{
   }, [user]);
 
   const handleMarkAsRead = async (id: string) => {
-    const token = localStorage.getItem('auth_token');
     try {
-      const response = await fetch(`/api/notifications/${id}/read`, {
-        method: 'POST',
-        headers: { 'Authorization': `Bearer ${token}` }
+      const response = await apiFetch(`/api/notifications/${id}/read`, {
+        method: 'POST'
       });
       if (response.ok) {
         setNotifications(prev => prev.map(n => n.id === id ? { ...n, is_read: 1, isRead: true } : n));
@@ -67,15 +64,13 @@ export const Navbar: React.FC<{
   };
 
   const handleMarkAllAsRead = async () => {
-    const token = localStorage.getItem('auth_token');
     try {
       const unread = notifications.filter(n => {
         const isRead = n.is_read !== undefined ? !!n.is_read : !!n.isRead;
         return !isRead;
       });
-      await Promise.all(unread.map(n => fetch(`/api/notifications/${n.id}/read`, {
-        method: 'POST',
-        headers: { 'Authorization': `Bearer ${token}` }
+      await Promise.all(unread.map(n => apiFetch(`/api/notifications/${n.id}/read`, {
+        method: 'POST'
       })));
       setNotifications(prev => prev.map(n => ({ ...n, is_read: 1, isRead: true })));
     } catch (err) {

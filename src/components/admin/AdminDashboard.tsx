@@ -127,6 +127,8 @@ export const AdminDashboard: React.FC<{ onBackToTraveler?: () => void }> = ({ on
   const [editingAnnId, setEditingAnnId] = useState<string | null>(null);
   const [enablePhoneCalls, setEnablePhoneCalls] = useState(true);
   const [enableWhatsApp, setEnableWhatsApp] = useState(true);
+  const [minReservationAmountEnabled, setMinReservationAmountEnabled] = useState(false);
+  const [minReservationAmount, setMinReservationAmount] = useState(5000);
   
   // Status Editing for Booking
   const [editingBookingId, setEditingBookingId] = useState<string | null>(null);
@@ -237,6 +239,8 @@ export const AdminDashboard: React.FC<{ onBackToTraveler?: () => void }> = ({ on
         if (settingsData.isTestMode !== undefined) setIsGlobalTestMode(settingsData.isTestMode);
         if (settingsData.enablePhoneCalls !== undefined) setEnablePhoneCalls(settingsData.enablePhoneCalls);
         if (settingsData.enableWhatsApp !== undefined) setEnableWhatsApp(settingsData.enableWhatsApp);
+        if (settingsData.minReservationAmountEnabled !== undefined) setMinReservationAmountEnabled(settingsData.minReservationAmountEnabled);
+        if (settingsData.minReservationAmount !== undefined) setMinReservationAmount(settingsData.minReservationAmount);
         if (settingsData.sappayClientId !== undefined) setSappayClientId(settingsData.sappayClientId);
         if (settingsData.sappayClientSecret !== undefined) setSappayClientSecret(settingsData.sappayClientSecret);
         if (settingsData.sappayUsername !== undefined) setSappayUsername(settingsData.sappayUsername);
@@ -1032,6 +1036,8 @@ export const AdminDashboard: React.FC<{ onBackToTraveler?: () => void }> = ({ on
       sappayPassword: sappayPassword,
       enablePhoneCalls: enablePhoneCalls,
       enableWhatsApp: enableWhatsApp,
+      minReservationAmountEnabled: minReservationAmountEnabled,
+      minReservationAmount: minReservationAmount,
       announcement: {
         text: announcementText,
         type: announcementType,
@@ -3565,6 +3571,46 @@ export const AdminDashboard: React.FC<{ onBackToTraveler?: () => void }> = ({ on
                     )}
                   />
                 </button>
+              </div>
+
+              {/* COUT MINIMUM DE RESERVATION */}
+              <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm space-y-4">
+                <div className="flex items-center justify-between">
+                  <div className="pr-4">
+                    <h4 className="text-sm font-black text-slate-800 uppercase tracking-wider mb-1">Cout Minimum de Réservation</h4>
+                    <p className="text-xs text-slate-500 font-medium leading-normal">
+                      Si activé, le montant total d'une réservation (nuits + frais) ne pourra pas être inférieur au seuil défini.
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setMinReservationAmountEnabled(!minReservationAmountEnabled)}
+                    className={cn(
+                      "relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-red-500",
+                      minReservationAmountEnabled ? "bg-red-600" : "bg-slate-200"
+                    )}
+                  >
+                    <span
+                      className={cn(
+                        "pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out",
+                        minReservationAmountEnabled ? "translate-x-5" : "translate-x-0"
+                      )}
+                    />
+                  </button>
+                </div>
+                
+                {minReservationAmountEnabled && (
+                  <div className="pt-2 animate-in slide-in-from-top-2 duration-200">
+                    <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1.5 font-bold">Montant Minimum (F CFA)</label>
+                    <input 
+                      type="number" 
+                      value={minReservationAmount} 
+                      onChange={(e) => setMinReservationAmount(Number(e.target.value))}
+                      className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm font-black outline-none focus:ring-2 focus:ring-red-500" 
+                      placeholder="Ex: 5000"
+                    />
+                  </div>
+                )}
               </div>
 
               <button 
