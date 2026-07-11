@@ -63,11 +63,10 @@ export const BookingVerificationSection: React.FC<BookingVerificationSectionProp
   const toggleVerification = async (id: string) => {
     if (!canEdit || isPast || status[id]) return;
 
-    const newStatus = !status[id];
     try {
       const response = await apiFetch(`/api/reservations/${bookingId}/verifications`, {
         method: 'PUT',
-        body: JSON.stringify({ verificationId: id, status: newStatus })
+        body: JSON.stringify({ verificationId: id, status: true })
       });
 
       if (response.ok) {
@@ -76,6 +75,7 @@ export const BookingVerificationSection: React.FC<BookingVerificationSectionProp
       }
     } catch (err) {
       console.error("Error updating verification:", err);
+      alert("Erreur lors de la mise à jour : " + err.message);
     }
   };
 
