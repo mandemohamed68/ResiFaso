@@ -534,6 +534,10 @@ async function startServer() {
       }
 
       const { verificationId, status } = req.body;
+      if (!verificationId) {
+        return res.status(400).json({ error: "verificationId est requis" });
+      }
+
       const currentStatus = booking.verificationsStatus ? (typeof booking.verificationsStatus === 'string' ? JSON.parse(booking.verificationsStatus) : booking.verificationsStatus) : {};
       
       if (currentStatus[verificationId] === true && status === false) {
@@ -549,6 +553,7 @@ async function startServer() {
 
       res.json({ success: true, status: currentStatus });
     } catch (err: any) {
+      console.error("[VERIFICATION ERROR]", err);
       res.status(500).json({ error: err.message });
     }
   });
