@@ -1058,9 +1058,37 @@ export const OwnerDashboard: React.FC<{ isTestMode?: boolean; onBackToTraveler?:
   };
 
   // Compute metrics
-  const totalRevenue = bookings
-    .filter(b => b.paymentStatus === 'advance_paid' || b.paymentStatus === 'fully_paid')
-    .reduce((sum, b) => sum + Math.round(b.totalPrice * (1 - (commissionRate / 100))), 0); // Dynamic platform commission excluded
+  const currentMonth = new Date().getMonth();
+  const currentYear = new Date().getFullYear();
+
+  const monthlyBookings = bookings.filter(b => {
+    const d = new Date(b.createdAt || b.checkIn);
+    return d.getMonth() === currentMonth && d.getFullYear() === currentYear && b.bookingStatus !== 'cancelled';
+  });
+
+  const monthlyGains = monthlyBookings
+    .filter(b => b.paymentStatus === 'fully_paid' || b.paymentStatus === 'advance_paid')
+    .reduce((acc, curr) => acc + Math.round(curr.totalPrice * (1 - (commissionRate / 100))), 0);
+
+  const monthlyCommissions = monthlyBookings
+    .filter(b => b.paymentStatus === 'fully_paid' || b.paymentStatus === 'advance_paid')
+    .reduce((acc, curr) => acc + Math.round(curr.totalPrice * (commissionRate / 100)), 0);
+
+  const totalNetEarned = bookings
+    .filter(b => (b.paymentStatus === 'fully_paid' || b.paymentStatus === 'advance_paid') && b.bookingStatus !== 'cancelled')
+    .reduce((acc, curr) => acc + Math.round(curr.totalPrice * (1 - (commissionRate / 100))), 0);
+
+  const totalWithdrawnAndPending = withdrawals
+    .filter(w => w.status !== 'rejected')
+    .reduce((acc, w) => acc + w.amount, 0);
+
+  const nextTransferAmount = bookings
+    .filter(b => b.paymentStatus === 'advance_paid' && b.bookingStatus !== 'cancelled' && b.bookingStatus !== 'completed')
+    .reduce((acc, curr) => acc + Math.round(curr.totalPrice * (1 - (commissionRate / 100))), 0);
+
+  const retirableBalance = Math.max(0, totalNetEarned - totalWithdrawnAndPending);
+
+  const totalRevenue = totalNetEarned;
 
   const occupancyRate = residences.length > 0
     ? Math.round((bookings.filter(b => b.bookingStatus === 'confirmed').length / (residences.length * 5)) * 100)
@@ -1143,9 +1171,7 @@ export const OwnerDashboard: React.FC<{ isTestMode?: boolean; onBackToTraveler?:
       return;
     }
 
-    const totalEarned = bookings.filter(b => b.paymentStatus === 'fully_paid').reduce((acc, curr) => acc + Math.round(curr.totalPrice * (1 - (commissionRate / 100))), 0);
-    const totalWithdrawnAndPending = withdrawals.filter(w => w.status !== 'rejected').reduce((acc, w) => acc + w.amount, 0);
-    const availableBalance = totalEarned - totalWithdrawnAndPending;
+    const availableBalance = retirableBalance;
 
     if (amountNum > availableBalance && !isTestMode) {
       setWithdrawalError(`Solde disponible insuffisant. Votre solde retirable est de ${formatCurrency(availableBalance)} F CFA.`);
@@ -2174,7 +2200,7 @@ export const OwnerDashboard: React.FC<{ isTestMode?: boolean; onBackToTraveler?:
               <div className="bg-white border text-center border-slate-100 rounded-2xl p-6 shadow-sm">
                 <p className="text-sm font-black text-slate-400 uppercase tracking-widest mb-1">Gains du mois</p>
                 <p className="text-3xl font-black text-slate-900 leading-tight">
-                  {formatCurrency(bookings.filter(b => b.paymentStatus === 'fully_paid').reduce((acc, curr) => acc + Math.round(curr.totalPrice * (1 - (commissionRate / 100))), 0))} F CFA
+                  {formatCurrency(monthlyGains)} F CFA
                 </p>
                 <div className="mt-4 flex justify-center">
                   <span className="text-xs bg-red-50 text-red-700 font-bold px-2 py-1 rounded-lg">+12% depuis le mois dernier</span>
@@ -2183,7 +2209,7 @@ export const OwnerDashboard: React.FC<{ isTestMode?: boolean; onBackToTraveler?:
               <div className="bg-white border text-center border-slate-100 rounded-2xl p-6 shadow-sm">
                 <p className="text-sm font-black text-slate-400 uppercase tracking-widest mb-1">Commissions ResiFaso</p>
                 <p className="text-3xl font-black text-green-600 leading-tight">
-                  {formatCurrency(bookings.filter(b => b.paymentStatus === 'fully_paid').reduce((acc, curr) => acc + Math.round(curr.totalPrice * (commissionRate / 100)), 0))} F CFA
+                  {formatCurrency(monthlyCommissions)} F CFA
                 </p>
                 <p className="text-xs text-slate-500 font-bold mt-2">{commissionRate}% de frais prélevés</p>
               </div>
@@ -2191,7 +2217,7 @@ export const OwnerDashboard: React.FC<{ isTestMode?: boolean; onBackToTraveler?:
                 <div className="absolute -right-4 -top-4 w-24 h-24 bg-red-600/20 rounded-full blur-2xl"></div>
                 <p className="text-sm font-black text-slate-300 uppercase tracking-widest mb-1 relative z-10">Prochain virement</p>
                 <p className="text-3xl font-black text-white leading-tight relative z-10">
-                  {formatCurrency(bookings.filter(b => b.paymentStatus === 'advance_paid').reduce((acc, curr) => acc + Math.round(curr.totalPrice * (1 - (commissionRate / 100))), 0))} F CFA
+                  {formatCurrency(nextTransferAmount)} F CFA
                 </p>
                 <button className="mt-4 bg-red-600 hover:bg-red-700 text-white text-xs font-bold px-4 py-2 rounded-xl transition-colors relative z-10">
                   Configurer le compte
@@ -2214,7 +2240,7 @@ export const OwnerDashboard: React.FC<{ isTestMode?: boolean; onBackToTraveler?:
                     <span className="text-xs font-bold text-slate-500">Gains nets restants</span>
                   </div>
                   <span className="text-xl font-black text-red-700 underline underline-offset-4">
-                    {formatCurrency(bookings.filter(b => b.paymentStatus === 'fully_paid').reduce((acc, curr) => acc + Math.round(curr.totalPrice * (1 - (commissionRate / 100))), 0) - withdrawals.filter(w => w.status !== 'rejected').reduce((acc, w) => acc + w.amount, 0))} F CFA
+                    {formatCurrency(retirableBalance)} F CFA
                   </span>
                 </div>
 
