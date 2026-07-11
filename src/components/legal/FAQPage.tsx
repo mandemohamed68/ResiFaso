@@ -1,3 +1,4 @@
+import { apiFetch } from "../../lib/api";
 import React, { useEffect, useState } from 'react';
 import { FAQItem } from '../../types';
 import { motion, AnimatePresence } from 'motion/react';
@@ -9,7 +10,7 @@ export const FAQPage: React.FC = () => {
   const [openId, setOpenId] = useState<string | null>(null);
 
   useEffect(() => {
-    fetch('/api/faqs')
+    apiFetch('/api/faqs')
       .then(res => res.json())
       .then(data => {
         const list: FAQItem[] = data || [];

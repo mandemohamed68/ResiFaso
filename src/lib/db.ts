@@ -1,5 +1,5 @@
 import { UserProfile, Residence, Booking, Conversation, Message, WithdrawalRequest, WithdrawalStatus } from '../types';
-import { getApiUrl } from './api';
+import { apiFetch as globalApiFetch } from './api';
 
 export enum OperationType {
   CREATE = 'create',
@@ -15,21 +15,10 @@ const formatToMySQLDateTime = (date: Date): string => {
   return date.toISOString().slice(0, 19).replace('T', ' ');
 };
 
-// Helper for fetch
+// Helper for fetch using global apiFetch
 const apiFetch = async (endpoint: string, options: any = {}) => {
-  const token = typeof window !== 'undefined' ? localStorage.getItem('auth_token') : null;
-  const headers = {
-    'Content-Type': 'application/json',
-    ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
-    ...options.headers
-  };
-
-  const baseUrl = getApiUrl();
-  const cleanEndpoint = endpoint.startsWith('/') ? endpoint : `/${endpoint}`;
-  const fullUrl = baseUrl ? `${baseUrl}${cleanEndpoint}` : cleanEndpoint;
-
   try {
-    const response = await fetch(fullUrl, { ...options, headers });
+    const response = await globalApiFetch(endpoint, options);
     if (!response.ok) {
       const contentType = response.headers.get("content-type");
       const errorData = (contentType && contentType.includes("application/json")) ? await response.json().catch(() => ({})) : {};

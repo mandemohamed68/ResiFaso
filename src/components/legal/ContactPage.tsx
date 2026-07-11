@@ -1,3 +1,4 @@
+import { apiFetch } from "../../lib/api";
 import React, { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Mail, Phone, MapPin, Clock, Send, CheckCircle2, ArrowLeft, MessageSquare, Facebook, HelpCircle } from 'lucide-react';
@@ -35,7 +36,7 @@ export const ContactPage: React.FC<ContactPageProps> = ({ onBack, onNavigateToFa
   useEffect(() => {
     const fetchSettings = async () => {
       try {
-        const response = await fetch('/api/settings/contactSettings');
+        const response = await apiFetch('/api/settings/contactSettings');
         if (response.ok) {
           const data = await response.json();
           if (data && Object.keys(data).length > 0) {
@@ -74,7 +75,7 @@ export const ContactPage: React.FC<ContactPageProps> = ({ onBack, onNavigateToFa
     setSubmitError(null);
 
     try {
-      const response = await fetch('/api/contact-messages', {
+      const response = await apiFetch('/api/contact-messages', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

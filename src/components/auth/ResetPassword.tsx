@@ -1,3 +1,4 @@
+import { apiFetch } from "../../lib/api";
 import React, { useState } from 'react';
 import { motion } from 'motion/react';
 import { Lock, CheckCircle2, AlertCircle, ArrowRight } from 'lucide-react';
@@ -28,7 +29,7 @@ export const ResetPassword: React.FC<{ onNavigate: (view: any) => void }> = ({ o
     setError(null);
 
     try {
-      const response = await fetch('/api/auth/reset-password', {
+      const response = await apiFetch('/api/auth/reset-password', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email, token, newPassword: password })

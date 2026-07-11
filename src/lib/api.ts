@@ -31,7 +31,11 @@ export async function apiFetch(path: string, options: RequestInit = {}): Promise
   
   // Ensure path starts with /
   const cleanPath = path.startsWith('/') ? path : `/${path}`;
-  const fullUrl = baseUrl ? `${baseUrl}${cleanPath}` : cleanPath;
+  
+  // Use absolute URL if path doesn't already have one and baseUrl exists
+  const fullUrl = (path.startsWith('http://') || path.startsWith('https://')) 
+    ? path 
+    : (baseUrl ? `${baseUrl}${cleanPath}` : cleanPath);
 
   const headers = new Headers(options.headers || {});
   if (token && !headers.has('Authorization')) {

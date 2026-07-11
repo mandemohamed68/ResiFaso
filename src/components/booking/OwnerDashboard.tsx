@@ -3,6 +3,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
 import { useToast } from '../../contexts/ToastContext';
 import { useDataRefresh } from '../../contexts/DataRefreshContext';
+import { apiFetch } from '../../lib/api';
 import { 
   getOwnerResidences, 
   getOwnerBookings, 
@@ -88,7 +89,7 @@ function LocationMarker({ position, onChange }: { position: { lat: number, lng: 
 
 const reverseGeocode = async (lat: number, lng: number) => {
   try {
-    const resp = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&zoom=18&addressdetails=1`);
+    const resp = await apiFetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&zoom=18&addressdetails=1`);
     const data = await resp.json();
     return data;
   } catch (err) {
@@ -867,7 +868,7 @@ export const OwnerDashboard: React.FC<{ isTestMode?: boolean; onBackToTraveler?:
       }
 
       // Fetch user profile for policy
-      const response = await fetch(`/api/users/${user.uid}`);
+      const response = await apiFetch(`/api/users/${user.uid}`);
       if (response.ok) {
         const profile = await response.json();
         if (profile.hostCancellationFee !== undefined) {
@@ -959,7 +960,7 @@ export const OwnerDashboard: React.FC<{ isTestMode?: boolean; onBackToTraveler?:
     if (!user || activeTab !== 'messages') return;
 
     const fetchConversations = () => {
-      fetch('/api/conversations', { 
+      apiFetch('/api/conversations', { 
         headers: { 'Authorization': `Bearer ${localStorage.getItem('auth_token')}` } 
       })
         .then(res => res.json())
@@ -989,7 +990,7 @@ export const OwnerDashboard: React.FC<{ isTestMode?: boolean; onBackToTraveler?:
 
     const fetchProfiles = async () => {
       try {
-        const res = await fetch('/api/users/public', {
+        const res = await apiFetch('/api/users/public', {
           method: 'POST',
           headers: { 
             'Content-Type': 'application/json', 
@@ -1014,7 +1015,7 @@ export const OwnerDashboard: React.FC<{ isTestMode?: boolean; onBackToTraveler?:
     }
 
     const fetchMessages = () => {
-      fetch(`/api/conversations/${selectedConversationId}/messages`, { 
+      apiFetch(`/api/conversations/${selectedConversationId}/messages`, { 
         headers: { 'Authorization': `Bearer ${localStorage.getItem('auth_token')}` } 
       })
         .then(res => res.json())
@@ -1388,7 +1389,7 @@ export const OwnerDashboard: React.FC<{ isTestMode?: boolean; onBackToTraveler?:
       const text = newMessage;
       setNewMessage('');
 
-      await fetch(`/api/conversations/${selectedConversationId}/messages`, {
+      await apiFetch(`/api/conversations/${selectedConversationId}/messages`, {
         method: 'POST',
         headers: { 
           'Content-Type': 'application/json', 

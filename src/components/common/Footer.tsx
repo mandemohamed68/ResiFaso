@@ -1,3 +1,4 @@
+import { apiFetch } from "../../lib/api";
 import React, { useEffect, useState } from 'react';
 
 interface FooterProps {
@@ -10,7 +11,7 @@ export const Footer: React.FC<FooterProps> = ({ onNavigate }) => {
   useEffect(() => {
     const fetchSettings = async () => {
       try {
-        const response = await fetch('/api/settings/global');
+        const response = await apiFetch('/api/settings/global');
         if (response.ok) {
           const data = await response.json();
           if (data.footerContent) setFooterContent(data.footerContent);

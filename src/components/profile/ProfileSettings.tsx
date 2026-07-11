@@ -1,3 +1,4 @@
+import { apiFetch } from "../../lib/api";
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
 import { cn } from '../../lib/utils';
@@ -107,7 +108,7 @@ export const ProfileSettings: React.FC = () => {
     setIsSaving(true);
     try {
       
-      await fetch('/api/users/profile', { method: 'PUT', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${localStorage.getItem('auth_token')}` }, body: JSON.stringify({
+      await apiFetch('/api/users/profile', { method: 'PUT', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${localStorage.getItem('auth_token')}` }, body: JSON.stringify({
         displayName: displayName,
         phoneNumber: phone,
         phone: phone // for backward compatibility
@@ -219,7 +220,7 @@ export const ProfileSettings: React.FC = () => {
     setIsSaving(true);
     try {
       
-      await fetch('/api/users/profile', { method: 'PUT', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${localStorage.getItem('auth_token')}` }, body: JSON.stringify({
+      await apiFetch('/api/users/profile', { method: 'PUT', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${localStorage.getItem('auth_token')}` }, body: JSON.stringify({
         idType: idType,
         idNumber: idNumber,
         idExpiry: idExpiry,
@@ -242,7 +243,7 @@ export const ProfileSettings: React.FC = () => {
     setIsSaving(true);
     try {
       
-      await fetch('/api/users/profile', { method: 'PUT', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${localStorage.getItem('auth_token')}` }, body: JSON.stringify({
+      await apiFetch('/api/users/profile', { method: 'PUT', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${localStorage.getItem('auth_token')}` }, body: JSON.stringify({
         photoURL: selectedPhotoURL
       }) });
       await refreshProfile();
@@ -261,7 +262,7 @@ export const ProfileSettings: React.FC = () => {
     setIsSaving(true);
     try {
       
-      await fetch('/api/users/profile', { method: 'PUT', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${localStorage.getItem('auth_token')}` }, body: JSON.stringify({
+      await apiFetch('/api/users/profile', { method: 'PUT', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${localStorage.getItem('auth_token')}` }, body: JSON.stringify({
         photoURL: ''
       }) });
       setSelectedPhotoURL('');
@@ -286,7 +287,7 @@ export const ProfileSettings: React.FC = () => {
         ...paymentPrefs,
         hasPreference: true
       };
-      await fetch('/api/users/profile', { method: 'PUT', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${localStorage.getItem('auth_token')}` }, body: JSON.stringify({
+      await apiFetch('/api/users/profile', { method: 'PUT', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${localStorage.getItem('auth_token')}` }, body: JSON.stringify({
         paymentPreferences: updatedPrefs
       }) });
       setPaymentPrefs(updatedPrefs);
@@ -313,7 +314,7 @@ export const ProfileSettings: React.FC = () => {
         bankAccountName: '',
         bankAccountNumber: '',
       };
-      await fetch('/api/users/profile', { method: 'PUT', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${localStorage.getItem('auth_token')}` }, body: JSON.stringify({
+      await apiFetch('/api/users/profile', { method: 'PUT', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${localStorage.getItem('auth_token')}` }, body: JSON.stringify({
         paymentPreferences: clearedPrefs
       }) });
       setPaymentPrefs(clearedPrefs);
@@ -333,7 +334,7 @@ export const ProfileSettings: React.FC = () => {
     setIsSaving(true);
     try {
       
-      await fetch('/api/users/profile', { method: 'PUT', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${localStorage.getItem('auth_token')}` }, body: JSON.stringify({
+      await apiFetch('/api/users/profile', { method: 'PUT', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${localStorage.getItem('auth_token')}` }, body: JSON.stringify({
         notifications: notifications
       }) });
       await refreshProfile();
@@ -352,7 +353,7 @@ export const ProfileSettings: React.FC = () => {
     setIsSaving(true);
     try {
       
-      await fetch('/api/users/profile', { method: 'PUT', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${localStorage.getItem('auth_token')}` }, body: JSON.stringify({
+      await apiFetch('/api/users/profile', { method: 'PUT', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${localStorage.getItem('auth_token')}` }, body: JSON.stringify({
         privacy: privacy
       }) });
       await refreshProfile();
@@ -398,7 +399,7 @@ export const ProfileSettings: React.FC = () => {
     setIsSaving(true);
     try {
       
-      await fetch('/api/users/profile', { method: 'PUT', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${localStorage.getItem('auth_token')}` }, body: JSON.stringify({
+      await apiFetch('/api/users/profile', { method: 'PUT', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${localStorage.getItem('auth_token')}` }, body: JSON.stringify({
         deactivated: true
       }) });
       addToast("Votre compte a été désactivé. À bientôt sur ResiFaso !", "error");
@@ -419,7 +420,7 @@ export const ProfileSettings: React.FC = () => {
     setIsSaving(true);
     try {
       
-      await fetch('/api/users/profile', { method: 'PUT', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${localStorage.getItem('auth_token')}` }, body: JSON.stringify({
+      await apiFetch('/api/users/profile', { method: 'PUT', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${localStorage.getItem('auth_token')}` }, body: JSON.stringify({
         deactivated: true,
         displayName: "[Utilisateur Supprimé]",
         phoneNumber: ""

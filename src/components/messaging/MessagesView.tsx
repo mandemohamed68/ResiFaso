@@ -1,3 +1,4 @@
+import { apiFetch } from "../../lib/api";
 import React, { useState, useEffect, useRef } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
 import { Conversation, Message, UserProfile } from '../../types';
@@ -20,7 +21,7 @@ export const MessagesView: React.FC<{ initialConversationId?: string | null }> =
     if (!user) return;
 
     const fetchConversations = () => {
-      fetch('/api/conversations', { headers: { 'Authorization': `Bearer ${localStorage.getItem('auth_token')}` } })
+      apiFetch('/api/conversations', { headers: { 'Authorization': `Bearer ${localStorage.getItem('auth_token')}` } })
         .then(res => res.json())
         .then(data => {
           setConversations(data || []);
@@ -58,7 +59,7 @@ export const MessagesView: React.FC<{ initialConversationId?: string | null }> =
 
     const fetchProfiles = async () => {
       try {
-        const res = await fetch('/api/users/public', {
+        const res = await apiFetch('/api/users/public', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${localStorage.getItem('auth_token')}` },
           body: JSON.stringify({ uids: otherParticipants })
@@ -78,13 +79,13 @@ export const MessagesView: React.FC<{ initialConversationId?: string | null }> =
     }
 
     const fetchMessages = () => {
-      fetch(`/api/conversations/${selectedConversation.id}/messages`, { headers: { 'Authorization': `Bearer ${localStorage.getItem('auth_token')}` } })
+      apiFetch(`/api/conversations/${selectedConversation.id}/messages`, { headers: { 'Authorization': `Bearer ${localStorage.getItem('auth_token')}` } })
         .then(res => res.json())
         .then(data => {
           setMessages(data || []);
           // Mark as read when viewing
           if (data && data.some((m: any) => !m.isRead && m.senderId !== user?.uid)) {
-            fetch(`/api/conversations/${selectedConversation.id}/read`, { 
+            apiFetch(`/api/conversations/${selectedConversation.id}/read`, { 
               method: 'PUT',
               headers: { 'Authorization': `Bearer ${localStorage.getItem('auth_token')}` } 
             }).catch(() => {});
@@ -108,7 +109,7 @@ export const MessagesView: React.FC<{ initialConversationId?: string | null }> =
       const msgText = newMessage;
       setNewMessage(''); // Clear immediately for UX
 
-      await fetch(`/api/conversations/${selectedConversation.id}/messages`, {
+      await apiFetch(`/api/conversations/${selectedConversation.id}/messages`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${localStorage.getItem('auth_token')}` },
         body: JSON.stringify({ senderId: user.uid, text: msgText })

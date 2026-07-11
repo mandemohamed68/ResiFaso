@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { UserProfile, UserRole } from '../types';
-import { getApiUrl } from '../lib/api';
+import { apiFetch } from '../lib/api';
 
 interface AuthContextType {
   user: any | null;
@@ -28,12 +28,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
 
     try {
-      const baseUrl = getApiUrl();
-      const response = await fetch(`${baseUrl}/api/auth/me`, {
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
-      });
+      const response = await apiFetch('/api/auth/me');
 
       if (response.ok) {
         const data = await response.json();
@@ -56,10 +51,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }, []);
 
   const login = async (email: string, password: string) => {
-    const baseUrl = getApiUrl();
-    const response = await fetch(`${baseUrl}/api/auth/login`, {
+    const response = await apiFetch('/api/auth/login', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ email, password })
     });
 
@@ -75,10 +68,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const register = async (email: string, password: string, displayName: string, role?: string, idFront?: string, idBack?: string) => {
-    const baseUrl = getApiUrl();
-    const response = await fetch(`${baseUrl}/api/auth/register`, {
+    const response = await apiFetch('/api/auth/register', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ email, password, displayName, role, identity_document_front: idFront, identity_document_back: idBack })
     });
 

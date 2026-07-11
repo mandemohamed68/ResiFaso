@@ -335,7 +335,7 @@ export const AdminDashboard: React.FC<{ onBackToTraveler?: () => void }> = ({ on
     
     const fetchEmailSettings = async () => {
       try {
-        const response = await fetch('/api/settings/emailSettings');
+        const response = await apiFetch('/api/settings/emailSettings');
         if (response.ok) {
           const data = await response.json();
           if (data && Object.keys(data).length > 0) {
@@ -456,7 +456,7 @@ export const AdminDashboard: React.FC<{ onBackToTraveler?: () => void }> = ({ on
   const handleDeleteLocation = async (id: string, name: string) => {
     if (window.confirm(`Voulez-vous vraiment supprimer la localité "${name}" ?`)) {
       try {
-        await fetch(`/api/admin/locations/${id}`, { method: 'DELETE' });
+        await apiFetch(`/api/admin/locations/${id}`, { method: 'DELETE' });
         triggerSuccess("Localité supprimée.");
         logAction(`Suppression de la localité ${name} (${id})`);
       } catch (err) {
@@ -942,7 +942,7 @@ export const AdminDashboard: React.FC<{ onBackToTraveler?: () => void }> = ({ on
   // Approve identity verification document checklist 
   const handleApproveIdentity = async (uid: string, email: string, displayName: string) => {
     try {
-      await fetch(`/api/users/${uid}`, { method: 'PUT', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${localStorage.getItem('auth_token')}` }, body: JSON.stringify({ 
+      await apiFetch(`/api/users/${uid}`, { method: 'PUT', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${localStorage.getItem('auth_token')}` }, body: JSON.stringify({ 
         isVerified: true,
         verificationStatus: 'verified'
       }) });
@@ -3597,7 +3597,7 @@ export const AdminDashboard: React.FC<{ onBackToTraveler?: () => void }> = ({ on
                 setIsSavingEmailSettings(true);
                 try {
                   const token = localStorage.getItem('auth_token');
-                  const response = await fetch('/api/settings/emailSettings', {
+                  const response = await apiFetch('/api/settings/emailSettings', {
                     method: 'POST',
                     headers: { 
                       'Content-Type': 'application/json',

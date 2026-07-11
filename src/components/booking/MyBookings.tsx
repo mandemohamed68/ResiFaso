@@ -157,7 +157,7 @@ const CancellationModal: React.FC<CancellationModalProps> = ({ isOpen, onClose, 
     let active = true;
     async function fetchHostPolicy() {
       try {
-        const response = await fetch(`/api/users/${booking.ownerId}`);
+        const response = await apiFetch(`/api/users/${booking.ownerId}`);
         if (response.ok && active) {
           const data = await response.json();
           if (data.hostCancellationFee !== undefined) {
