@@ -1068,15 +1068,23 @@ export const OwnerDashboard: React.FC<{ isTestMode?: boolean; onBackToTraveler?:
 
   const monthlyGains = monthlyBookings
     .filter(b => b.paymentStatus === 'fully_paid' || b.paymentStatus === 'advance_paid')
-    .reduce((acc, curr) => acc + Math.round(curr.totalPrice * (1 - (commissionRate / 100))), 0);
+    .reduce((acc, curr) => {
+      const platformCollected = curr.paymentStatus === 'fully_paid' ? curr.totalPrice : (curr.advancePaid || Math.round(curr.totalPrice * 0.3));
+      const platformCommission = curr.totalPrice * (commissionRate / 100);
+      return acc + Math.max(0, Math.round(platformCollected - platformCommission));
+    }, 0);
 
   const monthlyCommissions = monthlyBookings
     .filter(b => b.paymentStatus === 'fully_paid' || b.paymentStatus === 'advance_paid')
     .reduce((acc, curr) => acc + Math.round(curr.totalPrice * (commissionRate / 100)), 0);
 
   const totalNetEarned = bookings
-    .filter(b => b.paymentStatus === 'fully_paid' && b.bookingStatus !== 'cancelled')
-    .reduce((acc, curr) => acc + Math.round(curr.totalPrice * (1 - (commissionRate / 100))), 0);
+    .filter(b => (b.paymentStatus === 'fully_paid' || b.paymentStatus === 'advance_paid') && b.bookingStatus !== 'cancelled')
+    .reduce((acc, curr) => {
+      const platformCollected = curr.paymentStatus === 'fully_paid' ? curr.totalPrice : (curr.advancePaid || Math.round(curr.totalPrice * 0.3));
+      const platformCommission = curr.totalPrice * (commissionRate / 100);
+      return acc + Math.max(0, Math.round(platformCollected - platformCommission));
+    }, 0);
 
   const totalWithdrawnAndPending = withdrawals
     .filter(w => w.status !== 'rejected')
@@ -1084,7 +1092,11 @@ export const OwnerDashboard: React.FC<{ isTestMode?: boolean; onBackToTraveler?:
 
   const nextTransferAmount = bookings
     .filter(b => b.paymentStatus === 'advance_paid' && b.bookingStatus !== 'cancelled' && b.bookingStatus !== 'completed')
-    .reduce((acc, curr) => acc + Math.round(curr.totalPrice * (1 - (commissionRate / 100))), 0);
+    .reduce((acc, curr) => {
+      const platformCollected = curr.advancePaid || Math.round(curr.totalPrice * 0.3);
+      const platformCommission = curr.totalPrice * (commissionRate / 100);
+      return acc + Math.max(0, Math.round(platformCollected - platformCommission));
+    }, 0);
 
   const retirableBalance = totalNetEarned - totalWithdrawnAndPending;
 
@@ -2261,10 +2273,10 @@ export const OwnerDashboard: React.FC<{ isTestMode?: boolean; onBackToTraveler?:
                     <label className="block text-xs font-black text-slate-400 uppercase tracking-wider mb-2">Opérateur Mobile Money</label>
                     <div className="grid grid-cols-4 gap-2">
                       {[
-                        { id: 'orange', logo: '/orange.svg' },
-                        { id: 'moov', logo: '/moov.png' },
-                        { id: 'telecel', logo: '/telecel.svg' },
-                        { id: 'coris', logo: '/coris.svg' }
+                        { id: 'orange', logo: '/orange.png' },
+                        { id: 'moov', logo: '/moov-1.png' },
+                        { id: 'telecel', logo: '/telecel.png' },
+                        { id: 'coris', logo: '/coris.png' }
                       ].map((prov) => (
                         <button
                           key={prov.id}
