@@ -797,7 +797,8 @@ export const MyBookings: React.FC<{ onContactHost: (ownerId: string, resId: stri
     }
 
     const fetchBookings = async () => {
-      setLoading(true);
+      const isInitial = bookings.length === 0;
+      if (isInitial) setLoading(true);
       try {
         const dbType = await getBackendDbType();
         // SQL / API
@@ -806,10 +807,10 @@ export const MyBookings: React.FC<{ onContactHost: (ownerId: string, resId: stri
                       new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime()
                     );
                     setBookings(sortedList);
-                    setLoading(false);
       } catch (err) {
         console.error("Error fetching bookings:", err);
-        setLoading(false);
+      } finally {
+        if (isInitial) setLoading(false);
       }
     };
 

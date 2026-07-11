@@ -229,7 +229,8 @@ export const AdminDashboard: React.FC<{ onBackToTraveler?: () => void }> = ({ on
   const [isReloading, setIsReloading] = useState(false);
 
   const reloadData = async () => {
-    setIsReloading(true);
+    const isInitial = residences.length === 0 && users.length === 0;
+    if (isInitial) setIsReloading(true);
     try {
       const [
         resList,
@@ -307,7 +308,7 @@ export const AdminDashboard: React.FC<{ onBackToTraveler?: () => void }> = ({ on
     } catch (err) {
       console.error("Error reloading admin data:", err);
     } finally {
-      setIsReloading(false);
+      if (isInitial) setIsReloading(false);
     }
   };
 

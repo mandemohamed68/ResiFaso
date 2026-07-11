@@ -840,7 +840,8 @@ export const OwnerDashboard: React.FC<{ isTestMode?: boolean; onBackToTraveler?:
 
   const fetchData = async () => {
     if (!user) return;
-    setLoading(true);
+    const isInitial = residences.length === 0 && bookings.length === 0;
+    if (isInitial) setLoading(true);
     try {
       const type = await getBackendDbType();
       setDbType(type);
@@ -891,7 +892,7 @@ export const OwnerDashboard: React.FC<{ isTestMode?: boolean; onBackToTraveler?:
       console.error("Error fetching data:", err);
       // addToast("Erreur lors de la récupération des données.", "error");
     } finally {
-      setLoading(false);
+      if (isInitial) setLoading(false);
     }
   };
 

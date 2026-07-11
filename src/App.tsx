@@ -198,8 +198,9 @@ function AppContent() {
   // Fetch residences from API
   useEffect(() => {
     const fetchResidences = async () => {
+      const isInitial = residences.length === 0;
       try {
-        setLoading(true);
+        if (isInitial) setLoading(true);
         const response = await fetch('/api/residences');
         if (response.ok) {
           const data = await response.json();
@@ -210,7 +211,9 @@ function AppContent() {
       } catch (err) {
         console.error("Error loading residences:", err);
       } finally {
-        setTimeout(() => setLoading(false), 800); // Small delay for smooth exit
+        if (isInitial) {
+          setTimeout(() => setLoading(false), 800); // Small delay for smooth exit
+        }
       }
     };
     fetchResidences();
@@ -483,7 +486,7 @@ function AppContent() {
         clientId: user.uid,
         checkIn: checkIn,
         checkOut: checkOut,
-        guests: 2,
+        guests: searchFilters.capacity || 1,
         totalPrice: totalAmount,
         advancePaid: advanceAmount,
         bookingStatus: 'pending' as const, // En attente d'approbation d'hôte
@@ -512,9 +515,10 @@ function AppContent() {
           handleNavigate('bookings');
         }
       });
-    } catch (err) {
-      console.error(err);
-      addToast("Échec de la soumission de la réservation.", 'error');
+    } catch (err: any) {
+      console.error("[Booking Error]:", err);
+      const errorMessage = err?.message || "Échec de la soumission de la réservation.";
+      addToast(errorMessage, 'error');
     }
   };
 

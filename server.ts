@@ -329,12 +329,19 @@ async function startServer() {
     try {
       const id = 'bk_' + Math.random().toString(36).substr(2, 9);
       const { residenceId, ownerId, checkIn, checkOut, guests, totalPrice, advancePaid, transactionId } = req.body;
+      
+      if (!residenceId || !ownerId || !checkIn || !checkOut || !totalPrice) {
+        return res.status(400).json({ error: "Données de réservation incomplètes" });
+      }
+
       await executeSql(`
         INSERT INTO bookings (id, residence_id, client_id, owner_id, check_in, check_out, guests, total_price, advance_paid, transaction_id, booking_status, payment_status)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending', 'paid')
-      `, [id, residenceId, req.user?.uid, ownerId, checkIn, checkOut, guests, totalPrice, advancePaid, transactionId]);
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending', 'pending')
+      `, [id, residenceId, req.user?.uid, ownerId, checkIn, checkOut, guests || 1, totalPrice, advancePaid || 0, transactionId || null]);
+      
       res.json({ success: true, id });
     } catch (err: any) {
+      console.error("[API Bookings] Error:", err.message);
       res.status(500).json({ error: err.message });
     }
   });
