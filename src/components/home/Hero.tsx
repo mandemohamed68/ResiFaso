@@ -131,7 +131,7 @@ export const Hero: React.FC = () => {
               </span>
             )}
 
-            <h1 className="text-3xl md:text-6xl font-black text-white leading-tight tracking-tight drop-shadow-2xl">
+            <h1 className="text-2xl md:text-6xl font-black text-white leading-[1.15] md:leading-tight tracking-tight drop-shadow-2xl">
               {currentSlide.isDefault ? (
                 <>
                   Trouvez votre <span className="text-yellow-400">chez-soi</span> au <span className="relative inline-block text-white">Burkina Faso<span className="absolute -bottom-1 left-0 w-full h-1.5 flex rounded-full overflow-hidden"><span className="flex-1 bg-red-600"></span><span className="flex-1 bg-green-600"></span></span></span>
@@ -141,7 +141,7 @@ export const Hero: React.FC = () => {
               )}
             </h1>
 
-            <p className="text-base md:text-lg text-slate-200 font-bold max-w-2xl mx-auto drop-shadow-lg leading-relaxed">
+            <p className="text-sm md:text-lg text-slate-200 font-bold max-w-2xl mx-auto drop-shadow-lg leading-relaxed px-4">
               {currentSlide.description}
             </p>
           </motion.div>

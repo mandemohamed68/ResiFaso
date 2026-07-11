@@ -55,74 +55,86 @@ export const SearchForm: React.FC<SearchFormProps> = ({ onSearch }) => {
   };
 
   return (
-    <form onSubmit={handleSearchSubmit} className="w-full max-w-6xl mx-auto px-4 mt-[-60px] relative z-20 animate-in fade-in slide-in-from-bottom-6 duration-700">
-      <div className="bg-white rounded-[40px] shadow-2xl p-6 border border-slate-100 flex flex-col gap-6">
+    <form onSubmit={handleSearchSubmit} className="w-full max-w-6xl mx-auto px-4 mt-[-40px] md:mt-[-60px] relative z-20 animate-in fade-in slide-in-from-bottom-6 duration-700">
+      <div className="bg-white rounded-[32px] md:rounded-[40px] shadow-2xl p-5 md:p-6 border border-slate-100 flex flex-col gap-5 md:gap-6">
         
         {/* Main Search Row */}
-        <div className="flex flex-col lg:flex-row items-end gap-4 overflow-visible">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:flex lg:items-end gap-4">
           
-          <CustomSelect
-            label="Destination"
-            icon={MapPin}
-            value={selectedCityId}
-            onChange={(val) => {
-              setSelectedCityId(val);
-              setSelectedNeighborhoodId('');
-            }}
-            options={allLocations.map(c => ({ id: c.id, name: c.name }))}
-            placeholder="Où allez-vous ?"
-          />
+          <div className="lg:flex-1">
+            <CustomSelect
+              label="Destination"
+              icon={MapPin}
+              value={selectedCityId}
+              onChange={(val) => {
+                setSelectedCityId(val);
+                setSelectedNeighborhoodId('');
+              }}
+              options={allLocations.map(c => ({ id: c.id, name: c.name }))}
+              placeholder="Où allez-vous ?"
+            />
+          </div>
 
-          <CustomSelect
-            label="Quartier"
-            icon={MapPinIcon}
-            value={selectedNeighborhoodId}
-            onChange={setSelectedNeighborhoodId}
-            options={currentCity?.neighborhoods.map(n => ({ id: n.id, name: n.name })) || []}
-            placeholder={selectedCityId ? "Tous les quartiers" : "Ville d'abord"}
-          />
+          <div className="lg:flex-1">
+            <CustomSelect
+              label="Quartier"
+              icon={MapPinIcon}
+              value={selectedNeighborhoodId}
+              onChange={setSelectedNeighborhoodId}
+              options={currentCity?.neighborhoods.map(n => ({ id: n.id, name: n.name })) || []}
+              placeholder={selectedCityId ? "Tous les quartiers" : "Ville d'abord"}
+            />
+          </div>
 
-          <CustomSelect
-            label="Logement"
-            icon={Building2}
-            value={housingType}
-            onChange={setHousingType}
-            options={[
-              { id: 'Tout type', name: 'Tout type' },
-              { id: 'villa', name: 'Villa' },
-              { id: 'appartement', name: 'Appartement' },
-              { id: 'chambre', name: 'Chambre' },
-              { id: 'auberge', name: 'Auberge' }
-            ]}
-          />
+          <div className="lg:w-48">
+            <CustomSelect
+              label="Logement"
+              icon={Building2}
+              value={housingType}
+              onChange={setHousingType}
+              options={[
+                { id: 'Tout type', name: 'Tout type' },
+                { id: 'villa', name: 'Villa' },
+                { id: 'appartement', name: 'Appartement' },
+                { id: 'chambre', name: 'Chambre' },
+                { id: 'auberge', name: 'Auberge' }
+              ]}
+            />
+          </div>
 
-          <CustomSelect
-            label="Voyageurs"
-            icon={Users}
-            value={capacity.toString()}
-            onChange={(val) => setCapacity(Number(val))}
-            options={[1, 2, 3, 4, 5, 6, 8, 10].map(n => ({ 
-              id: n.toString(), 
-              name: `${n} voyageur${n > 1 ? 's' : ''}` 
-            }))}
-          />
+          <div className="lg:w-48">
+            <CustomSelect
+              label="Voyageurs"
+              icon={Users}
+              value={capacity.toString()}
+              onChange={(val) => setCapacity(Number(val))}
+              options={[1, 2, 3, 4, 5, 6, 8, 10].map(n => ({ 
+                id: n.toString(), 
+                name: `${n} voyageur${n > 1 ? 's' : ''}` 
+              }))}
+            />
+          </div>
 
           {/* SEARCH BUTTON */}
-          <div className="w-full lg:w-auto">
+          <div className="sm:col-span-2 lg:col-span-1 lg:w-auto mt-2 lg:mt-0">
             <button 
               type="submit" 
-              className="w-full bg-red-600 hover:bg-red-700 text-white px-10 py-4 rounded-2xl font-black text-xs flex items-center justify-center gap-3 transition-all shadow-xl shadow-red-100 active:scale-95 group shrink-0"
+              className="w-full bg-red-600 hover:bg-red-700 text-white px-10 py-4.5 md:py-4 rounded-2xl font-black text-xs flex items-center justify-center gap-3 transition-all shadow-xl shadow-red-100 active:scale-95 group shrink-0"
             >
-              <Search size={16} className="text-white group-hover:scale-110 transition-transform" />
+              <Search size={18} className="text-white group-hover:scale-110 transition-transform" />
               <span className="tracking-widest uppercase italic">Rechercher</span>
             </button>
           </div>
         </div>
 
         {/* Amenities Amenities Row */}
-        <div className="border-t border-slate-100 pt-4 flex flex-wrap items-center gap-4 px-4">
-          <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest mr-2">Équipements populaires :</span>
-          <div className="flex flex-wrap gap-2">
+        <div className="border-t border-slate-100 pt-4 flex flex-col md:flex-row md:items-center gap-3 md:gap-4 px-1 md:px-4">
+          <div className="flex items-center justify-between w-full md:w-auto shrink-0">
+            <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Équipements populaires :</span>
+            <span className="md:hidden text-[9px] font-black text-slate-300 uppercase tracking-tight animate-pulse">Défiler ➔</span>
+          </div>
+          
+          <div className="flex overflow-x-auto pb-3 md:pb-0 scrollbar-hide -mx-4 px-4 md:mx-0 md:px-0 md:flex-wrap gap-2.5">
             {amenitiesList.map(amenity => {
               const isSelected = selectedAmenities.includes(amenity.label);
               return (
@@ -131,7 +143,7 @@ export const SearchForm: React.FC<SearchFormProps> = ({ onSearch }) => {
                   type="button"
                   onClick={() => handleAmenityToggle(amenity.label)}
                   className={cn(
-                    "px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-2 border cursor-pointer",
+                    "px-4 py-2.5 md:py-2 rounded-xl text-[11px] md:text-xs font-bold transition-all flex items-center gap-2 border cursor-pointer whitespace-nowrap shrink-0",
                     isSelected 
                       ? "bg-red-50 border-red-200 text-red-700 shadow-sm" 
                       : "bg-slate-50 hover:bg-slate-100 border-slate-100 text-slate-600"
