@@ -1775,8 +1775,8 @@ export const OwnerDashboard: React.FC<{ isTestMode?: boolean; onBackToTraveler?:
                   <Wallet size={20} />
                 </div>
                 <div>
-                  <span className="block text-[10px] text-slate-400 uppercase font-black tracking-wider">Revenu Net (90%)</span>
-                  <span className="text-xl font-black text-slate-900">{formatCurrency(totalRevenue)} F CFA</span>
+                  <span className="block text-[10px] text-slate-400 uppercase font-black tracking-wider">Revenu Net (Retirable)</span>
+                  <span className="text-xl font-black text-slate-900">{formatCurrency(retirableBalance)} F CFA</span>
                 </div>
               </div>
 
@@ -2198,20 +2198,20 @@ export const OwnerDashboard: React.FC<{ isTestMode?: boolean; onBackToTraveler?:
           >
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
               <div className="bg-white border text-center border-slate-100 rounded-2xl p-6 shadow-sm">
-                <p className="text-sm font-black text-slate-400 uppercase tracking-widest mb-1">Gains du mois</p>
+                <p className="text-sm font-black text-slate-400 uppercase tracking-widest mb-1">Gains Nets du mois</p>
                 <p className="text-3xl font-black text-slate-900 leading-tight">
                   {formatCurrency(monthlyGains)} F CFA
                 </p>
                 <div className="mt-4 flex justify-center">
-                  <span className="text-xs bg-red-50 text-red-700 font-bold px-2 py-1 rounded-lg">+12% depuis le mois dernier</span>
+                  <span className="text-xs bg-green-50 text-green-700 font-bold px-2 py-1 rounded-lg">Versements nets après commission</span>
                 </div>
               </div>
               <div className="bg-white border text-center border-slate-100 rounded-2xl p-6 shadow-sm">
-                <p className="text-sm font-black text-slate-400 uppercase tracking-widest mb-1">Commissions ResiFaso</p>
-                <p className="text-3xl font-black text-green-600 leading-tight">
-                  {formatCurrency(monthlyCommissions)} F CFA
+                <p className="text-sm font-black text-slate-400 uppercase tracking-widest mb-1">Taux de Commission</p>
+                <p className="text-3xl font-black text-red-600 leading-tight">
+                  {commissionRate}%
                 </p>
-                <p className="text-xs text-slate-500 font-bold mt-2">{commissionRate}% de frais prélevés</p>
+                <p className="text-xs text-slate-500 font-bold mt-2">Frais de service plateforme</p>
               </div>
               <div className="bg-slate-900 text-center rounded-2xl p-6 shadow-sm relative overflow-hidden">
                 <div className="absolute -right-4 -top-4 w-24 h-24 bg-red-600/20 rounded-full blur-2xl"></div>

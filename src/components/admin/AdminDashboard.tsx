@@ -1631,6 +1631,10 @@ export const AdminDashboard: React.FC<{ onBackToTraveler?: () => void }> = ({ on
     .filter(b => b.paymentStatus === 'advance_paid' || b.paymentStatus === 'fully_paid')
     .reduce((sum, b) => sum + (b.totalPrice * (commissionRate / 100)), 0);
 
+  const grossRevenue = bookings
+    .filter(b => b.paymentStatus === 'advance_paid' || b.paymentStatus === 'fully_paid')
+    .reduce((sum, b) => sum + b.totalPrice, 0);
+
   const occupancyRate = totalResCount > 0
     ? Math.round((bookings.filter(b => b.bookingStatus === 'confirmed').length / (totalResCount * 5)) * 100)
     : 0;
@@ -3067,14 +3071,20 @@ export const AdminDashboard: React.FC<{ onBackToTraveler?: () => void }> = ({ on
               <p className="text-slate-500 font-medium text-sm">Suivi des montants d'avances payés et volume de commissions.</p>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div className="bg-white border-2 border-red-100 p-8 rounded-[32px] shadow-sm text-center">
-                <span className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Commissions Net Faso</span>
-                <div className="text-4xl font-black text-green-600 tracking-tighter mb-2">{formatCurrency(totalRevenue)} FCFA</div>
-                <div className="text-xs text-red-650 font-bold tracking-tight">Calculé sur {bookings.filter(b => b.paymentStatus === 'advance_paid' || b.paymentStatus === 'fully_paid').length} réservations encaissées.</div>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              <div className="bg-white border border-slate-200 p-8 rounded-[32px] shadow-sm text-center">
+                <span className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Volume d'Affaires Global</span>
+                <div className="text-3xl font-black text-slate-900 tracking-tighter mb-2">{formatCurrency(grossRevenue)} FCFA</div>
+                <div className="text-[10px] text-slate-500 font-bold uppercase tracking-widest">Total encaissé voyageurs</div>
               </div>
 
-              <div className="bg-slate-900 p-8 rounded-[32px] text-white overflow-hidden relative">
+              <div className="bg-white border-2 border-green-100 p-8 rounded-[32px] shadow-sm text-center">
+                <span className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Commissions Net Faso</span>
+                <div className="text-4xl font-black text-green-600 tracking-tighter mb-2">{formatCurrency(totalRevenue)} FCFA</div>
+                <div className="text-xs text-slate-600 font-bold tracking-tight">Part plateforme ({commissionRate}%)</div>
+              </div>
+
+              <div className="bg-slate-900 p-8 rounded-[32px] text-white overflow-hidden relative flex flex-col justify-center">
                 <div className="absolute top-0 right-0 w-24 h-24 bg-red-600/10 blur-3xl rounded-full"></div>
                 <span className="block text-[10px] text-slate-400/80 uppercase font-black tracking-widest mb-2">Projections Mobiles Faso</span>
                 <p className="text-xs leading-relaxed text-slate-300 font-medium mb-4">La passerelle SMS connecte les paiements Orange Money ({totalRevenue > 0 ? "92% d'infra stable" : "Initiale"}) et Moov Money Burkina.</p>
