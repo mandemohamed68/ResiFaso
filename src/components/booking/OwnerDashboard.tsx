@@ -898,10 +898,8 @@ export const OwnerDashboard: React.FC<{ isTestMode?: boolean; onBackToTraveler?:
   useEffect(() => {
     if (user) {
       fetchData();
-      const interval = setInterval(fetchData, 30000);
-      return () => clearInterval(interval);
     }
-  }, [user]);
+  }, [user, lastRefresh]);
 
   // Modification/Decline flows
   const [bookingToDecline, setBookingToDecline] = useState<Booking | null>(null);

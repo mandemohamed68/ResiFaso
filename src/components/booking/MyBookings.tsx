@@ -10,7 +10,7 @@ import { cn } from '../../lib/utils';
 import { PaymentModal } from './PaymentModal';
 import { apiFetch } from '../../lib/api';
 import { InvoiceModal } from './InvoiceModal';
-
+import { useDataRefresh } from '../../contexts/DataRefreshContext';
 import { useToast } from '../../contexts/ToastContext';
 
 interface ReviewModalProps {
@@ -716,6 +716,7 @@ const SuiviReservationModal: React.FC<SuiviReservationModalProps> = ({ isOpen, o
 
 export const MyBookings: React.FC<{ onContactHost: (ownerId: string, resId: string) => void, isTestMode?: boolean }> = ({ onContactHost, isTestMode }) => {
   const { user } = useAuth();
+  const { lastRefresh } = useDataRefresh();
   const { addToast } = useToast();
 
   const formatBookingDate = (dateStr: string) => {
@@ -813,10 +814,7 @@ export const MyBookings: React.FC<{ onContactHost: (ownerId: string, resId: stri
     };
 
     fetchBookings();
-    // Refresh every 60 seconds
-    const interval = setInterval(fetchBookings, 60000);
-    return () => clearInterval(interval);
-  }, [user]);
+  }, [user, lastRefresh]);
 
   const calculateDaysLeft = (checkInStr: string) => {
     const diff = new Date(checkInStr).getTime() - new Date().getTime();

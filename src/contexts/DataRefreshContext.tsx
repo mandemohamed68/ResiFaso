@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useCallback } from 'react';
+import React, { createContext, useContext, useState, useCallback, useEffect } from 'react';
 
 interface DataRefreshContextType {
   refreshData: () => void;
@@ -13,6 +13,25 @@ export const DataRefreshProvider: React.FC<{ children: React.ReactNode }> = ({ c
   const refreshData = useCallback(() => {
     setLastRefresh(Date.now());
   }, []);
+
+  // Smooth background sync logic
+  useEffect(() => {
+    // 1. Polling every 60 seconds for background updates
+    const interval = setInterval(refreshData, 60000);
+
+    // 2. Refresh when window gains focus (user returns to app)
+    const handleFocus = () => {
+      // Small debounce/throttle could be added here if needed
+      refreshData();
+    };
+
+    window.addEventListener('focus', handleFocus);
+
+    return () => {
+      clearInterval(interval);
+      window.removeEventListener('focus', handleFocus);
+    };
+  }, [refreshData]);
 
   return (
     <DataRefreshContext.Provider value={{ refreshData, lastRefresh }}>

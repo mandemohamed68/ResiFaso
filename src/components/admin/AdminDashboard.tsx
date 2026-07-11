@@ -14,6 +14,7 @@ import { useLocations } from '../../hooks/useLocations';
 import { motion, AnimatePresence } from 'motion/react';
 import { cn, formatFCFA } from '../../lib/utils';
 import { useAuth } from '../../contexts/AuthContext';
+import { useDataRefresh } from '../../contexts/DataRefreshContext';
 import { PREDEFINED_TYPES } from '../booking/OwnerDashboard';
 import { resizeImage } from '../../lib/imageResize';
 import { 
@@ -57,6 +58,7 @@ export const AVAILABLE_PERMISSIONS = [
 
 export const AdminDashboard: React.FC<{ onBackToTraveler?: () => void }> = ({ onBackToTraveler }) => {
   const { user } = useAuth();
+  const { lastRefresh } = useDataRefresh();
   const { addToast } = useToast();
   const [activeTab, setActiveTab] = useState<'overview' | 'alerts' | 'listings' | 'users' | 'bookings' | 'revenue' | 'reviews' | 'reports' | 'settings' | 'logs' | 'ads' | 'withdrawals' | 'locations' | 'flash-info' | 'faq' | 'contact' | 'email' | 'verifications'>('overview');
   const [verificationTypes, setVerificationTypes] = useState<any[]>([]);
@@ -324,10 +326,8 @@ export const AdminDashboard: React.FC<{ onBackToTraveler?: () => void }> = ({ on
   useEffect(() => {
     if (user) {
       reloadData();
-      const interval = setInterval(reloadData, 30000);
-      return () => clearInterval(interval);
     }
-  }, [dbType, user]);
+  }, [dbType, user, lastRefresh]);
 
   useEffect(() => {
     if (!user) return;

@@ -3,8 +3,9 @@ import React, { useState, useEffect } from 'react';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { RoleProvider, useRole } from './contexts/RoleContext';
 import { ToastProvider, useToast } from './contexts/ToastContext';
-import { DataRefreshProvider } from './contexts/DataRefreshContext';
+import { DataRefreshProvider, useDataRefresh } from './contexts/DataRefreshContext';
 import { Navbar } from './components/common/Navbar';
+import { LoadingScreen } from './components/common/LoadingScreen';
 import { Hero } from './components/home/Hero';
 import { SearchForm } from './components/search/SearchForm';
 import { ResidenceCard } from './components/search/ResidenceCard';
@@ -43,6 +44,7 @@ function AppContent() {
   const { user, profile, loginAsMock, logOut } = useAuth();
   const { currentRole, setCurrentRole } = useRole();
   const { addToast } = useToast();
+  const { lastRefresh } = useDataRefresh();
   
   const [view, setView] = useState<'home' | 'search' | 'details' | 'admin' | 'bookings' | 'owner-dashboard' | 'profile' | 'messages' | 'favorites' | 'tos' | 'privacy' | 'faq' | 'contact' | 'guide' | 'reset-password'>('home');
   const [selectedResidence, setSelectedResidence] = useState<Residence | null>(null);
@@ -208,11 +210,11 @@ function AppContent() {
       } catch (err) {
         console.error("Error loading residences:", err);
       } finally {
-        setLoading(false);
+        setTimeout(() => setLoading(false), 800); // Small delay for smooth exit
       }
     };
     fetchResidences();
-  }, []);
+  }, [lastRefresh]);
 
   const handleResidenceClick = (residence: Residence) => {
     setSelectedResidence(residence);
@@ -517,7 +519,13 @@ function AppContent() {
   };
 
   return (
-    <div className="min-h-screen bg-slate-50 pb-20 md:pb-0 font-sans">
+    <div className={cn(
+      "min-h-screen font-sans transition-colors duration-300",
+      isDarkMode ? "bg-slate-950 text-slate-100" : "bg-white text-slate-900"
+    )}>
+      <AnimatePresence mode="wait">
+        {loading && <LoadingScreen key="loading-screen" />}
+      </AnimatePresence>
 
       {announcements && announcements.filter(a => a.active).length > 0 && !isAnnouncementDismissed && (
         <div className="relative overflow-hidden bg-slate-900 border-b border-slate-800 text-white py-2 z-[100] shadow-md flex items-center select-none" id="app-global-announcement-banner">
@@ -593,9 +601,10 @@ function AppContent() {
           {view === 'home' && (
             <motion.div 
               key="home"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
+              initial={{ opacity: 0, y: 15 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -15 }}
+              transition={{ duration: 0.4, ease: "easeOut" }}
             >
               <Hero />
               
@@ -638,12 +647,7 @@ function AppContent() {
                   </div>
                 </div>
 
-                {loading ? (
-                  <div className="flex flex-col items-center justify-center py-20 bg-white border border-slate-100 rounded-3xl shadow-sm">
-                    <RefreshCw size={36} className="text-red-600 animate-spin mb-3" />
-                    <p className="text-slate-500 font-bold text-sm">Chargement du catalogue live...</p>
-                  </div>
-                ) : filteredResidences.length === 0 ? (
+                {filteredResidences.length === 0 ? (
                   <div className="bg-white border border-slate-100 rounded-3xl p-16 text-center max-w-lg mx-auto">
                     <Compass size={40} className="text-slate-350 mx-auto mb-4" />
                     <h3 className="text-lg font-black text-slate-800 mb-1">Aucune résidence trouvée</h3>
@@ -814,9 +818,10 @@ function AppContent() {
           {view === 'details' && selectedResidence && (
             <motion.div 
               key="details"
-              initial={{ opacity: 0, x: 20 }}
-              animate={{ opacity: 1, x: 0 }}
-              exit={{ opacity: 0, x: -20 }}
+              initial={{ opacity: 0, y: 15 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -15 }}
+              transition={{ duration: 0.4, ease: "easeOut" }}
               className="max-w-7xl mx-auto px-4 py-8"
             >
               <div className="flex items-center justify-between mb-6">
@@ -1394,9 +1399,10 @@ function AppContent() {
           {view === 'bookings' && (
             <motion.div 
               key="bookings"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
+              initial={{ opacity: 0, y: 15 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -15 }}
+              transition={{ duration: 0.4, ease: "easeOut" }}
             >
               <MyBookings onContactHost={handleContactHost} isTestMode={isTestMode} />
             </motion.div>
@@ -1406,9 +1412,10 @@ function AppContent() {
           {view === 'messages' && (
             <motion.div 
               key="messages"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
+              initial={{ opacity: 0, y: 15 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -15 }}
+              transition={{ duration: 0.4, ease: "easeOut" }}
             >
               <MessagesView initialConversationId={initialConversationId} />
             </motion.div>
@@ -1418,9 +1425,10 @@ function AppContent() {
           {view === 'profile' && (
             <motion.div 
               key="profile"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
+              initial={{ opacity: 0, y: 15 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -15 }}
+              transition={{ duration: 0.4, ease: "easeOut" }}
             >
               <ProfileSettings />
             </motion.div>
@@ -1430,9 +1438,10 @@ function AppContent() {
           {view === 'favorites' && (
             <motion.div 
               key="favorites"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
+              initial={{ opacity: 0, y: 15 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -15 }}
+              transition={{ duration: 0.4, ease: "easeOut" }}
               className="max-w-7xl mx-auto px-4 py-8"
             >
               <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-8">
@@ -1504,9 +1513,10 @@ function AppContent() {
           {view === 'owner-dashboard' && (
             <motion.div 
               key="owner-dashboard"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
+              initial={{ opacity: 0, y: 15 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -15 }}
+              transition={{ duration: 0.4, ease: "easeOut" }}
             >
               <OwnerDashboard isTestMode={isTestMode} onBackToTraveler={() => handleNavigate('home')} />
             </motion.div>
@@ -1516,9 +1526,10 @@ function AppContent() {
           {view === 'admin' && (
             <motion.div 
               key="admin"
-              initial={{ opacity: 0, scale: 0.98 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.98 }}
+              initial={{ opacity: 0, y: 15, scale: 0.98 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, y: -15, scale: 0.98 }}
+              transition={{ duration: 0.4, ease: "easeOut" }}
               className="max-w-7xl mx-auto px-4 py-8"
             >
               <AdminDashboard onBackToTraveler={() => handleNavigate('home')} />
