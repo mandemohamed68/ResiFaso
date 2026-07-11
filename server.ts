@@ -547,7 +547,7 @@ async function startServer() {
       currentStatus[verificationId] = status;
 
       await executeSql(
-        "UPDATE bookings SET verifications_status = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?",
+        "UPDATE bookings SET verifications_status = ? WHERE id = ?",
         [JSON.stringify(currentStatus), req.params.id]
       );
 
