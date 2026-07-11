@@ -486,7 +486,7 @@ function AppContent() {
         clientId: user.uid,
         checkIn: checkIn,
         checkOut: checkOut,
-        guests: searchFilters.capacity || 1,
+        guests: searchFilters?.capacity || 1,
         totalPrice: totalAmount,
         advancePaid: advanceAmount,
         bookingStatus: 'pending' as const, // En attente d'approbation d'hôte
