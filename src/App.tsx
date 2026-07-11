@@ -20,7 +20,7 @@ import {
   CheckCircle2, ShieldCheck, RefreshCw, Compass, MessageSquare,
   ChevronLeft, ChevronRight, Phone, Heart, Megaphone, X, Share2, Check, Calendar as CalendarIcon, ShieldAlert
 } from 'lucide-react';
-import { cn, formatFCFA } from './lib/utils';
+import { cn, formatFCFA, formatDateFr } from './lib/utils';
 import { MapView } from './components/search/MapView';
 import { AdminDashboard } from './components/admin/AdminDashboard';
 import { MessagesView } from './components/messaging/MessagesView';
@@ -1209,7 +1209,7 @@ function AppContent() {
                                 <div>
                                   <p className="text-xs font-black text-red-800 uppercase tracking-wide">Période non disponible !</p>
                                   <p className="text-xs font-medium text-red-600 leading-snug mt-1">
-                                    Cette résidence est déjà réservée/occupée du <strong className="font-extrabold">{conflicts[0].checkIn}</strong> au <strong className="font-extrabold">{conflicts[0].checkOut}</strong>.
+                                    Cette résidence est déjà réservée/occupée du <strong className="font-extrabold">{formatDateFr(conflicts[0].checkIn)}</strong> au <strong className="font-extrabold">{formatDateFr(conflicts[0].checkOut)}</strong>.
                                   </p>
                                 </div>
                               </div>
@@ -1218,7 +1218,7 @@ function AppContent() {
                                 <div className="pt-2.5 border-t border-red-100 space-y-1.5">
                                   <p className="text-[10px] font-black uppercase text-red-700 tracking-wider">💡 Suggestion de dates libres :</p>
                                   <div className="flex items-center justify-between gap-2">
-                                    <span className="text-xs font-bold text-slate-700">Du {suggestion.nextStartStr} au {suggestion.nextEndStr}</span>
+                                    <span className="text-xs font-bold text-slate-700">Du {formatDateFr(suggestion.nextStartStr)} au {formatDateFr(suggestion.nextEndStr)}</span>
                                     <button
                                       type="button"
                                       onClick={() => {

@@ -17,3 +17,27 @@ export const formatFCFA = (amount: any): string => {
     maximumFractionDigits: 0,
   }).format(numericAmount).replace('XOF', 'FCFA');
 };
+
+export const formatDateFr = (date: string | Date): string => {
+  if (!date) return '';
+  const d = typeof date === 'string' ? new Date(date) : date;
+  if (isNaN(d.getTime())) return String(date);
+  return d.toLocaleDateString('fr-FR', {
+    day: 'numeric',
+    month: 'long',
+    year: 'numeric'
+  });
+};
+
+export const formatDateTimeFr = (date: string | Date): string => {
+  if (!date) return '';
+  const d = typeof date === 'string' ? new Date(date) : date;
+  if (isNaN(d.getTime())) return String(date);
+  return d.toLocaleDateString('fr-FR', {
+    day: 'numeric',
+    month: 'long',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit'
+  });
+};

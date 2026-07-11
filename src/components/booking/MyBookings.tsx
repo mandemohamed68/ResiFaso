@@ -6,7 +6,7 @@ import { Booking, Residence } from '../../types';
 import { MOCK_RESIDENCES } from '../../mockData';
 import { motion, AnimatePresence } from 'motion/react';
 import { Calendar, CreditCard, MessageSquare, Compass, Send, CheckCircle2, RefreshCw, X, AlertCircle, Star, Download, ChevronLeft, ChevronRight, Clock, MapPin, User, Check } from 'lucide-react';
-import { cn } from '../../lib/utils';
+import { cn, formatDateFr } from '../../lib/utils';
 import { PaymentModal } from './PaymentModal';
 import { apiFetch } from '../../lib/api';
 import { InvoiceModal } from './InvoiceModal';
@@ -445,17 +445,6 @@ interface SuiviReservationModalProps {
 const SuiviReservationModal: React.FC<SuiviReservationModalProps> = ({ isOpen, onClose, booking, residence }) => {
   if (!isOpen) return null;
 
-  const formatBookingDate = (dateStr: string) => {
-    if (!dateStr) return '';
-    try {
-      const d = new Date(dateStr);
-      if (isNaN(d.getTime())) return dateStr;
-      return d.toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' });
-    } catch (e) {
-      return dateStr;
-    }
-  };
-
   const getNights = (start: string, end: string) => {
     const s = new Date(start);
     const e = new Date(end);
@@ -471,7 +460,7 @@ const SuiviReservationModal: React.FC<SuiviReservationModalProps> = ({ isOpen, o
       id: 'creation',
       label: 'Demande créée',
       description: 'Votre demande de séjour a été enregistrée avec succès sur ResiFaso.',
-      date: formatBookingDate(booking.createdAt),
+      date: formatDateFr(booking.createdAt),
       status: 'completed', // always completed if booking exists
     },
     {
@@ -482,7 +471,7 @@ const SuiviReservationModal: React.FC<SuiviReservationModalProps> = ({ isOpen, o
         : booking.bookingStatus === 'pending'
           ? "L'hôte examine actuellement votre demande."
           : 'Votre réservation a été acceptée et confirmée par l\'hôte.',
-      date: booking.bookingStatus !== 'pending' && booking.createdAt ? formatBookingDate(booking.createdAt) : undefined, // fallback date
+      date: booking.bookingStatus !== 'pending' && booking.createdAt ? formatDateFr(booking.createdAt) : undefined, // fallback date
       status: booking.bookingStatus === 'cancelled' 
         ? 'cancelled' 
         : booking.bookingStatus === 'pending' 
@@ -497,7 +486,7 @@ const SuiviReservationModal: React.FC<SuiviReservationModalProps> = ({ isOpen, o
         : booking.paymentStatus === 'advance_paid' || booking.paymentStatus === 'fully_paid'
           ? `Acompte de ${formatCurrency(booking.advancePaid)} F CFA reçu par l'hôte.`
           : "Paiement en attente.",
-      date: (booking.paymentStatus === 'advance_paid' || booking.paymentStatus === 'fully_paid') ? formatBookingDate(booking.createdAt) : undefined,
+      date: (booking.paymentStatus === 'advance_paid' || booking.paymentStatus === 'fully_paid') ? formatDateFr(booking.createdAt) : undefined,
       status: (booking.paymentStatus === 'advance_paid' || booking.paymentStatus === 'fully_paid')
         ? 'completed'
         : booking.bookingStatus === 'confirmed'
@@ -509,8 +498,8 @@ const SuiviReservationModal: React.FC<SuiviReservationModalProps> = ({ isOpen, o
       label: "Arrivée & Remise des clés",
       description: booking.stayStatus === 'completed' || booking.stayStatus === 'ongoing'
         ? "Vous êtes installé dans la résidence. Bienvenue !"
-        : `Présentez-vous le ${formatBookingDate(booking.checkIn)} pour la remise des clés et réglez le solde restant.`,
-      date: booking.checkedInAt ? formatBookingDate(booking.checkedInAt) : undefined,
+        : `Présentez-vous le ${formatDateFr(booking.checkIn)} pour la remise des clés et réglez le solde restant.`,
+      date: booking.checkedInAt ? formatDateFr(booking.checkedInAt) : undefined,
       status: booking.stayStatus === 'completed' || booking.stayStatus === 'ongoing'
         ? 'completed'
         : (booking.paymentStatus === 'advance_paid' || booking.paymentStatus === 'fully_paid') && booking.bookingStatus === 'confirmed'
@@ -522,8 +511,8 @@ const SuiviReservationModal: React.FC<SuiviReservationModalProps> = ({ isOpen, o
       label: "Départ & Libération",
       description: booking.stayStatus === 'completed'
         ? "Votre séjour est terminé. Merci pour votre confiance !"
-        : `Libération de la résidence prévue le ${formatBookingDate(booking.checkOut)}.`,
-      date: booking.checkedOutAt ? formatBookingDate(booking.checkedOutAt) : undefined,
+        : `Libération de la résidence prévue le ${formatDateFr(booking.checkOut)}.`,
+      date: booking.checkedOutAt ? formatDateFr(booking.checkedOutAt) : undefined,
       status: booking.stayStatus === 'completed'
         ? 'completed'
         : booking.stayStatus === 'ongoing'
@@ -660,8 +649,8 @@ const SuiviReservationModal: React.FC<SuiviReservationModalProps> = ({ isOpen, o
                 Détails du Séjour
               </h5>
               <div className="space-y-2 text-xs font-medium text-slate-600">
-                <p>Du <strong className="text-slate-800 font-bold">{formatBookingDate(booking.checkIn)}</strong></p>
-                <p>Au <strong className="text-slate-800 font-bold">{formatBookingDate(booking.checkOut)}</strong></p>
+                <p>Du <strong className="text-slate-800 font-bold">{formatDateFr(booking.checkIn)}</strong></p>
+                <p>Au <strong className="text-slate-800 font-bold">{formatDateFr(booking.checkOut)}</strong></p>
                 <p className="pt-2 border-t border-slate-200/50">Durée : <strong className="text-slate-800 font-bold">{totalNights} nuit(s)</strong></p>
                 <p>Voyageurs : <strong className="text-slate-800 font-bold">{booking.guests} personne(s)</strong></p>
               </div>
@@ -718,17 +707,6 @@ export const MyBookings: React.FC<{ onContactHost: (ownerId: string, resId: stri
   const { user } = useAuth();
   const { lastRefresh } = useDataRefresh();
   const { addToast } = useToast();
-
-  const formatBookingDate = (dateStr: string) => {
-    if (!dateStr) return '';
-    try {
-      const d = new Date(dateStr);
-      if (isNaN(d.getTime())) return dateStr;
-      return d.toLocaleDateString('fr-FR', { day: 'numeric', month: 'short', year: 'numeric' });
-    } catch (e) {
-      return dateStr;
-    }
-  };
 
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [currentPage, setCurrentPage] = useState(1);
@@ -937,7 +915,7 @@ export const MyBookings: React.FC<{ onContactHost: (ownerId: string, resId: stri
                     )}
 
                     <div className="flex flex-wrap gap-x-6 gap-y-2 text-slate-600 text-xs">
-                      <div>Du <strong className="text-slate-900 font-bold">{formatBookingDate(booking.checkIn)}</strong> au <strong className="text-slate-900 font-bold">{formatBookingDate(booking.checkOut)}</strong></div>
+                      <div>Du <strong className="text-slate-900 font-bold">{formatDateFr(booking.checkIn)}</strong> au <strong className="text-slate-900 font-bold">{formatDateFr(booking.checkOut)}</strong></div>
                       <div className="w-1 h-1 bg-slate-300 rounded-full self-center hidden md:block"></div>
                       <div>Voyageurs : <strong className="text-slate-900 font-bold">{booking.guests} pers.</strong></div>
                     </div>
@@ -965,7 +943,7 @@ export const MyBookings: React.FC<{ onContactHost: (ownerId: string, resId: stri
                             {booking.refundStatus === 'refunded' && (
                               <div className="flex items-center gap-1.5 text-xs text-green-700 font-bold bg-green-50 px-3 py-2 rounded-xl border border-green-200 w-fit">
                                 <span>✅</span>
-                                <span>Remboursement de {formatCurrency(booking.refundAmount)} F CFA crédité le {booking.refundProcessedAt ? new Date(booking.refundProcessedAt).toLocaleDateString('fr-FR') : ''} via {booking.refundProvider?.toUpperCase()} (+226 {booking.refundPhone})</span>
+                                <span>Remboursement de {formatCurrency(booking.refundAmount)} F CFA crédité le {booking.refundProcessedAt ? formatDateFr(booking.refundProcessedAt) : ''} via {booking.refundProvider?.toUpperCase()} (+226 {booking.refundPhone})</span>
                               </div>
                             )}
                           </div>

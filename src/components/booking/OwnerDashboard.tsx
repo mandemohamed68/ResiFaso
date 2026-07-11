@@ -26,7 +26,7 @@ import { Message, Conversation, Residence, Booking, WithdrawalRequest, MobileMon
 import { BURKINA_LOCATIONS } from '../../constants/locations';
 import { useLocations } from '../../hooks/useLocations';
 import { motion, AnimatePresence } from 'motion/react';
-import { cn } from '../../lib/utils';
+import { cn, formatDateFr } from '../../lib/utils';
 import { 
   BarChart3, Plus, Home, CalendarCheck, Wallet, ArrowRight, ArrowLeft, 
   Upload, Trash2, Eye, ShieldAlert, Check, X, RefreshCw, Layers, Pencil,
@@ -40,16 +40,6 @@ import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import { BookingVerificationSection } from './BookingVerificationSection';
 
-const formatBookingDate = (dateStr?: string) => {
-  if (!dateStr) return 'N/A';
-  try {
-    const d = new Date(dateStr);
-    if (isNaN(d.getTime())) return dateStr;
-    return d.toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' });
-  } catch (e) {
-    return dateStr;
-  }
-};
 
 const formatPaymentStatus = (status?: string) => {
   if (!status) return 'NON PAYÉ';
@@ -196,7 +186,7 @@ const ResidenceHistoryModal: React.FC<ResidenceHistoryModalProps> = ({ residence
                     </div>
                     <div>
                       <div className="flex items-center gap-2 mb-1">
-                        <span className="text-sm font-black text-slate-900">Du {formatBookingDate(b.checkIn)} au {formatBookingDate(b.checkOut)}</span>
+                        <span className="text-sm font-black text-slate-900">Du {formatDateFr(b.checkIn)} au {formatDateFr(b.checkOut)}</span>
                         {new Date(b.checkOut) < new Date() ? (
                           <span className="px-2 py-0.5 bg-slate-100 text-slate-500 rounded text-[8px] font-black uppercase">Terminé</span>
                         ) : (
@@ -327,7 +317,7 @@ const BookingTable: React.FC<BookingTableProps> = ({
                   <span className="block font-bold text-slate-800 text-xs truncate max-w-[150px]">{res?.title || "Logement Supprimé"}</span>
                 </td>
                 <td className="py-4 px-6 font-semibold">
-                  Du {formatBookingDate(b.checkIn)} au {formatBookingDate(b.checkOut)}
+                  Du {formatDateFr(b.checkIn)} au {formatDateFr(b.checkOut)}
                 </td>
                 <td className="py-4 px-6">
                   <span className="block font-black text-slate-950">{formatCurrency(b.totalPrice)} F CFA</span>
@@ -552,11 +542,11 @@ const BookingTable: React.FC<BookingTableProps> = ({
                     <div className="space-y-2 text-xs">
                       <div className="flex items-center gap-2">
                         <span className="text-slate-400 font-bold">Arrivée :</span>
-                        <strong className="text-slate-900 font-extrabold">{formatBookingDate(selectedBookingForDetails.checkIn)}</strong>
+                        <strong className="text-slate-900 font-extrabold">{formatDateFr(selectedBookingForDetails.checkIn)}</strong>
                       </div>
                       <div className="flex items-center gap-2">
                         <span className="text-slate-400 font-bold">Départ :</span>
-                        <strong className="text-slate-900 font-extrabold">{formatBookingDate(selectedBookingForDetails.checkOut)}</strong>
+                        <strong className="text-slate-900 font-extrabold">{formatDateFr(selectedBookingForDetails.checkOut)}</strong>
                       </div>
                       <div className="flex items-center gap-2">
                         <span className="text-slate-400 font-bold">Voyageurs :</span>
@@ -2324,7 +2314,7 @@ export const OwnerDashboard: React.FC<{ isTestMode?: boolean; onBackToTraveler?:
                         {withdrawals.slice((withdrawalsPage - 1) * 5, withdrawalsPage * 5).map((item) => (
                           <tr key={item.id} className="border-b border-slate-50 hover:bg-slate-50/50">
                             <td className="py-3.5 font-bold text-slate-500">
-                              {new Date(item.createdAt).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short', year: 'numeric' })}
+                              {formatDateFr(item.createdAt)}
                             </td>
                             <td className="py-3.5 font-extrabold text-slate-900">{formatCurrency(item.amount)} F CFA</td>
                             <td className="py-3.5 flex items-center gap-2">

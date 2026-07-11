@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Star, MapPin, Wifi, AirVent, ShieldCheck, Heart, Phone, MessageCircle, LayoutGrid, Calendar as CalendarIcon } from 'lucide-react';
 import { Residence } from '../../types';
 import { motion } from 'motion/react';
-import { formatFCFA, cn } from '../../lib/utils';
+import { formatFCFA, cn, formatDateFr } from '../../lib/utils';
 
 interface Props {
   residence: Residence;
@@ -147,16 +147,11 @@ export const ResidenceCard: React.FC<Props> = ({
               <span>Dates occupées</span>
             </div>
             <div className="flex flex-wrap gap-1">
-              {residence.occupiedDates.slice(0, 3).map((date, idx) => {
-                const start = new Date(date.from);
-                const end = new Date(date.to);
-                const options: Intl.DateTimeFormatOptions = { day: 'numeric', month: 'short' };
-                return (
-                  <span key={idx} className="px-1.5 py-0.5 bg-red-50 text-red-700 text-[8px] font-bold rounded border border-red-100 flex items-center gap-1">
-                    {start.toLocaleDateString('fr-FR', options)} - {end.toLocaleDateString('fr-FR', options)}
-                  </span>
-                );
-              })}
+              {residence.occupiedDates.slice(0, 3).map((date, idx) => (
+                <span key={idx} className="px-1.5 py-0.5 bg-red-50 text-red-700 text-[8px] font-bold rounded border border-red-100 flex items-center gap-1">
+                  {formatDateFr(date.from)} - {formatDateFr(date.to)}
+                </span>
+              ))}
               {residence.occupiedDates.length > 3 && (
                 <span className="text-[8px] font-bold text-slate-400 italic">
                   +{residence.occupiedDates.length - 3} autres...
