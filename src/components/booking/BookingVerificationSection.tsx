@@ -132,25 +132,56 @@ export const BookingVerificationSection: React.FC<BookingVerificationSectionProp
               onClick={() => toggleVerification(type.id)}
               disabled={!canEdit || isPast || isVerified}
               className={cn(
-                "group relative flex items-center justify-between p-3 rounded-xl border transition-all duration-300 text-left",
+                "group relative flex flex-col justify-between p-4 rounded-xl border transition-all duration-300 text-left min-h-[90px]",
                 isVerified 
-                  ? "bg-green-50 border-green-200 text-green-800 cursor-default" 
+                  ? "bg-emerald-50/70 border-emerald-200 text-emerald-900 cursor-default" 
                   : isPast 
-                    ? "bg-red-50 border-red-100 text-red-700 cursor-not-allowed"
-                    : "bg-amber-50 border-amber-200 text-amber-800 animate-[blink_2s_infinite] cursor-pointer hover:bg-amber-100"
+                    ? "bg-slate-50 border-slate-200 text-slate-500 cursor-not-allowed"
+                    : "bg-amber-50/50 border-amber-200 text-amber-900 cursor-pointer hover:bg-amber-100/70 hover:border-amber-300"
               )}
             >
-              <div className="flex flex-col gap-0.5">
-                <span className="text-[11px] font-black uppercase leading-tight">{type.label}</span>
-                {type.description && (
-                  <span className="text-[9px] font-medium opacity-70 line-clamp-1">{type.description}</span>
-                )}
+              <div className="flex items-start justify-between w-full gap-2 mb-2">
+                <div className="flex flex-col gap-0.5">
+                  <span className="text-[11px] font-black uppercase tracking-wide leading-tight">{type.label}</span>
+                  {type.description && (
+                    <span className="text-[9px] font-medium opacity-80 leading-normal line-clamp-2">{type.description}</span>
+                  )}
+                </div>
+                <div className={cn(
+                  "shrink-0 p-1.5 rounded-xl border transition-all",
+                  isVerified 
+                    ? "bg-emerald-500 text-white border-emerald-400" 
+                    : isPast 
+                      ? "bg-slate-100 text-slate-400 border-slate-200"
+                      : "bg-amber-100 text-amber-700 border-amber-200 animate-[pulse_2s_infinite]"
+                )}>
+                  {isVerified ? (
+                    <Check size={12} strokeWidth={3} />
+                  ) : (
+                    <AlertCircle size={12} />
+                  )}
+                </div>
               </div>
-              <div className={cn(
-                "shrink-0 p-1 rounded-full",
-                isVerified ? "bg-green-500 text-white" : "bg-white/50"
-              )}>
-                {isVerified ? <Check size={12} strokeWidth={4} /> : <AlertCircle size={12} />}
+
+              <div className="w-full flex items-center justify-between border-t border-dashed border-slate-200/60 pt-2 mt-auto">
+                <span className="text-[8px] font-mono tracking-wider uppercase opacity-50">Réf: {type.id}</span>
+                {isVerified ? (
+                  <span className="inline-flex items-center gap-1 text-[9px] font-black uppercase text-emerald-600 bg-emerald-100/50 px-2 py-0.5 rounded-md border border-emerald-200">
+                    🔒 Validé & Verrouillé
+                  </span>
+                ) : isPast ? (
+                  <span className="inline-flex items-center gap-1 text-[9px] font-black uppercase text-slate-500 bg-slate-100 px-2 py-0.5 rounded-md border border-slate-200">
+                    Non Vérifié
+                  </span>
+                ) : canEdit ? (
+                  <span className="inline-flex items-center gap-1 text-[9px] font-black uppercase text-amber-750 bg-amber-100 text-amber-800 px-2 py-0.5 rounded-md border border-amber-200/80 hover:bg-amber-200 transition-colors cursor-pointer group-hover:scale-105 transform origin-right duration-200">
+                    👉 Cliquer pour valider
+                  </span>
+                ) : (
+                  <span className="inline-flex items-center gap-1 text-[9px] font-black uppercase text-amber-700 bg-amber-50 px-2 py-0.5 rounded-md">
+                    En attente de validation
+                  </span>
+                )}
               </div>
             </button>
           );
