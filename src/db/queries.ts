@@ -79,6 +79,19 @@ export const getAllResidences = async (ownerId?: string) => {
     imagesMap[resId].push(i.image_url || i.imageUrl);
   });
 
+  const activeBookings = await executeSql(`
+    SELECT residence_id, check_in, check_out 
+    FROM bookings 
+    WHERE booking_status NOT IN ('cancelled', 'declined')
+  `);
+
+  const bookingsMap: Record<string, any[]> = {};
+  activeBookings.forEach((b: any) => {
+    const resId = b.residence_id || b.residenceId;
+    if (!bookingsMap[resId]) bookingsMap[resId] = [];
+    bookingsMap[resId].push({ from: b.check_in, to: b.check_out });
+  });
+
   return rows.map((res: any) => ({
     id: res.id,
     ownerId: res.ownerId || res.owner_id || res.ownerid,
@@ -108,6 +121,7 @@ export const getAllResidences = async (ownerId?: string) => {
     createdAt: res.createdAt || res.created_at || res.createdat,
     amenities: amenitiesMap[res.id] || [],
     images: imagesMap[res.id] || [],
+    occupiedDates: bookingsMap[res.id] || [],
     address: {
       city: cleanSecteur(res.city),
       neighborhood: cleanSecteur(res.neighborhood),
@@ -141,6 +155,11 @@ export const getResidenceById = async (id: string) => {
   const row = res[0];
   const amenities = await executeSql("SELECT amenity FROM residence_amenities WHERE residence_id = ?", [id]);
   const images = await executeSql("SELECT image_url FROM residence_images WHERE residence_id = ?", [id]);
+  const bookings = await executeSql(`
+    SELECT check_in, check_out 
+    FROM bookings 
+    WHERE residence_id = ? AND booking_status NOT IN ('cancelled', 'declined')
+  `, [id]);
   
   return {
     id: row.id,
@@ -171,6 +190,7 @@ export const getResidenceById = async (id: string) => {
     createdAt: row.createdAt || row.created_at || row.createdat,
     amenities: amenities.map((a: any) => a.amenity),
     images: images.map((i: any) => i.image_url || i.imageUrl),
+    occupiedDates: bookings.map((b: any) => ({ from: b.check_in, to: b.check_out })),
     address: {
       city: cleanSecteur(row.city),
       neighborhood: cleanSecteur(row.neighborhood),

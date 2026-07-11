@@ -70,6 +70,7 @@ export interface Residence {
   }[];
   amenities: string[];
   images: string[];
+  occupiedDates?: { from: string; to: string }[];
   capacity: number;
   bedrooms: number;
   beds: number;

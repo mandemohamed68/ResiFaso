@@ -318,7 +318,7 @@ async function startServer() {
 
   app.get("/api/residences/:id/bookings", async (req, res) => {
     try {
-      const bookings = await executeSql("SELECT * FROM bookings WHERE residence_id = ?", [req.params.id]);
+      const bookings = await executeSql("SELECT id, check_in as checkIn, check_out as checkOut, booking_status as bookingStatus FROM bookings WHERE residence_id = ? AND booking_status NOT IN ('cancelled', 'declined')", [req.params.id]);
       res.json(bookings);
     } catch (err: any) {
       res.status(500).json({ error: err.message });
@@ -332,6 +332,22 @@ async function startServer() {
       
       if (!residenceId || !ownerId || !checkIn || !checkOut || !totalPrice) {
         return res.status(400).json({ error: "Données de réservation incomplètes" });
+      }
+
+      // Check for overlapping bookings
+      // An overlap occurs if: (new_check_in < existing_check_out) AND (existing_check_in < new_check_out)
+      const overlaps = await executeSql(`
+        SELECT id, check_in, check_out FROM bookings 
+        WHERE residence_id = ? 
+        AND booking_status NOT IN ('cancelled', 'declined')
+        AND (check_in < ? AND ? < check_out)
+      `, [residenceId, checkOut, checkIn]);
+
+      if (overlaps.length > 0) {
+        return res.status(400).json({ 
+          error: "Ces dates sont déjà réservées pour cette résidence.",
+          overlaps: overlaps.map((o: any) => ({ from: o.check_in, to: o.check_out }))
+        });
       }
 
       await executeSql(`
