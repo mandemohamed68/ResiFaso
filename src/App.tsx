@@ -39,6 +39,7 @@ import { ResetPassword } from './components/auth/ResetPassword';
 import { Footer } from './components/common/Footer';
 import { BURKINA_LOCATIONS } from './constants/locations';
 import { GlobalModal } from './components/common/GlobalModal';
+import { apiFetch } from './lib/api';
 
 function AppContent() {
   const { user, profile, loginAsMock, logOut } = useAuth();
@@ -156,7 +157,7 @@ function AppContent() {
   useEffect(() => {
     const fetchSettings = async () => {
       try {
-        const response = await fetch('/api/settings/global');
+        const response = await apiFetch('/api/settings/global');
         if (response.ok) {
           const data = await response.json();
           if (data.isTestMode !== undefined) setIsTestMode(data.isTestMode);
@@ -201,7 +202,7 @@ function AppContent() {
       const isInitial = residences.length === 0;
       try {
         if (isInitial) setLoading(true);
-        const response = await fetch('/api/residences');
+        const response = await apiFetch('/api/residences');
         if (response.ok) {
           const data = await response.json();
           // Filter published only if needed (backend should ideally handle this)
@@ -233,7 +234,7 @@ function AppContent() {
     }
     const fetchSelectedBookings = async () => {
       try {
-        const response = await fetch(`/api/residences/${selectedResidence.id}/bookings`);
+        const response = await apiFetch(`/api/residences/${selectedResidence.id}/bookings`);
         if (response.ok) {
           const data = await response.json();
           setSelectedResidenceBookings(data);
@@ -441,7 +442,7 @@ function AppContent() {
 
     try {
       // 1. Check for availability conflicts
-      const response = await fetch(`/api/residences/${selectedResidence.id}/bookings`);
+      const response = await apiFetch(`/api/residences/${selectedResidence.id}/bookings`);
       if (!response.ok) throw new Error("Erreur lors de la vérification de disponibilité");
       const confirmedBookings = await response.json();
 
