@@ -1075,7 +1075,7 @@ export const OwnerDashboard: React.FC<{ isTestMode?: boolean; onBackToTraveler?:
     .reduce((acc, curr) => acc + Math.round(curr.totalPrice * (commissionRate / 100)), 0);
 
   const totalNetEarned = bookings
-    .filter(b => (b.paymentStatus === 'fully_paid' || b.paymentStatus === 'advance_paid') && b.bookingStatus !== 'cancelled')
+    .filter(b => b.paymentStatus === 'fully_paid' && b.bookingStatus !== 'cancelled')
     .reduce((acc, curr) => acc + Math.round(curr.totalPrice * (1 - (commissionRate / 100))), 0);
 
   const totalWithdrawnAndPending = withdrawals
@@ -1086,7 +1086,7 @@ export const OwnerDashboard: React.FC<{ isTestMode?: boolean; onBackToTraveler?:
     .filter(b => b.paymentStatus === 'advance_paid' && b.bookingStatus !== 'cancelled' && b.bookingStatus !== 'completed')
     .reduce((acc, curr) => acc + Math.round(curr.totalPrice * (1 - (commissionRate / 100))), 0);
 
-  const retirableBalance = Math.max(0, totalNetEarned - totalWithdrawnAndPending);
+  const retirableBalance = totalNetEarned - totalWithdrawnAndPending;
 
   const totalRevenue = totalNetEarned;
 
