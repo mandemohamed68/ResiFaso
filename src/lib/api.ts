@@ -1,8 +1,10 @@
 export function getApiUrl(): string {
-  const envUrl = import.meta.env.VITE_API_URL || import.meta.env.VITE_APP_URL;
-  if (envUrl && envUrl !== 'MY_APP_URL' && envUrl !== 'MY_API_URL') {
-    return envUrl.replace(/\/$/, '').replace(/\/api$/, '');
-  }
+  // Check if we are running in the AI Studio web preview iframe/environment
+  const isPreview = typeof window !== 'undefined' && (
+    window.location.hostname.includes('run.app') || 
+    window.location.hostname.includes('aistudio') ||
+    window.location.hostname.includes('googleusercontent.com')
+  );
 
   const isCapacitor = typeof window !== 'undefined' && (
     // @ts-ignore
@@ -10,19 +12,27 @@ export function getApiUrl(): string {
     window.location.protocol === 'capacitor:' ||
     window.location.origin.startsWith('ionic:')
   );
-  
-  if (isCapacitor) {
-    // If Capacitor, we need the origin of where the app is hosted
-    // In many cases, window.location.origin works if the app is served via HTTPS
-    if (typeof window !== 'undefined') return window.location.origin;
+
+  // If in the web preview and not inside Capacitor, we must use relative paths to avoid mixed-content (HTTPS -> HTTP) and CORS blockages
+  if (isPreview && !isCapacitor) {
     return '';
+  }
+
+  const envUrl = import.meta.env.VITE_API_URL || import.meta.env.VITE_APP_URL;
+  if (envUrl && envUrl !== 'MY_APP_URL' && envUrl !== 'MY_API_URL') {
+    return envUrl.replace(/\/$/, '').replace(/\/api$/, '');
+  }
+
+  if (isCapacitor) {
+    // Target the deployed production backend for mobile devices running the APK
+    return 'http://167.172.39.172:2000';
   }
   
   if (typeof window !== 'undefined') {
     return window.location.origin;
   }
   
-  return '';
+  return 'http://167.172.39.172:2000';
 }
 
 export async function apiFetch(path: string, options: RequestInit = {}): Promise<Response> {
