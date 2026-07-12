@@ -3,7 +3,9 @@ export function getApiUrl(): string {
   const isPreview = typeof window !== 'undefined' && (
     window.location.hostname.includes('run.app') || 
     window.location.hostname.includes('aistudio') ||
-    window.location.hostname.includes('googleusercontent.com')
+    window.location.hostname.includes('googleusercontent.com') ||
+    window.location.hostname.includes('web-platform.com') ||
+    window.location.hostname.includes('localhost')
   );
 
   const isCapacitor = typeof window !== 'undefined' && (
@@ -25,7 +27,8 @@ export function getApiUrl(): string {
 
   const envUrl = import.meta.env.VITE_API_URL || import.meta.env.VITE_APP_URL;
   if (envUrl && envUrl !== 'MY_APP_URL' && envUrl !== 'MY_API_URL') {
-    return envUrl.replace(/\/$/, '').replace(/\/api$/, '');
+    const cleanUrl = envUrl.replace(/\/$/, '').replace(/\/api$/, '');
+    return cleanUrl;
   }
   
   if (typeof window !== 'undefined') {
@@ -56,13 +59,14 @@ export async function apiFetch(path: string, options: RequestInit = {}): Promise
   }
 
   try {
+    console.log(`[apiFetch] Fetching: ${fullUrl}`);
     const res = await fetch(fullUrl, {
       ...options,
       headers
     });
     return res;
   } catch (err) {
-    console.error("apiFetch network error:", err);
+    console.error(`[apiFetch] Network error for ${fullUrl}:`, err);
     // Return a mock response object to prevent downstream .json() crashes if not checked
     return {
       ok: false,

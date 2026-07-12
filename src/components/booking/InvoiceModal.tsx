@@ -130,7 +130,7 @@ export const InvoiceModal: React.FC<InvoiceModalProps> = ({
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-8 mb-10">
                   <div className="p-5 bg-slate-50 rounded-2xl border border-slate-100/60">
                     <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3">Facturé à</h3>
-                    <p className="font-bold text-slate-900">{clientName || 'Client ResiFaso'}</p>
+                    <p className="font-bold text-slate-900">{clientName || 'Voyageur ResiFaso'}</p>
                     <p className="text-sm text-slate-500 mt-1">Voyageur</p>
                   </div>
                   

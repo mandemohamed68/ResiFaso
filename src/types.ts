@@ -137,6 +137,7 @@ export interface Booking {
   totalAmount?: number;
   status?: string;
   clientPhone?: string;
+  clientName?: string;
   verificationsStatus?: string; // JSON string
 }
 

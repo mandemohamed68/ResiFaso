@@ -194,7 +194,7 @@ const ResidenceHistoryModal: React.FC<ResidenceHistoryModalProps> = ({ residence
                           <span className="px-2 py-0.5 bg-red-50 text-red-600 rounded text-[8px] font-black uppercase">Prévu</span>
                         )}
                       </div>
-                      <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Client ID: {b.clientId.slice(0, 8)} &bull; {b.guests} Voyageurs</p>
+                      <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Voyageur: {b.clientName || b.clientId.slice(0, 8)} &bull; {b.guests} Voyageurs</p>
                     </div>
                   </div>
 
@@ -296,7 +296,7 @@ const BookingTable: React.FC<BookingTableProps> = ({
               <tr key={b.id}>
                 <td className="py-4 px-6">
                   <span className="block font-black text-slate-900">ID: {b.id.slice(0, 8)}</span>
-                  <span className="text-[10px] text-slate-400 font-bold uppercase">Client: {b.clientPhone || b.clientId.slice(0, 5)}</span>
+                  <span className="text-[10px] text-slate-400 font-bold uppercase">Voyageur: {b.clientName || b.clientPhone || b.clientId.slice(0, 5)}</span>
                   <div className="flex items-center gap-2 mt-1.5">
                   <button
                     onClick={() => setSelectedBookingForDetails(b)}
@@ -554,6 +554,10 @@ const BookingTable: React.FC<BookingTableProps> = ({
                         <strong className="text-slate-900 font-extrabold">{selectedBookingForDetails.guests || 2} personnes</strong>
                       </div>
                       <div className="flex items-center gap-2">
+                        <span className="text-slate-400 font-bold">Voyageur :</span>
+                        <strong className="text-red-600 font-extrabold">{selectedBookingForDetails.clientName || `ID: ${selectedBookingForDetails.clientId?.substring(0,8)}`}</strong>
+                      </div>
+                      <div className="flex items-center gap-2">
                         <span className="text-slate-400 font-bold">Créée le :</span>
                         <span className="text-slate-700 font-bold">{selectedBookingForDetails.createdAt ? new Date(selectedBookingForDetails.createdAt).toLocaleString('fr-FR') : "N/A"}</span>
                       </div>
@@ -696,7 +700,7 @@ const BookingTable: React.FC<BookingTableProps> = ({
         onClose={() => setSelectedBookingForInvoice(null)}
         booking={selectedBookingForInvoice}
         residence={selectedBookingForInvoice ? residences.find(r => r.id === selectedBookingForInvoice.residenceId) : null}
-        clientName="Client"
+        clientName={selectedBookingForInvoice?.clientName || "Voyageur"}
       />
     </div>
   );
@@ -1070,36 +1074,54 @@ export const OwnerDashboard: React.FC<{ isTestMode?: boolean; onBackToTraveler?:
   const monthlyGains = monthlyBookings
     .filter(b => b.paymentStatus === 'fully_paid' || b.paymentStatus === 'advance_paid')
     .reduce((acc, curr) => {
-      const platformCollected = curr.paymentStatus === 'fully_paid' ? curr.totalPrice : (curr.advancePaid || Math.round(curr.totalPrice * 0.3));
-      const platformCommission = curr.totalPrice * (commissionRate / 100);
-      return acc + Math.max(0, Math.round(platformCollected - platformCommission));
+      const totalPrice = Number(curr.totalPrice) || 0;
+      const advancePaid = Number(curr.advancePaid) || 0;
+      const platformCollected = curr.paymentStatus === 'fully_paid' ? totalPrice : (advancePaid || Math.round(totalPrice * 0.3));
+      const platformCommission = totalPrice * (Number(commissionRate) / 100);
+      const gain = Math.max(0, Math.round(platformCollected - platformCommission));
+      return acc + gain;
     }, 0);
 
   const monthlyCommissions = monthlyBookings
     .filter(b => b.paymentStatus === 'fully_paid' || b.paymentStatus === 'advance_paid')
-    .reduce((acc, curr) => acc + Math.round(curr.totalPrice * (commissionRate / 100)), 0);
+    .reduce((acc, curr) => acc + Math.round(Number(curr.totalPrice || 0) * (Number(commissionRate) / 100)), 0);
 
   const totalNetEarned = bookings
     .filter(b => (b.paymentStatus === 'fully_paid' || b.paymentStatus === 'advance_paid') && b.bookingStatus !== 'cancelled')
     .reduce((acc, curr) => {
-      const platformCollected = curr.paymentStatus === 'fully_paid' ? curr.totalPrice : (curr.advancePaid || Math.round(curr.totalPrice * 0.3));
-      const platformCommission = curr.totalPrice * (commissionRate / 100);
-      return acc + Math.max(0, Math.round(platformCollected - platformCommission));
+      const totalPrice = Number(curr.totalPrice) || 0;
+      const advancePaid = Number(curr.advancePaid) || 0;
+      const platformCollected = curr.paymentStatus === 'fully_paid' ? totalPrice : (advancePaid || Math.round(totalPrice * 0.3));
+      const platformCommission = totalPrice * (Number(commissionRate) / 100);
+      const gain = Math.max(0, Math.round(platformCollected - platformCommission));
+      return acc + gain;
     }, 0);
 
   const totalWithdrawnAndPending = withdrawals
     .filter(w => w.status !== 'rejected')
-    .reduce((acc, w) => acc + w.amount, 0);
+    .reduce((acc, w) => acc + (Number(w.amount) || 0), 0);
 
   const nextTransferAmount = bookings
     .filter(b => b.paymentStatus === 'advance_paid' && b.bookingStatus !== 'cancelled' && b.bookingStatus !== 'completed')
     .reduce((acc, curr) => {
-      const platformCollected = curr.advancePaid || Math.round(curr.totalPrice * 0.3);
-      const platformCommission = curr.totalPrice * (commissionRate / 100);
-      return acc + Math.max(0, Math.round(platformCollected - platformCommission));
+      const totalPrice = Number(curr.totalPrice) || 0;
+      const advancePaid = Number(curr.advancePaid) || 0;
+      const platformCollected = advancePaid || Math.round(totalPrice * 0.3);
+      const platformCommission = totalPrice * (Number(commissionRate) / 100);
+      const gain = Math.max(0, Math.round(platformCollected - platformCommission));
+      return acc + gain;
     }, 0);
 
-  const retirableBalance = totalNetEarned - totalWithdrawnAndPending;
+  const retirableBalance = Math.max(0, totalNetEarned - totalWithdrawnAndPending);
+
+  console.log("Metrics Debug:", {
+    totalNetEarned,
+    totalWithdrawnAndPending,
+    retirableBalance,
+    monthlyGains,
+    bookingsCount: bookings.length,
+    withdrawalsCount: withdrawals.length
+  });
 
   const totalRevenue = totalNetEarned;
 

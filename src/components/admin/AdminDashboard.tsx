@@ -2891,7 +2891,7 @@ export const AdminDashboard: React.FC<{ onBackToTraveler?: () => void }> = ({ on
                           <tr key={book.id} className={cn("transition-colors", isEditing ? "bg-red-50/20" : "")}>
                             <td className="py-4 px-6">
                               <span className="block font-black text-slate-900">#{book.id}</span>
-                              <span className="text-[10px] text-slate-400 block font-bold">Client UI: {book.clientId?.substring(0,8)}</span>
+                              <span className="text-[10px] text-slate-400 block font-bold">Voyageur: {book.clientName || book.clientId?.substring(0,8)}</span>
                             </td>
                             <td className="py-4 px-6 font-medium text-slate-600">
                               <div>Du : {book.checkIn}</div>
@@ -3135,7 +3135,7 @@ export const AdminDashboard: React.FC<{ onBackToTraveler?: () => void }> = ({ on
                     </div>
 
                     <div className="border-t border-slate-100 pt-4 flex items-center justify-between">
-                      <span className="text-[10px] text-slate-400 font-bold">Auteur : Client #{rev.clientId?.substring(0, 6)}</span>
+                      <span className="text-[10px] text-slate-400 font-bold">Auteur : Voyageur #{rev.clientId?.substring(0, 6)}</span>
                       <button
                         onClick={() => handleDeleteReview(rev.id, rev.clientId)}
                         className="text-red-600 bg-red-50 hover:bg-red-600 hover:text-white transition px-3 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-wider cursor-pointer"

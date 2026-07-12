@@ -1100,6 +1100,10 @@ async function startServer() {
   });
 
   // 404 for undefined API routes
+  app.get("/api/health", (req, res) => {
+    res.json({ status: "ok", timestamp: new Date().toISOString() });
+  });
+
   app.all("/api/*", (req, res) => {
     res.status(404).json({ error: "API Route not found" });
   });

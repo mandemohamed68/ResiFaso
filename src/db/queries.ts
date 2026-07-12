@@ -213,16 +213,18 @@ export const getResidenceById = async (id: string) => {
 export const getAllBookings = async (options: { clientId?: string, ownerId?: string, isAdmin?: boolean, residenceId?: string } = {}) => {
   let sql = `
     SELECT 
-      id, residence_id as residenceId, client_id as clientId, owner_id as ownerId, 
-      check_in as checkIn, check_out as checkOut, guests, total_price as totalPrice, 
-      advance_paid as advancePaid, payment_status as paymentStatus, booking_status as bookingStatus, 
-      transaction_id as transactionId, cancelled_by as cancelledBy, cancellation_reason as cancellationReason, 
-      cancelled_at as cancelledAt, refund_status as refundStatus, refund_amount as refundAmount, 
-      refund_phone as refundPhone, refund_provider as refundProvider, refund_processed_at as refundProcessedAt, 
-      stay_status as stayStatus, checked_in_at as checkedInAt, checked_out_at as checkedOutAt, 
-      verifications_status as verificationsStatus,
-      created_at as createdAt 
-    FROM bookings
+      b.id, b.residence_id as residenceId, b.client_id as clientId, b.owner_id as ownerId, 
+      b.check_in as checkIn, b.check_out as checkOut, b.guests, b.total_price as totalPrice, 
+      b.advance_paid as advancePaid, b.payment_status as paymentStatus, b.booking_status as bookingStatus, 
+      b.transaction_id as transactionId, b.cancelled_by as cancelledBy, b.cancellation_reason as cancellationReason, 
+      b.cancelled_at as cancelledAt, b.refund_status as refundStatus, b.refund_amount as refundAmount, 
+      b.refund_phone as refundPhone, b.refund_provider as refundProvider, b.refund_processed_at as refundProcessedAt, 
+      b.stay_status as stayStatus, b.checked_in_at as checkedInAt, b.checked_out_at as checkedOutAt, 
+      b.verifications_status as verificationsStatus,
+      b.created_at as createdAt,
+      u.display_name as clientName
+    FROM bookings b
+    LEFT JOIN users u ON b.client_id = u.uid
   `;
   // For MariaDB, we might need to ensure the driver doesn't mangle aliases.
   // Actually, let's keep it and if it fails, we'll try manual mapping in JS.
@@ -283,20 +285,23 @@ export const getAllBookings = async (options: { clientId?: string, ownerId?: str
     checkedInAt: row.checkedInAt || row.checked_in_at || row.checkedinat,
     checkedOutAt: row.checkedOutAt || row.checked_out_at || row.checkedoutat,
     verificationsStatus: row.verificationsStatus || row.verifications_status || row.verificationsstatus,
-    createdAt: row.createdAt || row.created_at || row.createdat
+    createdAt: row.createdAt || row.created_at || row.createdat,
+    clientName: row.clientName || row.client_name || row.clientname
   }));
 };
 
 export const getBookingById = async (id: string) => {
   const results = await executeSql(`
     SELECT 
-      id, residence_id as residenceId, client_id as clientId, owner_id as ownerId, 
-      check_in as checkIn, check_out as checkOut, guests, total_price as totalPrice, 
-      advance_paid as advancePaid, payment_status as paymentStatus, booking_status as bookingStatus, 
-      transaction_id as transactionId, verifications_status as verificationsStatus,
-      created_at as createdAt 
-    FROM bookings 
-    WHERE id = ?
+      b.id, b.residence_id as residenceId, b.client_id as clientId, b.owner_id as ownerId, 
+      b.check_in as checkIn, b.check_out as checkOut, b.guests, b.total_price as totalPrice, 
+      b.advance_paid as advancePaid, b.payment_status as paymentStatus, b.booking_status as bookingStatus, 
+      b.transaction_id as transactionId, b.verifications_status as verificationsStatus,
+      b.created_at as createdAt,
+      u.display_name as clientName
+    FROM bookings b
+    LEFT JOIN users u ON b.client_id = u.uid
+    WHERE b.id = ?
   `, [id]);
   
   const row = results[0];
@@ -316,7 +321,8 @@ export const getBookingById = async (id: string) => {
     bookingStatus: row.bookingStatus || row.booking_status || row.bookingstatus,
     transactionId: row.transactionId || row.transaction_id || row.transactionid,
     verificationsStatus: row.verificationsStatus || row.verifications_status || row.verificationsstatus,
-    createdAt: row.createdAt || row.created_at || row.createdat
+    createdAt: row.createdAt || row.created_at || row.createdat,
+    clientName: row.clientName || row.client_name || row.clientname
   };
 };
 

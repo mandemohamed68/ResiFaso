@@ -189,7 +189,7 @@ export const Navbar: React.FC<{
                     onClick={() => onNavigate('bookings')}
                     className="text-slate-650 hover:text-red-600 font-bold text-xs uppercase tracking-wider transition-colors cursor-pointer px-2 ml-1"
                   >
-                    Mes voyages
+                    Mes réservations
                   </button>
                 </>
               )}
@@ -371,7 +371,7 @@ export const Navbar: React.FC<{
                   <div className="absolute right-0 top-full mt-2 w-64 bg-white rounded-2xl shadow-xl border border-slate-100 py-3 z-50">
                     {currentRole === 'client' && (
                       <>
-                        <button onClick={() => { setIsUserMenuOpen(false); onNavigate('bookings'); }} className="w-full text-left px-5 py-2.5 hover:bg-slate-50 font-bold text-sm text-slate-700">Mes voyages</button>
+                        <button onClick={() => { setIsUserMenuOpen(false); onNavigate('bookings'); }} className="w-full text-left px-5 py-2.5 hover:bg-slate-50 font-bold text-sm text-slate-700">Mes réservations</button>
                         <button onClick={() => { setIsUserMenuOpen(false); onNavigate('favorites'); }} className="w-full text-left px-5 py-2.5 hover:bg-slate-50 font-bold text-sm text-slate-700">Mes favoris</button>
                         <button onClick={() => { setIsUserMenuOpen(false); onNavigate('messages'); }} className="w-full text-left px-5 py-2.5 hover:bg-slate-50 font-bold text-sm text-slate-700 flex justify-between items-center">
                           Messagerie <span className="bg-green-600 text-white text-[10px] px-1.5 py-0.5 rounded-full">Pro</span>
@@ -421,7 +421,7 @@ export const Navbar: React.FC<{
         {user && currentRole === 'client' && (
           <button onClick={() => onNavigate('bookings')} className="flex flex-col items-center gap-1 text-slate-500 hover:text-orange-600 cursor-pointer">
             <Search size={20} />
-            <span className="text-[9px] font-bold uppercase tracking-wider">Voyages</span>
+            <span className="text-[9px] font-bold uppercase tracking-wider">Réservations</span>
           </button>
         )}
 

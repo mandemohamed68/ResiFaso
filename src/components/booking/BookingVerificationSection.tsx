@@ -101,7 +101,7 @@ export const BookingVerificationSection: React.FC<BookingVerificationSectionProp
     <div className="space-y-4">
       <div className="flex items-center justify-between border-b border-slate-100 pb-2">
         <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-1.5">
-          🛡️ Vérifications du Client
+          🛡️ Vérifications de : <span className="text-slate-900">{clientProfile?.display_name || clientProfile?.displayName || 'Voyageur'}</span>
         </span>
         {clientProfile && (clientProfile.identity_document_front || clientProfile.identityDocumentFront) && (
           <button 

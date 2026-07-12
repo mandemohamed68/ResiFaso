@@ -262,7 +262,7 @@ const CancellationModal: React.FC<CancellationModalProps> = ({ isOpen, onClose, 
       // Send host notification
       await sendNotification({
         userId: booking.ownerId,
-        title: "Séjour Annulé par le Client ❌",
+        title: "Séjour Annulé par le Voyageur ❌",
         message: `La réservation pour ${residence.title} (${scenarioLabel}) a été annulée. Motif : ${reason}. Remboursement calculé automatiquement : ${formatCurrency(refundAmount)} F CFA.`,
         type: 'booking'
       });
@@ -827,7 +827,7 @@ export const MyBookings: React.FC<{ onContactHost: (ownerId: string, resId: stri
     return (
       <div className="flex flex-col items-center justify-center py-20 text-center max-w-5xl mx-auto px-4">
         <h2 className="text-2xl font-black text-slate-900 mb-2">Accès à vos réservations</h2>
-        <p className="text-slate-500 font-bold text-sm">Veuillez vous connecter pour consulter vos voyages.</p>
+        <p className="text-slate-500 font-bold text-sm">Veuillez vous connecter pour consulter vos réservations.</p>
       </div>
     );
   }
@@ -1085,7 +1085,7 @@ export const MyBookings: React.FC<{ onContactHost: (ownerId: string, resId: stri
                   <p className="text-xs text-slate-500 font-bold">
                     Affichage de <span className="font-extrabold text-slate-800">{Math.min((currentPage - 1) * 5 + 1, bookings.length)}</span> à{' '}
                     <span className="font-extrabold text-slate-800">{Math.min(currentPage * 5, bookings.length)}</span> sur{' '}
-                    <span className="font-extrabold text-slate-800">{bookings.length}</span> voyages
+                    <span className="font-extrabold text-slate-800">{bookings.length}</span> réservations
                   </p>
                 </div>
                 <div>
