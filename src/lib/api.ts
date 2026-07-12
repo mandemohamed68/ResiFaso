@@ -18,14 +18,14 @@ export function getApiUrl(): string {
     return '';
   }
 
-  const envUrl = import.meta.env.VITE_API_URL || import.meta.env.VITE_APP_URL;
-  if (envUrl && envUrl !== 'MY_APP_URL' && envUrl !== 'MY_API_URL') {
-    return envUrl.replace(/\/$/, '').replace(/\/api$/, '');
-  }
-
   if (isCapacitor) {
     // Target the deployed production backend for mobile devices running the APK
     return 'http://167.172.39.172:2000';
+  }
+
+  const envUrl = import.meta.env.VITE_API_URL || import.meta.env.VITE_APP_URL;
+  if (envUrl && envUrl !== 'MY_APP_URL' && envUrl !== 'MY_API_URL') {
+    return envUrl.replace(/\/$/, '').replace(/\/api$/, '');
   }
   
   if (typeof window !== 'undefined') {

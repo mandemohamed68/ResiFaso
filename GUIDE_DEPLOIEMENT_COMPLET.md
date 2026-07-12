@@ -127,7 +127,7 @@ cd /var/www/resifaso
 cp .env.example .env
 nano .env
 ```
-*(Assurez-vous que `PORT=3000` (pour Node en interne) et que `VITE_API_URL=http://167.172.39.172:2020/api` pour être intercepté par Nginx)*.
+*(Assurez-vous que `PORT=3000` (pour Node en interne) et que `VITE_API_URL=http://167.172.39.172:2000/api` pour être intercepté par Nginx)*.
 
 5. **Installer les dépendances et compiler :**
 ```bash
@@ -142,13 +142,13 @@ pm2 start npm --name "resifaso" -- run start
 pm2 save
 pm2 startup
 ```
-*(Puisque Nginx écoutera sur le port 2020 publiquement, l'application Node en arrière-plan tourne sur le port 3000).*
+*(Puisque Nginx écoutera sur le port 2000 publiquement, l'application Node en arrière-plan tourne sur le port 3000).*
 
 ---
 
 ## 🌐 ÉTAPE 5 : Configuration de Nginx (Serveur Web)
 
-Ici, Nginx va écouter sur le port **2020** et transmettre le trafic en interne vers l'application Node qui tourne sur le port **3000**.
+Ici, Nginx va écouter sur le port **2000** et transmettre le trafic en interne vers l'application Node qui tourne sur le port **3000**.
 
 1. **Installer Nginx :**
 ```bash
@@ -159,14 +159,14 @@ sudo apt install -y nginx
 ```bash
 sudo nano /etc/nginx/sites-available/resifaso
 ```
-Collez cette configuration (Nginx transmet le trafic du port 2020 vers le port 3000 local) :
+Collez cette configuration (Nginx transmet le trafic du port 2000 vers le port 3000 local) :
 ```nginx
 server {
-    listen 2020;
+    listen 2000;
     server_name 167.172.39.172;
     
     location / {
-        # Transmet le trafic 2020 public vers le port 3000 interne
+        # Transmet le trafic 2000 public vers le port 3000 interne
         proxy_pass http://127.0.0.1:3000;
         proxy_http_version 1.1;
         proxy_set_header Upgrade $http_upgrade;
