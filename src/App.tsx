@@ -98,6 +98,36 @@ function AppContent() {
     ? globalAnnouncement.text.split('\n').map(t => t.trim()).filter(t => t.length > 0)
     : [];
 
+  // Handle Capacitor back button
+  useEffect(() => {
+    let backButtonListener: any = null;
+
+    const setupBackButton = async () => {
+      try {
+        const { App: CapacitorApp } = await import('@capacitor/app');
+        backButtonListener = await CapacitorApp.addListener('backButton', () => {
+          if (view === 'home') {
+            CapacitorApp.exitApp();
+          } else if (view === 'details') {
+            setView('search');
+          } else {
+            setView('home');
+          }
+        });
+      } catch (e) {
+        // Not in Capacitor environment, ignore
+      }
+    };
+
+    setupBackButton();
+
+    return () => {
+      if (backButtonListener) {
+        backButtonListener.remove();
+      }
+    };
+  }, [view]);
+
   useEffect(() => {
     if (announcementsList.length > 1) {
       const interval = setInterval(() => {
