@@ -4,7 +4,7 @@ import App from './App.tsx';
 import './index.css';
 import { getApiUrl } from './lib/api';
 
-// Intercept relative API requests and redirect them to the configured server URL (e.g., http://167.172.39.172:2000)
+// Intercept relative API requests and redirect them to the configured server URL (e.g., http://167.172.39.172:2020)
 const baseUrl = getApiUrl();
 if (baseUrl) {
   const originalFetch = window.fetch;

@@ -127,7 +127,7 @@ cd /var/www/resifaso
 cp .env.example .env
 nano .env
 ```
-*(Assurez-vous que `PORT=3000` (pour Node en interne) et que `VITE_API_URL=http://167.172.39.172:2000/api` pour être intercepté par Nginx)*.
+*(Assurez-vous que `PORT=3000` (pour Node en interne) et que `VITE_API_URL=http://167.172.39.172:2020/api` pour être intercepté par Nginx)*.
 
 5. **Installer les dépendances et compiler :**
 ```bash
