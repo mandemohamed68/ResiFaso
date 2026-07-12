@@ -3,20 +3,6 @@ import { executeSql } from './index';
 export const initDatabase = async () => {
   const dbType = process.env.DB_TYPE || 'sqlite';
   console.log(`Initializing local SQL database tables (Dialect: ${dbType})...`);
-  
-  // Helper for safe column addition
-  const safeAlter = async (table: string, column: string, type: string) => {
-    try {
-      await executeSql(`ALTER TABLE ${table} ADD COLUMN ${column} ${type}`);
-    } catch (err: any) {
-      // Silently ignore if column exists
-      const msg = err.message || '';
-      if (msg.includes('duplicate') || msg.includes('already exists') || msg.includes('Duplicate')) {
-        return;
-      }
-      console.warn(`Could not add ${column} to ${table}:`, msg);
-    }
-  };
 
   if (dbType === 'mariadb') {
     // MariaDB/MySQL compatible schema
@@ -511,23 +497,6 @@ export const initDatabase = async () => {
       )
     `);
 
-    // Ensure extra columns exist in SQLite (idempotent)
-    const sqliteExtraCols = [
-      { name: 'identity_document_front', type: 'TEXT' },
-      { name: 'identity_document_back', type: 'TEXT' },
-      { name: 'permissions', type: 'TEXT' },
-      { name: 'id_number', type: 'TEXT' },
-      { name: 'id_type', type: 'TEXT' },
-      { name: 'id_expiry', type: 'TEXT' },
-      { name: 'id_card_url', type: 'TEXT' },
-      { name: 'verification_status', type: "TEXT DEFAULT 'none'" }
-    ];
-
-    // Users extra columns
-    for (const col of sqliteExtraCols) {
-      await safeAlter('users', col.name, col.type);
-    }
-
     // Residences Table
     await executeSql(`
       CREATE TABLE IF NOT EXISTS residences (
@@ -562,8 +531,12 @@ export const initDatabase = async () => {
       )
     `);
 
-    await safeAlter('residences', 'utilities_included', 'TEXT');
-    await safeAlter('residences', 'owner_phone', 'TEXT');
+    try {
+      await executeSql("ALTER TABLE residences ADD COLUMN utilities_included TEXT");
+    } catch (err) {}
+    try {
+      await executeSql("ALTER TABLE residences ADD COLUMN owner_phone TEXT");
+    } catch (err) {}
 
     // Residence Amenities Table
     await executeSql(`
@@ -751,20 +724,12 @@ export const initDatabase = async () => {
       )
     `);
 
-    // Helper for safe column addition
-    const safeAlter = async (table: string, column: string, type: string) => {
-      try {
-        await executeSql(`ALTER TABLE ${table} ADD COLUMN ${column} ${type}`);
-      } catch (err: any) {
-        // Silently ignore if column exists
-        if (!err.message.includes('duplicate') && !err.message.includes('already exists')) {
-          console.warn(`Could not add ${column} to ${table}:`, err.message);
-        }
-      }
-    };
-
-    await safeAlter('contact_messages', 'admin_notes', 'TEXT');
-    await safeAlter('contact_messages', 'replied_at', 'TEXT');
+    try {
+      await executeSql("ALTER TABLE contact_messages ADD COLUMN admin_notes TEXT");
+    } catch (err) {}
+    try {
+      await executeSql("ALTER TABLE contact_messages ADD COLUMN replied_at TEXT");
+    } catch (err) {}
   }
 
     // Verification Types table
@@ -780,26 +745,52 @@ export const initDatabase = async () => {
     `);
 
     // Add verifications_status to bookings if not exists
-    await safeAlter('bookings', 'verifications_status', 'TEXT');
+    try {
+      await executeSql("ALTER TABLE bookings ADD COLUMN verifications_status TEXT");
+    } catch (err) {}
+
+    // Add identity documents to users if not exists
+    try {
+      await executeSql("ALTER TABLE users ADD COLUMN identity_document_front TEXT");
+    } catch (err) {}
+    try {
+      await executeSql("ALTER TABLE users ADD COLUMN identity_document_back TEXT");
+    } catch (err) {}
+    try {
+      await executeSql("ALTER TABLE users ADD COLUMN permissions TEXT");
+    } catch (err) {}
+    try {
+      await executeSql("ALTER TABLE users ADD COLUMN id_number TEXT");
+    } catch (err) {}
+    try {
+      await executeSql("ALTER TABLE users ADD COLUMN id_type TEXT");
+    } catch (err) {}
+    try {
+      await executeSql("ALTER TABLE users ADD COLUMN id_expiry TEXT");
+    } catch (err) {}
+    try {
+      await executeSql("ALTER TABLE users ADD COLUMN id_card_url TEXT");
+    } catch (err) {}
+    try {
+      await executeSql("ALTER TABLE users ADD COLUMN verification_status TEXT DEFAULT 'none'");
+    } catch (err) {}
 
     // Seed default verification types
-    try {
-      const existingTypes = await executeSql("SELECT id FROM verification_types LIMIT 1");
-      if (!existingTypes || existingTypes.length === 0) {
-        const defaultTypes = [
-          { id: 'id_valid', label: 'Pièce d’identité valide (recto/verso)', description: 'Vérifier que la pièce est originale et en cours de validité.' },
-          { id: 'age_check', label: 'Âge ≥ 18 ans', description: 'Vérifier que le client est majeur.' },
-          { id: 'name_match', label: 'Correspondance du nom', description: 'Le nom sur la pièce doit correspondre au nom de la réservation.' },
-          { id: 'contract_sign', label: 'Signature du contrat', description: 'Si applicable, le contrat de location a été signé.' }
-        ];
-        for (const type of defaultTypes) {
-          await executeSql(
-            "INSERT INTO verification_types (id, label, description, is_active) VALUES (?, ?, ?, 1)",
-            [type.id, type.label, type.description]
-          );
-        }
+    const existingTypes = await executeSql("SELECT id FROM verification_types LIMIT 1");
+    if (existingTypes.length === 0) {
+      const defaultTypes = [
+        { id: 'id_valid', label: 'Pièce d’identité valide (recto/verso)', description: 'Vérifier que la pièce est originale et en cours de validité.' },
+        { id: 'age_check', label: 'Âge ≥ 18 ans', description: 'Vérifier que le client est majeur.' },
+        { id: 'name_match', label: 'Correspondance du nom', description: 'Le nom sur la pièce doit correspondre au nom de la réservation.' },
+        { id: 'contract_sign', label: 'Signature du contrat', description: 'Si applicable, le contrat de location a été signé.' }
+      ];
+      for (const type of defaultTypes) {
+        await executeSql(
+          "INSERT INTO verification_types (id, label, description, is_active) VALUES (?, ?, ?, 1)",
+          [type.id, type.label, type.description]
+        );
       }
-    } catch (err) {}
+    }
 
   // Seed default settings if they do not exist
   try {

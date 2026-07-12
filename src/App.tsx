@@ -1063,7 +1063,7 @@ function AppContent() {
                           )}
                         </div>
                         <p className={`text-sm font-black ${selectedResidence.utilitiesIncluded?.water ? 'text-blue-900' : 'text-slate-600'}`}>
-                          {selectedResidence.utilitiesIncluded?.water ? '✅ À LA CHARGE DE L\'HÔTE (INCLUS)' : '❌ À LA CHARGE DU VOYAGEUR (NON INCLUS)'}
+                          {selectedResidence.utilitiesIncluded?.water ? '✅ À LA CHARGE DE L\'HÔTE (INCLUS)' : '❌ À LA CHARGE DU CLIENT (NON INCLUS)'}
                         </p>
                       </div>
                       <div className={`p-5 rounded-2xl border-2 ${selectedResidence.utilitiesIncluded?.electricity ? 'bg-amber-50 border-amber-200' : 'bg-slate-50 border-slate-100'}`}>
@@ -1076,7 +1076,7 @@ function AppContent() {
                           )}
                         </div>
                         <p className={`text-sm font-black ${selectedResidence.utilitiesIncluded?.electricity ? 'text-amber-900' : 'text-slate-600'}`}>
-                          {selectedResidence.utilitiesIncluded?.electricity ? '✅ À LA CHARGE DE L\'HÔTE (INCLUS)' : '❌ À LA CHARGE DU VOYAGEUR (NON INCLUS)'}
+                          {selectedResidence.utilitiesIncluded?.electricity ? '✅ À LA CHARGE DE L\'HÔTE (INCLUS)' : '❌ À LA CHARGE DU CLIENT (NON INCLUS)'}
                         </p>
                       </div>
                     </div>

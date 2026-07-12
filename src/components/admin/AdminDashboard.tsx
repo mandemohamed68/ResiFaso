@@ -2301,7 +2301,7 @@ export const AdminDashboard: React.FC<{ onBackToTraveler?: () => void }> = ({ on
                     <textarea 
                       value={verifDescription}
                       onChange={(e) => setVerifDescription(e.target.value)}
-                      placeholder="Ex: Vérifier que la pièce correspond au voyageur"
+                      placeholder="Ex: Vérifier que la pièce correspond au client"
                       className="w-full bg-white border border-slate-200 rounded-xl px-4 py-3 text-xs font-bold outline-none focus:ring-2 focus:ring-red-500 h-24" 
                     />
                   </div>
@@ -2494,7 +2494,7 @@ export const AdminDashboard: React.FC<{ onBackToTraveler?: () => void }> = ({ on
                       }}
                       className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-xs font-black outline-none focus:ring-2 focus:ring-red-500 h-[44px]"
                     >
-                      <option value="client">Voyageur</option>
+                      <option value="client">Voyageur (Client)</option>
                       <option value="owner">Hôte (Propriétaire)</option>
                       <option value="admin">Administrateur</option>
                       <option value="manager">Manager (Gestionnaire)</option>
@@ -3102,7 +3102,7 @@ export const AdminDashboard: React.FC<{ onBackToTraveler?: () => void }> = ({ on
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
               <div>
                 <h2 className="text-3xl font-black text-slate-900 tracking-tight leading-none mb-1">Modération d'Avis</h2>
-                <p className="text-slate-500 font-medium text-sm">Lisez les retours voyageurs et filtrez ou supprimez les contenus insultants.</p>
+                <p className="text-slate-500 font-medium text-sm">Lisez les retours clients et filtrez ou supprimez les contenus insultants.</p>
               </div>
             </div>
 
@@ -4668,7 +4668,7 @@ export const AdminDashboard: React.FC<{ onBackToTraveler?: () => void }> = ({ on
                 <div className="space-y-6">
                   <div>
                     <h3 className="font-black text-slate-900 tracking-tight text-lg">Configuration de la Page Contact</h3>
-                    <p className="text-xs text-slate-400 font-medium">Configurez les coordonnées visibles par les voyageurs Faso en ligne.</p>
+                    <p className="text-xs text-slate-400 font-medium">Configurez les coordonnées visibles par les clients Faso en ligne.</p>
                   </div>
 
                   <form onSubmit={handleSaveContactSettings} className="space-y-4">
@@ -5036,7 +5036,7 @@ export const AdminDashboard: React.FC<{ onBackToTraveler?: () => void }> = ({ on
                   className="flex-1 bg-red-600 hover:bg-[#EF2B2D] text-white font-black text-xs uppercase tracking-widest py-3.5 px-4 rounded-xl shadow-sm transition flex items-center justify-center gap-2"
                 >
                   <Mail size={14} />
-                  Répondre par Email (Voyageur Local)
+                  Répondre par Email (Client Local)
                 </a>
                 
                 <button
