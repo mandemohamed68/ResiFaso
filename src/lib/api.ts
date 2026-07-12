@@ -15,8 +15,8 @@ export function getApiUrl(): string {
     window.location.origin.startsWith('ionic:')
   );
 
-  // If in the web preview and not inside Capacitor, we must use relative paths to avoid mixed-content (HTTPS -> HTTP) and CORS blockages
   if (isPreview && !isCapacitor) {
+    // In preview mode, always use relative paths to hit the local Express server
     return '';
   }
 

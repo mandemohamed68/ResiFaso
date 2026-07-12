@@ -1072,7 +1072,7 @@ export const OwnerDashboard: React.FC<{ isTestMode?: boolean; onBackToTraveler?:
   });
 
   const monthlyGains = monthlyBookings
-    .filter(b => b.paymentStatus === 'fully_paid' || b.paymentStatus === 'advance_paid')
+    .filter(b => (b.paymentStatus === 'fully_paid' || b.paymentStatus === 'advance_paid') && b.bookingStatus !== 'cancelled')
     .reduce((acc, curr) => {
       const totalPrice = Number(curr.totalPrice) || 0;
       const advancePaid = Number(curr.advancePaid) || 0;
@@ -1113,15 +1113,6 @@ export const OwnerDashboard: React.FC<{ isTestMode?: boolean; onBackToTraveler?:
     }, 0);
 
   const retirableBalance = Math.max(0, totalNetEarned - totalWithdrawnAndPending);
-
-  console.log("Metrics Debug:", {
-    totalNetEarned,
-    totalWithdrawnAndPending,
-    retirableBalance,
-    monthlyGains,
-    bookingsCount: bookings.length,
-    withdrawalsCount: withdrawals.length
-  });
 
   const totalRevenue = totalNetEarned;
 
@@ -1304,7 +1295,7 @@ export const OwnerDashboard: React.FC<{ isTestMode?: boolean; onBackToTraveler?:
     const balance = booking.totalPrice - (booking.advancePaid || 0);
     const confirmMsg = isTestMode 
       ? `[MODE TEST] Confirmer la réception du solde de ${formatCurrency(balance)} F CFA ?`
-      : `Confirmez-vous que le client a payé le solde restant de ${formatCurrency(balance)} F CFA ?`;
+      : `Confirmez-vous que le voyageur a payé le solde restant de ${formatCurrency(balance)} F CFA ?`;
 
     if (!confirm(confirmMsg)) {
       return;
@@ -2764,7 +2755,7 @@ export const OwnerDashboard: React.FC<{ isTestMode?: boolean; onBackToTraveler?:
                     className="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 font-bold text-xs focus:bg-white focus:border-red-500 transition-all outline-none resize-none"
                   />
                   <p className="text-[10px] text-slate-400 leading-normal font-sans">
-                    Remarques particulières que vous aimeriez afficher sur le justificatif d'annulation du client.
+                    Remarques particulières que vous aimeriez afficher sur le justificatif d'annulation du voyageur.
                   </p>
                 </div>
               </div>
@@ -3159,7 +3150,7 @@ export const OwnerDashboard: React.FC<{ isTestMode?: boolean; onBackToTraveler?:
                           </label>
                         </div>
                         <p className="mt-3 text-[10px] text-slate-500 italic font-bold bg-slate-50 p-2 rounded-lg border border-slate-100">
-                           💡 Cochez si ces charges sont <span className="text-red-600">comprises dans le prix de la nuitée</span>. Si décoché, le client devra payer sa consommation sur place.
+                           💡 Cochez si ces charges sont <span className="text-red-600">comprises dans le prix de la nuitée</span>. Si décoché, le voyageur devra payer sa consommation sur place.
                         </p>
                       </div>
                       <div className="col-span-2">
