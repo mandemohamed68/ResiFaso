@@ -1097,22 +1097,15 @@ export const OwnerDashboard: React.FC<{ isTestMode?: boolean; onBackToTraveler?:
       return acc + gain;
     }, 0);
 
-  const totalWithdrawnAndPending = withdrawals
-    .filter(w => w.status !== 'rejected')
+  const totalWithdrawn = withdrawals
+    .filter(w => w.status === 'approved')
     .reduce((acc, w) => acc + (Number(w.amount) || 0), 0);
 
-  const nextTransferAmount = bookings
-    .filter(b => b.paymentStatus === 'advance_paid' && b.bookingStatus !== 'cancelled' && b.bookingStatus !== 'completed')
-    .reduce((acc, curr) => {
-      const totalPrice = Number(curr.totalPrice) || 0;
-      const advancePaid = Number(curr.advancePaid) || 0;
-      const platformCollected = advancePaid || Math.round(totalPrice * 0.3);
-      const platformCommission = totalPrice * (Number(commissionRate) / 100);
-      const gain = Math.max(0, Math.round(platformCollected - platformCommission));
-      return acc + gain;
-    }, 0);
+  const totalPendingWithdrawal = withdrawals
+    .filter(w => w.status === 'pending')
+    .reduce((acc, w) => acc + (Number(w.amount) || 0), 0);
 
-  const retirableBalance = Math.max(0, totalNetEarned - totalWithdrawnAndPending);
+  const retirableBalance = Math.max(0, totalNetEarned - totalWithdrawn - totalPendingWithdrawal);
 
   const totalRevenue = totalNetEarned;
 
@@ -2232,6 +2225,7 @@ export const OwnerDashboard: React.FC<{ isTestMode?: boolean; onBackToTraveler?:
                   <span className="text-xs bg-green-50 text-green-700 font-bold px-2 py-1 rounded-lg">Versements nets après commission</span>
                 </div>
               </div>
+
               <div className="bg-white border text-center border-slate-100 rounded-2xl p-6 shadow-sm">
                 <p className="text-sm font-black text-slate-400 uppercase tracking-widest mb-1">Taux de Commission</p>
                 <p className="text-3xl font-black text-red-600 leading-tight">
@@ -2239,15 +2233,17 @@ export const OwnerDashboard: React.FC<{ isTestMode?: boolean; onBackToTraveler?:
                 </p>
                 <p className="text-xs text-slate-500 font-bold mt-2">Frais de service plateforme</p>
               </div>
+
               <div className="bg-slate-900 text-center rounded-2xl p-6 shadow-sm relative overflow-hidden">
                 <div className="absolute -right-4 -top-4 w-24 h-24 bg-red-600/20 rounded-full blur-2xl"></div>
-                <p className="text-sm font-black text-slate-300 uppercase tracking-widest mb-1 relative z-10">Prochain virement</p>
+                <p className="text-sm font-black text-slate-300 uppercase tracking-widest mb-1 relative z-10">Déjà Retiré / En cours</p>
                 <p className="text-3xl font-black text-white leading-tight relative z-10">
-                  {formatCurrency(nextTransferAmount)} F CFA
+                  {formatCurrency(totalWithdrawn + totalPendingWithdrawal)} F CFA
                 </p>
-                <button className="mt-4 bg-red-600 hover:bg-red-700 text-white text-xs font-bold px-4 py-2 rounded-xl transition-colors relative z-10">
-                  Configurer le compte
-                </button>
+                <div className="mt-4 flex justify-center gap-2">
+                  <span className="text-[10px] bg-white/10 text-white/60 font-bold px-2 py-1 rounded-lg">Retirés: {formatCurrency(totalWithdrawn)}</span>
+                  <span className="text-[10px] bg-amber-500/20 text-amber-400 font-bold px-2 py-1 rounded-lg">En attente: {formatCurrency(totalPendingWithdrawal)}</span>
+                </div>
               </div>
             </div>
 
@@ -2260,14 +2256,20 @@ export const OwnerDashboard: React.FC<{ isTestMode?: boolean; onBackToTraveler?:
                   <p className="text-xs text-slate-400 font-bold uppercase tracking-wider mt-1.5">Configurez et soumettez votre transfert</p>
                 </div>
 
-                <div className="bg-red-50/50 p-4 rounded-2xl border border-red-100/50 flex justify-between items-center">
-                  <div>
-                    <span className="text-[10px] font-black text-red-800 uppercase block tracking-wider">Solde Retirable</span>
-                    <span className="text-xs font-bold text-slate-500">Gains nets restants</span>
+                <div className="bg-red-50/50 p-4 rounded-2xl border border-red-100/50 flex flex-col gap-2">
+                  <div className="flex justify-between items-center">
+                    <div>
+                      <span className="text-[10px] font-black text-red-800 uppercase block tracking-wider">Solde Actuellement Retirable</span>
+                      <span className="text-xs font-bold text-slate-500">Prêt pour transfert</span>
+                    </div>
+                    <span className="text-xl font-black text-red-700 underline underline-offset-4">
+                      {formatCurrency(retirableBalance)} F CFA
+                    </span>
                   </div>
-                  <span className="text-xl font-black text-red-700 underline underline-offset-4">
-                    {formatCurrency(retirableBalance)} F CFA
-                  </span>
+                  <div className="pt-2 border-t border-red-100/30 flex justify-between text-[9px] font-black text-slate-400 uppercase tracking-widest">
+                    <span>Gains Cumulés: {formatCurrency(totalNetEarned)} F</span>
+                    <span className="text-red-500">Retraits: - {formatCurrency(totalWithdrawn + totalPendingWithdrawal)} F</span>
+                  </div>
                 </div>
 
                 <form onSubmit={handleRequestWithdrawal} className="space-y-4">
