@@ -429,6 +429,19 @@ export const getAllReviews = async () => {
   `);
 };
 
+export const getReviewsByResidenceId = async (residenceId: string) => {
+  return await executeSql(`
+    SELECT 
+      r.id, r.booking_id as bookingId, r.residence_id as residenceId, r.client_id as clientId, 
+      r.rating, r.comment, r.created_at as createdAt,
+      u.display_name as clientName, u.photo_url as clientPhoto
+    FROM reviews r
+    LEFT JOIN users u ON r.client_id = u.uid
+    WHERE r.residence_id = ?
+    ORDER BY r.created_at DESC
+  `, [residenceId]);
+};
+
 // Withdrawals
 export const getAllWithdrawals = async (ownerId?: string) => {
   let sql = `

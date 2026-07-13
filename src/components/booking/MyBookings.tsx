@@ -12,6 +12,7 @@ import { apiFetch } from '../../lib/api';
 import { InvoiceModal } from './InvoiceModal';
 import { useDataRefresh } from '../../contexts/DataRefreshContext';
 import { useToast } from '../../contexts/ToastContext';
+import { RoleGuide } from '../common/RoleGuide';
 
 interface ReviewModalProps {
   isOpen: boolean;
@@ -710,6 +711,7 @@ export const MyBookings: React.FC<{ onContactHost: (ownerId: string, resId: stri
 
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [currentPage, setCurrentPage] = useState(1);
+  const [isGuideOpen, setIsGuideOpen] = useState(false);
 
   // Reset pagination on list updates
   useEffect(() => {
@@ -843,13 +845,24 @@ export const MyBookings: React.FC<{ onContactHost: (ownerId: string, resId: stri
 
   return (
     <div className="max-w-6xl mx-auto px-4 py-8 animate-in fade-in duration-500">
-      <div className="flex items-center justify-between mb-10">
+      <RoleGuide role="client" isOpen={isGuideOpen} onClose={() => setIsGuideOpen(false)} />
+
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-10">
         <div>
           <h2 className="text-3xl font-black text-slate-900 tracking-tight leading-none mb-2">Mes Réservations</h2>
           <p className="text-slate-500 text-sm font-medium">Consultez, payez vos avances et discutez en direct avec vos hôtes.</p>
         </div>
-        <div className="w-12 h-12 bg-red-50 text-red-600 rounded-2xl flex items-center justify-center">
-          <Calendar size={20} />
+        <div className="flex items-center gap-3">
+          <button 
+            onClick={() => setIsGuideOpen(true)}
+            className="flex items-center gap-2 px-4 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 hover:text-slate-900 text-xs font-black uppercase tracking-wider rounded-xl transition-all cursor-pointer"
+          >
+            <Compass size={16} className="text-red-600 animate-pulse" />
+            Guide de Prise en Main
+          </button>
+          <div className="w-12 h-12 bg-red-50 text-red-600 rounded-2xl flex items-center justify-center shrink-0">
+            <Calendar size={20} />
+          </div>
         </div>
       </div>
 

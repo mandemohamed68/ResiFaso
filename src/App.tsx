@@ -15,6 +15,7 @@ import { OwnerDashboard } from './components/booking/OwnerDashboard';
 import { AuthModal } from './components/common/AuthModal';
 import { TermsGuideModal } from './components/common/TermsGuideModal';
 import { SupportChatWidget } from './components/support/SupportChatWidget';
+import { ReviewsSection } from './components/search/ReviewsSection';
 import { Residence } from './types';
 import { motion, AnimatePresence } from 'motion/react';
 import { 
@@ -1095,6 +1096,8 @@ function AppContent() {
                       ))}
                     </div>
                   </div>
+
+                  <ReviewsSection residenceId={selectedResidence.id} />
 
                   {/* Suggestions Section */}
                   <div className="mt-16 pt-16 border-t border-slate-100">

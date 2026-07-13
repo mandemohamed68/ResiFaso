@@ -5,7 +5,7 @@ import { useAuth } from '../../contexts/AuthContext';
 import { apiFetch } from '../../lib/api';
 
 export const TermsGuideModal: React.FC = () => {
-  const { user, mutateUser } = useAuth();
+  const { user, refreshProfile } = useAuth();
   const [step, setStep] = useState(1);
   const [loading, setLoading] = useState(false);
 
@@ -15,7 +15,7 @@ export const TermsGuideModal: React.FC = () => {
     setLoading(true);
     try {
       await apiFetch(`/api/users/${user.uid}/accept-terms`, { method: 'POST' });
-      await mutateUser();
+      await refreshProfile();
     } catch (e) {
       console.error("Failed to accept terms:", e);
     } finally {

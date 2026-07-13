@@ -32,7 +32,7 @@ import {
   BarChart3, Plus, Home, CalendarCheck, Wallet, ArrowRight, ArrowLeft, 
   Upload, Trash2, Eye, ShieldAlert, Check, X, RefreshCw, Layers, Pencil,
   MessageSquare, Send, Star, Percent, History, Clock, Filter, Download,
-  ChevronLeft, ChevronRight
+  ChevronLeft, ChevronRight, Compass
 } from 'lucide-react';
 import { resizeImage } from '../../lib/imageResize';
 import { InvoiceModal } from './InvoiceModal';
@@ -40,6 +40,7 @@ import { MapContainer, TileLayer, Marker, useMapEvents } from 'react-leaflet';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import { BookingVerificationSection } from './BookingVerificationSection';
+import { RoleGuide } from '../common/RoleGuide';
 
 
 const formatPaymentStatus = (status?: string) => {
@@ -737,6 +738,7 @@ export const OwnerDashboard: React.FC<{ isTestMode?: boolean; onBackToTraveler?:
   }, [bookings.length]);
   const [activeTab, setActiveTab] = useState<'stats' | 'listings' | 'bookings' | 'revenue' | 'messages' | 'notifications' | 'policy'>('stats');
   const [commissionRate, setCommissionRate] = useState<number>(8);
+  const [isGuideOpen, setIsGuideOpen] = useState(false);
   
   // Scroll to top when tab changes
   useEffect(() => {
@@ -1720,6 +1722,8 @@ export const OwnerDashboard: React.FC<{ isTestMode?: boolean; onBackToTraveler?:
 
   return (
     <div className="max-w-7xl mx-auto px-4 py-8 animate-in fade-in duration-500">
+      <RoleGuide role="owner" isOpen={isGuideOpen} onClose={() => setIsGuideOpen(false)} />
+
       {onBackToTraveler && (
         <button
           onClick={onBackToTraveler}
@@ -1736,13 +1740,22 @@ export const OwnerDashboard: React.FC<{ isTestMode?: boolean; onBackToTraveler?:
           <h2 className="text-3xl font-black text-slate-900 tracking-tight leading-none mb-2 underline decoration-yellow-400 decoration-4 underline-offset-4">Espace Propriétaire</h2>
           <p className="text-slate-500 text-sm font-medium">Gérez vos biens immobiliers et optimisez vos rendements au Burkina.</p>
         </div>
-        <button
-          onClick={handleNavigateToAdd}
-          className="flex items-center justify-center gap-2 px-5 py-3.5 bg-red-600 hover:bg-red-700 text-white rounded-2xl font-black text-xs uppercase tracking-wider transition-all hover:scale-[1.02] shadow-lg shadow-red-50 active:scale-[0.98] cursor-pointer shrink-0"
-        >
-          <Plus size={16} />
-          Ajouter une résidence
-        </button>
+        <div className="flex items-center gap-3 self-start md:self-auto shrink-0">
+          <button 
+            onClick={() => setIsGuideOpen(true)}
+            className="flex items-center gap-2 px-5 py-3.5 bg-slate-100 hover:bg-slate-200 text-slate-700 hover:text-slate-900 font-black text-xs uppercase tracking-wider rounded-2xl transition-all cursor-pointer border border-slate-200/40"
+          >
+            <Compass size={16} className="text-indigo-600 animate-pulse" />
+            Guide Hôte
+          </button>
+          <button
+            onClick={handleNavigateToAdd}
+            className="flex items-center justify-center gap-2 px-5 py-3.5 bg-red-600 hover:bg-red-700 text-white rounded-2xl font-black text-xs uppercase tracking-wider transition-all hover:scale-[1.02] shadow-lg shadow-red-50 active:scale-[0.98] cursor-pointer"
+          >
+            <Plus size={16} />
+            Ajouter une résidence
+          </button>
+        </div>
       </div>
 
       {/* Tabs list */}

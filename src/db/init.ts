@@ -468,6 +468,18 @@ export const initDatabase = async () => {
       ) ENGINE=InnoDB
     `);
 
+    // Favorites
+    await executeSql(`
+      CREATE TABLE IF NOT EXISTS favorites (
+        user_id VARCHAR(128) NOT NULL,
+        residence_id VARCHAR(128) NOT NULL,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        PRIMARY KEY (user_id, residence_id),
+        FOREIGN KEY(user_id) REFERENCES users(uid) ON DELETE CASCADE,
+        FOREIGN KEY(residence_id) REFERENCES residences(id) ON DELETE CASCADE
+      ) ENGINE=InnoDB
+    `);
+
     // Contact Messages
     await executeSql(`
       CREATE TABLE IF NOT EXISTS contact_messages (

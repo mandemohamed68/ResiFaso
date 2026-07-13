@@ -348,6 +348,15 @@ async function startServer() {
     }
   });
 
+  app.get("/api/residences/:id/reviews", async (req, res) => {
+    try {
+      const reviews = await queries.getReviewsByResidenceId(req.params.id);
+      res.json(reviews);
+    } catch (err: any) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
   app.post("/api/bookings", authenticateToken, async (req: AuthRequest, res) => {
     try {
       const id = 'bk_' + Math.random().toString(36).substr(2, 9);
@@ -496,6 +505,52 @@ async function startServer() {
         return res.status(403).json({ error: "Non autorisé" });
       }
       await executeSql("UPDATE users SET has_accepted_terms = 1 WHERE uid = ?", [req.params.uid]);
+      res.json({ success: true });
+    } catch (err: any) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  // --- Favorites ---
+  app.get("/api/users/:uid/favorites", authenticateToken, async (req: AuthRequest, res) => {
+    try {
+      if (req.user?.uid !== req.params.uid) {
+        return res.status(403).json({ error: "Non autorisé" });
+      }
+      const rows = await executeSql(
+        "SELECT residence_id FROM favorites WHERE user_id = ?",
+        [req.params.uid]
+      );
+      res.json(rows.map((r: any) => r.residence_id));
+    } catch (err: any) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  app.post("/api/users/:uid/favorites/:residenceId", authenticateToken, async (req: AuthRequest, res) => {
+    try {
+      if (req.user?.uid !== req.params.uid) {
+        return res.status(403).json({ error: "Non autorisé" });
+      }
+      await executeSql(
+        "INSERT IGNORE INTO favorites (user_id, residence_id) VALUES (?, ?)",
+        [req.params.uid, req.params.residenceId]
+      );
+      res.json({ success: true });
+    } catch (err: any) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  app.delete("/api/users/:uid/favorites/:residenceId", authenticateToken, async (req: AuthRequest, res) => {
+    try {
+      if (req.user?.uid !== req.params.uid) {
+        return res.status(403).json({ error: "Non autorisé" });
+      }
+      await executeSql(
+        "DELETE FROM favorites WHERE user_id = ? AND residence_id = ?",
+        [req.params.uid, req.params.residenceId]
+      );
       res.json({ success: true });
     } catch (err: any) {
       res.status(500).json({ error: err.message });

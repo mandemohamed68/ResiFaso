@@ -5,7 +5,7 @@ import {
   LayoutDashboard, Home, Users, BarChart3, Settings, ShieldCheck, 
   Activity, Search, Trash2, Edit3, Plus, ArrowUpRight, TrendingUp, Calendar, Check, X, Eye,
   FileText, Download, Award, ShieldAlert, Megaphone, Upload, Wallet, ArrowLeft, MapPin, MessageSquare, Mail, Phone, Clock,
-  ChevronLeft, ChevronRight, RefreshCw, KeyRound, Shield
+  ChevronLeft, ChevronRight, RefreshCw, KeyRound, Shield, Compass
 } from 'lucide-react';
 import { CustomSelect } from '../common/CustomSelect';
 import { Residence, UserProfile, UserRole, Booking, Review, BookingStatus, PaymentStatus, Advertisement, WithdrawalRequest, WithdrawalStatus, FAQItem, ContactMessage, ContactSettings } from '../../types';
@@ -43,6 +43,7 @@ const DEFAULT_CONTACT_SETTINGS: ContactSettings = {
 
 import { useToast } from '../../contexts/ToastContext';
 import { AdminSupport } from './AdminSupport';
+import { RoleGuide } from '../common/RoleGuide';
 
 export const AVAILABLE_PERMISSIONS = [
   { id: 'manage_listings', label: 'Gérer les résidences' },
@@ -61,13 +62,14 @@ export const AdminDashboard: React.FC<{ onBackToTraveler?: () => void }> = ({ on
   const { user } = useAuth();
   const { lastRefresh } = useDataRefresh();
   const { addToast } = useToast();
-  const [activeTab, setActiveTab] = useState<'overview' | 'alerts' | 'listings' | 'users' | 'bookings' | 'revenue' | 'reviews' | 'reports' | 'settings' | 'logs' | 'ads' | 'withdrawals' | 'locations' | 'flash-info' | 'faq' | 'contact' | 'email' | 'verifications'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'alerts' | 'listings' | 'users' | 'bookings' | 'revenue' | 'reviews' | 'reports' | 'settings' | 'logs' | 'ads' | 'withdrawals' | 'locations' | 'flash-info' | 'faq' | 'contact' | 'email' | 'verifications' | 'support'>('overview');
   const [verificationTypes, setVerificationTypes] = useState<any[]>([]);
   const [editingVerifType, setEditingVerifType] = useState<any | null>(null);
   const [isSavingVerifType, setIsSavingVerifType] = useState(false);
   const [verifLabel, setVerifLabel] = useState('');
   const [verifDescription, setVerifDescription] = useState('');
   const [verifIsActive, setVerifIsActive] = useState(true);
+  const [isGuideOpen, setIsGuideOpen] = useState(false);
   
   // Contact page & messages states
   const [contactSettings, setContactSettings] = useState<ContactSettings>(DEFAULT_CONTACT_SETTINGS);
@@ -1687,6 +1689,7 @@ export const AdminDashboard: React.FC<{ onBackToTraveler?: () => void }> = ({ on
 
   return (
     <div className="flex flex-col lg:flex-row min-h-[750px] bg-white rounded-[40px] border border-slate-100 overflow-hidden shadow-2xl animate-in fade-in duration-500">
+      <RoleGuide role="admin" isOpen={isGuideOpen} onClose={() => setIsGuideOpen(false)} />
       
       {/* Toast Notification */}
       {adminSaveSuccess && (
@@ -1866,6 +1869,13 @@ export const AdminDashboard: React.FC<{ onBackToTraveler?: () => void }> = ({ on
       <main className="flex-1 overflow-y-auto p-10 bg-white relative">
         {/* Floating Refresh/Sync bar */}
         <div className="absolute top-8 right-10 z-20 flex items-center gap-3">
+          <button
+            onClick={() => setIsGuideOpen(true)}
+            className="flex items-center gap-2 px-4 py-2 bg-slate-50 hover:bg-slate-100 border border-slate-200 text-slate-700 hover:text-slate-900 rounded-xl text-xs font-black uppercase tracking-wider transition-all duration-200 cursor-pointer shadow-sm"
+          >
+            <Compass size={13} className="text-red-600 animate-pulse" />
+            Guide Admin
+          </button>
           <button
             onClick={async () => {
               try {

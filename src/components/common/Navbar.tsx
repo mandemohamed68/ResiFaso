@@ -377,6 +377,7 @@ export const Navbar: React.FC<{
                           Messagerie <span className="bg-green-600 text-white text-[10px] px-1.5 py-0.5 rounded-full">Pro</span>
                         </button>
                         <div className="h-px bg-slate-100 my-2"></div>
+                        <button onClick={() => { setIsUserMenuOpen(false); onNavigate('favorites'); }} className="w-full text-left px-5 py-2.5 hover:bg-slate-50 text-sm font-medium text-slate-600">Mes Favoris</button>
                         <button onClick={() => { setIsUserMenuOpen(false); onNavigate('profile'); }} className="w-full text-left px-5 py-2.5 hover:bg-slate-50 text-sm font-medium text-slate-600">Profil & Paramètres</button>
                         <button onClick={() => { setIsUserMenuOpen(false); addToast("Centre d'aide", 'info'); }} className="w-full text-left px-5 py-2.5 hover:bg-slate-50 text-sm font-medium text-slate-600">Centre d'aide</button>
                       </>
