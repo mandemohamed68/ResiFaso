@@ -7,17 +7,23 @@ import { apiFetch } from '../../lib/api';
 export const TermsGuideModal: React.FC = () => {
   const { user, refreshProfile } = useAuth();
   const [step, setStep] = useState(1);
+  const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
   if (!user || user.hasAcceptedTerms) return null;
 
   const handleAccept = async () => {
     setLoading(true);
+    setError(null);
     try {
-      await apiFetch(`/api/users/${user.uid}/accept-terms`, { method: 'POST' });
+      const response = await apiFetch(`/api/users/${user.uid}/accept-terms`, { method: 'POST' });
+      if (!response.ok) {
+        throw new Error("Erreur lors de la validation des conditions");
+      }
       await refreshProfile();
-    } catch (e) {
+    } catch (e: any) {
       console.error("Failed to accept terms:", e);
+      setError(e.message || "Une erreur est survenue. Veuillez réessayer.");
     } finally {
       setLoading(false);
     }
@@ -33,6 +39,11 @@ export const TermsGuideModal: React.FC = () => {
         className="relative w-full max-w-2xl bg-white rounded-[32px] shadow-2xl overflow-hidden flex flex-col max-h-[90vh]"
       >
         <div className="p-8 pb-4 shrink-0 border-b border-slate-100">
+          {error && (
+            <div className="mb-4 p-3 bg-red-50 border border-red-100 text-red-600 text-xs font-bold rounded-xl animate-in fade-in slide-in-from-top-1">
+              {error}
+            </div>
+          )}
           <div className="flex items-center gap-4 mb-2">
             <div className="w-12 h-12 bg-red-50 text-red-600 rounded-2xl flex items-center justify-center shrink-0">
               <ShieldCheck size={24} />

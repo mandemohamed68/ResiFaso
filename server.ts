@@ -186,12 +186,13 @@ async function startServer() {
       const role = email === 'mandemohamed68@gmail.com' ? 'admin' : (requestedRole || 'client');
 
       await executeSql(
-        "INSERT INTO users (uid, email, password_hash, display_name, role, identity_document_front, identity_document_back) VALUES (?, ?, ?, ?, ?, ?, ?)",
+        "INSERT INTO users (uid, email, password_hash, display_name, role, identity_document_front, identity_document_back, has_accepted_terms) VALUES (?, ?, ?, ?, ?, ?, ?, 1)",
         [uid, email, hashedPassword, displayName || 'Voyageur', role, identity_document_front || null, identity_document_back || null]
       );
 
       const token = jwt.sign({ uid, email, role }, JWT_SECRET, { expiresIn: '30d' });
-      res.json({ token, user: { uid, email, displayName: displayName || 'Voyageur', role } });
+      const fullUser = await queries.getUserProfile(uid);
+      res.json({ token, user: fullUser });
     } catch (err: any) {
       res.status(500).json({ error: err.message });
     }
@@ -211,14 +212,14 @@ async function startServer() {
           // If the super admin doesn't exist yet, auto-create him
           const uid = 'admin_master';
           await executeSql(
-            "INSERT INTO users (uid, email, password_hash, display_name, role) VALUES (?, ?, ?, ?, ?)",
+            "INSERT INTO users (uid, email, password_hash, display_name, role, has_accepted_terms) VALUES (?, ?, ?, ?, ?, 1)",
             [uid, email, hashedPassword, 'Super Admin', 'admin']
           );
           console.log("[Auth] Super Admin auto-created upon login request with credentials.");
         } else {
           // If he exists, ensure his role is admin and his password hash is correctly stored
           await executeSql(
-            "UPDATE users SET password_hash = ?, role = 'admin' WHERE email = ?",
+            "UPDATE users SET password_hash = ?, role = 'admin', has_accepted_terms = 1 WHERE email = ?",
             [hashedPassword, email]
           );
           console.log("[Auth] Super Admin credentials and role auto-repaired upon login request.");
@@ -241,7 +242,8 @@ async function startServer() {
       if (!match) return res.status(401).json({ error: "Identifiants invalides" });
 
       const token = jwt.sign({ uid: user.uid, email: user.email, role: user.role }, JWT_SECRET, { expiresIn: '30d' });
-      res.json({ token, user: { uid: user.uid, email: user.email, displayName: user.displayName || user.display_name, role: user.role } });
+      const fullUser = await queries.getUserProfile(user.uid);
+      res.json({ token, user: fullUser });
     } catch (err: any) {
       res.status(500).json({ error: err.message });
     }

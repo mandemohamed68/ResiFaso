@@ -34,11 +34,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         const data = await response.json();
         setUser(data);
         setProfile(data);
-      } else {
+      } else if (response.status === 401 || response.status === 403) {
+        // Only log out on authentication errors
         localStorage.removeItem('auth_token');
         setUser(null);
         setProfile(null);
       }
+      // For other errors (like 500 or network issues), we keep the current state 
+      // and wait for the next attempt or a manual refresh.
     } catch (err) {
       console.error("Auth fetch error:", err);
     } finally {

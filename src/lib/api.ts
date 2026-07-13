@@ -34,8 +34,17 @@ export function getApiUrl(): string {
   }
 
   if (isCapacitor) {
+    // If a custom URL is saved, use it
+    if (customUrl) return customUrl.trim().replace(/\/$/, '');
+    
     // Target the deployed production backend for mobile devices running the APK
-    return 'http://167.172.39.172:2000';
+    // Fallback to the environment URL if available
+    const envUrl = import.meta.env.VITE_API_URL || import.meta.env.VITE_APP_URL;
+    if (envUrl && envUrl !== 'MY_APP_URL' && envUrl !== 'MY_API_URL') {
+      return envUrl.replace(/\/$/, '').replace(/\/api$/, '');
+    }
+    
+    return 'https://resi-faso-backend.onrender.com'; // Suggested production fallback
   }
 
   const envUrl = import.meta.env.VITE_API_URL || import.meta.env.VITE_APP_URL;
