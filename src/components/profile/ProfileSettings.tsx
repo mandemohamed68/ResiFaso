@@ -8,7 +8,7 @@ import {
 } from 'lucide-react';
 import { resizeImage } from '../../lib/imageResize';
 
-type Tab = 'personal' | 'id' | 'photo' | 'payment' | 'notifications' | 'security' | 'privacy' | 'deactivate';
+type Tab = 'personal' | 'id' | 'photo' | 'payment' | 'notifications' | 'security' | 'privacy' | 'server' | 'deactivate';
 
 const PRESET_AVATARS = [
   "https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&q=80&w=200", // Woman
@@ -63,6 +63,68 @@ export const ProfileSettings: React.FC = () => {
   const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
+
+  // Custom API Server configurations (Useful for APK debugging/production migration)
+  const [customServerUrl, setCustomServerUrl] = useState(() => typeof window !== 'undefined' ? localStorage.getItem('custom_server_url') || '' : '');
+  const [pingStatus, setPingStatus] = useState<'idle' | 'testing' | 'success' | 'failed'>('idle');
+  const [pingError, setPingError] = useState<string | null>(null);
+
+  const handleTestAndSaveServer = async () => {
+    setPingStatus('testing');
+    setPingError(null);
+    const targetUrl = customServerUrl.trim().replace(/\/$/, '');
+    
+    if (!targetUrl) {
+      if (typeof window !== 'undefined') {
+        localStorage.removeItem('custom_server_url');
+      }
+      setPingStatus('success');
+      addToast("Adresse du serveur réinitialisée par défaut avec succès !", "success");
+      return;
+    }
+
+    try {
+      // Try to fetch endpoint on the target URL with a timeout
+      const controller = new AbortController();
+      const id = setTimeout(() => controller.abort(), 5000);
+      const response = await fetch(`${targetUrl}/api/health`, {
+        method: 'GET',
+        headers: { 'Accept': 'application/json' },
+        signal: controller.signal
+      });
+      clearTimeout(id);
+      
+      if (response.ok || response.status === 200 || response.status === 404) {
+        if (typeof window !== 'undefined') {
+          localStorage.setItem('custom_server_url', targetUrl);
+        }
+        setPingStatus('success');
+        addToast("Connexion réussie ! Adresse du serveur enregistrée.", "success");
+      } else {
+        throw new Error(`Code statut: ${response.status}`);
+      }
+    } catch (err) {
+      console.error(err);
+      setPingStatus('failed');
+      setPingError(err instanceof Error ? err.message : String(err));
+      if (window.confirm("Impossible de joindre le serveur à cette adresse. Voulez-vous tout de même l'enregistrer ?")) {
+        if (typeof window !== 'undefined') {
+          localStorage.setItem('custom_server_url', targetUrl);
+        }
+        addToast("Adresse enregistrée malgré l'échec de la connexion.", "warning");
+      }
+    }
+  };
+
+  const handleResetServer = () => {
+    setCustomServerUrl('');
+    if (typeof window !== 'undefined') {
+      localStorage.removeItem('custom_server_url');
+    }
+    setPingStatus('idle');
+    setPingError(null);
+    addToast("Serveur réinitialisé sur les paramètres par défaut.", "success");
+  };
 
   // Sync state with profile
   useEffect(() => {
@@ -443,6 +505,7 @@ export const ProfileSettings: React.FC = () => {
     { id: 'notifications', label: 'Notifications', icon: Bell },
     { id: 'security', label: 'Sécurité du compte', icon: Key },
     { id: 'privacy', label: 'Confidentialité', icon: Eye },
+    { id: 'server', label: 'Configuration du serveur', icon: Smartphone },
     { id: 'deactivate', label: 'Désactivation du compte', icon: AlertTriangle, danger: true },
   ];
 
@@ -1185,6 +1248,98 @@ export const ProfileSettings: React.FC = () => {
                   >
                     Télécharger mes données (RGPD)
                   </button>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* TAB: SERVER CONFIGURATION */}
+          {activeTab === 'server' && (
+            <div className="space-y-6 animate-in fade-in" id="server-settings-tab">
+              <div className="border-b border-slate-50 pb-4">
+                <h2 className="text-xl font-bold text-slate-900">Configuration du serveur API</h2>
+                <p className="text-xs text-slate-500 font-bold mt-1">Gérez l'adresse IP et le port du serveur backend pour l'application et l'APK mobile.</p>
+              </div>
+
+              <div className="bg-slate-50 p-6 rounded-2xl border border-slate-150 space-y-4">
+                <div className="flex items-center gap-3">
+                  <Smartphone className="w-6 h-6 text-[#EF2B2D]" />
+                  <span className="font-extrabold text-sm text-slate-900">Adresse du serveur backend</span>
+                </div>
+
+                <p className="text-xs text-slate-600 font-medium leading-relaxed">
+                  Par défaut, l'application mobile (APK) et le navigateur communiquent avec le serveur de production sécurisé de ResiFaso (<code className="bg-slate-200/80 px-1.5 py-0.5 rounded text-red-650 font-mono text-[11px]">http://167.172.39.172:2020</code>). 
+                  Si vous changez de serveur, de port ou d'environnement de test, vous pouvez modifier cette adresse ci-dessous.
+                </p>
+
+                <div className="space-y-3">
+                  <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest font-bold">URL ou Adresse IP du Serveur</label>
+                  <div className="flex flex-col sm:flex-row gap-3">
+                    <input 
+                      type="text" 
+                      value={customServerUrl}
+                      onChange={(e) => setCustomServerUrl(e.target.value)}
+                      placeholder="Ex: http://167.172.39.172:2020"
+                      className="flex-1 bg-white border border-slate-250 rounded-xl px-4 py-2.5 text-sm font-medium font-mono focus:ring-2 focus:ring-red-500 outline-none transition"
+                    />
+                    <div className="flex gap-2 shrink-0">
+                      <button 
+                        onClick={handleTestAndSaveServer}
+                        disabled={pingStatus === 'testing'}
+                        className="bg-slate-900 text-white px-5 py-2.5 rounded-xl text-xs font-black uppercase tracking-wider hover:bg-slate-800 disabled:opacity-50 transition cursor-pointer flex items-center gap-1.5"
+                      >
+                        {pingStatus === 'testing' ? 'Test en cours...' : 'Tester & Enregistrer'}
+                      </button>
+                      { (customServerUrl || localStorage.getItem('custom_server_url')) && (
+                        <button 
+                          onClick={handleResetServer}
+                          className="bg-white text-slate-700 border border-slate-200 px-4 py-2.5 rounded-xl text-xs font-black uppercase tracking-wider hover:bg-slate-50 transition cursor-pointer"
+                        >
+                          Réinitialiser
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                </div>
+
+                {pingStatus === 'success' && (
+                  <div className="bg-green-50 border border-green-250 text-green-800 p-4 rounded-xl text-xs font-bold flex items-center gap-2 animate-in slide-in-from-top-2 duration-250">
+                    <CheckCircle className="text-green-600 w-5 h-5" />
+                    <span>Le serveur répond parfaitement ! L'adresse a été configurée avec succès.</span>
+                  </div>
+                )}
+
+                {pingStatus === 'failed' && (
+                  <div className="bg-red-50 border border-red-200 text-red-800 p-4 rounded-xl text-xs font-bold space-y-1 animate-in slide-in-from-top-2 duration-250">
+                    <div className="flex items-center gap-2">
+                      <AlertTriangle className="text-[#EF2B2D] w-5 h-5" />
+                      <span>Impossible de contacter le serveur à cette adresse. Vérifiez que l'IP/port sont corrects et actifs.</span>
+                    </div>
+                    {pingError && <div className="text-[10px] font-mono text-red-650 font-medium pl-7">Erreur système : {pingError}</div>}
+                  </div>
+                )}
+              </div>
+
+              <div className="bg-white border border-slate-100 p-6 rounded-2xl space-y-3 shadow-xs">
+                <h3 className="font-extrabold text-slate-850 text-sm">Diagnostic d'environnement mobile</h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs">
+                  <div className="p-4 bg-slate-50 border border-slate-100 rounded-xl space-y-2">
+                    <span className="font-black text-[10px] text-slate-400 uppercase tracking-wider block">Mode d'exécution actuel :</span>
+                    <span className="font-bold text-slate-800 text-sm">
+                      {typeof window !== 'undefined' && (
+                        // @ts-ignore
+                        window.Capacitor || window.location.protocol === 'capacitor:' || window.location.origin.startsWith('ionic:')
+                          ? "📱 Application Mobile (Capacitor APK)"
+                          : "💻 Navigateur Web (Aperçu direct)"
+                      )}
+                    </span>
+                  </div>
+                  <div className="p-4 bg-slate-50 border border-slate-100 rounded-xl space-y-2">
+                    <span className="font-black text-[10px] text-slate-400 uppercase tracking-wider block">URL Active de l'API :</span>
+                    <span className="font-bold text-slate-800 font-mono text-[11px] block truncate">
+                      {localStorage.getItem('custom_server_url') || 'http://167.172.39.172:2020'}
+                    </span>
+                  </div>
                 </div>
               </div>
             </div>

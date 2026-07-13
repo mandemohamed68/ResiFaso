@@ -15,6 +15,11 @@ export function getApiUrl(): string {
     window.location.origin.startsWith('ionic:')
   );
 
+  const customUrl = typeof window !== 'undefined' ? localStorage.getItem('custom_server_url') : null;
+  if (customUrl) {
+    return customUrl.trim().replace(/\/$/, '');
+  }
+
   if (isPreview && !isCapacitor) {
     // In preview mode, always use relative paths to hit the local Express server
     return '';
