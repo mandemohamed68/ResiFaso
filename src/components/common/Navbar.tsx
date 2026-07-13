@@ -145,8 +145,16 @@ export const Navbar: React.FC<{
           </div>
         )}
 
-        {/* Mobile Dark Mode Toggle */}
-        <div className="flex md:hidden items-center">
+        {/* Mobile Actions */}
+        <div className="flex md:hidden items-center gap-2">
+          {!user && (
+            <button 
+              onClick={() => setIsAuthOpen(true)}
+              className="bg-red-600 text-white px-3 py-2 rounded-xl text-[10px] font-black uppercase tracking-tight hover:bg-red-700 transition-all shadow-sm"
+            >
+              Connexion / Inscription
+            </button>
+          )}
           <button
             onClick={onToggleDarkMode}
             className="p-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl cursor-pointer transition-all flex items-center justify-center border border-slate-150"
