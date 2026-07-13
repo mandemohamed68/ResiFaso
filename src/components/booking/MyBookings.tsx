@@ -869,7 +869,7 @@ export const MyBookings: React.FC<{ onContactHost: (ownerId: string, resId: stri
         </div>
       ) : (
         <div className="grid grid-cols-1 gap-6">
-          {bookings.slice((currentPage - 1) * 5, currentPage * 5).map((booking) => {
+          {bookings.slice((currentPage - 1) * 50, currentPage * 50).map((booking) => {
             const res = residencesMap[booking.residenceId];
             if (!res) return null;
 
@@ -1056,84 +1056,84 @@ export const MyBookings: React.FC<{ onContactHost: (ownerId: string, resId: stri
           })}
 
           {/* Pagination UI */}
-          {bookings.length > 5 && (
+          {bookings.length > 50 && (
             <div className="flex items-center justify-between border-t border-slate-100 pt-6 px-2 mt-4">
-              <div className="flex flex-1 justify-between sm:hidden">
-                <button
-                  disabled={currentPage === 1}
-                  onClick={() => {
-                    setCurrentPage(prev => Math.max(prev - 1, 1));
-                    window.scrollTo({ top: 0, behavior: 'smooth' });
-                  }}
-                  className="relative inline-flex items-center rounded-xl border border-slate-200 bg-white px-4 py-2 text-xs font-black uppercase text-slate-700 hover:bg-slate-50 disabled:opacity-50 transition cursor-pointer"
-                >
-                  Précédent
-                </button>
-                <button
-                  disabled={currentPage === Math.ceil(bookings.length / 5)}
-                  onClick={() => {
-                    setCurrentPage(prev => Math.min(prev + 1, Math.ceil(bookings.length / 5)));
-                    window.scrollTo({ top: 0, behavior: 'smooth' });
-                  }}
-                  className="relative ml-3 inline-flex items-center rounded-xl border border-slate-200 bg-white px-4 py-2 text-xs font-black uppercase text-slate-700 hover:bg-slate-50 disabled:opacity-50 transition cursor-pointer"
-                >
-                  Suivant
-                </button>
-              </div>
-              <div className="hidden sm:flex sm:flex-1 sm:items-center sm:justify-between">
-                <div>
-                  <p className="text-xs text-slate-500 font-bold">
-                    Affichage de <span className="font-extrabold text-slate-800">{Math.min((currentPage - 1) * 5 + 1, bookings.length)}</span> à{' '}
-                    <span className="font-extrabold text-slate-800">{Math.min(currentPage * 5, bookings.length)}</span> sur{' '}
-                    <span className="font-extrabold text-slate-800">{bookings.length}</span> réservations
-                  </p>
+                <div className="flex flex-1 justify-between sm:hidden">
+                  <button
+                    disabled={currentPage === 1}
+                    onClick={() => {
+                      setCurrentPage(prev => Math.max(prev - 1, 1));
+                      window.scrollTo({ top: 0, behavior: 'smooth' });
+                    }}
+                    className="relative inline-flex items-center rounded-xl border border-slate-200 bg-white px-4 py-2 text-xs font-black uppercase text-slate-700 hover:bg-slate-50 disabled:opacity-50 transition cursor-pointer"
+                  >
+                    Précédent
+                  </button>
+                  <button
+                    disabled={currentPage === Math.ceil(bookings.length / 50)}
+                    onClick={() => {
+                      setCurrentPage(prev => Math.min(prev + 1, Math.ceil(bookings.length / 50)));
+                      window.scrollTo({ top: 0, behavior: 'smooth' });
+                    }}
+                    className="relative ml-3 inline-flex items-center rounded-xl border border-slate-200 bg-white px-4 py-2 text-xs font-black uppercase text-slate-700 hover:bg-slate-50 disabled:opacity-50 transition cursor-pointer"
+                  >
+                    Suivant
+                  </button>
                 </div>
-                <div>
-                  <nav className="isolate inline-flex -space-x-px rounded-xl shadow-xs gap-1" aria-label="Pagination">
-                    <button
-                      disabled={currentPage === 1}
-                      onClick={() => {
-                        setCurrentPage(prev => Math.max(prev - 1, 1));
-                        window.scrollTo({ top: 0, behavior: 'smooth' });
-                      }}
-                      className="relative inline-flex items-center rounded-xl border border-slate-150 bg-white p-2 text-slate-500 hover:bg-slate-100 disabled:opacity-40 transition cursor-pointer"
-                    >
-                      <ChevronLeft size={16} />
-                    </button>
-                    
-                    {Array.from({ length: Math.ceil(bookings.length / 5) }, (_, i) => i + 1).map((p) => (
+                <div className="hidden sm:flex sm:flex-1 sm:items-center sm:justify-between">
+                  <div>
+                    <p className="text-xs text-slate-500 font-bold">
+                      Affichage de <span className="font-extrabold text-slate-800">{Math.min((currentPage - 1) * 50 + 1, bookings.length)}</span> à{' '}
+                      <span className="font-extrabold text-slate-800">{Math.min(currentPage * 50, bookings.length)}</span> sur{' '}
+                      <span className="font-extrabold text-slate-800">{bookings.length}</span> réservations
+                    </p>
+                  </div>
+                  <div>
+                    <nav className="isolate inline-flex -space-x-px rounded-xl shadow-xs gap-1" aria-label="Pagination">
                       <button
-                        key={p}
+                        disabled={currentPage === 1}
                         onClick={() => {
-                          setCurrentPage(p);
+                          setCurrentPage(prev => Math.max(prev - 1, 1));
                           window.scrollTo({ top: 0, behavior: 'smooth' });
                         }}
-                        className={cn(
-                          "relative inline-flex items-center px-3 py-1.5 text-xs font-black rounded-xl border transition cursor-pointer",
-                          currentPage === p
-                            ? "z-10 bg-red-600 text-white border-red-600 shadow-sm"
-                            : "bg-white text-slate-600 border-slate-150 hover:bg-slate-100"
-                        )}
+                        className="relative inline-flex items-center rounded-xl border border-slate-150 bg-white p-2 text-slate-500 hover:bg-slate-100 disabled:opacity-40 transition cursor-pointer"
                       >
-                        {p}
+                        <ChevronLeft size={16} />
                       </button>
-                    ))}
+                      
+                      {Array.from({ length: Math.ceil(bookings.length / 50) }, (_, i) => i + 1).map((p) => (
+                        <button
+                          key={p}
+                          onClick={() => {
+                            setCurrentPage(p);
+                            window.scrollTo({ top: 0, behavior: 'smooth' });
+                          }}
+                          className={cn(
+                            "relative inline-flex items-center px-3 py-1.5 text-xs font-black rounded-xl border transition cursor-pointer",
+                            currentPage === p
+                              ? "z-10 bg-red-600 text-white border-red-600 shadow-sm"
+                              : "bg-white text-slate-600 border-slate-150 hover:bg-slate-100"
+                          )}
+                        >
+                          {p}
+                        </button>
+                      ))}
 
-                    <button
-                      disabled={currentPage === Math.ceil(bookings.length / 5)}
-                      onClick={() => {
-                        setCurrentPage(prev => Math.min(prev + 1, Math.ceil(bookings.length / 5)));
-                        window.scrollTo({ top: 0, behavior: 'smooth' });
-                      }}
-                      className="relative inline-flex items-center rounded-xl border border-slate-150 bg-white p-2 text-slate-500 hover:bg-slate-100 disabled:opacity-40 transition cursor-pointer"
-                    >
-                      <ChevronRight size={16} />
-                    </button>
-                  </nav>
+                      <button
+                        disabled={currentPage === Math.ceil(bookings.length / 50)}
+                        onClick={() => {
+                          setCurrentPage(prev => Math.min(prev + 1, Math.ceil(bookings.length / 50)));
+                          window.scrollTo({ top: 0, behavior: 'smooth' });
+                        }}
+                        className="relative inline-flex items-center rounded-xl border border-slate-150 bg-white p-2 text-slate-500 hover:bg-slate-100 disabled:opacity-40 transition cursor-pointer"
+                      >
+                        <ChevronRight size={16} />
+                      </button>
+                    </nav>
+                  </div>
                 </div>
               </div>
-            </div>
-          )}
+            )}
         </div>
       )}
 

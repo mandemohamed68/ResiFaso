@@ -22,7 +22,7 @@ export function getApiUrl(): string {
 
   if (isCapacitor) {
     // Target the deployed production backend for mobile devices running the APK
-    return 'http://167.172.39.172:2000';
+    return 'http://167.172.39.172:2020';
   }
 
   const envUrl = import.meta.env.VITE_API_URL || import.meta.env.VITE_APP_URL;
@@ -35,7 +35,7 @@ export function getApiUrl(): string {
     return window.location.origin;
   }
   
-  return 'http://167.172.39.172:2000';
+  return 'http://167.172.39.172:2020';
 }
 
 export async function apiFetch(path: string, options: RequestInit = {}): Promise<Response> {

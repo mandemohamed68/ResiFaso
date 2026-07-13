@@ -12,7 +12,7 @@ import { Residence, UserProfile, UserRole, Booking, Review, BookingStatus, Payme
 import { BURKINA_LOCATIONS } from '../../constants/locations';
 import { useLocations } from '../../hooks/useLocations';
 import { motion, AnimatePresence } from 'motion/react';
-import { cn, formatFCFA } from '../../lib/utils';
+import { cn, formatFCFA, formatDateFr, formatDateTimeFr } from '../../lib/utils';
 import { useAuth } from '../../contexts/AuthContext';
 import { useDataRefresh } from '../../contexts/DataRefreshContext';
 import { PREDEFINED_TYPES } from '../booking/OwnerDashboard';
@@ -2084,7 +2084,7 @@ export const AdminDashboard: React.FC<{ onBackToTraveler?: () => void }> = ({ on
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-50 text-sm font-bold text-slate-700">
-                    {filteredResidences.slice((residencesPage - 1) * 8, residencesPage * 8).map(res => (
+                    {filteredResidences.slice((residencesPage - 1) * 50, residencesPage * 50).map(res => (
                       <tr key={res.id}>
                         <td 
                           className="py-4 px-6 flex items-center gap-3 cursor-pointer hover:bg-slate-50/50 group transition duration-150"
@@ -2181,7 +2181,7 @@ export const AdminDashboard: React.FC<{ onBackToTraveler?: () => void }> = ({ on
                 </table>
 
                 {/* Pagination UI for Admin Residences */}
-                {filteredResidences.length > 8 && (
+                {filteredResidences.length > 50 && (
                   <div className="flex items-center justify-between border-t border-slate-100 pt-5 px-6 mt-4 pb-4">
                     <div className="flex flex-1 justify-between sm:hidden">
                       <button
@@ -2194,9 +2194,9 @@ export const AdminDashboard: React.FC<{ onBackToTraveler?: () => void }> = ({ on
                         Précédent
                       </button>
                       <button
-                        disabled={residencesPage === Math.ceil(filteredResidences.length / 8)}
+                        disabled={residencesPage === Math.ceil(filteredResidences.length / 50)}
                         onClick={() => {
-                          setResidencesPage(prev => Math.min(prev + 1, Math.ceil(filteredResidences.length / 8)));
+                          setResidencesPage(prev => Math.min(prev + 1, Math.ceil(filteredResidences.length / 50)));
                         }}
                         className="relative ml-3 inline-flex items-center rounded-xl border border-slate-200 bg-white px-4 py-2 text-xs font-black uppercase text-slate-700 hover:bg-slate-50 disabled:opacity-50 transition cursor-pointer"
                       >
@@ -2206,8 +2206,8 @@ export const AdminDashboard: React.FC<{ onBackToTraveler?: () => void }> = ({ on
                     <div className="hidden sm:flex sm:flex-1 sm:items-center sm:justify-between">
                       <div>
                         <p className="text-xs text-slate-500 font-bold">
-                          Affichage de <span className="font-extrabold text-slate-800">{Math.min((residencesPage - 1) * 8 + 1, filteredResidences.length)}</span> à{' '}
-                          <span className="font-extrabold text-slate-800">{Math.min(residencesPage * 8, filteredResidences.length)}</span> sur{' '}
+                          Affichage de <span className="font-extrabold text-slate-800">{Math.min((residencesPage - 1) * 50 + 1, filteredResidences.length)}</span> à{' '}
+                          <span className="font-extrabold text-slate-800">{Math.min(residencesPage * 50, filteredResidences.length)}</span> sur{' '}
                           <span className="font-extrabold text-slate-800">{filteredResidences.length}</span> hébergements
                         </p>
                       </div>
@@ -2223,7 +2223,7 @@ export const AdminDashboard: React.FC<{ onBackToTraveler?: () => void }> = ({ on
                             <ChevronLeft size={16} />
                           </button>
                           
-                          {Array.from({ length: Math.ceil(filteredResidences.length / 8) }, (_, i) => i + 1).map((p) => (
+                          {Array.from({ length: Math.ceil(filteredResidences.length / 50) }, (_, i) => i + 1).map((p) => (
                             <button
                               key={p}
                               onClick={() => {
@@ -2241,9 +2241,9 @@ export const AdminDashboard: React.FC<{ onBackToTraveler?: () => void }> = ({ on
                           ))}
 
                           <button
-                            disabled={residencesPage === Math.ceil(filteredResidences.length / 8)}
+                            disabled={residencesPage === Math.ceil(filteredResidences.length / 50)}
                             onClick={() => {
-                              setResidencesPage(prev => Math.min(prev + 1, Math.ceil(filteredResidences.length / 8)));
+                              setResidencesPage(prev => Math.min(prev + 1, Math.ceil(filteredResidences.length / 50)));
                             }}
                             className="relative inline-flex items-center rounded-xl border border-slate-150 bg-white p-2 text-slate-500 hover:bg-slate-100 disabled:opacity-40 transition cursor-pointer"
                           >
@@ -2885,7 +2885,7 @@ export const AdminDashboard: React.FC<{ onBackToTraveler?: () => void }> = ({ on
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-slate-50 text-xs font-bold text-slate-700">
-                      {filteredBookings.slice((bookingsPage - 1) * 8, bookingsPage * 8).map((book) => {
+                      {filteredBookings.slice((bookingsPage - 1) * 50, bookingsPage * 50).map((book) => {
                         const isEditing = editingBookingId === book.id;
                         return (
                           <tr key={book.id} className={cn("transition-colors", isEditing ? "bg-red-50/20" : "")}>
@@ -2894,8 +2894,8 @@ export const AdminDashboard: React.FC<{ onBackToTraveler?: () => void }> = ({ on
                               <span className="text-[10px] text-slate-400 block font-bold">Voyageur: {book.clientName || book.clientId?.substring(0,8)}</span>
                             </td>
                             <td className="py-4 px-6 font-medium text-slate-600">
-                              <div>Du : {book.checkIn}</div>
-                              <div>Au : {book.checkOut}</div>
+                              <div>Du : {formatDateFr(book.checkIn)}</div>
+                              <div>Au : {formatDateFr(book.checkOut)}</div>
                               <span className="text-[10px] text-slate-400">Voyageurs : {book.guests}</span>
                             </td>
                             <td className="py-4 px-6">
@@ -2985,7 +2985,7 @@ export const AdminDashboard: React.FC<{ onBackToTraveler?: () => void }> = ({ on
                 </div>
 
                 {/* Pagination UI for Admin Bookings */}
-                {filteredBookings.length > 8 && (
+                {filteredBookings.length > 50 && (
                   <div className="flex items-center justify-between border-t border-slate-100 pt-5 px-6 mt-4 pb-4">
                     <div className="flex flex-1 justify-between sm:hidden">
                       <button
@@ -2998,9 +2998,9 @@ export const AdminDashboard: React.FC<{ onBackToTraveler?: () => void }> = ({ on
                         Précédent
                       </button>
                       <button
-                        disabled={bookingsPage === Math.ceil(filteredBookings.length / 8)}
+                        disabled={bookingsPage === Math.ceil(filteredBookings.length / 50)}
                         onClick={() => {
-                          setBookingsPage(prev => Math.min(prev + 1, Math.ceil(filteredBookings.length / 8)));
+                          setBookingsPage(prev => Math.min(prev + 1, Math.ceil(filteredBookings.length / 50)));
                         }}
                         className="relative ml-3 inline-flex items-center rounded-xl border border-slate-200 bg-white px-4 py-2 text-xs font-black uppercase text-slate-700 hover:bg-slate-50 disabled:opacity-50 transition cursor-pointer"
                       >
@@ -3010,8 +3010,8 @@ export const AdminDashboard: React.FC<{ onBackToTraveler?: () => void }> = ({ on
                     <div className="hidden sm:flex sm:flex-1 sm:items-center sm:justify-between">
                       <div>
                         <p className="text-xs text-slate-500 font-bold">
-                          Affichage de <span className="font-extrabold text-slate-800">{Math.min((bookingsPage - 1) * 8 + 1, filteredBookings.length)}</span> à{' '}
-                          <span className="font-extrabold text-slate-800">{Math.min(bookingsPage * 8, filteredBookings.length)}</span> sur{' '}
+                          Affichage de <span className="font-extrabold text-slate-800">{Math.min((bookingsPage - 1) * 50 + 1, filteredBookings.length)}</span> à{' '}
+                          <span className="font-extrabold text-slate-800">{Math.min(bookingsPage * 50, filteredBookings.length)}</span> sur{' '}
                           <span className="font-extrabold text-slate-800">{filteredBookings.length}</span> réservations
                         </p>
                       </div>
@@ -3027,7 +3027,7 @@ export const AdminDashboard: React.FC<{ onBackToTraveler?: () => void }> = ({ on
                             <ChevronLeft size={16} />
                           </button>
                           
-                          {Array.from({ length: Math.ceil(filteredBookings.length / 8) }, (_, i) => i + 1).map((p) => (
+                          {Array.from({ length: Math.ceil(filteredBookings.length / 50) }, (_, i) => i + 1).map((p) => (
                             <button
                               key={p}
                               onClick={() => {
@@ -3045,9 +3045,9 @@ export const AdminDashboard: React.FC<{ onBackToTraveler?: () => void }> = ({ on
                           ))}
 
                           <button
-                            disabled={bookingsPage === Math.ceil(filteredBookings.length / 8)}
+                            disabled={bookingsPage === Math.ceil(filteredBookings.length / 50)}
                             onClick={() => {
-                              setBookingsPage(prev => Math.min(prev + 1, Math.ceil(filteredBookings.length / 8)));
+                              setBookingsPage(prev => Math.min(prev + 1, Math.ceil(filteredBookings.length / 50)));
                             }}
                             className="relative inline-flex items-center rounded-xl border border-slate-150 bg-white p-2 text-slate-500 hover:bg-slate-100 disabled:opacity-40 transition cursor-pointer"
                           >
@@ -3135,7 +3135,14 @@ export const AdminDashboard: React.FC<{ onBackToTraveler?: () => void }> = ({ on
                     </div>
 
                     <div className="border-t border-slate-100 pt-4 flex items-center justify-between">
-                      <span className="text-[10px] text-slate-400 font-bold">Auteur : Voyageur #{rev.clientId?.substring(0, 6)}</span>
+                      {(() => {
+                        const author = users.find(u => u.uid === rev.clientId);
+                        return (
+                          <span className="text-[10px] text-slate-400 font-bold">
+                            Auteur : {author?.displayName || author?.email || `Voyageur #${rev.clientId?.substring(0, 6)}`}
+                          </span>
+                        );
+                      })()}
                       <button
                         onClick={() => handleDeleteReview(rev.id, rev.clientId)}
                         className="text-red-600 bg-red-50 hover:bg-red-600 hover:text-white transition px-3 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-wider cursor-pointer"
@@ -3231,6 +3238,7 @@ export const AdminDashboard: React.FC<{ onBackToTraveler?: () => void }> = ({ on
                     ) : (
                       withdrawals
                         .sort((a, b) => (b.createdAt || '').localeCompare(a.createdAt || ''))
+                        .slice((withdrawalsPage - 1) * 50, withdrawalsPage * 50)
                         .map(withd => {
                         const owner = users.find(u => u.uid === withd.ownerId);
                         return (
@@ -3303,6 +3311,81 @@ export const AdminDashboard: React.FC<{ onBackToTraveler?: () => void }> = ({ on
                   </tbody>
                 </table>
               </div>
+
+              {/* Pagination UI for Admin Withdrawals */}
+              {withdrawals.length > 50 && (
+                <div className="flex items-center justify-between border-t border-slate-100 pt-5 px-6 mt-4 pb-4">
+                  <div className="flex flex-1 justify-between sm:hidden">
+                    <button
+                      disabled={withdrawalsPage === 1}
+                      onClick={() => {
+                        setWithdrawalsPage(prev => Math.max(prev - 1, 1));
+                      }}
+                      className="relative inline-flex items-center rounded-xl border border-slate-200 bg-white px-4 py-2 text-xs font-black uppercase text-slate-700 hover:bg-slate-50 disabled:opacity-50 transition cursor-pointer"
+                    >
+                      Précédent
+                    </button>
+                    <button
+                      disabled={withdrawalsPage === Math.ceil(withdrawals.length / 50)}
+                      onClick={() => {
+                        setWithdrawalsPage(prev => Math.min(prev + 1, Math.ceil(withdrawals.length / 50)));
+                      }}
+                      className="relative ml-3 inline-flex items-center rounded-xl border border-slate-200 bg-white px-4 py-2 text-xs font-black uppercase text-slate-700 hover:bg-slate-50 disabled:opacity-50 transition cursor-pointer"
+                    >
+                      Suivant
+                    </button>
+                  </div>
+                  <div className="hidden sm:flex sm:flex-1 sm:items-center sm:justify-between">
+                    <div>
+                      <p className="text-xs text-slate-500 font-bold">
+                        Affichage de <span className="font-extrabold text-slate-800">{Math.min((withdrawalsPage - 1) * 50 + 1, withdrawals.length)}</span> à{' '}
+                        <span className="font-extrabold text-slate-800">{Math.min(withdrawalsPage * 50, withdrawals.length)}</span> sur{' '}
+                        <span className="font-extrabold text-slate-800">{withdrawals.length}</span> demandes de retrait
+                      </p>
+                    </div>
+                    <div>
+                      <nav className="isolate inline-flex -space-x-px rounded-xl shadow-xs gap-1" aria-label="Pagination">
+                        <button
+                          disabled={withdrawalsPage === 1}
+                          onClick={() => {
+                            setWithdrawalsPage(prev => Math.max(prev - 1, 1));
+                          }}
+                          className="relative inline-flex items-center rounded-xl border border-slate-150 bg-white p-2 text-slate-500 hover:bg-slate-100 disabled:opacity-40 transition cursor-pointer"
+                        >
+                          <ChevronLeft size={16} />
+                        </button>
+                        
+                        {Array.from({ length: Math.ceil(withdrawals.length / 50) }, (_, i) => i + 1).map((p) => (
+                          <button
+                            key={p}
+                            onClick={() => {
+                              setWithdrawalsPage(p);
+                            }}
+                            className={cn(
+                              "relative inline-flex items-center px-3 py-1.5 text-xs font-black rounded-xl border transition cursor-pointer",
+                              withdrawalsPage === p
+                                ? "z-10 bg-red-600 text-white border-red-600 shadow-sm"
+                                : "bg-white text-slate-600 border-slate-150 hover:bg-slate-100"
+                            )}
+                          >
+                            {p}
+                          </button>
+                        ))}
+
+                        <button
+                          disabled={withdrawalsPage === Math.ceil(withdrawals.length / 50)}
+                          onClick={() => {
+                            setWithdrawalsPage(prev => Math.min(prev + 1, Math.ceil(withdrawals.length / 50)));
+                          }}
+                          className="relative inline-flex items-center rounded-xl border border-slate-150 bg-white p-2 text-slate-500 hover:bg-slate-100 disabled:opacity-40 transition cursor-pointer"
+                        >
+                          <ChevronRight size={16} />
+                        </button>
+                      </nav>
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
           </div>
         )}

@@ -290,7 +290,7 @@ const BookingTable: React.FC<BookingTableProps> = ({
           </tr>
         </thead>
         <tbody className="divide-y divide-slate-50 text-sm font-bold text-slate-700">
-          {bookings.slice((currentPage - 1) * 5, currentPage * 5).map(b => {
+          {bookings.slice((currentPage - 1) * 50, currentPage * 50).map(b => {
              const res = residences.find(r => r.id === b.residenceId);
              return (
               <tr key={b.id}>
@@ -418,7 +418,7 @@ const BookingTable: React.FC<BookingTableProps> = ({
       </table>
 
       {/* Pagination UI for Bookings */}
-      {bookings.length > 5 && (
+      {bookings.length > 50 && (
         <div className="flex items-center justify-between border-t border-slate-100 pt-5 px-6">
           <div className="flex flex-1 justify-between sm:hidden">
             <button
@@ -431,9 +431,9 @@ const BookingTable: React.FC<BookingTableProps> = ({
               Précédent
             </button>
             <button
-              disabled={currentPage === Math.ceil(bookings.length / 5)}
+              disabled={currentPage === Math.ceil(bookings.length / 50)}
               onClick={() => {
-                setCurrentPage(prev => Math.min(prev + 1, Math.ceil(bookings.length / 5)));
+                setCurrentPage(prev => Math.min(prev + 1, Math.ceil(bookings.length / 50)));
               }}
               className="relative ml-3 inline-flex items-center rounded-xl border border-slate-200 bg-white px-4 py-2 text-xs font-black uppercase text-slate-700 hover:bg-slate-50 disabled:opacity-50 transition cursor-pointer"
             >
@@ -443,8 +443,8 @@ const BookingTable: React.FC<BookingTableProps> = ({
           <div className="hidden sm:flex sm:flex-1 sm:items-center sm:justify-between">
             <div>
               <p className="text-xs text-slate-500 font-bold">
-                Affichage de <span className="font-extrabold text-slate-800">{Math.min((currentPage - 1) * 5 + 1, bookings.length)}</span> à{' '}
-                <span className="font-extrabold text-slate-800">{Math.min(currentPage * 5, bookings.length)}</span> sur{' '}
+                Affichage de <span className="font-extrabold text-slate-800">{Math.min((currentPage - 1) * 50 + 1, bookings.length)}</span> à{' '}
+                <span className="font-extrabold text-slate-800">{Math.min(currentPage * 50, bookings.length)}</span> sur{' '}
                 <span className="font-extrabold text-slate-800">{bookings.length}</span> réservations
               </p>
             </div>
@@ -460,7 +460,7 @@ const BookingTable: React.FC<BookingTableProps> = ({
                   <ChevronLeft size={16} />
                 </button>
                 
-                {Array.from({ length: Math.ceil(bookings.length / 5) }, (_, i) => i + 1).map((p) => (
+                {Array.from({ length: Math.ceil(bookings.length / 50) }, (_, i) => i + 1).map((p) => (
                   <button
                     key={p}
                     onClick={() => {
@@ -478,9 +478,9 @@ const BookingTable: React.FC<BookingTableProps> = ({
                 ))}
 
                 <button
-                  disabled={currentPage === Math.ceil(bookings.length / 5)}
+                  disabled={currentPage === Math.ceil(bookings.length / 50)}
                   onClick={() => {
-                    setCurrentPage(prev => Math.min(prev + 1, Math.ceil(bookings.length / 5)));
+                    setCurrentPage(prev => Math.min(prev + 1, Math.ceil(bookings.length / 50)));
                   }}
                   className="relative inline-flex items-center rounded-xl border border-slate-150 bg-white p-2 text-slate-500 hover:bg-slate-100 disabled:opacity-40 transition cursor-pointer"
                 >
@@ -1878,7 +1878,7 @@ export const OwnerDashboard: React.FC<{ isTestMode?: boolean; onBackToTraveler?:
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-50 text-sm font-bold text-slate-700">
-                    {residences.slice((listingsPage - 1) * 5, listingsPage * 5).map(res => (
+                    {residences.slice((listingsPage - 1) * 50, listingsPage * 50).map(res => (
                       <tr key={res.id}>
                         <td className="py-4 px-6 flex items-center gap-3">
                           <img src={res.images?.[0]} className="w-12 h-10 object-cover rounded-md shadow-sm shrink-0" />
@@ -2028,7 +2028,7 @@ export const OwnerDashboard: React.FC<{ isTestMode?: boolean; onBackToTraveler?:
                 </table>
 
                 {/* Pagination UI for Listings */}
-                {residences.length > 5 && (
+                {residences.length > 50 && (
                   <div className="flex items-center justify-between border-t border-slate-100 pt-5 px-6 mt-4 text-slate-700">
                     <div className="flex flex-1 justify-between sm:hidden">
                       <button
@@ -2041,9 +2041,9 @@ export const OwnerDashboard: React.FC<{ isTestMode?: boolean; onBackToTraveler?:
                         Précédent
                       </button>
                       <button
-                        disabled={listingsPage === Math.ceil(residences.length / 5)}
+                        disabled={listingsPage === Math.ceil(residences.length / 50)}
                         onClick={() => {
-                          setListingsPage(prev => Math.min(prev + 1, Math.ceil(residences.length / 5)));
+                          setListingsPage(prev => Math.min(prev + 1, Math.ceil(residences.length / 50)));
                         }}
                         className="relative ml-3 inline-flex items-center rounded-xl border border-slate-200 bg-white px-4 py-2 text-xs font-black uppercase text-slate-700 hover:bg-slate-50 disabled:opacity-50 transition cursor-pointer"
                       >
@@ -2053,8 +2053,8 @@ export const OwnerDashboard: React.FC<{ isTestMode?: boolean; onBackToTraveler?:
                     <div className="hidden sm:flex sm:flex-1 sm:items-center sm:justify-between">
                       <div>
                         <p className="text-xs text-slate-500 font-bold">
-                          Affichage de <span className="font-extrabold text-slate-800">{Math.min((listingsPage - 1) * 5 + 1, residences.length)}</span> à{' '}
-                          <span className="font-extrabold text-slate-800">{Math.min(listingsPage * 5, residences.length)}</span> sur{' '}
+                          Affichage de <span className="font-extrabold text-slate-800">{Math.min((listingsPage - 1) * 50 + 1, residences.length)}</span> à{' '}
+                          <span className="font-extrabold text-slate-800">{Math.min(listingsPage * 50, residences.length)}</span> sur{' '}
                           <span className="font-extrabold text-slate-800">{residences.length}</span> hébergements
                         </p>
                       </div>
@@ -2070,7 +2070,7 @@ export const OwnerDashboard: React.FC<{ isTestMode?: boolean; onBackToTraveler?:
                             <ChevronLeft size={16} />
                           </button>
                           
-                          {Array.from({ length: Math.ceil(residences.length / 5) }, (_, i) => i + 1).map((p) => (
+                          {Array.from({ length: Math.ceil(residences.length / 50) }, (_, i) => i + 1).map((p) => (
                             <button
                               key={p}
                               onClick={() => {
@@ -2088,9 +2088,9 @@ export const OwnerDashboard: React.FC<{ isTestMode?: boolean; onBackToTraveler?:
                           ))}
 
                           <button
-                            disabled={listingsPage === Math.ceil(residences.length / 5)}
+                            disabled={listingsPage === Math.ceil(residences.length / 50)}
                             onClick={() => {
-                              setListingsPage(prev => Math.min(prev + 1, Math.ceil(residences.length / 5)));
+                              setListingsPage(prev => Math.min(prev + 1, Math.ceil(residences.length / 50)));
                             }}
                             className="relative inline-flex items-center rounded-xl border border-slate-150 bg-white p-2 text-slate-500 hover:bg-slate-100 disabled:opacity-40 transition cursor-pointer"
                           >
@@ -2365,7 +2365,7 @@ export const OwnerDashboard: React.FC<{ isTestMode?: boolean; onBackToTraveler?:
                         </tr>
                       </thead>
                       <tbody>
-                        {withdrawals.slice((withdrawalsPage - 1) * 5, withdrawalsPage * 5).map((item) => (
+                        {withdrawals.slice((withdrawalsPage - 1) * 50, withdrawalsPage * 50).map((item) => (
                           <tr key={item.id} className="border-b border-slate-50 hover:bg-slate-50/50">
                             <td className="py-3.5 font-bold text-slate-500">
                               {formatDateFr(item.createdAt)}
@@ -2399,7 +2399,7 @@ export const OwnerDashboard: React.FC<{ isTestMode?: boolean; onBackToTraveler?:
                   </div>
 
                   {/* Pagination UI for Withdrawals */}
-                  {withdrawals.length > 5 && (
+                  {withdrawals.length > 50 && (
                     <div className="flex items-center justify-between border-t border-slate-100 pt-5 px-2 mt-4 text-slate-700">
                       <div className="flex flex-1 justify-between sm:hidden">
                         <button
@@ -2412,9 +2412,9 @@ export const OwnerDashboard: React.FC<{ isTestMode?: boolean; onBackToTraveler?:
                           Précédent
                         </button>
                         <button
-                          disabled={withdrawalsPage === Math.ceil(withdrawals.length / 5)}
+                          disabled={withdrawalsPage === Math.ceil(withdrawals.length / 50)}
                           onClick={() => {
-                            setWithdrawalsPage(prev => Math.min(prev + 1, Math.ceil(withdrawals.length / 5)));
+                            setWithdrawalsPage(prev => Math.min(prev + 1, Math.ceil(withdrawals.length / 50)));
                           }}
                           className="relative ml-3 inline-flex items-center rounded-xl border border-slate-200 bg-white px-4 py-2 text-xs font-black uppercase text-slate-700 hover:bg-slate-50 disabled:opacity-50 transition cursor-pointer"
                         >
@@ -2424,8 +2424,8 @@ export const OwnerDashboard: React.FC<{ isTestMode?: boolean; onBackToTraveler?:
                       <div className="hidden sm:flex sm:flex-1 sm:items-center sm:justify-between">
                         <div>
                           <p className="text-xs text-slate-500 font-bold">
-                            Affichage de <span className="font-extrabold text-slate-800">{Math.min((withdrawalsPage - 1) * 5 + 1, withdrawals.length)}</span> à{' '}
-                            <span className="font-extrabold text-slate-800">{Math.min(withdrawalsPage * 5, withdrawals.length)}</span> sur{' '}
+                            Affichage de <span className="font-extrabold text-slate-800">{Math.min((withdrawalsPage - 1) * 50 + 1, withdrawals.length)}</span> à{' '}
+                            <span className="font-extrabold text-slate-800">{Math.min(withdrawalsPage * 50, withdrawals.length)}</span> sur{' '}
                             <span className="font-extrabold text-slate-800">{withdrawals.length}</span> demandes
                           </p>
                         </div>
@@ -2441,7 +2441,7 @@ export const OwnerDashboard: React.FC<{ isTestMode?: boolean; onBackToTraveler?:
                               <ChevronLeft size={16} />
                             </button>
                             
-                            {Array.from({ length: Math.ceil(withdrawals.length / 5) }, (_, i) => i + 1).map((p) => (
+                            {Array.from({ length: Math.ceil(withdrawals.length / 50) }, (_, i) => i + 1).map((p) => (
                               <button
                                 key={p}
                                 onClick={() => {
@@ -2459,9 +2459,9 @@ export const OwnerDashboard: React.FC<{ isTestMode?: boolean; onBackToTraveler?:
                             ))}
 
                             <button
-                              disabled={withdrawalsPage === Math.ceil(withdrawals.length / 5)}
+                              disabled={withdrawalsPage === Math.ceil(withdrawals.length / 50)}
                               onClick={() => {
-                                setWithdrawalsPage(prev => Math.min(prev + 1, Math.ceil(withdrawals.length / 5)));
+                                setWithdrawalsPage(prev => Math.min(prev + 1, Math.ceil(withdrawals.length / 50)));
                               }}
                               className="relative inline-flex items-center rounded-xl border border-slate-150 bg-white p-2 text-slate-500 hover:bg-slate-100 disabled:opacity-40 transition cursor-pointer"
                             >
