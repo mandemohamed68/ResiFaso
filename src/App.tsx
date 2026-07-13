@@ -432,7 +432,7 @@ function AppContent() {
     return selectedResidenceBookings.filter((b: any) => {
       const bStart = new Date(b.checkIn);
       const bEnd = new Date(b.checkOut);
-      return (dStart < bEnd && dEnd > bStart);
+      return (dStart <= bEnd && dEnd >= bStart);
     });
   };
 
@@ -485,7 +485,7 @@ function AppContent() {
       const conflicts = confirmedBookings.filter((b: any) => {
         const bStart = new Date(b.checkIn);
         const bEnd = new Date(b.checkOut);
-        return (dStart < bEnd && dEnd > bStart);
+        return (dStart <= bEnd && dEnd >= bStart);
       });
 
       if (conflicts.length > 0) {
@@ -626,6 +626,7 @@ function AppContent() {
         }} 
         isDarkMode={isDarkMode}
         onToggleDarkMode={() => setIsDarkMode(!isDarkMode)}
+        activeView={view}
       />
       
       {profile?.isSuspended && (
@@ -634,7 +635,7 @@ function AppContent() {
         </div>
       )}
       
-      <main>
+      <main className="pb-20 md:pb-0">
         <AnimatePresence mode="wait">
           {view === 'home' && (
             <motion.div 
@@ -1194,11 +1195,11 @@ function AppContent() {
                               const bStatus = (b.bookingStatus || b.booking_status || '').toLowerCase();
                               // Considérer comme occupé si la réservation n'est pas annulée ou déclinée
                               const isActive = bStatus !== 'cancelled' && bStatus !== 'declined';
-                              return isActive && dateStr >= bCheckIn && dateStr < bCheckOut;
+                              return isActive && dateStr >= bCheckIn && dateStr <= bCheckOut;
                             })) || (selectedResidence.occupiedDates?.some((d: any) => {
                               const dFrom = d.from || d.check_in;
                               const dTo = d.to || d.check_out;
-                              return dateStr >= dFrom && dateStr < dTo;
+                              return dateStr >= dFrom && dateStr <= dTo;
                             }));
                             const isToday = i === 0;
                             return (

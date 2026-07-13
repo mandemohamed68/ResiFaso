@@ -144,14 +144,14 @@ export const RoleGuide: React.FC<RoleGuideProps> = ({ role, isOpen, onClose }) =
 
   return (
     <AnimatePresence>
-      <div className="fixed inset-0 z-[150] flex items-center justify-center p-4">
+      <div className="fixed inset-0 z-[150] flex items-center justify-center p-0 md:p-4">
         {/* Backdrop */}
         <motion.div 
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
           onClick={onClose}
-          className="absolute inset-0 bg-slate-900/60 backdrop-blur-md"
+          className="absolute inset-0 bg-slate-900/60 backdrop-blur-md hidden md:block"
         />
 
         {/* Modal Container */}
@@ -159,10 +159,10 @@ export const RoleGuide: React.FC<RoleGuideProps> = ({ role, isOpen, onClose }) =
           initial={{ opacity: 0, scale: 0.95, y: 30 }}
           animate={{ opacity: 1, scale: 1, y: 0 }}
           exit={{ opacity: 0, scale: 0.95, y: 30 }}
-          className="relative w-full max-w-4xl bg-white rounded-[32px] shadow-2xl overflow-hidden flex flex-col md:flex-row max-h-[90vh]"
+          className="relative w-full h-full md:h-auto md:max-w-4xl bg-white md:rounded-[32px] shadow-2xl overflow-y-auto md:overflow-hidden flex flex-col md:flex-row md:max-h-[90vh]"
         >
           {/* Left Sidebar - Navigation steps */}
-          <div className="w-full md:w-80 bg-slate-50 border-r border-slate-100 p-6 flex flex-col justify-between shrink-0">
+          <div className="w-full md:w-80 bg-slate-50 border-b md:border-b-0 md:border-r border-slate-100 p-6 flex flex-col justify-between shrink-0">
             <div>
               <div className="flex items-center gap-2 mb-6">
                 <div className={`w-8 h-8 rounded-xl flex items-center justify-center ${details.accentColor}`}>
@@ -174,11 +174,17 @@ export const RoleGuide: React.FC<RoleGuideProps> = ({ role, isOpen, onClose }) =
               <h3 className="text-xl font-black text-slate-900 mb-1 leading-tight">{details.title}</h3>
               <p className="text-xs text-slate-500 font-medium mb-6">{details.subtitle}</p>
 
-              <div className="space-y-2">
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-1 gap-2">
                 {details.steps.map((step, index) => (
                   <button
                     key={index}
-                    onClick={() => setActiveStep(index)}
+                    onClick={() => {
+                      setActiveStep(index);
+                      // Scroll to content on mobile after selecting a step
+                      if (window.innerWidth < 768) {
+                        document.getElementById('guide-content')?.scrollIntoView({ behavior: 'smooth' });
+                      }
+                    }}
                     className={cn(
                       "w-full text-left p-3.5 rounded-2xl flex items-center gap-3 transition-all font-bold text-xs uppercase tracking-wider",
                       activeStep === index 
@@ -198,7 +204,7 @@ export const RoleGuide: React.FC<RoleGuideProps> = ({ role, isOpen, onClose }) =
               </div>
             </div>
 
-            <div className="mt-8 pt-4 border-t border-slate-200/60">
+            <div className="mt-8 pt-4 border-t border-slate-200/60 hidden md:block">
               <div className="flex items-center gap-3 bg-red-50/50 p-3 rounded-2xl border border-red-100/40">
                 <ShieldCheck className="text-red-600 shrink-0" size={18} />
                 <p className="text-[10px] font-bold text-slate-600 leading-relaxed">
@@ -209,7 +215,7 @@ export const RoleGuide: React.FC<RoleGuideProps> = ({ role, isOpen, onClose }) =
           </div>
 
           {/* Right Area - Content details */}
-          <div className="flex-1 flex flex-col min-h-[400px]">
+          <div id="guide-content" className="flex-1 flex flex-col min-h-[400px]">
             {/* Header image/banner area */}
             <div className={`h-40 bg-gradient-to-r ${details.colorClass} p-8 flex flex-col justify-end relative overflow-hidden`}>
               <div className="absolute top-4 right-4 z-10">

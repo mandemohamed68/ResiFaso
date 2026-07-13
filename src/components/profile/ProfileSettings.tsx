@@ -4,7 +4,7 @@ import { useAuth } from '../../contexts/AuthContext';
 import { cn } from '../../lib/utils';
 import { 
   User, Shield, CreditCard, Bell, Key, Eye, AlertTriangle, 
-  CheckCircle, Upload, Check, Lock, Smartphone, RefreshCw, X, Camera 
+  CheckCircle, Upload, Check, Lock, Smartphone, RefreshCw, X, Camera, LogOut 
 } from 'lucide-react';
 import { resizeImage } from '../../lib/imageResize';
 
@@ -536,7 +536,16 @@ export const ProfileSettings: React.FC = () => {
 
   return (
     <div className="max-w-7xl mx-auto px-4 py-8">
-      <h1 className="text-3xl font-black text-slate-900 mb-8" id="profile-settings-title">Profil & Paramètres</h1>
+      <div className="flex items-center justify-between mb-8">
+        <h1 className="text-3xl font-black text-slate-900" id="profile-settings-title">Profil & Paramètres</h1>
+        <button 
+          onClick={() => { logOut(); window.location.href = '/'; }} 
+          className="flex items-center gap-2 px-4 py-2 bg-red-50 text-red-600 rounded-xl text-xs font-black uppercase tracking-wider hover:bg-red-100 transition-all cursor-pointer"
+        >
+          <LogOut size={16} />
+          Se déconnecter
+        </button>
+      </div>
       
       {/* Toast Feedback */}
       {saveSuccess && (

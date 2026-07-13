@@ -27,15 +27,15 @@ export const initDatabase = async () => {
       CREATE TABLE IF NOT EXISTS users (
         uid VARCHAR(128) PRIMARY KEY,
         email VARCHAR(255) UNIQUE NOT NULL,
-        display_name VARCHAR(255),
+        display_name VARCHAR(500),
         phone_number VARCHAR(50),
         photo_url LONGTEXT,
         role VARCHAR(50) DEFAULT 'client',
         is_verified BOOLEAN DEFAULT 0,
         is_suspended BOOLEAN DEFAULT 0,
         password_hash VARCHAR(255),
-        identity_document_front TEXT,
-        identity_document_back TEXT,
+        identity_document_front LONGTEXT,
+        identity_document_back LONGTEXT,
         permissions TEXT,
         id_number VARCHAR(255),
         id_type VARCHAR(255),
@@ -133,10 +133,10 @@ export const initDatabase = async () => {
         `, [col]);
         if (!columns || columns.length === 0) {
           console.log(`Migration MariaDB: Ajout de la colonne '${col}'...`);
-          let typeDef = "TEXT NULL";
+          let typeDef = "LONGTEXT NULL";
           if (col === 'verification_status') {
             typeDef = "VARCHAR(50) DEFAULT 'none'";
-          } else if (col === 'id_card_url') {
+          } else if (col === 'id_card_url' || col === 'identity_document_front' || col === 'identity_document_back' || col === 'display_name') {
             typeDef = "LONGTEXT NULL";
           } else if (col === 'id_number' || col === 'id_type' || col === 'id_expiry') {
             typeDef = "VARCHAR(255) NULL";
@@ -144,6 +144,13 @@ export const initDatabase = async () => {
             typeDef = "BOOLEAN DEFAULT 0";
           }
           await executeSql(`ALTER TABLE users ADD COLUMN ${col} ${typeDef}`);
+        } else {
+          // If column exists, ensure it's LONGTEXT for documents
+          if (['identity_document_front', 'identity_document_back', 'id_card_url'].includes(col)) {
+             try {
+               await executeSql(`ALTER TABLE users MODIFY COLUMN ${col} LONGTEXT`);
+             } catch (err) {}
+          }
         }
       }
     } catch (err: any) {
@@ -280,12 +287,23 @@ export const initDatabase = async () => {
         stay_status VARCHAR(50) DEFAULT 'upcoming',
         checked_in_at VARCHAR(50),
         checked_out_at VARCHAR(50),
+        verifications_status VARCHAR(50) DEFAULT 'pending',
         created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
         FOREIGN KEY(residence_id) REFERENCES residences(id) ON DELETE SET NULL,
         FOREIGN KEY(client_id) REFERENCES users(uid) ON DELETE SET NULL,
         FOREIGN KEY(owner_id) REFERENCES users(uid) ON DELETE SET NULL
       ) ENGINE=InnoDB
     `);
+
+    try {
+      const colCheck = await executeSql("SHOW COLUMNS FROM bookings LIKE 'verifications_status'");
+      if (!colCheck || colCheck.length === 0) {
+        await executeSql("ALTER TABLE bookings ADD COLUMN verifications_status VARCHAR(50) DEFAULT 'pending'");
+        console.log("Migration MariaDB: Colonne verifications_status ajoutée à la table bookings.");
+      }
+    } catch (err: any) {
+      console.warn("Avertissement migration MariaDB bookings.verifications_status:", err.message);
+    }
 
     // Reviews Table
     await executeSql(`
@@ -464,7 +482,8 @@ export const initDatabase = async () => {
         sender_id VARCHAR(128) NOT NULL,
         message TEXT,
         is_read BOOLEAN DEFAULT 0,
-        created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY(user_id) REFERENCES users(uid) ON DELETE CASCADE
       ) ENGINE=InnoDB
     `);
 
@@ -638,6 +657,7 @@ export const initDatabase = async () => {
         stay_status TEXT DEFAULT 'upcoming',
         checked_in_at TEXT,
         checked_out_at TEXT,
+        verifications_status TEXT DEFAULT 'pending',
         created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
         FOREIGN KEY(residence_id) REFERENCES residences(id),
         FOREIGN KEY(client_id) REFERENCES users(uid),

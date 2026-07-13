@@ -680,9 +680,22 @@ async function startServer() {
       if (req.user?.role !== 'admin') {
         return res.status(403).json({ error: "Réservé aux administrateurs" });
       }
-      await queries.deleteUser(req.params.uid);
+      
+      const uid = req.params.uid;
+      
+      // Cleanup related records that might not have ON DELETE CASCADE or to be extra safe
+      await executeSql("DELETE FROM support_chat_messages WHERE user_id = ? OR sender_id = ?", [uid, uid]);
+      await executeSql("DELETE FROM messages WHERE sender_id = ?", [uid]);
+      await executeSql("DELETE FROM notifications WHERE user_id = ?", [uid]);
+      await executeSql("DELETE FROM favorites WHERE user_id = ?", [uid]);
+      
+      // Withdrawals - set to null if they exist
+      await executeSql("UPDATE withdrawals SET owner_id = NULL WHERE owner_id = ?", [uid]);
+      
+      await queries.deleteUser(uid);
       res.json({ success: true });
     } catch (err: any) {
+      console.error("[DELETE USER ERROR]", err);
       res.status(500).json({ error: err.message });
     }
   });

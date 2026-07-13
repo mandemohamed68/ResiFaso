@@ -16,7 +16,8 @@ export const Navbar: React.FC<{
   onNavigate: (view: any) => void;
   isDarkMode: boolean;
   onToggleDarkMode: () => void;
-}> = ({ onNavigate, isDarkMode, onToggleDarkMode }) => {
+  activeView: string;
+}> = ({ onNavigate, isDarkMode, onToggleDarkMode, activeView }) => {
   const { user, profile, logOut } = useAuth();
   const { currentRole, setCurrentRole, canSwitch } = useRole();
   const { addToast } = useToast();
@@ -422,36 +423,79 @@ export const Navbar: React.FC<{
 
       {/* Mobile Bottom Nav */}
       <div className="md:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-slate-100 px-6 py-2.5 flex justify-between items-center z-40 shadow-[0_-2px_10px_rgba(0,0,0,0.05)]">
-        <button onClick={() => onNavigate('home')} className="flex flex-col items-center gap-1 text-slate-500 hover:text-orange-600 cursor-pointer">
+        <button 
+          onClick={() => onNavigate('home')} 
+          className={cn(
+            "flex flex-col items-center gap-1 transition-all cursor-pointer",
+            activeView === 'home' ? "text-red-600 scale-110" : "text-slate-500 hover:text-slate-900"
+          )}
+        >
           <Home size={20} />
           <span className="text-[9px] font-bold uppercase tracking-wider">Accueil</span>
         </button>
         
         {user && currentRole === 'client' && (
-          <button onClick={() => onNavigate('bookings')} className="flex flex-col items-center gap-1 text-slate-500 hover:text-orange-600 cursor-pointer">
+          <button 
+            onClick={() => onNavigate('bookings')} 
+            className={cn(
+              "flex flex-col items-center gap-1 transition-all cursor-pointer",
+              activeView === 'bookings' ? "text-red-600 scale-110" : "text-slate-500 hover:text-slate-900"
+            )}
+          >
             <Search size={20} />
             <span className="text-[9px] font-bold uppercase tracking-wider">Réservations</span>
           </button>
         )}
 
         {(currentRole === 'owner' || currentRole === 'admin') && (
-          <button onClick={() => onNavigate('owner-dashboard')} className="flex flex-col items-center gap-1 text-slate-500 hover:text-orange-600 cursor-pointer">
+          <button 
+            onClick={() => onNavigate('owner-dashboard')} 
+            className={cn(
+              "flex flex-col items-center gap-1 transition-all cursor-pointer",
+              activeView === 'owner-dashboard' ? "text-red-600 scale-110" : "text-slate-500 hover:text-slate-900"
+            )}
+          >
             <LayoutDashboard size={20} />
             <span className="text-[9px] font-bold uppercase tracking-wider">Hôte</span>
           </button>
         )}
 
         {currentRole === 'admin' && (
-          <button onClick={() => onNavigate('admin')} className="flex flex-col items-center gap-1 text-slate-500 hover:text-orange-600 cursor-pointer">
+          <button 
+            onClick={() => onNavigate('admin')} 
+            className={cn(
+              "flex flex-col items-center gap-1 transition-all cursor-pointer",
+              activeView === 'admin' ? "text-red-600 scale-110" : "text-slate-500 hover:text-slate-900"
+            )}
+          >
             <Shield size={20} />
             <span className="text-[9px] font-bold uppercase tracking-wider">Admin</span>
           </button>
         )}
 
-        <button onClick={() => onNavigate('contact')} className="flex flex-col items-center gap-1 text-slate-500 hover:text-orange-600 cursor-pointer">
+        <button 
+          onClick={() => onNavigate('contact')} 
+          className={cn(
+            "flex flex-col items-center gap-1 transition-all cursor-pointer",
+            activeView === 'contact' ? "text-red-600 scale-110" : "text-slate-500 hover:text-slate-900"
+          )}
+        >
           <HelpCircle size={20} />
           <span className="text-[9px] font-bold uppercase tracking-wider">Support</span>
         </button>
+
+        {user && (
+          <button 
+            onClick={() => onNavigate('profile')} 
+            className={cn(
+              "flex flex-col items-center gap-1 transition-all cursor-pointer",
+              activeView === 'profile' ? "text-red-600 scale-110" : "text-slate-500 hover:text-slate-900"
+            )}
+          >
+            <User size={20} />
+            <span className="text-[9px] font-bold uppercase tracking-wider">Profil</span>
+          </button>
+        )}
       </div>
 
       <AuthModal isOpen={isAuthOpen} onClose={() => setIsAuthOpen(false)} onNavigate={onNavigate} />

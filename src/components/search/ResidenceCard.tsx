@@ -139,23 +139,47 @@ export const ResidenceCard: React.FC<Props> = ({
           )}
         </div>
 
-        {/* Occupied Dates Display */}
+        {/* Occupied Dates Display - High visibility for user request */}
         {residence.occupiedDates && residence.occupiedDates.length > 0 && (
-          <div className="mb-4 space-y-1.5">
-            <div className="flex items-center gap-1.5 text-[8px] font-black uppercase tracking-wider text-slate-500">
-              <CalendarIcon size={10} className="text-red-500" />
-              <span>Dates occupées</span>
+          <div className="mb-4 bg-red-50/50 p-2.5 rounded-xl border border-red-100">
+            <div className="flex items-center gap-1.5 text-[9px] font-black uppercase tracking-widest text-red-600 mb-2">
+              <CalendarIcon size={11} className="animate-pulse" />
+              <span>Calendrier d'occupation</span>
             </div>
-            <div className="flex flex-wrap gap-1">
-              {residence.occupiedDates.slice(0, 3).map((date, idx) => (
-                <span key={idx} className="px-1.5 py-0.5 bg-red-50 text-red-700 text-[8px] font-bold rounded border border-red-100 flex items-center gap-1">
-                  {formatDateFr(date.from)} - {formatDateFr(date.to)}
-                </span>
-              ))}
-              {residence.occupiedDates.length > 3 && (
-                <span className="text-[8px] font-bold text-slate-400 italic">
-                  +{residence.occupiedDates.length - 3} autres...
-                </span>
+            <div className="flex flex-col gap-1.5">
+              {residence.occupiedDates.slice(0, 5).map((date, idx) => {
+                const fromDate = new Date(date.from).toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit', year: '2-digit' });
+                const toDate = new Date(date.to).toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit', year: '2-digit' });
+                const isOngoing = new Date().toISOString().split('T')[0] >= date.from && new Date().toISOString().split('T')[0] <= date.to;
+                
+                return (
+                  <div 
+                    key={idx} 
+                    className={cn(
+                      "flex items-center justify-between px-2 py-1.5 rounded-lg text-[10px] font-black border transition-all",
+                      isOngoing 
+                        ? "bg-red-600 text-white border-red-700 shadow-sm scale-[1.02]" 
+                        : "bg-white text-slate-700 border-red-100"
+                    )}
+                  >
+                    <div className="flex items-center gap-2">
+                      <span className={isOngoing ? "text-red-100" : "text-slate-400"}>DU</span>
+                      <span>{fromDate}</span>
+                    </div>
+                    <div className={cn("w-4 h-[1px]", isOngoing ? "bg-red-400" : "bg-red-200")} />
+                    <div className="flex items-center gap-2">
+                      <span className={isOngoing ? "text-red-100" : "text-slate-400"}>AU</span>
+                      <span>{toDate}</span>
+                    </div>
+                  </div>
+                );
+              })}
+              {residence.occupiedDates.length > 5 && (
+                <div className="text-center pt-1">
+                  <span className="text-[9px] font-black text-red-500 uppercase tracking-tighter bg-red-100 px-2 py-0.5 rounded-full">
+                    + {residence.occupiedDates.length - 5} autres réservations
+                  </span>
+                </div>
               )}
             </div>
           </div>
