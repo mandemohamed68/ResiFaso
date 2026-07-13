@@ -89,7 +89,7 @@ export const getAllResidences = async (ownerId?: string) => {
   activeBookings.forEach((b: any) => {
     const resId = b.residence_id || b.residenceId;
     if (!bookingsMap[resId]) bookingsMap[resId] = [];
-    bookingsMap[resId].push({ from: b.check_in, to: b.check_out });
+    bookingsMap[resId].push({ from: b.checkIn || b.check_in, to: b.checkOut || b.check_out });
   });
 
   return rows.map((res: any) => ({
@@ -190,7 +190,7 @@ export const getResidenceById = async (id: string) => {
     createdAt: row.createdAt || row.created_at || row.createdat,
     amenities: amenities.map((a: any) => a.amenity),
     images: images.map((i: any) => i.image_url || i.imageUrl),
-    occupiedDates: bookings.map((b: any) => ({ from: b.check_in, to: b.check_out })),
+    occupiedDates: bookings.map((b: any) => ({ from: b.checkIn || b.check_in, to: b.checkOut || b.check_out })),
     address: {
       city: cleanSecteur(row.city),
       neighborhood: cleanSecteur(row.neighborhood),

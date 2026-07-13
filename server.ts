@@ -234,13 +234,14 @@ async function startServer() {
         user.role = 'admin';
       }
 
-      if (!user.password_hash) return res.status(401).json({ error: "Compte sans mot de passe local." });
+      const pwdHash = user.passwordHash || user.password_hash;
+      if (!pwdHash) return res.status(401).json({ error: "Compte sans mot de passe local." });
 
-      const match = await bcrypt.compare(password, user.password_hash);
+      const match = await bcrypt.compare(password, pwdHash);
       if (!match) return res.status(401).json({ error: "Identifiants invalides" });
 
       const token = jwt.sign({ uid: user.uid, email: user.email, role: user.role }, JWT_SECRET, { expiresIn: '30d' });
-      res.json({ token, user: { uid: user.uid, email: user.email, displayName: user.display_name, role: user.role } });
+      res.json({ token, user: { uid: user.uid, email: user.email, displayName: user.displayName || user.display_name, role: user.role } });
     } catch (err: any) {
       res.status(500).json({ error: err.message });
     }

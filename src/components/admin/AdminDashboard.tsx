@@ -151,6 +151,7 @@ export const AdminDashboard: React.FC<{ onBackToTraveler?: () => void }> = ({ on
   const [enableWhatsApp, setEnableWhatsApp] = useState(true);
   const [minReservationAmountEnabled, setMinReservationAmountEnabled] = useState(false);
   const [minReservationAmount, setMinReservationAmount] = useState(5000);
+  const [refreshInterval, setRefreshInterval] = useState(60000);
   
   // Status Editing for Booking
   const [editingBookingId, setEditingBookingId] = useState<string | null>(null);
@@ -277,6 +278,7 @@ export const AdminDashboard: React.FC<{ onBackToTraveler?: () => void }> = ({ on
         if (settingsData.enableWhatsApp !== undefined) setEnableWhatsApp(settingsData.enableWhatsApp);
         if (settingsData.minReservationAmountEnabled !== undefined) setMinReservationAmountEnabled(settingsData.minReservationAmountEnabled);
         if (settingsData.minReservationAmount !== undefined) setMinReservationAmount(settingsData.minReservationAmount);
+        if (settingsData.refreshInterval !== undefined) setRefreshInterval(settingsData.refreshInterval);
         if (settingsData.sappayClientId !== undefined) setSappayClientId(settingsData.sappayClientId);
         if (settingsData.sappayClientSecret !== undefined) setSappayClientSecret(settingsData.sappayClientSecret);
         if (settingsData.sappayUsername !== undefined) setSappayUsername(settingsData.sappayUsername);
@@ -1124,6 +1126,7 @@ export const AdminDashboard: React.FC<{ onBackToTraveler?: () => void }> = ({ on
       enableWhatsApp: enableWhatsApp,
       minReservationAmountEnabled: minReservationAmountEnabled,
       minReservationAmount: minReservationAmount,
+      refreshInterval: refreshInterval,
       announcement: {
         text: announcementText,
         type: announcementType,
@@ -3854,6 +3857,18 @@ export const AdminDashboard: React.FC<{ onBackToTraveler?: () => void }> = ({ on
                   onChange={(e) => setCommissionRate(Number(e.target.value))}
                   className="w-full bg-white border border-slate-250 rounded-xl px-4 py-3 text-sm font-black outline-none focus:ring-2 focus:ring-red-500" 
                 />
+              </div>
+
+              <div>
+                <label className="block text-xs font-black text-slate-500 uppercase tracking-widest mb-1.5 font-bold">Temps de rafraîchissement (ms)</label>
+                <input 
+                  type="number" 
+                  value={refreshInterval} 
+                  onChange={(e) => setRefreshInterval(Number(e.target.value))}
+                  className="w-full bg-white border border-slate-250 rounded-xl px-4 py-3 text-sm font-black outline-none focus:ring-2 focus:ring-red-500" 
+                  placeholder="Ex: 60000 (1 minute)"
+                />
+                <span className="text-[10px] text-slate-400 font-medium mt-1 block">Ex: 60000 pour 1 minute.</span>
               </div>
 
               <div>

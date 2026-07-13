@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useState, useCallback, useEffect } from 'react';
+import { getGlobalSettings } from '../lib/db';
 
 interface DataRefreshContextType {
   refreshData: () => void;
@@ -9,15 +10,24 @@ const DataRefreshContext = createContext<DataRefreshContextType | undefined>(und
 
 export const DataRefreshProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [lastRefresh, setLastRefresh] = useState(Date.now());
+  const [refreshIntervalMs, setRefreshIntervalMs] = useState(60000);
 
   const refreshData = useCallback(() => {
     setLastRefresh(Date.now());
   }, []);
 
+  useEffect(() => {
+    getGlobalSettings().then(settings => {
+      if (settings?.refreshInterval && typeof settings.refreshInterval === 'number') {
+        setRefreshIntervalMs(settings.refreshInterval);
+      }
+    }).catch(console.error);
+  }, []);
+
   // Smooth background sync logic
   useEffect(() => {
-    // 1. Polling every 60 seconds for background updates
-    const interval = setInterval(refreshData, 60000);
+    // 1. Polling for background updates
+    const interval = setInterval(refreshData, refreshIntervalMs);
 
     // 2. Refresh when window gains focus (user returns to app)
     const handleFocus = () => {
@@ -31,7 +41,7 @@ export const DataRefreshProvider: React.FC<{ children: React.ReactNode }> = ({ c
       clearInterval(interval);
       window.removeEventListener('focus', handleFocus);
     };
-  }, [refreshData]);
+  }, [refreshData, refreshIntervalMs]);
 
   return (
     <DataRefreshContext.Provider value={{ refreshData, lastRefresh }}>

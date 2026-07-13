@@ -110,8 +110,8 @@ export const initDatabase = async () => {
         AND COLUMN_NAME IN ('password_hash', 'password')
       `);
 
-      const hasPasswordHash = pwColumns.some((c: any) => c.COLUMN_NAME === 'password_hash');
-      const hasPassword = pwColumns.some((c: any) => c.COLUMN_NAME === 'password');
+      const hasPasswordHash = pwColumns.some((c: any) => (c.columnName || c.COLUMN_NAME) === 'password_hash');
+      const hasPassword = pwColumns.some((c: any) => (c.columnName || c.COLUMN_NAME) === 'password');
 
       if (!hasPasswordHash && hasPassword) {
         console.log("Migration MariaDB: Renommage de 'password' en 'password_hash'...");
