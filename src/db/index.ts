@@ -11,6 +11,20 @@ export let queryDatabase = async (query: string, params?: any[]): Promise<any> =
     try {
       return await mariadbQuery(query, params);
     } catch (err: any) {
+      const msg = err.message || '';
+      // If the query failed because of a duplicate/schema error (e.g. duplicate column name),
+      // we must propagate the error immediately so callers like safeAlter can catch and ignore it.
+      if (
+        msg.includes('duplicate') ||
+        msg.includes('Duplicate') ||
+        msg.includes('already exists') ||
+        msg.includes('1060') ||
+        msg.includes('1050') ||
+        msg.includes('1062') ||
+        msg.includes('42S21')
+      ) {
+        throw err;
+      }
       console.warn(`[Database] MariaDB query failed, falling back to SQLite for local development preview: ${err.message}`);
       return await sqliteQuery(query, params);
     }
