@@ -1268,7 +1268,7 @@ export const ProfileSettings: React.FC = () => {
                 </div>
 
                 <p className="text-xs text-slate-600 font-medium leading-relaxed">
-                  Par défaut, l'application mobile (APK) et le navigateur communiquent avec le serveur de production sécurisé de ResiFaso (<code className="bg-slate-200/80 px-1.5 py-0.5 rounded text-red-650 font-mono text-[11px]">http://167.172.39.172:2020</code>). 
+                  Par défaut, l'application mobile (APK) et le navigateur communiquent avec le serveur de production sécurisé de ResiFaso (<code className="bg-slate-200/80 px-1.5 py-0.5 rounded text-red-650 font-mono text-[11px]">http://167.172.39.172:2000</code>). 
                   Si vous changez de serveur, de port ou d'environnement de test, vous pouvez modifier cette adresse ci-dessous.
                 </p>
 
@@ -1279,7 +1279,7 @@ export const ProfileSettings: React.FC = () => {
                       type="text" 
                       value={customServerUrl}
                       onChange={(e) => setCustomServerUrl(e.target.value)}
-                      placeholder="Ex: http://167.172.39.172:2020"
+                      placeholder="Ex: http://167.172.39.172:2000"
                       className="flex-1 bg-white border border-slate-250 rounded-xl px-4 py-2.5 text-sm font-medium font-mono focus:ring-2 focus:ring-red-500 outline-none transition"
                     />
                     <div className="flex gap-2 shrink-0">
@@ -1337,7 +1337,7 @@ export const ProfileSettings: React.FC = () => {
                   <div className="p-4 bg-slate-50 border border-slate-100 rounded-xl space-y-2">
                     <span className="font-black text-[10px] text-slate-400 uppercase tracking-wider block">URL Active de l'API :</span>
                     <span className="font-bold text-slate-800 font-mono text-[11px] block truncate">
-                      {localStorage.getItem('custom_server_url') || 'http://167.172.39.172:2020'}
+                      {localStorage.getItem('custom_server_url') || 'http://167.172.39.172:2000'}
                     </span>
                   </div>
                 </div>

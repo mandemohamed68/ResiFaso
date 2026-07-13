@@ -15,8 +15,16 @@ export function getApiUrl(): string {
     window.location.origin.startsWith('ionic:')
   );
 
-  const customUrl = typeof window !== 'undefined' ? localStorage.getItem('custom_server_url') : null;
+  let customUrl = typeof window !== 'undefined' ? localStorage.getItem('custom_server_url') : null;
   if (customUrl) {
+    if (customUrl.includes(':2020')) {
+      customUrl = customUrl.replace(':2020', ':2000');
+      try {
+        localStorage.setItem('custom_server_url', customUrl);
+      } catch (e) {
+        console.error('Failed to update custom_server_url in localStorage', e);
+      }
+    }
     return customUrl.trim().replace(/\/$/, '');
   }
 
@@ -27,7 +35,7 @@ export function getApiUrl(): string {
 
   if (isCapacitor) {
     // Target the deployed production backend for mobile devices running the APK
-    return 'http://167.172.39.172:2020';
+    return 'http://167.172.39.172:2000';
   }
 
   const envUrl = import.meta.env.VITE_API_URL || import.meta.env.VITE_APP_URL;
@@ -40,7 +48,7 @@ export function getApiUrl(): string {
     return window.location.origin;
   }
   
-  return 'http://167.172.39.172:2020';
+  return 'http://167.172.39.172:2000';
 }
 
 export async function apiFetch(path: string, options: RequestInit = {}): Promise<Response> {
