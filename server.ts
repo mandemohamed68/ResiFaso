@@ -348,10 +348,10 @@ async function startServer() {
   app.get("/api/residences/:id/bookings", async (req, res) => {
     try {
       const bookings = await executeSql(`
-        SELECT id, check_in as checkIn, check_out as checkOut, booking_status as bookingStatus 
+        SELECT id, check_in, check_out, booking_status 
         FROM bookings 
         WHERE residence_id = ? 
-        AND LOWER(booking_status) NOT IN ('cancelled', 'declined')
+        AND booking_status NOT IN ('cancelled', 'declined')
       `, [req.params.id]);
       res.json(bookings);
     } catch (err: any) {

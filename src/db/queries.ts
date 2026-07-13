@@ -1,8 +1,7 @@
 import { executeSql } from './index';
 
 const cleanSecteur = (val: string | any): string | any => {
-  if (!val || typeof val !== 'string') if (val === undefined) return null;
-  return val;
+  if (!val || typeof val !== 'string') return val;
   return val.replace(/\bS[EÉ]C\b/gi, 'Secteur');
 };
 
@@ -48,66 +47,62 @@ export const getAllUsers = async () => {
 
 // Residences
 export const getAllResidences = async (ownerId?: string) => {
-  try {
-    let sql = `
-      SELECT 
-        id, owner_id as ownerId, title, description, type, price_per_night as pricePerNight, 
-        advance_percentage as advancePercentage, cleaning_fee as cleaningFee, service_fee as serviceFee, 
-        city, neighborhood, street, capacity, bedrooms, beds, bathrooms, rooms, status, 
-        availability_status as availabilityStatus, promoted, weekly_discount as weeklyDiscount, 
-        monthly_discount as monthlyDiscount, promo_price as promoPrice, rejection_reason as rejectionReason, 
-        utilities_included as utilitiesIncludedRaw, owner_phone as ownerPhone,
-        created_at as createdAt 
-      FROM residences
-    `;
-    
-    const params: any[] = [];
-    if (ownerId) {
-      sql += " WHERE owner_id = ?";
-      params.push(ownerId);
-    }
-    
-    sql += " ORDER BY created_at DESC";
+  let sql = `
+    SELECT 
+      id, owner_id as ownerId, title, description, type, price_per_night as pricePerNight, 
+      advance_percentage as advancePercentage, cleaning_fee as cleaningFee, service_fee as serviceFee, 
+      city, neighborhood, street, capacity, bedrooms, beds, bathrooms, rooms, status, 
+      availability_status as availabilityStatus, promoted, weekly_discount as weeklyDiscount, 
+      monthly_discount as monthlyDiscount, promo_price as promoPrice, rejection_reason as rejectionReason, 
+      utilities_included as utilitiesIncludedRaw, owner_phone as ownerPhone,
+      created_at as createdAt 
+    FROM residences
+  `;
+  
+  const params: any[] = [];
+  if (ownerId) {
+    sql += " WHERE owner_id = ?";
+    params.push(ownerId);
+  }
+  
+  sql += " ORDER BY created_at DESC";
 
-    const rows = await executeSql(sql, params);
+  const rows = await executeSql(sql, params);
 
-    if (rows.length === 0) return [];
+  if (rows.length === 0) return [];
 
-    let allAmenities = [];
-    let allImages = [];
-    let activeBookings = [];
+  const allAmenities = await executeSql("SELECT residence_id, amenity FROM residence_amenities");
+  const allImages = await executeSql("SELECT residence_id, image_url FROM residence_images");
 
-    try {
-      allAmenities = await executeSql("SELECT residence_id, amenity FROM residence_amenities");
-    } catch (e) { console.error("Error fetching amenities:", e); }
-    
-    try {
-      allImages = await executeSql("SELECT residence_id, image_url FROM residence_images");
-    } catch (e) { console.error("Error fetching images:", e); }
-    
-    try {
-      activeBookings = await executeSql(`
-        SELECT residence_id as residenceId, check_in as checkIn, check_out as checkOut, booking_status as bookingStatus 
-        FROM bookings 
-        WHERE (LOWER(booking_status) NOT IN ('cancelled', 'declined') OR booking_status IS NULL)
-      `);
-    } catch (e) { console.error("Error fetching bookings for residences:", e); }
+  const amenitiesMap: Record<string, string[]> = {};
+  allAmenities.forEach((a: any) => {
+    const resId = a.residence_id || a.residenceId;
+    if (!amenitiesMap[resId]) amenitiesMap[resId] = [];
+    amenitiesMap[resId].push(a.amenity);
+  });
+
+  const imagesMap: Record<string, string[]> = {};
+  allImages.forEach((i: any) => {
+    const resId = i.residence_id || i.residenceId;
+    if (!imagesMap[resId]) imagesMap[resId] = [];
+    imagesMap[resId].push(i.image_url || i.imageUrl);
+  });
+
+  const activeBookings = await executeSql(`
+    SELECT residence_id, check_in, check_out 
+    FROM bookings 
+    WHERE booking_status NOT IN ('cancelled', 'declined')
+  `);
 
   const bookingsMap: Record<string, any[]> = {};
-  const now = new Date();
-  const todayStr = now.toISOString().split('T')[0];
+  const todayStr = new Date().toISOString().split('T')[0];
   
   activeBookings.forEach((b: any) => {
-    const resId = b.residenceId || b.residence_id || b.residenceid;
-    const cIn = (b.checkIn || b.check_in || b.checkin || '').split('T')[0];
-    const cOut = (b.checkOut || b.check_out || b.checkout || '').split('T')[0];
-    
-    if (resId && cIn && cOut) {
-      // If cOut is today or in the future, it's considered occupied
-      if (cOut >= todayStr) {
-        if (!bookingsMap[resId]) bookingsMap[resId] = [];
-        bookingsMap[resId].push({ from: cIn, to: cOut });
-      }
+    const resId = b.residence_id || b.residenceId;
+    const checkOut = b.checkOut || b.check_out;
+    if (checkOut >= todayStr) {
+      if (!bookingsMap[resId]) bookingsMap[resId] = [];
+      bookingsMap[resId].push({ from: b.checkIn || b.check_in, to: checkOut });
     }
   });
 
@@ -117,66 +112,50 @@ export const getAllResidences = async (ownerId?: string) => {
     title: res.title,
     description: res.description,
     type: res.type,
-    // Assurer la compatibilité avec price et pricePerNight
-    price: res.pricePerNight !== undefined ? res.pricePerNight : (res.price_per_night !== undefined ? res.price_per_night : (res.price !== undefined ? res.price : 0)),
-    pricePerNight: res.pricePerNight !== undefined ? res.pricePerNight : (res.price_per_night !== undefined ? res.price_per_night : (res.price !== undefined ? res.price : 0)),
+    pricePerNight: res.pricePerNight !== undefined ? res.pricePerNight : (res.price_per_night !== undefined ? res.price_per_night : res.pricepernight),
     advancePercentage: res.advancePercentage !== undefined ? res.advancePercentage : (res.advance_percentage !== undefined ? res.advance_percentage : res.advancepercentage),
     cleaningFee: res.cleaningFee !== undefined ? res.cleaningFee : (res.cleaning_fee !== undefined ? res.cleaning_fee : res.cleaningfee),
     serviceFee: res.serviceFee !== undefined ? res.serviceFee : (res.service_fee !== undefined ? res.service_fee : res.servicefee),
-    city: cleanSecteur(res.city),
-    neighborhood: cleanSecteur(res.neighborhood),
-    street: cleanSecteur(res.street),
+    city: res.city,
+    neighborhood: res.neighborhood,
+    street: res.street,
     capacity: res.capacity,
     bedrooms: res.bedrooms,
     beds: res.beds,
     bathrooms: res.bathrooms,
     rooms: res.rooms,
     status: res.status,
-    rating: res.rating || 4.8,
-    reviewCount: res.reviewCount || res.review_count || 24,
     availabilityStatus: res.availabilityStatus || res.availability_status || res.availabilitystatus,
-    promoted: res.promoted !== undefined ? !!res.promoted : false,
-    weeklyDiscount: res.weeklyDiscount !== undefined ? res.weeklyDiscount : (res.weekly_discount !== undefined ? res.weekly_discount : 0),
-    monthlyDiscount: res.monthlyDiscount !== undefined ? res.monthlyDiscount : (res.monthly_discount !== undefined ? res.monthly_discount : 0),
-    promoPrice: res.promoPrice !== undefined ? res.promoPrice : (res.promo_price !== undefined ? res.promo_price : null),
+    promoted: res.promoted !== undefined ? !!res.promoted : !!res.promoted,
+    weeklyDiscount: res.weeklyDiscount !== undefined ? res.weeklyDiscount : (res.weekly_discount !== undefined ? res.weekly_discount : res.weeklydiscount),
+    monthlyDiscount: res.monthlyDiscount !== undefined ? res.monthlyDiscount : (res.monthly_discount !== undefined ? res.monthly_discount : res.monthlydiscount),
+    promoPrice: res.promoPrice !== undefined ? res.promoPrice : (res.promo_price !== undefined ? res.promo_price : res.promoprice),
     rejectionReason: res.rejectionReason || res.rejection_reason || res.rejectionreason,
     ownerPhone: res.ownerPhone || res.owner_phone || res.ownerphone,
     createdAt: res.createdAt || res.created_at || res.createdat,
     amenities: amenitiesMap[res.id] || [],
     images: imagesMap[res.id] || [],
-    occupiedDates: [
-      ...(bookingsMap[res.id] || []),
-      ...(() => {
-        try {
-          const manual = res.occupiedDates || res.occupied_id || res.occupied_dates || res.occupieddates;
-          if (!manual) return [];
-          return typeof manual === 'string' ? JSON.parse(manual) : manual;
-        } catch (e) { return []; }
-      })()
-    ],
+    occupiedDates: bookingsMap[res.id] || [],
     address: {
       city: cleanSecteur(res.city),
       neighborhood: cleanSecteur(res.neighborhood),
-      street: cleanSecteur(res.street)
+      street: cleanSecteur(res.street || res.neighborhood)
     },
     utilitiesIncluded: (() => {
       try {
-        const raw = res.utilitiesIncludedRaw || res.utilities_included;
+        const raw = res.utilitiesIncludedRaw || res.utilities_included || res.utilitiesincluded;
         if (!raw) return { water: false, electricity: false };
         return typeof raw === 'string' ? JSON.parse(raw) : raw;
       } catch (e) {
+        console.warn(`Error parsing utilitiesIncluded for residence ${res.id}:`, e);
         return { water: false, electricity: false };
       }
     })()
   }));
-} catch (err) {
-  console.error("Error in getAllResidences:", err);
-  return [];
-}
 };
 
 export const getResidenceById = async (id: string) => {
-  const res = await executeSql(`
+  const rows = await executeSql(`
     SELECT 
       id, owner_id as ownerId, title, description, type, price_per_night as pricePerNight, 
       advance_percentage as advancePercentage, cleaning_fee as cleaningFee, service_fee as serviceFee, 
@@ -185,81 +164,64 @@ export const getResidenceById = async (id: string) => {
       monthly_discount as monthlyDiscount, promo_price as promoPrice, rejection_reason as rejectionReason, 
       utilities_included as utilitiesIncludedRaw, owner_phone as ownerPhone,
       created_at as createdAt 
-    FROM residences WHERE id = ?`, [id]);
-  if (!res[0]) return null;
-  const row = res[0];
+    FROM residences WHERE id = ?
+  `, [id]);
+
+  if (rows.length === 0) return null;
+  const row = rows[0];
+
   const amenities = await executeSql("SELECT amenity FROM residence_amenities WHERE residence_id = ?", [id]);
   const images = await executeSql("SELECT image_url FROM residence_images WHERE residence_id = ?", [id]);
   const bookings = await executeSql(`
-    SELECT check_in as checkIn, check_out as checkOut, booking_status as bookingStatus 
+    SELECT check_in, check_out 
     FROM bookings 
-    WHERE residence_id = ? AND (LOWER(booking_status) NOT IN ('cancelled', 'declined') OR booking_status IS NULL)
+    WHERE residence_id = ? AND booking_status NOT IN ('cancelled', 'declined')
   `, [id]);
   
-  const todayStr = new Date().toISOString().split('T')[0];
-
   return {
     id: row.id,
     ownerId: row.ownerId || row.owner_id || row.ownerid,
     title: row.title,
     description: row.description,
     type: row.type,
-    // Assurer la compatibilité avec price et pricePerNight
-    price: row.pricePerNight !== undefined ? row.pricePerNight : (row.price_per_night !== undefined ? row.price_per_night : (row.price !== undefined ? row.price : 0)),
-    pricePerNight: row.pricePerNight !== undefined ? row.pricePerNight : (row.price_per_night !== undefined ? row.price_per_night : (row.price !== undefined ? row.price : 0)),
+    pricePerNight: row.pricePerNight !== undefined ? row.pricePerNight : (row.price_per_night !== undefined ? row.price_per_night : row.pricepernight),
     advancePercentage: row.advancePercentage !== undefined ? row.advancePercentage : (row.advance_percentage !== undefined ? row.advance_percentage : row.advancepercentage),
     cleaningFee: row.cleaningFee !== undefined ? row.cleaningFee : (row.cleaning_fee !== undefined ? row.cleaning_fee : row.cleaningfee),
     serviceFee: row.serviceFee !== undefined ? row.serviceFee : (row.service_fee !== undefined ? row.service_fee : row.servicefee),
-    city: cleanSecteur(row.city),
-    neighborhood: cleanSecteur(row.neighborhood),
-    street: cleanSecteur(row.street),
+    city: row.city,
+    neighborhood: row.neighborhood,
+    street: row.street,
     capacity: row.capacity,
     bedrooms: row.bedrooms,
     beds: row.beds,
     bathrooms: row.bathrooms,
     rooms: row.rooms,
     status: row.status,
-    rating: row.rating || 4.8,
-    reviewCount: row.reviewCount || row.review_count || 24,
     availabilityStatus: row.availabilityStatus || row.availability_status || row.availabilitystatus,
-    promoted: row.promoted !== undefined ? !!row.promoted : false,
-    weeklyDiscount: row.weeklyDiscount !== undefined ? row.weeklyDiscount : (row.weekly_discount !== undefined ? row.weekly_discount : 0),
-    monthlyDiscount: row.monthlyDiscount !== undefined ? row.monthlyDiscount : (row.monthly_discount !== undefined ? row.monthly_discount : 0),
-    promoPrice: row.promoPrice !== undefined ? row.promoPrice : (row.promo_price !== undefined ? row.promo_price : null),
+    promoted: row.promoted !== undefined ? !!row.promoted : !!row.promoted,
+    weeklyDiscount: row.weeklyDiscount !== undefined ? row.weeklyDiscount : (row.weekly_discount !== undefined ? row.weekly_discount : row.weeklydiscount),
+    monthlyDiscount: row.monthlyDiscount !== undefined ? row.monthlyDiscount : (row.monthly_discount !== undefined ? row.monthly_discount : row.monthlydiscount),
+    promoPrice: row.promoPrice !== undefined ? row.promoPrice : (row.promo_price !== undefined ? row.promo_price : row.promoprice),
     rejectionReason: row.rejectionReason || row.rejection_reason || row.rejectionreason,
     ownerPhone: row.ownerPhone || row.owner_phone || row.ownerphone,
     createdAt: row.createdAt || row.created_at || row.createdat,
     amenities: amenities.map((a: any) => a.amenity),
     images: images.map((i: any) => i.image_url || i.imageUrl),
-    occupiedDates: [
-      ...bookings
-        .filter((b: any) => {
-          const cOut = b.checkOut || b.check_out || b.checkout;
-          return cOut && cOut >= todayStr;
-        })
-        .map((b: any) => ({ 
-          from: (b.checkIn || b.check_in || b.checkin || '').split('T')[0], 
-          to: (b.checkOut || b.check_out || b.checkout || '').split('T')[0] 
-        })),
-      ...(() => {
-        try {
-          const manual = row.occupiedDates || row.occupied_id || row.occupieddates || row.occupied_dates;
-          if (!manual) return [];
-          return typeof manual === 'string' ? JSON.parse(manual) : manual;
-        } catch (e) { return []; }
-      })()
-    ],
+    occupiedDates: bookings
+      .filter((b: any) => (b.checkOut || b.check_out) >= new Date().toISOString().split('T')[0])
+      .map((b: any) => ({ from: b.checkIn || b.check_in, to: b.checkOut || b.check_out })),
     address: {
       city: cleanSecteur(row.city),
       neighborhood: cleanSecteur(row.neighborhood),
-      street: cleanSecteur(row.street)
+      street: cleanSecteur(row.street || row.neighborhood)
     },
     utilitiesIncluded: (() => {
       try {
-        const raw = row.utilitiesIncludedRaw || row.utilities_included;
+        const raw = row.utilitiesIncludedRaw || row.utilities_included || row.utilitiesincluded;
         if (!raw) return { water: false, electricity: false };
         return typeof raw === 'string' ? JSON.parse(raw) : raw;
       } catch (e) {
+        console.warn(`Error parsing utilitiesIncluded for residence ${id}:`, e);
         return { water: false, electricity: false };
       }
     })()
