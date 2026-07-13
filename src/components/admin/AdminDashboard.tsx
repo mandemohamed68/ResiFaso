@@ -42,6 +42,7 @@ const DEFAULT_CONTACT_SETTINGS: ContactSettings = {
 };
 
 import { useToast } from '../../contexts/ToastContext';
+import { AdminSupport } from './AdminSupport';
 
 export const AVAILABLE_PERMISSIONS = [
   { id: 'manage_listings', label: 'Gérer les résidences' },
@@ -152,6 +153,9 @@ export const AdminDashboard: React.FC<{ onBackToTraveler?: () => void }> = ({ on
   const [minReservationAmountEnabled, setMinReservationAmountEnabled] = useState(false);
   const [minReservationAmount, setMinReservationAmount] = useState(5000);
   const [refreshInterval, setRefreshInterval] = useState(60000);
+  const [supportChatEnabled, setSupportChatEnabled] = useState(true);
+  const [supportChatOpenTime, setSupportChatOpenTime] = useState('08:00');
+  const [supportChatCloseTime, setSupportChatCloseTime] = useState('20:00');
   
   // Status Editing for Booking
   const [editingBookingId, setEditingBookingId] = useState<string | null>(null);
@@ -279,6 +283,9 @@ export const AdminDashboard: React.FC<{ onBackToTraveler?: () => void }> = ({ on
         if (settingsData.minReservationAmountEnabled !== undefined) setMinReservationAmountEnabled(settingsData.minReservationAmountEnabled);
         if (settingsData.minReservationAmount !== undefined) setMinReservationAmount(settingsData.minReservationAmount);
         if (settingsData.refreshInterval !== undefined) setRefreshInterval(settingsData.refreshInterval);
+        if (settingsData.supportChatEnabled !== undefined) setSupportChatEnabled(settingsData.supportChatEnabled);
+        if (settingsData.supportChatOpenTime !== undefined) setSupportChatOpenTime(settingsData.supportChatOpenTime);
+        if (settingsData.supportChatCloseTime !== undefined) setSupportChatCloseTime(settingsData.supportChatCloseTime);
         if (settingsData.sappayClientId !== undefined) setSappayClientId(settingsData.sappayClientId);
         if (settingsData.sappayClientSecret !== undefined) setSappayClientSecret(settingsData.sappayClientSecret);
         if (settingsData.sappayUsername !== undefined) setSappayUsername(settingsData.sappayUsername);
@@ -1127,6 +1134,9 @@ export const AdminDashboard: React.FC<{ onBackToTraveler?: () => void }> = ({ on
       minReservationAmountEnabled: minReservationAmountEnabled,
       minReservationAmount: minReservationAmount,
       refreshInterval: refreshInterval,
+      supportChatEnabled: supportChatEnabled,
+      supportChatOpenTime: supportChatOpenTime,
+      supportChatCloseTime: supportChatCloseTime,
       announcement: {
         text: announcementText,
         type: announcementType,
@@ -1730,6 +1740,7 @@ export const AdminDashboard: React.FC<{ onBackToTraveler?: () => void }> = ({ on
             {
               category: "Flux & Opérations",
               items: [
+                { id: 'support', label: 'Support Client', icon: MessageSquare, permission: 'manage_users' },
                 { id: 'bookings', label: 'Réservations', icon: Calendar, badge: bookings.filter(b=>b.bookingStatus==='pending').length, badgeColor: 'bg-blue-600', permission: 'manage_bookings' },
                 { id: 'revenue', label: 'Finances', icon: TrendingUp, permission: 'manage_bookings' },
                 { id: 'withdrawals', label: 'Demandes de Retrait', icon: Download, badge: withdrawals.filter(w=>w.status==='pending').length, badgeColor: 'bg-yellow-500', permission: 'manage_withdrawals' },
@@ -2408,6 +2419,12 @@ export const AdminDashboard: React.FC<{ onBackToTraveler?: () => void }> = ({ on
                 </div>
               </div>
             </div>
+          </div>
+        )}
+
+        {activeTab === 'support' && (
+          <div className="space-y-6 animate-in fade-in duration-500">
+            <AdminSupport />
           </div>
         )}
 
@@ -3880,6 +3897,45 @@ export const AdminDashboard: React.FC<{ onBackToTraveler?: () => void }> = ({ on
                   className="w-full bg-slate-100 border border-slate-250 rounded-xl px-4 py-3 text-sm font-medium text-slate-400 cursor-not-allowed" 
                 />
                 <span className="text-[10px] text-slate-400 font-medium mt-1 block">Gérée de manière hautement sécurisée par les environnements du serveur.</span>
+              </div>
+
+              <div className="border-t border-slate-250 pt-6 space-y-4">
+                <h3 className="text-sm font-black text-slate-800 uppercase tracking-wider">Support Client (Chat en ligne)</h3>
+                
+                <div className="flex items-center gap-3 bg-white border border-slate-250 p-4 rounded-xl">
+                  <input
+                    type="checkbox"
+                    id="supportChatEnabled"
+                    checked={supportChatEnabled}
+                    onChange={(e) => setSupportChatEnabled(e.target.checked)}
+                    className="w-5 h-5 text-red-600 rounded focus:ring-red-500 border-slate-300"
+                  />
+                  <div>
+                    <label htmlFor="supportChatEnabled" className="block text-sm font-black text-slate-900 cursor-pointer">Activer le Chat Support Client</label>
+                    <span className="text-[10px] text-slate-500 font-medium">Permet aux utilisateurs de chatter avec l'équipe support.</span>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-xs font-black text-slate-500 uppercase tracking-widest mb-1.5 font-bold">Heure d'ouverture</label>
+                    <input 
+                      type="time" 
+                      value={supportChatOpenTime} 
+                      onChange={(e) => setSupportChatOpenTime(e.target.value)}
+                      className="w-full bg-white border border-slate-250 rounded-xl px-4 py-3 text-sm font-bold outline-none focus:ring-2 focus:ring-red-500" 
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-black text-slate-500 uppercase tracking-widest mb-1.5 font-bold">Heure de fermeture</label>
+                    <input 
+                      type="time" 
+                      value={supportChatCloseTime} 
+                      onChange={(e) => setSupportChatCloseTime(e.target.value)}
+                      className="w-full bg-white border border-slate-250 rounded-xl px-4 py-3 text-sm font-bold outline-none focus:ring-2 focus:ring-red-500" 
+                    />
+                  </div>
+                </div>
               </div>
 
               <div className="border-t border-slate-250 pt-6 space-y-4">

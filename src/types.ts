@@ -25,6 +25,7 @@ export interface UserProfile {
   identityDocumentFront?: string;
   permissions?: string;
   identityDocumentBack?: string;
+  hasAcceptedTerms?: boolean;
 }
 
 export interface VerificationType {

@@ -15,7 +15,8 @@ export const getUserProfile = async (uid: string) => {
       permissions, identity_document_front as identityDocumentFront, 
       identity_document_back as identityDocumentBack, id_number as idNumber, 
       id_type as idType, id_expiry as idExpiry, id_card_url as idCardUrl, 
-      verification_status as verificationStatus, phone_number as phoneNumber
+      verification_status as verificationStatus, phone_number as phoneNumber,
+      has_accepted_terms as hasAcceptedTerms
     FROM users 
     WHERE uid = ?
   `, [uid]);
@@ -30,7 +31,8 @@ export const getAllUsers = async () => {
       permissions, identity_document_front as identityDocumentFront, 
       identity_document_back as identityDocumentBack, id_number as idNumber, 
       id_type as idType, id_expiry as idExpiry, id_card_url as idCardUrl, 
-      verification_status as verificationStatus, phone_number as phoneNumber
+      verification_status as verificationStatus, phone_number as phoneNumber,
+      has_accepted_terms as hasAcceptedTerms
     FROM users 
     ORDER BY created_at DESC
   `);
@@ -86,10 +88,14 @@ export const getAllResidences = async (ownerId?: string) => {
   `);
 
   const bookingsMap: Record<string, any[]> = {};
+  const todayStr = new Date().toISOString().split('T')[0];
   activeBookings.forEach((b: any) => {
     const resId = b.residence_id || b.residenceId;
-    if (!bookingsMap[resId]) bookingsMap[resId] = [];
-    bookingsMap[resId].push({ from: b.checkIn || b.check_in, to: b.checkOut || b.check_out });
+    const checkOut = b.checkOut || b.check_out;
+    if (checkOut >= todayStr) {
+      if (!bookingsMap[resId]) bookingsMap[resId] = [];
+      bookingsMap[resId].push({ from: b.checkIn || b.check_in, to: checkOut });
+    }
   });
 
   return rows.map((res: any) => ({
@@ -190,7 +196,9 @@ export const getResidenceById = async (id: string) => {
     createdAt: row.createdAt || row.created_at || row.createdat,
     amenities: amenities.map((a: any) => a.amenity),
     images: images.map((i: any) => i.image_url || i.imageUrl),
-    occupiedDates: bookings.map((b: any) => ({ from: b.checkIn || b.check_in, to: b.checkOut || b.check_out })),
+    occupiedDates: bookings
+      .filter((b: any) => (b.checkOut || b.check_out) >= new Date().toISOString().split('T')[0])
+      .map((b: any) => ({ from: b.checkIn || b.check_in, to: b.checkOut || b.check_out })),
     address: {
       city: cleanSecteur(row.city),
       neighborhood: cleanSecteur(row.neighborhood),

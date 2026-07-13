@@ -13,6 +13,8 @@ import { PaymentModal } from './components/booking/PaymentModal';
 import { MyBookings } from './components/booking/MyBookings';
 import { OwnerDashboard } from './components/booking/OwnerDashboard';
 import { AuthModal } from './components/common/AuthModal';
+import { TermsGuideModal } from './components/common/TermsGuideModal';
+import { SupportChatWidget } from './components/support/SupportChatWidget';
 import { Residence } from './types';
 import { motion, AnimatePresence } from 'motion/react';
 import { 
@@ -1619,6 +1621,9 @@ function AppContent() {
         confirmLabel={modalConfig.confirmLabel}
         cancelLabel={modalConfig.cancelLabel}
       />
+      
+      <SupportChatWidget />
+      <TermsGuideModal />
       
       {activeBookingForPayment && (
         <PaymentModal 

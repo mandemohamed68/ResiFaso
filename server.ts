@@ -249,12 +249,9 @@ async function startServer() {
 
   app.get("/api/auth/me", authenticateToken, async (req: AuthRequest, res) => {
     try {
-      const users = await executeSql(
-        "SELECT uid, email, display_name as displayName, role, photo_url as photoUrl, is_verified as isVerified FROM users WHERE uid = ?",
-        [req.user?.uid]
-      );
-      if (users.length === 0) return res.status(404).json({ error: "Utilisateur non trouvé" });
-      res.json(users[0]);
+      const user = await queries.getUserProfile(req.user!.uid);
+      if (!user) return res.status(404).json({ error: "Utilisateur non trouvé" });
+      res.json(user);
     } catch (err: any) {
       res.status(500).json({ error: err.message });
     }
@@ -493,6 +490,18 @@ async function startServer() {
     }
   });
 
+  app.post("/api/users/:uid/accept-terms", authenticateToken, async (req: AuthRequest, res) => {
+    try {
+      if (req.user?.uid !== req.params.uid) {
+        return res.status(403).json({ error: "Non autorisé" });
+      }
+      await executeSql("UPDATE users SET has_accepted_terms = 1 WHERE uid = ?", [req.params.uid]);
+      res.json({ success: true });
+    } catch (err: any) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
   // --- Verification Types (Admin) ---
   app.get("/api/admin/verification-types", authenticateToken, async (req: AuthRequest, res) => {
     try {
@@ -607,6 +616,38 @@ async function startServer() {
       }
       await queries.deleteUser(req.params.uid);
       res.json({ success: true });
+    } catch (err: any) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  // --- Support Chat ---
+  app.get("/api/support/messages", authenticateToken, async (req: AuthRequest, res) => {
+    try {
+      if (req.user?.role === 'admin') {
+        const rows = await executeSql("SELECT * FROM support_chat_messages ORDER BY created_at ASC");
+        res.json(rows);
+      } else {
+        const rows = await executeSql("SELECT * FROM support_chat_messages WHERE user_id = ? ORDER BY created_at ASC", [req.user?.uid]);
+        res.json(rows);
+      }
+    } catch (err: any) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  app.post("/api/support/messages", authenticateToken, async (req: AuthRequest, res) => {
+    try {
+      const id = 'msg_' + Math.random().toString(36).substr(2, 9);
+      // user_id is the recipient/owner of the chat. If admin sends, they pass user_id. If user sends, user_id is their own uid.
+      const userId = req.user?.role === 'admin' ? req.body.user_id : req.user?.uid;
+      const senderId = req.user?.role === 'admin' ? 'admin' : req.user?.uid;
+      
+      await executeSql(
+        "INSERT INTO support_chat_messages (id, user_id, sender_id, message) VALUES (?, ?, ?, ?)",
+        [id, userId, senderId, req.body.message]
+      );
+      res.json({ success: true, id });
     } catch (err: any) {
       res.status(500).json({ error: err.message });
     }

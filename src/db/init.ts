@@ -122,7 +122,7 @@ export const initDatabase = async () => {
       }
 
       // Ensure all extra user columns exist for MariaDB
-      const extraCols = ['identity_document_front', 'identity_document_back', 'permissions', 'id_number', 'id_type', 'id_expiry', 'id_card_url', 'verification_status'];
+      const extraCols = ['identity_document_front', 'identity_document_back', 'permissions', 'id_number', 'id_type', 'id_expiry', 'id_card_url', 'verification_status', 'has_accepted_terms'];
       for (const col of extraCols) {
         const columns: any = await executeSql(`
           SELECT COLUMN_NAME 
@@ -140,6 +140,8 @@ export const initDatabase = async () => {
             typeDef = "LONGTEXT NULL";
           } else if (col === 'id_number' || col === 'id_type' || col === 'id_expiry') {
             typeDef = "VARCHAR(255) NULL";
+          } else if (col === 'has_accepted_terms') {
+            typeDef = "BOOLEAN DEFAULT 0";
           }
           await executeSql(`ALTER TABLE users ADD COLUMN ${col} ${typeDef}`);
         }
@@ -454,6 +456,18 @@ export const initDatabase = async () => {
       ) ENGINE=InnoDB
     `);
 
+    // Support Chat Messages
+    await executeSql(`
+      CREATE TABLE IF NOT EXISTS support_chat_messages (
+        id VARCHAR(128) PRIMARY KEY,
+        user_id VARCHAR(128) NOT NULL,
+        sender_id VARCHAR(128) NOT NULL,
+        message TEXT,
+        is_read BOOLEAN DEFAULT 0,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+      ) ENGINE=InnoDB
+    `);
+
     // Contact Messages
     await executeSql(`
       CREATE TABLE IF NOT EXISTS contact_messages (
@@ -520,7 +534,8 @@ export const initDatabase = async () => {
       { name: 'id_type', type: 'TEXT' },
       { name: 'id_expiry', type: 'TEXT' },
       { name: 'id_card_url', type: 'TEXT' },
-      { name: 'verification_status', type: "TEXT DEFAULT 'none'" }
+      { name: 'verification_status', type: "TEXT DEFAULT 'none'" },
+      { name: 'has_accepted_terms', type: 'INTEGER DEFAULT 0' }
     ];
 
     // Users extra columns
