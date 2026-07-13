@@ -155,6 +155,10 @@ async function getSappayToken(): Promise<string> {
 async function startServer() {
   if (DB_TYPE !== 'firebase') {
     await initDatabase().catch(err => console.error("Init DB error:", err));
+    // Safe addition of has_accepted_terms if initDatabase missed it
+    try {
+      await executeSql("ALTER TABLE users ADD COLUMN has_accepted_terms BOOLEAN DEFAULT 0");
+    } catch (e) {}
   }
 
   const app = express();
@@ -212,14 +216,14 @@ async function startServer() {
           // If the super admin doesn't exist yet, auto-create him
           const uid = 'admin_master';
           await executeSql(
-            "INSERT INTO users (uid, email, password_hash, display_name, role, has_accepted_terms) VALUES (?, ?, ?, ?, ?, 1)",
+            "INSERT INTO users (uid, email, password_hash, display_name, role) VALUES (?, ?, ?, ?, ?)",
             [uid, email, hashedPassword, 'Super Admin', 'admin']
           );
           console.log("[Auth] Super Admin auto-created upon login request with credentials.");
         } else {
           // If he exists, ensure his role is admin and his password hash is correctly stored
           await executeSql(
-            "UPDATE users SET password_hash = ?, role = 'admin', has_accepted_terms = 1 WHERE email = ?",
+            "UPDATE users SET password_hash = ?, role = 'admin' WHERE email = ?",
             [hashedPassword, email]
           );
           console.log("[Auth] Super Admin credentials and role auto-repaired upon login request.");
@@ -343,7 +347,12 @@ async function startServer() {
 
   app.get("/api/residences/:id/bookings", async (req, res) => {
     try {
-      const bookings = await executeSql("SELECT id, check_in as checkIn, check_out as checkOut, booking_status as bookingStatus FROM bookings WHERE residence_id = ? AND booking_status NOT IN ('cancelled', 'declined')", [req.params.id]);
+      const bookings = await executeSql(`
+        SELECT id, check_in as checkIn, check_out as checkOut, booking_status as bookingStatus 
+        FROM bookings 
+        WHERE residence_id = ? 
+        AND LOWER(booking_status) NOT IN ('cancelled', 'declined')
+      `, [req.params.id]);
       res.json(bookings);
     } catch (err: any) {
       res.status(500).json({ error: err.message });

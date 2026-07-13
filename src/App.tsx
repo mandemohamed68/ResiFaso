@@ -1189,7 +1189,7 @@ function AppContent() {
                             d.setDate(d.getDate() + i);
                             const dateStr = d.toISOString().split('T')[0];
                             const isBooked = selectedResidenceBookings.some((b: any) => 
-                              b.bookingStatus === 'confirmed' && dateStr >= b.checkIn && dateStr < b.checkOut
+                              (b.bookingStatus?.toLowerCase() === 'confirmed' || b.bookingStatus?.toLowerCase() === 'pending') && dateStr >= b.checkIn && dateStr < b.checkOut
                             );
                             const isToday = i === 0;
                             return (

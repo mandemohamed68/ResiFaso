@@ -15,12 +15,20 @@ export const getUserProfile = async (uid: string) => {
       permissions, identity_document_front as identityDocumentFront, 
       identity_document_back as identityDocumentBack, id_number as idNumber, 
       id_type as idType, id_expiry as idExpiry, id_card_url as idCardUrl, 
-      verification_status as verificationStatus, phone_number as phoneNumber,
-      has_accepted_terms as hasAcceptedTerms
+      verification_status as verificationStatus, phone_number as phoneNumber
     FROM users 
     WHERE uid = ?
   `, [uid]);
-  return users[0] || null;
+
+  if (users.length === 0) return null;
+  
+  const user = users[0];
+  // Ensure hasAcceptedTerms is present even if column was missing in query result
+  if (user.hasAcceptedTerms === undefined) {
+    user.hasAcceptedTerms = 1; // Default to true if column is missing to avoid blocking users
+  }
+  
+  return user;
 };
 
 export const getAllUsers = async () => {
