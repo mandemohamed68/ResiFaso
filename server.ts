@@ -639,11 +639,14 @@ async function startServer() {
       
       const dbType = process.env.DB_TYPE || 'sqlite';
       if (dbType === 'mariadb') {
-        const updateClause = fields.map(f => `${f} = VALUES(${f})`).join(', ');
+        const nonIdFields = fields.filter(f => f !== 'id');
+        const updateClause = nonIdFields.map(f => `${f} = VALUES(${f})`).join(', ');
         await executeSql(`INSERT INTO advertisements (${fields.join(', ')}) VALUES (${placeholders}) ON DUPLICATE KEY UPDATE ${updateClause}`, vals);
       } else {
-        const sqliteUpdate = fields.map(f => `${f} = ?`).join(', ');
-        await executeSql(`INSERT INTO advertisements (${fields.join(', ')}) VALUES (${placeholders}) ON CONFLICT(id) DO UPDATE SET ${sqliteUpdate}`, [...vals, ...vals]);
+        const nonIdFields = fields.filter(f => f !== 'id');
+        const sqliteUpdate = nonIdFields.map(f => `${f} = ?`).join(', ');
+        const nonIdVals = vals.filter((_, idx) => fields[idx] !== 'id');
+        await executeSql(`INSERT INTO advertisements (${fields.join(', ')}) VALUES (${placeholders}) ON CONFLICT(id) DO UPDATE SET ${sqliteUpdate}`, [...vals, ...nonIdVals]);
       }
       res.json({ success: true, id });
     } catch (err: any) {

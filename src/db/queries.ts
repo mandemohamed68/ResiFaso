@@ -494,16 +494,18 @@ export const deleteResidence = async (id: string) => {
 const toSnakeCase = (str: string) => str.replace(/[A-Z]/g, letter => `_${letter.toLowerCase()}`);
 
 export const formatSqlValue = (val: any) => {
+  if (val === undefined || val === null) {
+    return null;
+  }
   if (typeof val === 'boolean') {
     return val ? 1 : 0;
   }
   if (typeof val === 'string' && /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}/.test(val)) {
     return val.replace('T', ' ').substring(0, 19);
   }
-  if (val !== null && typeof val === 'object') {
+  if (typeof val === 'object') {
     return JSON.stringify(val);
   }
-  if (val === undefined) return null;
   return val;
 };
 
