@@ -190,7 +190,7 @@ async function startServer() {
       const role = email === 'mandemohamed68@gmail.com' ? 'admin' : (requestedRole || 'client');
 
       await executeSql(
-        "INSERT INTO users (uid, email, password_hash, display_name, role, identity_document_front, identity_document_back, has_accepted_terms) VALUES (?, ?, ?, ?, ?, ?, ?, 1)",
+        "INSERT INTO users (uid, email, password_hash, display_name, role, identity_document_front, identity_document_back) VALUES (?, ?, ?, ?, ?, ?, ?)",
         [uid, email, hashedPassword, displayName || 'Voyageur', role, identity_document_front || null, identity_document_back || null]
       );
 

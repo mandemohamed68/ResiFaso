@@ -90,19 +90,26 @@ export const getAllResidences = async (ownerId?: string) => {
   });
 
   const activeBookings = await executeSql(`
-    SELECT residence_id, check_in, check_out 
+    SELECT residence_id as residenceId, check_in as checkIn, check_out as checkOut, booking_status as bookingStatus 
     FROM bookings 
-    WHERE booking_status NOT IN ('cancelled', 'declined')
+    WHERE (LOWER(booking_status) NOT IN ('cancelled', 'declined') OR booking_status IS NULL)
   `);
 
   const bookingsMap: Record<string, any[]> = {};
-  const todayStr = new Date().toISOString().split('T')[0];
+  const now = new Date();
+  const todayStr = now.toISOString().split('T')[0];
+  
   activeBookings.forEach((b: any) => {
-    const resId = b.residence_id || b.residenceId;
-    const checkOut = b.checkOut || b.check_out;
-    if (checkOut >= todayStr) {
-      if (!bookingsMap[resId]) bookingsMap[resId] = [];
-      bookingsMap[resId].push({ from: b.checkIn || b.check_in, to: checkOut });
+    const resId = b.residenceId || b.residence_id || b.residenceid;
+    const cIn = (b.checkIn || b.check_in || b.checkin || '').split('T')[0];
+    const cOut = (b.checkOut || b.check_out || b.checkout || '').split('T')[0];
+    
+    if (resId && cIn && cOut) {
+      // If cOut is today or in the future, it's considered occupied
+      if (cOut >= todayStr) {
+        if (!bookingsMap[resId]) bookingsMap[resId] = [];
+        bookingsMap[resId].push({ from: cIn, to: cOut });
+      }
     }
   });
 
@@ -135,7 +142,16 @@ export const getAllResidences = async (ownerId?: string) => {
     createdAt: res.createdAt || res.created_at || res.createdat,
     amenities: amenitiesMap[res.id] || [],
     images: imagesMap[res.id] || [],
-    occupiedDates: bookingsMap[res.id] || [],
+    occupiedDates: [
+      ...(bookingsMap[res.id] || []),
+      ...(() => {
+        try {
+          const manual = res.occupiedDates || res.occupied_dates || res.occupieddates;
+          if (!manual) return [];
+          return typeof manual === 'string' ? JSON.parse(manual) : manual;
+        } catch (e) { return []; }
+      })()
+    ],
     address: {
       city: cleanSecteur(res.city),
       neighborhood: cleanSecteur(res.neighborhood),
@@ -170,11 +186,13 @@ export const getResidenceById = async (id: string) => {
   const amenities = await executeSql("SELECT amenity FROM residence_amenities WHERE residence_id = ?", [id]);
   const images = await executeSql("SELECT image_url FROM residence_images WHERE residence_id = ?", [id]);
   const bookings = await executeSql(`
-    SELECT check_in, check_out 
+    SELECT check_in as checkIn, check_out as checkOut, booking_status as bookingStatus 
     FROM bookings 
-    WHERE residence_id = ? AND booking_status NOT IN ('cancelled', 'declined')
+    WHERE residence_id = ? AND (LOWER(booking_status) NOT IN ('cancelled', 'declined') OR booking_status IS NULL)
   `, [id]);
   
+  const todayStr = new Date().toISOString().split('T')[0];
+
   return {
     id: row.id,
     ownerId: row.ownerId || row.owner_id || row.ownerid,
@@ -204,9 +222,24 @@ export const getResidenceById = async (id: string) => {
     createdAt: row.createdAt || row.created_at || row.createdat,
     amenities: amenities.map((a: any) => a.amenity),
     images: images.map((i: any) => i.image_url || i.imageUrl),
-    occupiedDates: bookings
-      .filter((b: any) => (b.checkOut || b.check_out) >= new Date().toISOString().split('T')[0])
-      .map((b: any) => ({ from: b.checkIn || b.check_in, to: b.checkOut || b.check_out })),
+    occupiedDates: [
+      ...bookings
+        .filter((b: any) => {
+          const cOut = b.checkOut || b.check_out || b.checkout;
+          return cOut && cOut >= todayStr;
+        })
+        .map((b: any) => ({ 
+          from: (b.checkIn || b.check_in || b.checkin || '').split('T')[0], 
+          to: (b.checkOut || b.check_out || b.checkout || '').split('T')[0] 
+        })),
+      ...(() => {
+        try {
+          const manual = row.occupiedDates || row.occupied_id || row.occupieddates || row.occupied_dates;
+          if (!manual) return [];
+          return typeof manual === 'string' ? JSON.parse(manual) : manual;
+        } catch (e) { return []; }
+      })()
+    ],
     address: {
       city: cleanSecteur(row.city),
       neighborhood: cleanSecteur(row.neighborhood),

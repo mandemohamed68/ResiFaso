@@ -1188,9 +1188,18 @@ function AppContent() {
                             const d = new Date();
                             d.setDate(d.getDate() + i);
                             const dateStr = d.toISOString().split('T')[0];
-                            const isBooked = selectedResidenceBookings.some((b: any) => 
-                              (b.bookingStatus?.toLowerCase() === 'confirmed' || b.bookingStatus?.toLowerCase() === 'pending') && dateStr >= b.checkIn && dateStr < b.checkOut
-                            );
+                            const isBooked = (selectedResidenceBookings.some((b: any) => {
+                              const bCheckIn = (b.checkIn || b.check_in || '').split('T')[0];
+                              const bCheckOut = (b.checkOut || b.check_out || '').split('T')[0];
+                              const bStatus = (b.bookingStatus || b.booking_status || '').toLowerCase();
+                              // Considérer comme occupé si la réservation n'est pas annulée ou déclinée
+                              const isActive = bStatus !== 'cancelled' && bStatus !== 'declined';
+                              return isActive && dateStr >= bCheckIn && dateStr < bCheckOut;
+                            })) || (selectedResidence.occupiedDates?.some((d: any) => {
+                              const dFrom = (d.from || d.check_in || '').split('T')[0];
+                              const dTo = (d.to || d.check_out || '').split('T')[0];
+                              return dateStr >= dFrom && dateStr < dTo;
+                            }));
                             const isToday = i === 0;
                             return (
                               <div 
