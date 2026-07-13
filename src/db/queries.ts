@@ -255,7 +255,7 @@ export const getAllBookings = async (options: { clientId?: string, ownerId?: str
     sql += " WHERE " + whereClauses.join(" AND ");
   }
 
-  sql += " ORDER BY created_at DESC";
+  sql += " ORDER BY b.created_at DESC";
 
   const rows = await executeSql(sql, params);
   
