@@ -150,7 +150,9 @@ export const ResidenceCard: React.FC<Props> = ({
               {residence.occupiedDates.slice(0, 5).map((date, idx) => {
                 const fromDate = new Date(date.from).toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit', year: '2-digit' });
                 const toDate = new Date(date.to).toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit', year: '2-digit' });
-                const isOngoing = new Date().toISOString().split('T')[0] >= date.from && new Date().toISOString().split('T')[0] <= date.to;
+                const today = new Date();
+                const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+                const isOngoing = todayStr >= date.from && todayStr <= date.to;
                 
                 return (
                   <div 

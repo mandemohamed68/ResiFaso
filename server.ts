@@ -683,17 +683,48 @@ async function startServer() {
       
       const uid = req.params.uid;
       
-      // Cleanup related records that might not have ON DELETE CASCADE or to be extra safe
-      await executeSql("DELETE FROM support_chat_messages WHERE user_id = ? OR sender_id = ?", [uid, uid]);
-      await executeSql("DELETE FROM messages WHERE sender_id = ?", [uid]);
-      await executeSql("DELETE FROM notifications WHERE user_id = ?", [uid]);
-      await executeSql("DELETE FROM favorites WHERE user_id = ?", [uid]);
+      // Thorough cleanup of related records to avoid foreign key constraint errors
+      // Use a transaction-like approach by disabling FK checks temporarily if needed, 
+      // but manual cleanup is safer for data integrity.
       
-      // Withdrawals - set to null if they exist
-      await executeSql("UPDATE withdrawals SET owner_id = NULL WHERE owner_id = ?", [uid]);
-      
-      await queries.deleteUser(uid);
-      res.json({ success: true });
+      try {
+        await executeSql("SET FOREIGN_KEY_CHECKS = 0");
+        
+        // 1. Social & Communication
+        await executeSql("DELETE FROM support_chat_messages WHERE user_id = ? OR sender_id = ?", [uid, uid]);
+        await executeSql("DELETE FROM messages WHERE sender_id = ?", [uid]);
+        await executeSql("DELETE FROM notifications WHERE user_id = ?", [uid]);
+        await executeSql("DELETE FROM favorites WHERE user_id = ?", [uid]);
+        
+        // 2. Reviews (usually cascade, but let's be explicit)
+        await executeSql("DELETE FROM reviews WHERE client_id = ?", [uid]);
+        
+        // 3. Residences related (amenities and images should cascade from residence delete)
+        // Find all residences owned by this user
+        const userResidences = await executeSql("SELECT id FROM residences WHERE owner_id = ?", [uid]);
+        for (const res of userResidences) {
+          await executeSql("DELETE FROM residence_amenities WHERE residence_id = ?", [res.id]);
+          await executeSql("DELETE FROM residence_images WHERE residence_id = ?", [res.id]);
+          await executeSql("DELETE FROM reviews WHERE residence_id = ?", [res.id]);
+          await executeSql("DELETE FROM residences WHERE id = ?", [res.id]);
+        }
+        
+        // 4. Bookings (SET NULL usually, but let's delete if user is the client to be clean)
+        await executeSql("DELETE FROM bookings WHERE client_id = ?", [uid]);
+        await executeSql("UPDATE bookings SET owner_id = NULL WHERE owner_id = ?", [uid]);
+        
+        // 5. Withdrawals - set to null if they exist
+        await executeSql("UPDATE withdrawals SET owner_id = NULL WHERE owner_id = ?", [uid]);
+        
+        // 6. Finally delete the user
+        await queries.deleteUser(uid);
+        
+        await executeSql("SET FOREIGN_KEY_CHECKS = 1");
+        res.json({ success: true });
+      } catch (innerErr: any) {
+        await executeSql("SET FOREIGN_KEY_CHECKS = 1");
+        throw innerErr;
+      }
     } catch (err: any) {
       console.error("[DELETE USER ERROR]", err);
       res.status(500).json({ error: err.message });

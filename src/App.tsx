@@ -1188,7 +1188,7 @@ function AppContent() {
                           {Array.from({ length: 14 }).map((_, i) => {
                             const d = new Date();
                             d.setDate(d.getDate() + i);
-                            const dateStr = d.toISOString().split('T')[0];
+                            const dateStr = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
                             const isBooked = (selectedResidenceBookings.some((b: any) => {
                               const bCheckIn = b.checkIn || b.check_in;
                               const bCheckOut = b.checkOut || b.check_out;
@@ -1209,7 +1209,7 @@ function AppContent() {
                                 className={cn(
                                   "aspect-square flex flex-col items-center justify-center rounded-lg text-[10px] border transition-colors relative cursor-help",
                                   isToday ? "border-slate-400 font-black" : "border-transparent text-slate-600 font-bold",
-                                  isBooked ? "bg-red-50 text-red-400 line-through decoration-red-300" : "bg-emerald-50 text-emerald-700 hover:bg-emerald-100"
+                                  isBooked ? "bg-red-100 text-red-600 line-through decoration-red-400 font-black" : "bg-emerald-50 text-emerald-700 hover:bg-emerald-100"
                                 )}
                               >
                                 <span>{d.getDate()}</span>

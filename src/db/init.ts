@@ -205,10 +205,23 @@ export const initDatabase = async () => {
         rejection_reason TEXT,
         utilities_included TEXT,
         owner_phone VARCHAR(50),
+        rating DECIMAL(3, 2) DEFAULT 0,
+        review_count INTEGER DEFAULT 0,
         created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
         FOREIGN KEY(owner_id) REFERENCES users(uid) ON DELETE CASCADE
       ) ENGINE=InnoDB
     `);
+
+    try {
+      const ratingCols = await executeSql("SHOW COLUMNS FROM residences LIKE 'rating'");
+      if (!ratingCols || ratingCols.length === 0) {
+        await executeSql("ALTER TABLE residences ADD COLUMN rating DECIMAL(3, 2) DEFAULT 0");
+        await executeSql("ALTER TABLE residences ADD COLUMN review_count INTEGER DEFAULT 0");
+        console.log("Migration MariaDB: Colonnes rating et review_count ajoutées à la table residences.");
+      }
+    } catch (err: any) {
+      console.warn("Avertissement migration MariaDB residences.rating/review_count:", err.message);
+    }
 
     try {
       const phoneCols = await executeSql("SHOW COLUMNS FROM residences LIKE 'owner_phone'");
@@ -603,6 +616,8 @@ export const initDatabase = async () => {
         rejection_reason TEXT,
         utilities_included TEXT,
         owner_phone TEXT,
+        rating REAL DEFAULT 0,
+        review_count INTEGER DEFAULT 0,
         created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
         FOREIGN KEY(owner_id) REFERENCES users(uid)
       )
@@ -610,6 +625,8 @@ export const initDatabase = async () => {
 
     await safeAlter('residences', 'utilities_included', 'TEXT');
     await safeAlter('residences', 'owner_phone', 'TEXT');
+    await safeAlter('residences', 'rating', 'REAL DEFAULT 0');
+    await safeAlter('residences', 'review_count', 'INTEGER DEFAULT 0');
 
     // Residence Amenities Table
     await executeSql(`
