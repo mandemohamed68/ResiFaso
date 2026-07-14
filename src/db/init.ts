@@ -50,7 +50,10 @@ export const initDatabase = async () => {
     try {
       await executeSql("ALTER TABLE users MODIFY COLUMN password_hash VARCHAR(255)");
       await executeSql("ALTER TABLE users MODIFY COLUMN display_name VARCHAR(500)");
-      console.log("Migration MariaDB: Colonnes users.password_hash et display_name mises à jour.");
+      await executeSql("ALTER TABLE users MODIFY COLUMN identity_document_front LONGTEXT");
+      await executeSql("ALTER TABLE users MODIFY COLUMN identity_document_back LONGTEXT");
+      await executeSql("ALTER TABLE users MODIFY COLUMN id_card_url LONGTEXT");
+      console.log("Migration MariaDB: Colonnes users document et password_hash mises à jour.");
     } catch (err) {}
 
     try {
