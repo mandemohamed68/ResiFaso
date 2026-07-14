@@ -132,7 +132,7 @@ export const initDatabase = async () => {
       }
 
       // Ensure all extra user columns exist for MariaDB
-      const extraCols = ['identity_document_front', 'identity_document_back', 'permissions', 'id_number', 'id_type', 'id_expiry', 'id_card_url', 'verification_status', 'has_accepted_terms'];
+      const extraCols = ['identity_document_front', 'identity_document_back', 'permissions', 'id_number', 'id_type', 'id_expiry', 'id_card_url', 'verification_status', 'has_accepted_terms', 'host_cancellation_fee', 'host_cancellation_rules_text'];
       for (const col of extraCols) {
         const columns: any = await executeSql(`
           SELECT COLUMN_NAME 
@@ -152,6 +152,10 @@ export const initDatabase = async () => {
             typeDef = "VARCHAR(255) NULL";
           } else if (col === 'has_accepted_terms') {
             typeDef = "BOOLEAN DEFAULT 0";
+          } else if (col === 'host_cancellation_fee') {
+            typeDef = "DECIMAL(10, 2) DEFAULT 0";
+          } else if (col === 'host_cancellation_rules_text') {
+            typeDef = "TEXT NULL";
           }
           await executeSql(`ALTER TABLE users ADD COLUMN ${col} ${typeDef}`);
         } else {
@@ -589,7 +593,9 @@ export const initDatabase = async () => {
       { name: 'id_expiry', type: 'TEXT' },
       { name: 'id_card_url', type: 'TEXT' },
       { name: 'verification_status', type: "TEXT DEFAULT 'none'" },
-      { name: 'has_accepted_terms', type: 'INTEGER DEFAULT 0' }
+      { name: 'has_accepted_terms', type: 'INTEGER DEFAULT 0' },
+      { name: 'host_cancellation_fee', type: 'REAL DEFAULT 0' },
+      { name: 'host_cancellation_rules_text', type: 'TEXT' }
     ];
 
     // Users extra columns
