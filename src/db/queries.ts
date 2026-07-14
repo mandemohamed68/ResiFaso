@@ -99,10 +99,18 @@ export const getAllResidences = async (ownerId?: string) => {
   
   activeBookings.forEach((b: any) => {
     const resId = b.residence_id || b.residenceId;
-    const checkOut = b.checkOut || b.check_out;
+    let checkOut = b.checkOut || b.check_out;
+    let checkIn = b.checkIn || b.check_in;
+    
+    if (checkOut instanceof Date) checkOut = checkOut.toISOString();
+    if (checkIn instanceof Date) checkIn = checkIn.toISOString();
+    
+    checkOut = String(checkOut).split('T')[0];
+    checkIn = String(checkIn).split('T')[0];
+    
     if (checkOut >= todayStr) {
       if (!bookingsMap[resId]) bookingsMap[resId] = [];
-      bookingsMap[resId].push({ from: b.checkIn || b.check_in, to: checkOut });
+      bookingsMap[resId].push({ from: checkIn, to: checkOut });
     }
   });
 
@@ -208,8 +216,14 @@ export const getResidenceById = async (id: string) => {
     amenities: amenities.map((a: any) => a.amenity),
     images: images.map((i: any) => i.image_url || i.imageUrl),
     occupiedDates: bookings
-      .filter((b: any) => (b.checkOut || b.check_out) >= new Date().toISOString().split('T')[0])
-      .map((b: any) => ({ from: b.checkIn || b.check_in, to: b.checkOut || b.check_out })),
+      .map((b: any) => {
+        let co = b.checkOut || b.check_out;
+        let ci = b.checkIn || b.check_in;
+        if (co instanceof Date) co = co.toISOString();
+        if (ci instanceof Date) ci = ci.toISOString();
+        return { from: String(ci).split('T')[0], to: String(co).split('T')[0] };
+      })
+      .filter((b: any) => b.to >= new Date().toISOString().split('T')[0]),
     address: {
       city: cleanSecteur(row.city),
       neighborhood: cleanSecteur(row.neighborhood),
