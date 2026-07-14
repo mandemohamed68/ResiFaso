@@ -14,7 +14,8 @@ export const getUserProfile = async (uid: string) => {
       permissions, identity_document_front as identityDocumentFront, 
       identity_document_back as identityDocumentBack, id_number as idNumber, 
       id_type as idType, id_expiry as idExpiry, id_card_url as idCardUrl, 
-      verification_status as verificationStatus, phone_number as phoneNumber
+      verification_status as verificationStatus, phone_number as phoneNumber,
+      host_cancellation_fee as hostCancellationFee, host_cancellation_rules_text as hostCancellationRulesText
     FROM users 
     WHERE uid = ?
   `, [uid]);
@@ -39,7 +40,8 @@ export const getAllUsers = async () => {
       identity_document_back as identityDocumentBack, id_number as idNumber, 
       id_type as idType, id_expiry as idExpiry, id_card_url as idCardUrl, 
       verification_status as verificationStatus, phone_number as phoneNumber,
-      has_accepted_terms as hasAcceptedTerms
+      has_accepted_terms as hasAcceptedTerms,
+      host_cancellation_fee as hostCancellationFee, host_cancellation_rules_text as hostCancellationRulesText
     FROM users 
     ORDER BY created_at DESC
   `);
