@@ -2,6 +2,7 @@ import mariadb from 'mariadb';
 import dotenv from 'dotenv';
 dotenv.config();
 
+console.log('Connecting to database:', process.env.DB_NAME || 'resifaso_db');
 const pool = mariadb.createPool({
   host: process.env.DB_HOST || 'localhost',
   user: process.env.DB_USER || 'root',

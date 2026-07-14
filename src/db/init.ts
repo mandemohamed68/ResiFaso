@@ -42,6 +42,7 @@ export const initDatabase = async () => {
         id_expiry VARCHAR(255),
         id_card_url LONGTEXT,
         verification_status VARCHAR(50) DEFAULT 'none',
+        host_cancellation_fee DECIMAL(10, 2) DEFAULT 0,
         created_at DATETIME DEFAULT CURRENT_TIMESTAMP
       ) ENGINE=InnoDB
     `);
@@ -157,7 +158,16 @@ export const initDatabase = async () => {
           } else if (col === 'host_cancellation_rules_text') {
             typeDef = "TEXT NULL";
           }
-          await executeSql(`ALTER TABLE users ADD COLUMN ${col} ${typeDef}`);
+          try {
+            await executeSql(`ALTER TABLE users ADD COLUMN ${col} ${typeDef}`);
+          } catch (err: any) {
+            const msg = err.message || '';
+            if (msg.includes('duplicate') || msg.includes('already exists') || msg.includes('Duplicate')) {
+              console.log(`Colonne '${col}' existe déjà.`);
+            } else {
+              console.error(`Erreur lors de l'ajout de la colonne '${col}':`, msg);
+            }
+          }
         } else {
           // If column exists, ensure it's LONGTEXT for documents
           if (['identity_document_front', 'identity_document_back', 'id_card_url'].includes(col)) {
