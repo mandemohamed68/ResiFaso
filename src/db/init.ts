@@ -49,6 +49,13 @@ export const initDatabase = async () => {
 
     // Migration: Ensure password_hash is large enough (fix for older DBs)
     try {
+      await executeSql("ALTER TABLE users ADD COLUMN host_cancellation_fee DECIMAL(10, 2) DEFAULT 0");
+    } catch (err) {}
+    try {
+      await executeSql("ALTER TABLE users ADD COLUMN host_cancellation_rules_text TEXT NULL");
+    } catch (err) {}
+    
+    try {
       await executeSql("ALTER TABLE users MODIFY COLUMN password_hash VARCHAR(255)");
       await executeSql("ALTER TABLE users MODIFY COLUMN display_name VARCHAR(500)");
       await executeSql("ALTER TABLE users MODIFY COLUMN identity_document_front LONGTEXT");
