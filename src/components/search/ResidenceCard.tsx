@@ -140,55 +140,36 @@ export const ResidenceCard: React.FC<Props> = ({
         </div>
 
         {/* Occupied Dates Display - High visibility for user request */}
-        <div className="mb-4 bg-red-50/50 p-2.5 rounded-xl border border-red-100">
-          <div className="flex items-center gap-1.5 text-[9px] font-black uppercase tracking-widest text-red-600 mb-2">
-            <CalendarIcon size={11} className="animate-pulse" />
-            <span>Calendrier d'occupation</span>
+        <div className="mb-4 bg-white p-2.5 rounded-xl border border-slate-100 shadow-sm">
+          <div className="flex items-center justify-between mb-2">
+            <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-1.5"><CalendarIcon size={11} /> Disponibilité (14 prochains jours)</label>
           </div>
-          {residence.occupiedDates && residence.occupiedDates.length > 0 ? (
-            <div className="flex flex-col gap-1.5">
-              {residence.occupiedDates.slice(0, 5).map((date, idx) => {
-                const fromDate = new Date(date.from).toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit', year: '2-digit' });
-                const toDate = new Date(date.to).toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit', year: '2-digit' });
-                const today = new Date();
-                const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
-                const isOngoing = todayStr >= date.from && todayStr <= date.to;
-                
-                return (
-                  <div 
-                    key={idx} 
-                    className={cn(
-                      "flex items-center justify-between px-2 py-1.5 rounded-lg text-[10px] font-black border transition-all",
-                      isOngoing 
-                        ? "bg-red-600 text-white border-red-700 shadow-sm scale-[1.02]" 
-                        : "bg-white text-slate-700 border-red-100"
-                    )}
-                  >
-                    <div className="flex items-center gap-2">
-                      <span className={isOngoing ? "text-red-100" : "text-slate-400"}>DU</span>
-                      <span>{fromDate}</span>
-                    </div>
-                    <div className={cn("w-4 h-[1px]", isOngoing ? "bg-red-400" : "bg-red-200")} />
-                    <div className="flex items-center gap-2">
-                      <span className={isOngoing ? "text-red-100" : "text-slate-400"}>AU</span>
-                      <span>{toDate}</span>
-                    </div>
-                  </div>
-                );
-              })}
-              {residence.occupiedDates.length > 5 && (
-                <div className="text-center pt-1">
-                  <span className="text-[9px] font-black text-red-500 uppercase tracking-tighter bg-red-100 px-2 py-0.5 rounded-full">
-                    + {residence.occupiedDates.length - 5} autres réservations
-                  </span>
+          <div className="grid grid-cols-7 gap-1">
+            {Array.from({ length: 14 }).map((_, i) => {
+              const d = new Date();
+              d.setDate(d.getDate() + i);
+              const dateStr = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+              const isBooked = residence.occupiedDates?.some((occ: any) => {
+                const dFrom = (occ.from || occ.check_in || '').split('T')[0];
+                const dTo = (occ.to || occ.check_out || '').split('T')[0];
+                return dFrom && dTo && dateStr >= dFrom && dateStr <= dTo;
+              });
+              const isToday = i === 0;
+              return (
+                <div 
+                  key={dateStr} 
+                  title={isBooked ? "Occupé" : "Disponible"}
+                  className={cn(
+                    "aspect-square flex flex-col items-center justify-center rounded-lg text-[10px] border transition-colors relative cursor-help",
+                    isToday ? "border-slate-400 font-black" : "border-transparent text-slate-600 font-bold",
+                    isBooked ? "bg-red-100 text-red-600 line-through decoration-red-400 font-black" : "bg-emerald-50 text-emerald-700"
+                  )}
+                >
+                  <span>{d.getDate()}</span>
                 </div>
-              )}
-            </div>
-          ) : (
-            <div className="text-[10px] font-black text-green-600 bg-green-50 p-2 rounded-lg border border-green-200 flex justify-center items-center">
-              LIBRE ACTUELLEMENT (AUCUNE RÉSERVATION)
-            </div>
-          )}
+              );
+            })}
+          </div>
         </div>
 
         <div className="mt-auto space-y-3">
