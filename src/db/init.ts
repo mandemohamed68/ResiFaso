@@ -46,6 +46,13 @@ export const initDatabase = async () => {
       ) ENGINE=InnoDB
     `);
 
+    // Migration: Ensure password_hash is large enough (fix for older DBs)
+    try {
+      await executeSql("ALTER TABLE users MODIFY COLUMN password_hash VARCHAR(255)");
+      await executeSql("ALTER TABLE users MODIFY COLUMN display_name VARCHAR(500)");
+      console.log("Migration MariaDB: Colonnes users.password_hash et display_name mises à jour.");
+    } catch (err) {}
+
     try {
       await executeSql("ALTER TABLE users CHANGE photo_url photo_url LONGTEXT");
     } catch (err) {}
