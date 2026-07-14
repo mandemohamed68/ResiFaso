@@ -2625,6 +2625,7 @@ export const AdminDashboard: React.FC<{ onBackToTraveler?: () => void }> = ({ on
                   <tr className="border-b border-slate-200 bg-slate-50/50">
                     <th className="p-4 text-[10px] font-black text-slate-500 uppercase tracking-widest">Utilisateur</th>
                     <th className="p-4 text-[10px] font-black text-slate-500 uppercase tracking-widest">Contact Direct</th>
+                    <th className="p-4 text-[10px] font-black text-slate-500 uppercase tracking-widest">Vérification</th>
                     <th className="p-4 text-[10px] font-black text-slate-500 uppercase tracking-widest text-right">Actions</th>
                   </tr>
                 </thead>
@@ -2653,8 +2654,7 @@ export const AdminDashboard: React.FC<{ onBackToTraveler?: () => void }> = ({ on
                               <div>
                                 <h4 className="font-extrabold text-slate-900">{usr.displayName || "Sans Nom"}</h4>
                                 <div className="flex gap-1 mt-0.5">
-                                  <span className="px-1.5 py-0.5 bg-slate-100 rounded-[4px] text-[8px] font-black uppercase text-slate-500">{usr.role}</span>
-                                  {!!usr.isVerified && <span className="px-1.5 py-0.5 bg-green-100 text-green-700 rounded-[4px] text-[8px] font-black uppercase">Vérifié</span>}
+                                  <span className="px-2.5 py-1 bg-red-100 rounded-lg text-[10px] font-black uppercase text-red-700">{usr.role}</span>
                                 </div>
                               </div>
                             </div>
@@ -2673,6 +2673,28 @@ export const AdminDashboard: React.FC<{ onBackToTraveler?: () => void }> = ({ on
                               )}
                               <span className="text-[9px] text-slate-400 font-medium">{usr.email}</span>
                             </div>
+                          </td>
+                          <td className="p-4">
+                            {(usr.idNumber || usr.idCardUrl) ? (
+                              <div className="space-y-1.5">
+                                <span className={cn(
+                                  "px-2 py-0.5 rounded text-[8px] font-black uppercase inline-block",
+                                  usr.verificationStatus === 'verified' ? 'bg-green-100 text-green-800' :
+                                  usr.verificationStatus === 'rejected' ? 'bg-red-100 text-red-800' :
+                                  'bg-amber-100 text-amber-800'
+                                )}>
+                                  {usr.verificationStatus === 'verified' ? 'Vérifié' : usr.verificationStatus === 'rejected' ? 'Rejeté' : 'En attente'}
+                                </span>
+                                {(usr.verificationStatus === 'pending') && (
+                                  <div className="flex gap-1 mt-1">
+                                    <button onClick={() => handleApproveIdentity(usr.uid, usr.email, usr.displayName || 'Utilisateur')} className="px-2 py-1 bg-green-600 hover:bg-green-700 text-white rounded text-[8px] font-black uppercase cursor-pointer">Approuver</button>
+                                    <button onClick={() => { if(confirm("Rejeter ?")) handleRejectIdentity(usr.uid, usr.email, usr.displayName || 'Utilisateur'); }} className="px-2 py-1 bg-red-600 hover:bg-red-700 text-white rounded text-[8px] font-black uppercase cursor-pointer">Rejeter</button>
+                                  </div>
+                                )}
+                              </div>
+                            ) : (
+                              <span className="text-[10px] text-slate-400 font-bold italic">Aucune pièce</span>
+                            )}
                           </td>
                           <td className="p-4 text-right">
                             <div className="flex items-center justify-end gap-1">
@@ -2715,7 +2737,7 @@ export const AdminDashboard: React.FC<{ onBackToTraveler?: () => void }> = ({ on
                         </tr>
                         {expandedUserSecurityUid === usr.uid && (
                           <tr className="bg-slate-50/50">
-                            <td colSpan={3} className="p-4 border-b border-slate-200">
+                            <td colSpan={4} className="p-4 border-b border-slate-200">
                   <div className="space-y-4 animate-in slide-in-from-top-2 duration-200">
                     <div className="flex flex-wrap items-center gap-2">
                       <span className="text-[10px] font-black text-slate-500 uppercase tracking-wider">Changer rôle :</span>

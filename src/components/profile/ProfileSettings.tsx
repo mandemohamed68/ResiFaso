@@ -128,6 +128,7 @@ export const ProfileSettings: React.FC = () => {
 
   // Sync state with profile
   useEffect(() => {
+    console.log("Profile updated:", profile);
     if (profile) {
       setDisplayName(profile.displayName || '');
       setPhone(profile.phoneNumber || profile.phone || '');
