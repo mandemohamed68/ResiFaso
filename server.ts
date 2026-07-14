@@ -14,7 +14,7 @@ import * as queries from './src/db/queries';
 dotenv.config();
 
 const JWT_SECRET = process.env.JWT_SECRET || 'super-secret-key-change-me';
-const DB_TYPE = process.env.DB_TYPE || 'mariadb'; // 'mariadb' ou 'sqlite'
+const DB_TYPE = process.env.DB_TYPE || (process.env.NODE_ENV === 'production' ? 'mariadb' : 'sqlite'); // 'mariadb' ou 'sqlite'
 
 // ---------- SAPPAY CONFIGURATION ----------
 // IDs des opérateurs (à adapter selon votre base Sappay)
@@ -378,12 +378,12 @@ async function startServer() {
       }
 
       // Check for overlapping bookings
-      // An overlap occurs if: (new_check_in < existing_check_out) AND (existing_check_in < new_check_out)
+      // An overlap occurs if: (new_check_in <= existing_check_out) AND (existing_check_in <= new_check_out)
       const overlaps = await executeSql(`
         SELECT id, check_in, check_out FROM bookings 
         WHERE residence_id = ? 
         AND booking_status NOT IN ('cancelled', 'declined')
-        AND (check_in < ? AND ? < check_out)
+        AND (check_in <= ? AND ? <= check_out)
       `, [residenceId, checkOut, checkIn]);
 
       if (overlaps.length > 0) {
@@ -814,7 +814,7 @@ async function startServer() {
       
       const placeholders = fields.map(() => '?').join(', ');
       
-      const dbType = process.env.DB_TYPE || 'mariadb';
+      const dbType = DB_TYPE;
       if (dbType === 'mariadb') {
         const nonIdFields = fields.filter(f => f !== 'id');
         const updateClause = nonIdFields.map(f => `${f} = VALUES(${f})`).join(', ');
@@ -857,7 +857,7 @@ async function startServer() {
       const id = req.body.id || 'faq_' + Math.random().toString(36).substr(2, 9);
       const { question, answer, category, order } = req.body;
       
-      const dbType = process.env.DB_TYPE || 'mariadb';
+      const dbType = DB_TYPE;
       if (dbType === 'mariadb') {
         await executeSql("INSERT INTO faqs (id, question, answer, category, `order`) VALUES (?, ?, ?, ?, ?) ON DUPLICATE KEY UPDATE question=VALUES(question), answer=VALUES(answer), category=VALUES(category), `order`=VALUES(`order`)", [id, question, answer, category, order]);
       } else {

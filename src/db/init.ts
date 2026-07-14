@@ -1,7 +1,7 @@
 import { executeSql } from './index';
 
 export const initDatabase = async () => {
-  const dbType = process.env.DB_TYPE || 'mariadb';
+  const dbType = process.env.DB_TYPE || (process.env.NODE_ENV === 'production' ? 'mariadb' : 'sqlite');
   console.log(`Initializing local SQL database tables (Dialect: ${dbType})...`);
   
   // Helper for safe column addition

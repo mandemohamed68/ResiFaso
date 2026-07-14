@@ -244,48 +244,68 @@ export const Navbar: React.FC<{
                 {isNotifOpen && (
                   <>
                     <div className="fixed inset-0 z-40" onClick={() => setIsNotifOpen(false)}></div>
-                    <div className="absolute right-0 top-full mt-2 w-80 bg-white rounded-3xl shadow-2xl border border-slate-150 py-4 px-4 z-50 flex flex-col max-h-[400px]">
-                      <div className="flex items-center justify-between border-b border-slate-100 pb-2 mb-2">
-                        <span className="text-xs font-black text-slate-800 uppercase tracking-tight">Notifications</span>
+                    <div className="absolute right-0 top-full mt-3 w-96 bg-white rounded-3xl shadow-2xl border border-slate-100 py-4 px-4 z-50 flex flex-col max-h-[460px] animate-in fade-in slide-in-from-top-2 duration-200">
+                      
+                      {/* Header */}
+                      <div className="flex items-center justify-between border-b border-slate-100 pb-3 mb-3 shrink-0">
+                        <div className="flex items-center gap-2">
+                          <span className="text-sm font-extrabold text-slate-900 tracking-tight">Notifications</span>
+                          {unreadCount > 0 && (
+                            <span className="px-2 py-0.5 bg-red-100 text-red-700 text-[10px] font-black rounded-full">
+                              {unreadCount} nouvelle{unreadCount > 1 ? 's' : ''}
+                            </span>
+                          )}
+                        </div>
                         {unreadCount > 0 && (
                           <button
                             onClick={handleMarkAllAsRead}
-                            className="text-[9px] font-black text-red-600 uppercase hover:underline cursor-pointer"
+                            className="text-[10px] font-extrabold text-red-600 hover:text-red-700 uppercase tracking-wider transition-colors cursor-pointer hover:underline"
                           >
-                            Tout lire
+                            Tout marquer comme lu
                           </button>
                         )}
                       </div>
 
-                      <div className="overflow-y-auto no-scrollbar flex-1 space-y-2.5 pb-2">
+                      {/* Content */}
+                      <div className="overflow-y-auto no-scrollbar flex-1 space-y-3 pb-3 pr-0.5">
                         {notifications.length === 0 ? (
-                          <div className="flex flex-col items-center justify-center py-10 opacity-40">
-                            <Bell size={40} className="mb-2" />
-                            <p className="text-center text-xs font-bold uppercase tracking-widest">Silence radio</p>
+                          <div className="flex flex-col items-center justify-center py-12 px-4 text-center">
+                            <div className="w-14 h-14 rounded-full bg-slate-50 flex items-center justify-center text-slate-400 mb-3 shadow-inner">
+                              <Bell size={24} className="animate-wiggle" />
+                            </div>
+                            <p className="text-xs font-extrabold text-slate-800 uppercase tracking-widest mb-1">Silence radio</p>
+                            <p className="text-[11px] text-slate-400 font-medium leading-relaxed max-w-[200px]">
+                              Toutes vos notifications de séjour, messages et alertes apparaîtront ici.
+                            </p>
                           </div>
                         ) : (
                           notifications.map((notif) => {
                             const isRead = notif.is_read !== undefined ? !!notif.is_read : !!notif.isRead;
                             let Icon = Info;
-                            let iconColor = "text-blue-500";
-                            let bgColor = "bg-blue-50/50";
+                            let iconColor = "text-blue-600";
+                            let bgColor = "bg-blue-50/60";
+                            let accentColor = "border-l-blue-500";
                             
                             if (notif.type === 'booking') {
                               Icon = CalendarCheck;
-                              iconColor = "text-emerald-500";
-                              bgColor = "bg-emerald-50/50";
+                              iconColor = "text-emerald-600";
+                              bgColor = "bg-emerald-50/60";
+                              accentColor = "border-l-emerald-500";
                             } else if (notif.type === 'alert' || notif.type === 'danger') {
                               Icon = AlertCircle;
-                              iconColor = "text-red-500";
-                              bgColor = "bg-red-50/50";
+                              iconColor = "text-red-600";
+                              bgColor = "bg-red-50/60";
+                              accentColor = "border-l-red-500";
                             } else if (notif.type === 'warning') {
                               Icon = AlertTriangle;
-                              iconColor = "text-amber-500";
-                              bgColor = "bg-amber-50/50";
+                              iconColor = "text-amber-600";
+                              bgColor = "bg-amber-50/60";
+                              accentColor = "border-l-amber-500";
                             } else if (notif.type === 'success') {
                               Icon = CheckCircle2;
-                              iconColor = "text-emerald-500";
-                              bgColor = "bg-emerald-50/50";
+                              iconColor = "text-emerald-600";
+                              bgColor = "bg-emerald-50/60";
+                              accentColor = "border-l-emerald-500";
                             }
 
                             return (
@@ -306,12 +326,13 @@ export const Navbar: React.FC<{
                                   setIsNotifOpen(false);
                                 }}
                                 className={cn(
-                                  "group relative p-3 rounded-2xl border transition-all duration-300 cursor-pointer flex gap-3",
+                                  "group relative p-3 rounded-2xl border border-l-4 border-slate-100 transition-all duration-300 cursor-pointer flex gap-3.5 hover:bg-slate-50/50 hover:scale-[1.01] hover:shadow-xs",
                                   isRead 
-                                    ? "bg-white border-slate-100 opacity-70 hover:opacity-100" 
-                                    : "bg-white border-slate-200 shadow-sm ring-1 ring-slate-900/5 hover:border-red-200"
+                                    ? "bg-white border-slate-100 opacity-75 hover:opacity-100" 
+                                    : cn("bg-white border-slate-200 shadow-xs ring-1 ring-slate-900/5", accentColor)
                                 )}
                               >
+                                {/* Unread dot badge indicator */}
                                 {!isRead && (
                                   <div className="absolute top-3 right-3 w-2 h-2 bg-red-600 rounded-full animate-pulse shadow-sm shadow-red-200" />
                                 )}
@@ -321,13 +342,13 @@ export const Navbar: React.FC<{
                                   bgColor,
                                   iconColor
                                 )}>
-                                  <Icon size={20} className="stroke-[2.5]" />
+                                  <Icon size={18} className="stroke-[2.5]" />
                                 </div>
 
-                                <div className="flex-1 min-w-0">
+                                <div className="flex-1 min-w-0 pr-2">
                                   <div className="flex items-center justify-between mb-0.5">
                                     <span className={cn(
-                                      "text-xs font-black tracking-tight truncate pr-4",
+                                      "text-xs font-extrabold tracking-tight truncate",
                                       isRead ? "text-slate-600" : "text-slate-900"
                                     )}>
                                       {notif.title}
@@ -340,8 +361,8 @@ export const Navbar: React.FC<{
                                     {notif.message}
                                   </p>
                                   <div className="flex items-center gap-2 mt-2">
-                                    <Clock size={10} className="text-slate-300" />
-                                    <span className="text-[9px] font-black text-slate-300 font-mono uppercase">
+                                    <Clock size={11} className="text-slate-300 stroke-[2.5]" />
+                                    <span className="text-[9px] font-bold text-slate-400 font-mono uppercase tracking-wider">
                                       {new Date(notif.createdAt).toLocaleDateString('fr-FR', {
                                         day: 'numeric',
                                         month: 'short',
@@ -355,6 +376,20 @@ export const Navbar: React.FC<{
                             );
                           })
                         )}
+                      </div>
+
+                      {/* Footer Actions */}
+                      <div className="border-t border-slate-100 pt-2 shrink-0 mt-1">
+                        <button
+                          onClick={() => {
+                            if (currentRole === 'owner') onNavigate('owner-dashboard');
+                            else onNavigate('bookings');
+                            setIsNotifOpen(false);
+                          }}
+                          className="w-full text-center py-2 bg-slate-50 hover:bg-slate-100 text-slate-700 font-bold text-xs rounded-xl transition duration-200 uppercase tracking-widest cursor-pointer"
+                        >
+                          Voir toutes les alertes
+                        </button>
                       </div>
                     </div>
                   </>

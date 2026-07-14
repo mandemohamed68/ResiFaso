@@ -4,7 +4,7 @@ dotenv.config();
 import { dbQuery as sqliteQuery } from './sqlite';
 import { dbQuery as mariadbQuery } from './mariadb';
 
-const dbType = process.env.DB_TYPE || 'mariadb';
+const dbType = process.env.DB_TYPE || (process.env.NODE_ENV === 'production' ? 'mariadb' : 'sqlite');
 
 export let queryDatabase = async (query: string, params?: any[]): Promise<any> => {
   if (dbType === 'mariadb') {
