@@ -228,6 +228,25 @@ export const ContactPage: React.FC<ContactPageProps> = ({ onBack, onNavigateToFa
               </div>
             </div>
 
+            {/* Live Chat Launcher Card */}
+            <div className="bg-white border border-slate-100 rounded-[32px] p-6 sm:p-8 shadow-sm space-y-4">
+              <h3 className="font-black text-slate-900 text-base flex items-center gap-2">
+                <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse shrink-0"></span>
+                Assistance Chat en Direct
+              </h3>
+              <p className="text-xs text-slate-500 font-medium leading-relaxed">
+                Discutez directement et en temps réel avec un conseiller de notre équipe support pour obtenir une aide immédiate.
+              </p>
+              <button
+                onClick={() => window.dispatchEvent(new CustomEvent('openSupportChat'))}
+                className="w-full flex items-center justify-center gap-2 bg-[#EF2B2D] hover:bg-[#D61F21] text-white font-black text-xs uppercase tracking-wider py-3.5 px-6 rounded-2xl shadow-sm transition-all active:scale-[0.98] cursor-pointer"
+                id="btn-open-support-live-chat"
+              >
+                <MessageSquare size={16} />
+                Lancer le Chat en Direct
+              </button>
+            </div>
+
             {/* Quick response commitment banner */}
             <div className="bg-gradient-to-br from-[#EF2B2D]/90 to-[#9E1416]/95 text-white p-6 rounded-[32px] shadow-md space-y-2">
               <h4 className="font-black text-sm uppercase tracking-wider">Engagement Réponse</h4>

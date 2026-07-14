@@ -18,6 +18,12 @@ export const SupportChatWidget: React.FC = () => {
   }, []);
 
   useEffect(() => {
+    const handleOpen = () => setIsOpen(true);
+    window.addEventListener('openSupportChat', handleOpen);
+    return () => window.removeEventListener('openSupportChat', handleOpen);
+  }, []);
+
+  useEffect(() => {
     if (isOpen && user) {
       fetchMessages();
       const interval = setInterval(fetchMessages, 5000);
@@ -58,7 +64,7 @@ export const SupportChatWidget: React.FC = () => {
   };
 
   // Check if chat is enabled and open
-  if (!settings.supportChatEnabled) return null;
+  if (settings.supportChatEnabled === false) return null;
 
   const now = new Date();
   const currentTimeStr = now.toLocaleTimeString('en-US', { hour12: false, hour: '2-digit', minute: '2-digit' });
@@ -142,13 +148,12 @@ export const SupportChatWidget: React.FC = () => {
                     type="text"
                     value={newMessage}
                     onChange={(e) => setNewMessage(e.target.value)}
-                    placeholder={isChatOpen ? "Votre message..." : "Support hors ligne"}
-                    disabled={!isChatOpen}
-                    className="w-full bg-slate-50 border border-slate-100 rounded-full py-3 pl-4 pr-12 text-sm font-medium outline-none focus:bg-white focus:border-red-500 transition-colors disabled:opacity-50"
+                    placeholder={isChatOpen ? "Votre message..." : "Laisser un message (Support hors ligne)..."}
+                    className="w-full bg-slate-50 border border-slate-100 rounded-full py-3 pl-4 pr-12 text-sm font-medium outline-none focus:bg-white focus:border-red-500 transition-colors"
                   />
                   <button
                     type="submit"
-                    disabled={!newMessage.trim() || !isChatOpen}
+                    disabled={!newMessage.trim()}
                     className="absolute right-1.5 top-1.5 bottom-1.5 w-10 flex items-center justify-center bg-red-600 text-white rounded-full hover:bg-red-700 disabled:opacity-50 disabled:hover:bg-red-600 transition-colors"
                   >
                     <Send size={16} className="-ml-0.5" />

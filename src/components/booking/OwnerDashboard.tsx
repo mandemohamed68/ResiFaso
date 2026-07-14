@@ -30,7 +30,7 @@ import { motion, AnimatePresence } from 'motion/react';
 import { cn, formatDateFr } from '../../lib/utils';
 import { 
   BarChart3, Plus, Home, CalendarCheck, Wallet, ArrowRight, ArrowLeft, 
-  Upload, Trash2, Eye, ShieldAlert, Check, X, RefreshCw, Layers, Pencil,
+  Upload, Trash2, Eye, ShieldAlert, ShieldCheck, Check, X, RefreshCw, Layers, Pencil,
   MessageSquare, Send, Star, Percent, History, Clock, Filter, Download,
   ChevronLeft, ChevronRight, Compass
 } from 'lucide-react';
@@ -240,6 +240,7 @@ interface BookingTableProps {
   residences: Residence[];
   isPast?: boolean;
   isProcessingPayment?: string | null;
+  onUpdateBooking?: (updatedBooking: Booking) => void;
 }
 
 const BookingTable: React.FC<BookingTableProps> = ({ 
@@ -251,7 +252,8 @@ const BookingTable: React.FC<BookingTableProps> = ({
   handleEndStay,
   residences, 
   isPast,
-  isProcessingPayment 
+  isProcessingPayment,
+  onUpdateBooking
 }) => {
   const { user } = useAuth();
   const [selectedBookingForDetails, setSelectedBookingForDetails] = useState<Booking | null>(null);
@@ -293,6 +295,19 @@ const BookingTable: React.FC<BookingTableProps> = ({
         <tbody className="divide-y divide-slate-50 text-sm font-bold text-slate-700">
           {bookings.slice((currentPage - 1) * 50, currentPage * 50).map(b => {
              const res = residences.find(r => r.id === b.residenceId);
+             let verifStatus: Record<string, boolean> = {};
+             try {
+               if (b.verificationsStatus) {
+                 verifStatus = typeof b.verificationsStatus === 'string'
+                   ? JSON.parse(b.verificationsStatus)
+                   : b.verificationsStatus;
+               }
+             } catch (e) {
+               console.error(e);
+             }
+             const requiredIds = ['id_valid', 'age_check', 'name_match', 'contract_sign'];
+             const allVerified = requiredIds.every(id => !!verifStatus[id]);
+
              return (
               <tr key={b.id}>
                 <td className="py-4 px-6">
@@ -308,9 +323,14 @@ const BookingTable: React.FC<BookingTableProps> = ({
                   </button>
                   <button
                     onClick={() => setSelectedBookingForVerifications(b)}
-                    className="flex items-center gap-1 bg-amber-50 text-amber-700 hover:bg-amber-100 border border-amber-200 rounded-lg text-[9px] font-black uppercase tracking-wider transition-all cursor-pointer w-fit p-1 px-1.5"
+                    className={cn(
+                      "flex items-center gap-1 border rounded-lg text-[9px] font-black uppercase tracking-wider transition-all cursor-pointer w-fit p-1 px-1.5",
+                      allVerified 
+                        ? "bg-emerald-50 text-emerald-700 hover:bg-emerald-100 border-emerald-200" 
+                        : "bg-amber-50 text-amber-700 hover:bg-amber-100 border-amber-200"
+                    )}
                   >
-                    <ShieldAlert size={12} />
+                    {allVerified ? <ShieldCheck size={12} className="text-emerald-600" /> : <ShieldAlert size={12} />}
                     Vérifications
                   </button>
                   </div>
@@ -612,6 +632,14 @@ const BookingTable: React.FC<BookingTableProps> = ({
                       clientId={selectedBookingForDetails.clientId}
                       isPast={isPast || selectedBookingForDetails.bookingStatus === 'completed'}
                       canEdit={user?.uid === selectedBookingForDetails.ownerId || user?.role === 'admin'}
+                      onStatusChange={(newStatus) => {
+                        const serialized = JSON.stringify(newStatus);
+                        const updatedBk = { ...selectedBookingForDetails, verificationsStatus: serialized };
+                        setSelectedBookingForDetails(prev => prev && prev.id === selectedBookingForDetails.id ? updatedBk : prev);
+                        if (onUpdateBooking) {
+                          onUpdateBooking(updatedBk);
+                        }
+                      }}
                     />
                   </div>
 
@@ -695,6 +723,62 @@ const BookingTable: React.FC<BookingTableProps> = ({
           </div>
         );
       })()}
+
+      {/* Focused Verification Modal */}
+      {selectedBookingForVerifications && (
+        <div className="fixed inset-0 z-[160] flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-black/60 backdrop-blur-sm animate-fade-in" onClick={() => setSelectedBookingForVerifications(null)} />
+          <div className="relative w-full max-w-lg bg-white rounded-3xl shadow-2xl overflow-hidden animate-in fade-in zoom-in duration-200 text-slate-800 font-sans">
+            
+            {/* Header */}
+            <div className="p-6 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
+              <div>
+                <span className="px-2.5 py-0.5 bg-red-100 text-red-700 rounded text-[9px] font-black uppercase tracking-widest">Contrôle de Sécurité</span>
+                <h4 className="text-lg font-black text-slate-900 uppercase tracking-tight mt-1">Vérifications - Voyage #{selectedBookingForVerifications.id.slice(0, 10).toUpperCase()}</h4>
+              </div>
+              <button 
+                type="button"
+                onClick={() => setSelectedBookingForVerifications(null)}
+                className="p-2 hover:bg-slate-100 rounded-full text-slate-400 hover:text-slate-700 transition-colors cursor-pointer"
+              >
+                <X size={20} />
+              </button>
+            </div>
+
+            {/* Content */}
+            <div className="p-6 overflow-y-auto max-h-[60vh]">
+              <BookingVerificationSection 
+                bookingId={selectedBookingForVerifications.id}
+                clientId={selectedBookingForVerifications.clientId}
+                isPast={selectedBookingForVerifications.bookingStatus === 'completed'}
+                canEdit={user?.uid === selectedBookingForVerifications.ownerId || user?.role === 'admin'}
+                onStatusChange={(newStatus) => {
+                  const serialized = JSON.stringify(newStatus);
+                  const updatedBk = { ...selectedBookingForVerifications, verificationsStatus: serialized };
+                  if (selectedBookingForDetails?.id === selectedBookingForVerifications.id) {
+                    setSelectedBookingForDetails(prev => prev ? { ...prev, verificationsStatus: serialized } : null);
+                  }
+                  if (onUpdateBooking) {
+                    onUpdateBooking(updatedBk);
+                  }
+                }}
+              />
+            </div>
+
+            {/* Footer */}
+            <div className="p-4 bg-slate-50 border-t border-slate-100 flex items-center justify-end">
+              <button 
+                type="button"
+                onClick={() => setSelectedBookingForVerifications(null)}
+                className="px-5 py-2.5 bg-slate-900 hover:bg-red-650 text-white rounded-xl font-bold text-xs uppercase tracking-wider transition-colors cursor-pointer"
+              >
+                Fermer
+              </button>
+            </div>
+
+          </div>
+        </div>
+      )}
 
       <InvoiceModal
         isOpen={!!selectedBookingForInvoice}
@@ -2150,6 +2234,7 @@ export const OwnerDashboard: React.FC<{ isTestMode?: boolean; onBackToTraveler?:
                         handleEndStay={handleEndStay}
                         residences={residences} 
                         isProcessingPayment={isProcessingPayment}
+                        onUpdateBooking={(updatedBk) => setBookings(prev => prev.map(bk => bk.id === updatedBk.id ? updatedBk : bk))}
                       />
                     </div>
                   </div>
@@ -2169,6 +2254,7 @@ export const OwnerDashboard: React.FC<{ isTestMode?: boolean; onBackToTraveler?:
                         handleEndStay={handleEndStay}
                         residences={residences} 
                         isProcessingPayment={isProcessingPayment}
+                        onUpdateBooking={(updatedBk) => setBookings(prev => prev.map(bk => bk.id === updatedBk.id ? updatedBk : bk))}
                       />
                     </div>
                   </div>
@@ -2188,6 +2274,7 @@ export const OwnerDashboard: React.FC<{ isTestMode?: boolean; onBackToTraveler?:
                         handleEndStay={handleEndStay}
                         residences={residences} 
                         isProcessingPayment={isProcessingPayment}
+                        onUpdateBooking={(updatedBk) => setBookings(prev => prev.map(bk => bk.id === updatedBk.id ? updatedBk : bk))}
                       />
                     </div>
                   ) : (
@@ -2209,6 +2296,7 @@ export const OwnerDashboard: React.FC<{ isTestMode?: boolean; onBackToTraveler?:
                         handleEndStay={handleEndStay}
                         residences={residences} 
                         isPast 
+                        onUpdateBooking={(updatedBk) => setBookings(prev => prev.map(bk => bk.id === updatedBk.id ? updatedBk : bk))}
                       />
                     </div>
                   ) : (

@@ -10,13 +10,15 @@ interface BookingVerificationSectionProps {
   clientId: string;
   isPast: boolean;
   canEdit: boolean;
+  onStatusChange?: (newStatus: Record<string, boolean>) => void;
 }
 
 export const BookingVerificationSection: React.FC<BookingVerificationSectionProps> = ({ 
   bookingId, 
   clientId,
   isPast,
-  canEdit 
+  canEdit,
+  onStatusChange
 }) => {
   const [types, setTypes] = useState<VerificationType[]>([]);
   const [status, setStatus] = useState<Record<string, boolean>>({});
@@ -83,6 +85,9 @@ export const BookingVerificationSection: React.FC<BookingVerificationSectionProp
         const newStatus = typeof data.status === 'string' ? JSON.parse(data.status) : data.status;
         setStatus(newStatus || {});
         setSuccessMsg("Élément vérifié avec succès");
+        if (onStatusChange) {
+          onStatusChange(newStatus || {});
+        }
       } else {
         const errData = await response.json().catch(() => ({}));
         alert("Erreur: " + (errData.error || response.statusText));
