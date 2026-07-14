@@ -776,6 +776,19 @@ export const initDatabase = async () => {
       )
     `);
 
+    // Support Chat Messages
+    await executeSql(`
+      CREATE TABLE IF NOT EXISTS support_chat_messages (
+        id TEXT PRIMARY KEY,
+        user_id TEXT NOT NULL,
+        sender_id TEXT NOT NULL,
+        message TEXT,
+        is_read BOOLEAN DEFAULT 0,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY(user_id) REFERENCES users(uid)
+      )
+    `);
+
     // Notifications Table
     await executeSql(`
       CREATE TABLE IF NOT EXISTS notifications (

@@ -1241,6 +1241,18 @@ async function startServer() {
     }
 
     try {
+      // Ensure the logged-in user exists in the users table to prevent Foreign Key failure
+      if (req.user?.uid) {
+        const userExists = await executeSql("SELECT uid FROM users WHERE uid = ?", [req.user.uid]);
+        if (userExists.length === 0) {
+          await executeSql(
+            "INSERT INTO users (uid, email, role, display_name) VALUES (?, ?, ?, ?)",
+            [req.user.uid, req.user.email || 'voyageur@resifaso.com', req.user.role || 'client', 'Voyageur']
+          );
+          console.log(`[Review] Auto-created missing user record for ${req.user.uid} to satisfy foreign key constraint.`);
+        }
+      }
+
       const reviewId = `rev_${Date.now()}`;
       await executeSql(
         `INSERT INTO reviews (id, booking_id, residence_id, client_id, rating, comment)
@@ -1252,8 +1264,8 @@ async function startServer() {
         `SELECT AVG(rating) as avgRating, COUNT(*) as count FROM reviews WHERE residence_id = ?`,
         [residenceId]
       );
-      const avg = rows[0]?.avgRating || 0;
-      const count = rows[0]?.count || 0;
+      const avg = Number(rows[0]?.avgRating || 0);
+      const count = Number(rows[0]?.count || 0);
       await executeSql(
         `UPDATE residences SET rating = ?, review_count = ? WHERE id = ?`,
         [parseFloat(avg.toFixed(1)), count, residenceId]
