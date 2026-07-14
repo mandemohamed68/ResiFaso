@@ -604,10 +604,11 @@ async function startServer() {
   app.post("/api/admin/verification-types", authenticateToken, async (req: AuthRequest, res) => {
     try {
       if (req.user?.role !== 'admin') return res.status(403).json({ error: "Interdit" });
-      const { id, label, description } = req.body;
+      const { id, label, description, is_active, isActive } = req.body;
+      const activeValue = isActive !== undefined ? isActive : is_active;
       await executeSql(
-        "INSERT INTO verification_types (id, label, description, is_active) VALUES (?, ?, ?, 1)",
-        [id || 'vt_' + Math.random().toString(36).substr(2, 9), label, description]
+        "INSERT INTO verification_types (id, label, description, is_active) VALUES (?, ?, ?, ?)",
+        [id || 'vt_' + Math.random().toString(36).substr(2, 9), label, description, activeValue !== false ? 1 : 0]
       );
       res.json({ success: true });
     } catch (err: any) {
@@ -618,10 +619,11 @@ async function startServer() {
   app.put("/api/admin/verification-types/:id", authenticateToken, async (req: AuthRequest, res) => {
     try {
       if (req.user?.role !== 'admin') return res.status(403).json({ error: "Interdit" });
-      const { label, description, is_active } = req.body;
+      const { label, description, is_active, isActive } = req.body;
+      const activeValue = isActive !== undefined ? isActive : is_active;
       await executeSql(
         "UPDATE verification_types SET label = ?, description = ?, is_active = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?",
-        [label, description, is_active ? 1 : 0, req.params.id]
+        [label, description, activeValue !== false ? 1 : 0, req.params.id]
       );
       res.json({ success: true });
     } catch (err: any) {

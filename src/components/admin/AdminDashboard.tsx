@@ -96,6 +96,7 @@ export const AdminDashboard: React.FC<{ onBackToTraveler?: () => void }> = ({ on
   // Residence Editing State
   const [editingRes, setEditingRes] = useState<Residence | null>(null);
   const [selectedResForDetail, setSelectedResForDetail] = useState<Residence | null>(null);
+  const [selectedUserForDetail, setSelectedUserForDetail] = useState<UserProfile | null>(null);
   const [isSavingRes, setIsSavingRes] = useState(false);
   const [editResTitle, setEditResTitle] = useState('');
   const [editResCityId, setEditResCityId] = useState('');
@@ -2389,9 +2390,9 @@ export const AdminDashboard: React.FC<{ onBackToTraveler?: () => void }> = ({ on
                           <td className="py-4 px-6">
                             <span className={cn(
                               "px-2.5 py-1 rounded-full text-[9px] font-black uppercase",
-                              type.is_active ? "bg-green-50 text-green-700" : "bg-red-50 text-red-700"
+                              type.isActive ? "bg-green-50 text-green-700" : "bg-red-50 text-red-700"
                             )}>
-                              {type.is_active ? 'Actif' : 'Inactif'}
+                              {type.isActive ? 'Actif' : 'Inactif'}
                             </span>
                           </td>
                           <td className="py-4 px-6 text-center">
@@ -2401,7 +2402,7 @@ export const AdminDashboard: React.FC<{ onBackToTraveler?: () => void }> = ({ on
                                   setEditingVerifType(type);
                                   setVerifLabel(type.label);
                                   setVerifDescription(type.description || '');
-                                  setVerifIsActive(!!type.is_active);
+                                  setVerifIsActive(!!type.isActive);
                                 }}
                                 className="bg-slate-50 hover:bg-slate-100 border border-slate-200 text-slate-600 p-2 rounded-xl transition cursor-pointer"
                               >
@@ -2619,113 +2620,102 @@ export const AdminDashboard: React.FC<{ onBackToTraveler?: () => void }> = ({ on
             </div>
 
             <div className="overflow-x-auto bg-white border border-slate-200 rounded-[24px] shadow-sm">
-  <table className="w-full text-left border-collapse">
-    <thead>
-      <tr className="border-b border-slate-200 bg-slate-50/50">
-        <th className="p-4 text-[10px] font-black text-slate-500 uppercase tracking-widest">Utilisateur</th>
-        <th className="p-4 text-[10px] font-black text-slate-500 uppercase tracking-widest">Contact</th>
-        <th className="p-4 text-[10px] font-black text-slate-500 uppercase tracking-widest">Rôle / Statut</th>
-        <th className="p-4 text-[10px] font-black text-slate-500 uppercase tracking-widest">ID & Vérification</th>
-        <th className="p-4 text-[10px] font-black text-slate-500 uppercase tracking-widest text-right">Actions</th>
-      </tr>
-    </thead>
-    <tbody className="divide-y divide-slate-100">
-      {filteredUsers.slice((usersPage - 1) * 50, usersPage * 50).map(usr => {
-        const isListedSU = isSuperAdminEmail(usr.email);
-        const isSuspended = usr.isSuspended === true;
-        return (
-          <React.Fragment key={usr.uid}>
-            <tr className={cn(
-              "transition-colors hover:bg-slate-50/80",
-              isListedSU ? "bg-red-50/30" : isSuspended ? "bg-amber-50/30" : ""
-            )}>
-              <td className="p-4">
-                <div className="flex items-center gap-3">
-                  <div className={cn(
-                    "w-10 h-10 rounded-xl flex items-center justify-center font-black text-white shrink-0",
-                    isListedSU ? "bg-red-600 shadow-sm" : "bg-slate-900"
-                  )}>
-                    {usr.displayName?.[0] || 'U'}
-                  </div>
-                  <div>
-                    <h4 className="font-extrabold text-slate-900">{usr.displayName || "Sans Nom"}</h4>
-                  </div>
-                </div>
-              </td>
-              <td className="p-4">
-                <p className="text-xs text-slate-600 font-bold">{usr.email}</p>
-                {usr.phoneNumber && <p className="text-xs text-slate-500">{usr.phoneNumber}</p>}
-              </td>
-              <td className="p-4">
-                <div className="flex flex-wrap items-center gap-1.5">
-                  <span className="px-2 py-0.5 bg-slate-100 border border-slate-200 rounded text-[9px] font-black uppercase text-slate-600">{usr.role}</span>
-                  {usr.isVerified && <span className="px-2 py-0.5 bg-green-100 text-green-800 rounded text-[9px] font-black uppercase">Certifié</span>}
-                  {isListedSU && <span className="px-2 py-0.5 bg-red-100 text-red-800 rounded text-[9px] font-black uppercase">Super Admin</span>}
-                  {isSuspended && <span className="px-2 py-0.5 bg-amber-100 text-amber-800 rounded text-[9px] font-black uppercase">Suspendu</span>}
-                </div>
-              </td>
-              <td className="p-4">
-                {(usr.idNumber || usr.idCardUrl) ? (
-                  <div className="space-y-1.5">
-                    <div className="text-[10px] font-black text-slate-500 uppercase tracking-widest">
-                      {usr.idType || 'Document'} {usr.idNumber && <span className="ml-1 text-slate-800 font-mono">#{usr.idNumber}</span>}
-                    </div>
-                    {usr.idExpiry && new Date(usr.idExpiry) < new Date() && (
-                      <span className="px-2 py-0.5 rounded text-[8px] font-black uppercase bg-red-100 text-red-800 mr-1 inline-block">Expiré</span>
-                    )}
-                    <span className={cn(
-                      "px-2 py-0.5 rounded text-[8px] font-black uppercase inline-block",
-                      usr.verificationStatus === 'verified' ? 'bg-green-100 text-green-800' :
-                      usr.verificationStatus === 'rejected' ? 'bg-red-100 text-red-800' :
-                      'bg-amber-100 text-amber-800'
-                    )}>
-                      {usr.verificationStatus === 'verified' ? 'Vérifié' : usr.verificationStatus === 'rejected' ? 'Rejeté' : 'En attente'}
-                    </span>
-                    {(usr.verificationStatus === 'pending' || (usr.idExpiry && new Date(usr.idExpiry) < new Date())) && (
-                      <div className="flex gap-1 mt-1">
-                        <button onClick={() => handleApproveIdentity(usr.uid, usr.email, usr.displayName || 'Utilisateur')} className="px-2 py-1 bg-green-600 hover:bg-green-700 text-white rounded text-[8px] font-black uppercase cursor-pointer">Approuver</button>
-                        <button onClick={() => { if(confirm("Rejeter ?")) handleRejectIdentity(usr.uid, usr.email, usr.displayName || 'Utilisateur'); }} className="px-2 py-1 bg-red-600 hover:bg-red-700 text-white rounded text-[8px] font-black uppercase cursor-pointer">Rejeter</button>
-                      </div>
-                    )}
-                  </div>
-                ) : (
-                  <span className="text-[10px] text-slate-400 font-bold italic">Aucune pièce</span>
-                )}
-              </td>
-              <td className="p-4 text-right">
-                <div className="flex items-center justify-end gap-1">
-                  <button onClick={() => {
-                    if (expandedUserSecurityUid === usr.uid) {
-                      setExpandedUserSecurityUid(null);
-                      setEditUserPassword('');
-                      setEditUserPermissions([]);
-                    } else {
-                      setExpandedUserSecurityUid(usr.uid);
-                      setEditUserPassword('');
-                      setEditUserPermissions(usr.permissions ? usr.permissions.split(',') : []);
-                    }
-                  }} className={cn("p-1.5 rounded-lg border transition cursor-pointer", expandedUserSecurityUid === usr.uid ? "bg-slate-900 text-white border-slate-900" : "bg-blue-50 text-blue-600 border-blue-200 hover:bg-blue-100")} title="Droits & Mdp"><ShieldCheck size={14} /></button>
-                  
-                  {!isListedSU && (
-                    <>
-                      <button onClick={() => handleToggleSuspension(usr.uid, isSuspended, usr.email)} className={cn("p-1.5 rounded-lg border transition cursor-pointer", isSuspended ? "bg-green-50 text-green-600 border-green-200" : "bg-amber-50 text-amber-600 border-amber-200")} title={isSuspended ? "Réactiver" : "Suspendre"}>
-                        {isSuspended ? <Check size={14} /> : <ShieldAlert size={14} />}
-                      </button>
-                      <button onClick={() => {
-                        if (window.confirm(`Supprimer définitivement ${usr.email} ?`)) {
-                          handleDeleteUser(usr.uid, usr.email);
-                        }
-                      }} className="p-1.5 rounded-lg bg-red-50 text-red-600 border-red-200 hover:bg-red-100 cursor-pointer" title="Supprimer">
-                        <Trash2 size={14} />
-                      </button>
-                    </>
-                  )}
-                </div>
-              </td>
-            </tr>
-            {expandedUserSecurityUid === usr.uid && (
-              <tr className="bg-slate-50/50">
-                <td colSpan={5} className="p-4 border-b border-slate-200">
+              <table className="w-full text-left border-collapse">
+                <thead>
+                  <tr className="border-b border-slate-200 bg-slate-50/50">
+                    <th className="p-4 text-[10px] font-black text-slate-500 uppercase tracking-widest">Utilisateur</th>
+                    <th className="p-4 text-[10px] font-black text-slate-500 uppercase tracking-widest">Contact Direct</th>
+                    <th className="p-4 text-[10px] font-black text-slate-500 uppercase tracking-widest text-right">Actions</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100">
+                  {filteredUsers.slice((usersPage - 1) * 50, usersPage * 50).map(usr => {
+                    const isListedSU = isSuperAdminEmail(usr.email);
+                    const isSuspended = usr.isSuspended === true;
+                    return (
+                      <React.Fragment key={usr.uid}>
+                        <tr className={cn(
+                          "transition-colors hover:bg-slate-50/80",
+                          isListedSU ? "bg-red-50/30" : isSuspended ? "bg-amber-50/30" : ""
+                        )}>
+                          <td className="p-4">
+                            <div className="flex items-center gap-3">
+                              <div className={cn(
+                                "w-10 h-10 rounded-xl flex items-center justify-center font-black text-white shrink-0",
+                                isListedSU ? "bg-red-600 shadow-sm" : "bg-slate-900"
+                              )}>
+                                {usr.photoURL ? (
+                                  <img src={usr.photoURL} alt="" className="w-full h-full object-cover" referrerPolicy="no-referrer" />
+                                ) : (
+                                  usr.displayName?.[0] || 'U'
+                                )}
+                              </div>
+                              <div>
+                                <h4 className="font-extrabold text-slate-900">{usr.displayName || "Sans Nom"}</h4>
+                                <div className="flex gap-1 mt-0.5">
+                                  <span className="px-1.5 py-0.5 bg-slate-100 rounded-[4px] text-[8px] font-black uppercase text-slate-500">{usr.role}</span>
+                                  {!!usr.isVerified && <span className="px-1.5 py-0.5 bg-green-100 text-green-700 rounded-[4px] text-[8px] font-black uppercase">Vérifié</span>}
+                                </div>
+                              </div>
+                            </div>
+                          </td>
+                          <td className="p-4">
+                            <div className="flex flex-col gap-0.5">
+                              {usr.phoneNumber ? (
+                                <div className="flex items-center gap-1.5">
+                                  <div className="w-6 h-6 bg-red-50 rounded-lg flex items-center justify-center shrink-0">
+                                    <Phone size={10} className="text-red-600" />
+                                  </div>
+                                  <span className="text-xs text-slate-900 font-black">{usr.phoneNumber}</span>
+                                </div>
+                              ) : (
+                                <span className="text-[10px] text-slate-400 font-bold italic">Aucun téléphone</span>
+                              )}
+                              <span className="text-[9px] text-slate-400 font-medium">{usr.email}</span>
+                            </div>
+                          </td>
+                          <td className="p-4 text-right">
+                            <div className="flex items-center justify-end gap-1">
+                              <button 
+                                onClick={() => setSelectedUserForDetail(usr)}
+                                className="flex items-center gap-2 px-3 py-2 rounded-xl bg-slate-900 text-white hover:bg-red-600 transition shadow-xl shadow-slate-200/50 cursor-pointer text-[9px] font-black uppercase tracking-widest active:scale-95"
+                                title="Voir les détails complets"
+                              >
+                                <Eye size={12} />
+                                Détails
+                              </button>
+                              <button onClick={() => {
+                                if (expandedUserSecurityUid === usr.uid) {
+                                  setExpandedUserSecurityUid(null);
+                                  setEditUserPassword('');
+                                  setEditUserPermissions([]);
+                                } else {
+                                  setExpandedUserSecurityUid(usr.uid);
+                                  setEditUserPassword('');
+                                  setEditUserPermissions(usr.permissions ? usr.permissions.split(',') : []);
+                                }
+                              }} className={cn("p-2 rounded-xl border transition cursor-pointer", expandedUserSecurityUid === usr.uid ? "bg-slate-900 text-white border-slate-900" : "bg-white text-slate-400 border-slate-200 hover:text-blue-600 hover:border-blue-100")} title="Sécurité"><ShieldCheck size={14} /></button>
+                              
+                              {!isListedSU && (
+                                <>
+                                  <button onClick={() => handleToggleSuspension(usr.uid, isSuspended, usr.email)} className={cn("p-2 rounded-xl border transition cursor-pointer", isSuspended ? "bg-green-50 text-green-600 border-green-200" : "bg-amber-50 text-amber-600 border-amber-200")} title={isSuspended ? "Réactiver" : "Suspendre"}>
+                                    {isSuspended ? <Check size={14} /> : <ShieldAlert size={14} />}
+                                  </button>
+                                  <button onClick={() => {
+                                    if (window.confirm(`Supprimer définitivement ${usr.email} ?`)) {
+                                      handleDeleteUser(usr.uid, usr.email);
+                                    }
+                                  }} className="p-2 rounded-xl bg-red-50 text-red-600 border-red-200 hover:bg-red-600 hover:text-white transition cursor-pointer shadow-sm" title="Supprimer">
+                                    <Trash2 size={14} />
+                                  </button>
+                                </>
+                              )}
+                            </div>
+                          </td>
+                        </tr>
+                        {expandedUserSecurityUid === usr.uid && (
+                          <tr className="bg-slate-50/50">
+                            <td colSpan={3} className="p-4 border-b border-slate-200">
                   <div className="space-y-4 animate-in slide-in-from-top-2 duration-200">
                     <div className="flex flex-wrap items-center gap-2">
                       <span className="text-[10px] font-black text-slate-500 uppercase tracking-wider">Changer rôle :</span>
@@ -5706,6 +5696,182 @@ export const AdminDashboard: React.FC<{ onBackToTraveler?: () => void }> = ({ on
                 className="px-6 py-4 border border-slate-200 hover:bg-slate-50 text-slate-700 font-black rounded-2xl text-sm uppercase cursor-pointer"
               >
                 Fermer
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* USER DETAIL MODAL */}
+      {selectedUserForDetail && (
+        <div className="fixed inset-0 bg-slate-900/80 backdrop-blur-sm flex items-center justify-center p-4 z-[9999] animate-in fade-in duration-200 overflow-y-auto">
+          <div className="bg-white rounded-[32px] w-full max-w-2xl overflow-hidden p-8 border border-slate-100 shadow-2xl relative my-8 animate-in zoom-in-95 duration-200 max-h-[90vh] overflow-y-auto">
+            <button
+              onClick={() => setSelectedUserForDetail(null)}
+              className="absolute top-6 right-6 p-2 rounded-full hover:bg-slate-50 text-slate-400 hover:text-slate-600 transition"
+            >
+              <X size={18} />
+            </button>
+
+            <div className="mb-8 flex items-center gap-4">
+              <div className="w-16 h-16 rounded-2xl bg-slate-900 flex items-center justify-center text-white text-2xl font-black shrink-0 overflow-hidden shadow-lg shadow-slate-200">
+                {selectedUserForDetail.photoURL ? (
+                  <img src={selectedUserForDetail.photoURL} alt="" className="w-full h-full object-cover" referrerPolicy="no-referrer" />
+                ) : (
+                  selectedUserForDetail.displayName?.[0] || 'U'
+                )}
+              </div>
+              <div>
+                <span className="text-[9px] bg-red-100 text-red-700 px-2.5 py-1 rounded-full font-black uppercase tracking-widest">
+                  Fiche Utilisateur
+                </span>
+                <h3 className="text-2xl font-black text-slate-900 leading-tight mt-1">{selectedUserForDetail.displayName || "Sans Nom"}</h3>
+                <p className="text-xs text-slate-500 font-semibold">
+                  Rôle : <span className="uppercase text-slate-800">{selectedUserForDetail.role}</span> &bull; Membre depuis {selectedUserForDetail.createdAt ? new Date(selectedUserForDetail.createdAt).toLocaleDateString('fr-FR') : 'Date inconnue'}
+                </p>
+              </div>
+            </div>
+
+            <div className="space-y-6">
+              {/* Profile Photo if exists but not shown in avatar */}
+              {selectedUserForDetail.photoURL && (
+                <div>
+                  <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3">Photo de profil</h4>
+                  <div className="w-48 aspect-square rounded-2xl overflow-hidden border-2 border-slate-100 shadow-sm">
+                    <img src={selectedUserForDetail.photoURL} alt="Profil" className="w-full h-full object-cover" referrerPolicy="no-referrer" />
+                  </div>
+                </div>
+              )}
+
+              {/* Identity Document Section */}
+              <div>
+                <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3">Pièce d'identité & Documents</h4>
+                {(selectedUserForDetail.idCardUrl || selectedUserForDetail.idNumber) ? (
+                  <div className="space-y-4">
+                    {selectedUserForDetail.idCardUrl ? (
+                      <div className="relative group rounded-2xl overflow-hidden border border-slate-200 bg-slate-50 shadow-sm max-w-md">
+                        <img 
+                          src={selectedUserForDetail.idCardUrl} 
+                          alt="Pièce d'identité" 
+                          className="w-full h-auto object-contain max-h-[400px]"
+                          referrerPolicy="no-referrer" 
+                        />
+                        <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
+                          <a 
+                            href={selectedUserForDetail.idCardUrl} 
+                            target="_blank" 
+                            rel="noopener noreferrer"
+                            className="p-3 bg-white rounded-full text-slate-900 hover:scale-110 transition shadow-xl"
+                            title="Agrandir"
+                          >
+                            <Eye size={20} />
+                          </a>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="p-6 bg-slate-50 border-2 border-dashed border-slate-200 rounded-2xl text-center">
+                        <p className="text-[10px] text-slate-400 font-bold uppercase">Image de la pièce non téléversée</p>
+                      </div>
+                    )}
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="bg-slate-50 p-4 rounded-2xl border border-slate-100">
+                        <span className="block text-[9px] text-slate-400 font-black uppercase tracking-widest mb-1">Type de pièce</span>
+                        <span className="text-xs font-bold text-slate-900">{selectedUserForDetail.idType || 'Non spécifié'}</span>
+                      </div>
+                      <div className="bg-slate-50 p-4 rounded-2xl border border-slate-100">
+                        <span className="block text-[9px] text-slate-400 font-black uppercase tracking-widest mb-1">Numéro de pièce</span>
+                        <span className="text-xs font-mono font-bold text-slate-900">#{selectedUserForDetail.idNumber || 'Non spécifié'}</span>
+                      </div>
+                      <div className="bg-slate-50 p-4 rounded-2xl border border-slate-100">
+                        <span className="block text-[9px] text-slate-400 font-black uppercase tracking-widest mb-1">Date d'expiration</span>
+                        <span className={cn(
+                          "text-xs font-bold",
+                          selectedUserForDetail.idExpiry && new Date(selectedUserForDetail.idExpiry) < new Date() ? "text-red-600" : "text-slate-900"
+                        )}>
+                          {selectedUserForDetail.idExpiry ? new Date(selectedUserForDetail.idExpiry).toLocaleDateString('fr-FR') : 'Non spécifiée'}
+                          {selectedUserForDetail.idExpiry && new Date(selectedUserForDetail.idExpiry) < new Date() && " (EXPIRÉ)"}
+                        </span>
+                      </div>
+                      <div className="bg-slate-50 p-4 rounded-2xl border border-slate-100">
+                        <span className="block text-[9px] text-slate-400 font-black uppercase tracking-widest mb-1">Statut Vérification</span>
+                        <span className={cn(
+                          "text-xs font-black uppercase",
+                          selectedUserForDetail.verificationStatus === 'verified' ? 'text-green-600' :
+                          selectedUserForDetail.verificationStatus === 'rejected' ? 'text-red-600' :
+                          'text-amber-600'
+                        )}>
+                          {selectedUserForDetail.verificationStatus === 'verified' ? 'Vérifié' : 
+                           selectedUserForDetail.verificationStatus === 'rejected' ? 'Rejeté' : 'En attente'}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="p-8 bg-slate-50 border-2 border-dashed border-slate-200 rounded-3xl text-center">
+                    <FileText size={32} className="mx-auto text-slate-300 mb-3" />
+                    <p className="text-xs text-slate-500 font-bold">Aucune pièce d'identité n'a été téléversée par cet utilisateur.</p>
+                  </div>
+                )}
+              </div>
+
+              {/* Basic Contact Info Grid */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="bg-slate-50 p-5 rounded-2xl border border-slate-100 space-y-3">
+                  <h4 className="text-[10px] font-black text-slate-900 uppercase tracking-widest">Coordonnées</h4>
+                  <div className="space-y-2 text-xs text-slate-600 font-semibold">
+                    <div className="flex items-center gap-2">
+                      <Mail size={14} className="text-slate-400" />
+                      <span>{selectedUserForDetail.email}</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Phone size={14} className="text-slate-400" />
+                      <span>{selectedUserForDetail.phoneNumber || "Téléphone non renseigné"}</span>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="bg-slate-50 p-5 rounded-2xl border border-slate-100 space-y-3">
+                  <h4 className="text-[10px] font-black text-slate-900 uppercase tracking-widest">Compte & Sécurité</h4>
+                  <div className="space-y-2 text-xs text-slate-600 font-semibold">
+                    <div className="flex items-center gap-2">
+                      <Shield size={14} className="text-slate-400" />
+                      <span>ID : <span className="font-mono text-[10px]">{selectedUserForDetail.uid}</span></span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Clock size={14} className="text-slate-400" />
+                      <span>Statut : {selectedUserForDetail.isSuspended ? "Suspendu" : "Actif"}</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Permissions if Admin/Manager */}
+              {(selectedUserForDetail.role === 'admin' || selectedUserForDetail.role === 'manager') && (
+                <div className="bg-slate-50 p-5 rounded-2xl border border-slate-100">
+                  <h4 className="text-[10px] font-black text-slate-900 uppercase tracking-widest mb-3">Permissions Accordées</h4>
+                  <div className="flex flex-wrap gap-2">
+                    {selectedUserForDetail.permissions ? selectedUserForDetail.permissions.split(',').map(pId => {
+                      const label = AVAILABLE_PERMISSIONS.find(p => p.id === pId)?.label || pId;
+                      return (
+                        <span key={pId} className="px-2.5 py-1 bg-white border border-slate-200 rounded-lg text-[10px] font-bold text-slate-700 shadow-sm">
+                          {label}
+                        </span>
+                      );
+                    }) : (
+                      <span className="text-xs text-slate-400 font-bold italic">Aucune permission spécifique.</span>
+                    )}
+                  </div>
+                </div>
+              )}
+            </div>
+
+            <div className="flex gap-3 pt-8 mt-8 border-t border-slate-100">
+              <button
+                type="button"
+                onClick={() => setSelectedUserForDetail(null)}
+                className="flex-1 px-6 py-4 bg-slate-900 hover:bg-slate-800 text-white font-black rounded-2xl text-sm uppercase tracking-widest shadow-xl shadow-slate-200 transition-all active:scale-95 cursor-pointer"
+              >
+                Fermer la fiche
               </button>
             </div>
           </div>

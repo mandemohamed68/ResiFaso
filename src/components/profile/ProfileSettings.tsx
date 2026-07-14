@@ -501,11 +501,8 @@ export const ProfileSettings: React.FC = () => {
     { id: 'personal', label: 'Informations personnelles', icon: User },
     { id: 'id', label: 'Vérification d’identité', icon: Shield },
     { id: 'photo', label: 'Photo de profil', icon: Upload },
-    { id: 'payment', label: 'Préférences de paiement', icon: CreditCard },
-    { id: 'notifications', label: 'Notifications', icon: Bell },
     { id: 'security', label: 'Sécurité du compte', icon: Key },
     { id: 'privacy', label: 'Confidentialité', icon: Eye },
-    { id: 'server', label: 'Configuration du serveur', icon: Smartphone },
     { id: 'deactivate', label: 'Désactivation du compte', icon: AlertTriangle, danger: true },
   ];
 
@@ -595,28 +592,7 @@ export const ProfileSettings: React.FC = () => {
                 {getVerificationStatusBadge()}
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-xs font-black text-slate-500 uppercase tracking-wider mb-2">Nom d'affichage</label>
-                  <input 
-                    type="text" 
-                    id="profile-display-name-input"
-                    value={displayName} 
-                    onChange={(e) => setDisplayName(e.target.value)} 
-                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm font-medium focus:ring-2 focus:ring-red-500 outline-none transition" 
-                    placeholder="Votre nom"
-                  />
-                </div>
-                <div>
-                  <label className="block text-xs font-black text-slate-500 uppercase tracking-wider mb-2">Email</label>
-                  <input 
-                    type="email" 
-                    defaultValue={user?.email || ''} 
-                    readOnly 
-                    className="w-full bg-slate-100 border border-slate-200 rounded-xl px-4 py-3 text-sm font-medium text-slate-500 cursor-not-allowed" 
-                  />
-                  <span className="text-[10px] text-slate-400 mt-1 block font-medium">L'adresse de messagerie ne peut pas être modifiée</span>
-                </div>
+              <div className="grid grid-cols-1 gap-4">
                 <div>
                   <label className="block text-xs font-black text-slate-500 uppercase tracking-wider mb-2">Numéro de téléphone</label>
                   <input 
