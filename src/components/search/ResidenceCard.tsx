@@ -140,12 +140,12 @@ export const ResidenceCard: React.FC<Props> = ({
         </div>
 
         {/* Occupied Dates Display - High visibility for user request */}
-        {residence.occupiedDates && residence.occupiedDates.length > 0 && (
-          <div className="mb-4 bg-red-50/50 p-2.5 rounded-xl border border-red-100">
-            <div className="flex items-center gap-1.5 text-[9px] font-black uppercase tracking-widest text-red-600 mb-2">
-              <CalendarIcon size={11} className="animate-pulse" />
-              <span>Calendrier d'occupation</span>
-            </div>
+        <div className="mb-4 bg-red-50/50 p-2.5 rounded-xl border border-red-100">
+          <div className="flex items-center gap-1.5 text-[9px] font-black uppercase tracking-widest text-red-600 mb-2">
+            <CalendarIcon size={11} className="animate-pulse" />
+            <span>Calendrier d'occupation</span>
+          </div>
+          {residence.occupiedDates && residence.occupiedDates.length > 0 ? (
             <div className="flex flex-col gap-1.5">
               {residence.occupiedDates.slice(0, 5).map((date, idx) => {
                 const fromDate = new Date(date.from).toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit', year: '2-digit' });
@@ -184,8 +184,12 @@ export const ResidenceCard: React.FC<Props> = ({
                 </div>
               )}
             </div>
-          </div>
-        )}
+          ) : (
+            <div className="text-[10px] font-black text-green-600 bg-green-50 p-2 rounded-lg border border-green-200 flex justify-center items-center">
+              LIBRE ACTUELLEMENT (AUCUNE RÉSERVATION)
+            </div>
+          )}
+        </div>
 
         <div className="mt-auto space-y-3">
           {/* Quick Contact Actions (Mobile focus) */}

@@ -76,7 +76,7 @@ export const SupportChatWidget: React.FC = () => {
     <>
       <button
         onClick={() => setIsOpen(true)}
-        className={`fixed bottom-6 right-6 p-4 rounded-full shadow-2xl transition-all hover:scale-105 active:scale-95 z-40 ${
+        className={`fixed bottom-24 md:bottom-6 right-6 p-4 rounded-full shadow-2xl transition-all hover:scale-105 active:scale-95 z-[60] ${
           isOpen ? 'opacity-0 scale-0 pointer-events-none' : 'opacity-100 scale-100'
         } ${isChatOpen ? 'bg-red-600 text-white' : 'bg-slate-400 text-white'}`}
       >
@@ -89,8 +89,8 @@ export const SupportChatWidget: React.FC = () => {
             initial={{ opacity: 0, y: 20, scale: 0.95 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 20, scale: 0.95 }}
-            className="fixed bottom-6 right-6 w-80 md:w-96 bg-white rounded-3xl shadow-2xl border border-slate-100 flex flex-col z-50 overflow-hidden"
-            style={{ height: '500px', maxHeight: 'calc(100vh - 48px)' }}
+            className="fixed bottom-24 md:bottom-6 right-6 left-6 md:left-auto w-auto md:w-96 bg-white rounded-3xl shadow-2xl border border-slate-100 flex flex-col z-[60] overflow-hidden"
+            style={{ height: '500px', maxHeight: 'calc(100vh - 120px)' }}
           >
             <div className="bg-red-600 p-4 flex items-center justify-between text-white shrink-0">
               <div>

@@ -484,6 +484,28 @@ async function startServer() {
     }
   });
 
+  app.post("/api/users/public", async (req, res) => {
+    try {
+      const uids: string[] = req.body.uids || [];
+      if (!uids || uids.length === 0) {
+        return res.json({});
+      }
+      const placeholders = uids.map(() => '?').join(',');
+      const users = await executeSql(
+        `SELECT uid, display_name as displayName, photo_url as photoUrl FROM users WHERE uid IN (${placeholders})`,
+        uids
+      );
+      
+      const result: Record<string, any> = {};
+      for (const u of users) {
+        result[u.uid] = u;
+      }
+      res.json(result);
+    } catch (err: any) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
   app.put("/api/users/profile", authenticateToken, async (req: AuthRequest, res) => {
     try {
       await queries.updateUserProfile(req.user?.uid || '', req.body);
@@ -749,9 +771,17 @@ async function startServer() {
   app.post("/api/support/messages", authenticateToken, async (req: AuthRequest, res) => {
     try {
       const id = 'msg_' + Math.random().toString(36).substr(2, 9);
-      // user_id is the recipient/owner of the chat. If admin sends, they pass user_id. If user sends, user_id is their own uid.
-      const userId = req.user?.role === 'admin' ? req.body.user_id : req.user?.uid;
-      const senderId = req.user?.role === 'admin' ? 'admin' : req.user?.uid;
+      // user_id is the recipient/owner of the chat. If admin sends from admin panel, they pass user_id. 
+      // If admin tests from client widget, user_id is missing, so fallback to their own uid.
+      let userId = req.user?.uid;
+      let senderId = req.user?.uid;
+      
+      if (req.user?.role === 'admin') {
+        if (req.body.user_id) {
+          userId = req.body.user_id;
+          senderId = 'admin';
+        }
+      }
       
       await executeSql(
         "INSERT INTO support_chat_messages (id, user_id, sender_id, message) VALUES (?, ?, ?, ?)",
