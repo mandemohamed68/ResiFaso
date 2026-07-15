@@ -131,6 +131,9 @@ export interface Booking {
   refundPhone?: string;
   refundProvider?: string;
   refundProcessedAt?: string;
+  hostCancellationFee?: number;
+  nightsConsumed?: number;
+  costOfNightsSpent?: number;
   stayStatus?: 'pending' | 'ongoing' | 'completed';
   checkedInAt?: string;
   checkedOutAt?: string;

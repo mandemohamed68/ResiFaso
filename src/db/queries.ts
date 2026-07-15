@@ -254,6 +254,7 @@ export const getAllBookings = async (options: { clientId?: string, ownerId?: str
       b.transaction_id as transactionId, b.cancelled_by as cancelledBy, b.cancellation_reason as cancellationReason, 
       b.cancelled_at as cancelledAt, b.refund_status as refundStatus, b.refund_amount as refundAmount, 
       b.refund_phone as refundPhone, b.refund_provider as refundProvider, b.refund_processed_at as refundProcessedAt, 
+      b.host_cancellation_fee as hostCancellationFee, b.nights_consumed as nightsConsumed, b.cost_of_nights_spent as costOfNightsSpent,
       b.stay_status as stayStatus, b.checked_in_at as checkedInAt, b.checked_out_at as checkedOutAt, 
       b.verifications_status as verificationsStatus,
       b.created_at as createdAt,
@@ -316,6 +317,9 @@ export const getAllBookings = async (options: { clientId?: string, ownerId?: str
     refundPhone: row.refundPhone || row.refund_phone || row.refundphone,
     refundProvider: row.refundProvider || row.refund_provider || row.refundprovider,
     refundProcessedAt: row.refundProcessedAt || row.refund_processed_at || row.refundprocessedat,
+    hostCancellationFee: row.hostCancellationFee !== undefined ? row.hostCancellationFee : (row.host_cancellation_fee !== undefined ? row.host_cancellation_fee : row.hostcancellationfee),
+    nightsConsumed: row.nightsConsumed !== undefined ? row.nightsConsumed : (row.nights_consumed !== undefined ? row.nights_consumed : row.nightsconsumed),
+    costOfNightsSpent: row.costOfNightsSpent !== undefined ? row.costOfNightsSpent : (row.cost_of_nights_spent !== undefined ? row.cost_of_nights_spent : row.costofnightsspent),
     stayStatus: row.stayStatus || row.stay_status || row.staystatus,
     checkedInAt: row.checkedInAt || row.checked_in_at || row.checkedinat,
     checkedOutAt: row.checkedOutAt || row.checked_out_at || row.checkedoutat,
@@ -332,6 +336,7 @@ export const getBookingById = async (id: string) => {
       b.check_in as checkIn, b.check_out as checkOut, b.guests, b.total_price as totalPrice, 
       b.advance_paid as advancePaid, b.payment_status as paymentStatus, b.booking_status as bookingStatus, 
       b.transaction_id as transactionId, b.verifications_status as verificationsStatus,
+      b.host_cancellation_fee as hostCancellationFee, b.nights_consumed as nightsConsumed, b.cost_of_nights_spent as costOfNightsSpent,
       b.created_at as createdAt,
       u.display_name as clientName
     FROM bookings b
@@ -356,6 +361,9 @@ export const getBookingById = async (id: string) => {
     bookingStatus: row.bookingStatus || row.booking_status || row.bookingstatus,
     transactionId: row.transactionId || row.transaction_id || row.transactionid,
     verificationsStatus: row.verificationsStatus || row.verifications_status || row.verificationsstatus,
+    hostCancellationFee: row.hostCancellationFee !== undefined ? row.hostCancellationFee : (row.host_cancellation_fee !== undefined ? row.host_cancellation_fee : row.hostcancellationfee),
+    nightsConsumed: row.nightsConsumed !== undefined ? row.nightsConsumed : (row.nights_consumed !== undefined ? row.nights_consumed : row.nightsconsumed),
+    costOfNightsSpent: row.costOfNightsSpent !== undefined ? row.costOfNightsSpent : (row.cost_of_nights_spent !== undefined ? row.cost_of_nights_spent : row.costofnightsspent),
     createdAt: row.createdAt || row.created_at || row.createdat,
     clientName: row.clientName || row.client_name || row.clientname
   };

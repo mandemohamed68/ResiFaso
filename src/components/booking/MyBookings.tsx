@@ -218,19 +218,13 @@ const CancellationModal: React.FC<CancellationModalProps> = ({ isOpen, onClose, 
 
   if (paidAmount > 0) {
     if (isStayStarted) {
-      scenarioLabel = "Séjour commencé et interrompu (Remboursement au prorata)";
-      const remainingNights = Math.max(0, totalNights - nightsSpent);
-      const prorationAmount = remainingNights * pricePerNight;
-      calculatedRefund = Math.max(0, prorationAmount - hostCancellationFee);
-      explanationStr = `Vous libérez la chambre en cours de séjour après ${nightsSpent} nuit(s) consommée(s) sur ${totalNights} (${formatCurrency(costOfNightsSpent)} F CFA dus). Le solde prorata des nuits non consommées est de ${formatCurrency(prorationAmount)} F CFA, moins vos frais administratifs fixes de l'Hôte (${formatCurrency(hostCancellationFee)} F CFA).`;
-    } else if (isFullyPaid) {
-      scenarioLabel = "Paiement intégral soldé, séjour non commencé";
-      calculatedRefund = Math.max(0, paidAmount - hostCancellationFee);
-      explanationStr = `Séjour de ${totalNights} nuit(s) entièrement prépayé mais non débuté. Vous êtes remboursé de l'intégralité (${formatCurrency(paidAmount)} F CFA) moins les frais d'annulation fixes de l'Hôte (${formatCurrency(hostCancellationFee)} F CFA).`;
+      scenarioLabel = "Séjour commencé et interrompu";
+      calculatedRefund = Math.max(0, paidAmount - (costOfNightsSpent + hostCancellationFee));
+      explanationStr = `Séjour débuté (${nightsSpent} nuit(s) consommée(s)). Votre remboursement est calculé sur le montant versé (${formatCurrency(paidAmount)} F CFA), déduction faite des frais administratifs fixes de l'Hôte (${formatCurrency(hostCancellationFee)} F CFA) et du coût des nuitées déjà consommées (${formatCurrency(costOfNightsSpent)} F CFA).`;
     } else {
-      scenarioLabel = "Acompte partiel versé, séjour non commencé";
+      scenarioLabel = "Séjour non commencé";
       calculatedRefund = Math.max(0, paidAmount - hostCancellationFee);
-      explanationStr = `Seul l'acompte de ${formatCurrency(paidAmount)} F CFA a été réglé à l'Hôte. Vous êtes remboursé de cet acompte moins les frais d'annulation fixes de l'Hôte (${formatCurrency(hostCancellationFee)} F CFA).`;
+      explanationStr = `Séjour de ${totalNights} nuit(s) non débuté. Vous êtes remboursé du montant versé (${formatCurrency(paidAmount)} F CFA) moins les frais d'annulation fixes de l'Hôte (${formatCurrency(hostCancellationFee)} F CFA).`;
     }
   }
 
@@ -257,7 +251,10 @@ const CancellationModal: React.FC<CancellationModalProps> = ({ isOpen, onClose, 
         refundStatus: paidAmount > 0 ? 'pending' : 'none',
         refundAmount: refundAmount,
         refundPhone: refundPhone ? refundPhone.trim() : '',
-        refundProvider: refundProvider
+        refundProvider: refundProvider,
+        hostCancellationFee: hostCancellationFee,
+        nightsConsumed: nightsSpent,
+        costOfNightsSpent: costOfNightsSpent
       });
 
       // Send host notification
@@ -344,7 +341,7 @@ const CancellationModal: React.FC<CancellationModalProps> = ({ isOpen, onClose, 
                     </div>
                   )}
                   <div className="flex justify-between text-slate-600">
-                    <span>Frais de traitement administrative :</span>
+                    <span>Frais administratifs fixes retenus :</span>
                     <span className="font-bold text-red-600">-{formatCurrency(hostCancellationFee)} F CFA</span>
                   </div>
                   <div className="flex justify-between text-slate-900 font-extrabold border-t border-dashed border-orange-200 pt-1.5 text-sm">
@@ -945,8 +942,26 @@ export const MyBookings: React.FC<{ onContactHost: (ownerId: string, resId: stri
                           </p>
                         )}
                         {booking.refundStatus && booking.refundStatus !== 'none' && (
-                          <div className="pt-2 border-t border-red-100 space-y-1">
-                            <span className="block text-[9px] font-black text-slate-400 uppercase tracking-widest">Suivi de Remboursement</span>
+                          <div className="pt-2 border-t border-red-100 space-y-2">
+                            <span className="block text-[9px] font-black text-slate-400 uppercase tracking-widest">Suivi de Remboursement & Politique</span>
+                            
+                            {/* Breakdown summary */}
+                            <div className="bg-red-50/50 p-2.5 rounded-xl border border-red-100/50 space-y-1">
+                               <p className="text-[10px] text-red-800 font-bold leading-tight">
+                                 💰 {booking.refundAmount > 0 
+                                   ? `Remboursement de ${formatCurrency(booking.refundAmount)} F CFA calculé selon la politique d'annulation.`
+                                   : "Aucun remboursement applicable selon la politique d'annulation."}
+                               </p>
+                               <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-[9px] text-slate-500 font-medium italic">
+                                 {(booking.hostCancellationFee !== undefined || booking.refundAmount !== undefined) && (
+                                   <p>• Frais administratifs : <span className="text-red-600">-{formatCurrency(booking.hostCancellationFee || 0)} F</span></p>
+                                 )}
+                                 {booking.nightsConsumed !== undefined && booking.nightsConsumed > 0 && (
+                                   <p>• Nuitées consommées : <span className="text-red-600">-{formatCurrency(booking.costOfNightsSpent || 0)} F</span></p>
+                                 )}
+                               </div>
+                            </div>
+
                             {booking.refundStatus === 'pending' && (
                               <div className="flex items-center gap-1.5 text-xs text-amber-700 font-bold bg-amber-50 px-3 py-2 rounded-xl border border-amber-200 w-fit">
                                 <span className="animate-pulse">⏳</span>

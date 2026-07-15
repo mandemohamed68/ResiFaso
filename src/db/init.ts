@@ -332,6 +332,9 @@ export const initDatabase = async () => {
         stay_status VARCHAR(50) DEFAULT 'upcoming',
         checked_in_at VARCHAR(50),
         checked_out_at VARCHAR(50),
+        host_cancellation_fee DECIMAL(10, 2) DEFAULT 0,
+        nights_consumed INTEGER DEFAULT 0,
+        cost_of_nights_spent DECIMAL(10, 2) DEFAULT 0,
         verifications_status VARCHAR(50) DEFAULT 'pending',
         created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
         FOREIGN KEY(residence_id) REFERENCES residences(id) ON DELETE SET NULL,
@@ -710,6 +713,9 @@ export const initDatabase = async () => {
         stay_status TEXT DEFAULT 'upcoming',
         checked_in_at TEXT,
         checked_out_at TEXT,
+        host_cancellation_fee REAL DEFAULT 0,
+        nights_consumed INTEGER DEFAULT 0,
+        cost_of_nights_spent REAL DEFAULT 0,
         verifications_status TEXT DEFAULT 'pending',
         created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
         FOREIGN KEY(residence_id) REFERENCES residences(id),
@@ -882,6 +888,9 @@ export const initDatabase = async () => {
 
     // Add verifications_status to bookings if not exists
     await safeAlter('bookings', 'verifications_status', 'TEXT');
+    await safeAlter('bookings', 'host_cancellation_fee', 'REAL DEFAULT 0');
+    await safeAlter('bookings', 'nights_consumed', 'INTEGER DEFAULT 0');
+    await safeAlter('bookings', 'cost_of_nights_spent', 'REAL DEFAULT 0');
 
     // Seed default verification types
     try {

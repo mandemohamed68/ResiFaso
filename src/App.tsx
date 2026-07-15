@@ -1437,18 +1437,6 @@ function AppContent() {
                               <span>Frais de ménage</span>
                               <span className="font-medium">{formatFCFA(selectedResidence.cleaningFee || selectedResidence.cleaning_fee)}</span>
                             </div>
-                            {commissionRate > 0 && (
-                              <div className="flex justify-between items-center bg-emerald-50 border border-emerald-100 p-2.5 rounded-xl text-xs">
-                                <span className="text-emerald-800 font-extrabold">Frais de service ({commissionRate}%)</span>
-                                <span className="text-emerald-600 font-black">0 F CFA (Pris en charge par l'hôte)</span>
-                              </div>
-                            )}
-                            {(selectedResidence.serviceFee > 0 || selectedResidence.service_fee > 0) && (
-                              <div className="flex justify-between text-slate-600">
-                                <span>Frais de service Additionnel</span>
-                                <span className="font-medium">{formatFCFA(selectedResidence.serviceFee || selectedResidence.service_fee)}</span>
-                              </div>
-                            )}
                           </>
                         );
                       })()}
