@@ -2136,6 +2136,7 @@ export const AdminDashboard: React.FC<{ onBackToTraveler?: () => void }> = ({ on
                     <tr className="border-b border-slate-100 bg-slate-50/40 text-[10px] font-black text-slate-400 uppercase tracking-widest">
                       <th className="py-5 px-6">Logement</th>
                       <th className="py-5 px-6">Adresse</th>
+                      <th className="py-5 px-6">Propriétaire/Hôte</th>
                       <th className="py-5 px-6">Prix/Nuit</th>
                       <th className="py-5 px-6">Statut de Revue</th>
                       <th className="py-5 px-6 text-center">Badge Recommandé</th>
@@ -2157,6 +2158,12 @@ export const AdminDashboard: React.FC<{ onBackToTraveler?: () => void }> = ({ on
                         </td>
                         <td className="py-4 px-6 font-medium text-slate-500">
                           {res.address?.neighborhood || res.neighborhood}, {res.address?.city || res.city}
+                        </td>
+                        <td className="py-4 px-6">
+                          <div className="flex flex-col">
+                            <span className="text-xs font-black text-slate-900">{users.find(u => u.uid === res.ownerId)?.displayName || 'Inconnu'}</span>
+                            <span className="text-[10px] text-slate-400 font-bold">{res.ownerId?.substring(0, 8)}</span>
+                          </div>
                         </td>
                         <td className="py-4 px-6 font-black text-slate-950">
                           {formatCurrency(res.pricePerNight || res.price_per_night)} F

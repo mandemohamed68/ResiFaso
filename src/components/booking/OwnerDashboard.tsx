@@ -939,10 +939,9 @@ export const OwnerDashboard: React.FC<{ isTestMode?: boolean; onBackToTraveler?:
       const type = await getBackendDbType();
       setDbType(type);
       
-      const isAdmin = user.role === 'admin' || user.email === 'mandemohamed68@gmail.com';
       const [resList, bookList, withList, settingsData] = await Promise.all([
-        isAdmin ? getAllResidences() : getOwnerResidences(user.uid),
-        isAdmin ? getAllBookings() : getOwnerBookings(user.uid),
+        getOwnerResidences(user.uid),
+        getOwnerBookings(user.uid),
         getOwnerWithdrawals(user.uid),
         getGlobalSettings()
       ]);
