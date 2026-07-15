@@ -671,7 +671,7 @@ function AppContent() {
               initial={{ opacity: 0, y: 15 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -15 }}
-              transition={{ duration: 0.4, ease: "easeOut" }}
+              transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
             >
               <Hero />
               
@@ -888,7 +888,7 @@ function AppContent() {
               initial={{ opacity: 0, y: 15 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -15 }}
-              transition={{ duration: 0.4, ease: "easeOut" }}
+              transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
               className="max-w-7xl mx-auto px-4 py-8"
             >
               <div className="flex items-center justify-between mb-6">
@@ -1525,7 +1525,7 @@ function AppContent() {
               initial={{ opacity: 0, y: 15 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -15 }}
-              transition={{ duration: 0.4, ease: "easeOut" }}
+              transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
             >
               <MyBookings onContactHost={handleContactHost} isTestMode={isTestMode} />
             </motion.div>
@@ -1538,7 +1538,7 @@ function AppContent() {
               initial={{ opacity: 0, y: 15 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -15 }}
-              transition={{ duration: 0.4, ease: "easeOut" }}
+              transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
             >
               <MessagesView initialConversationId={initialConversationId} />
             </motion.div>
@@ -1551,7 +1551,7 @@ function AppContent() {
               initial={{ opacity: 0, y: 15 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -15 }}
-              transition={{ duration: 0.4, ease: "easeOut" }}
+              transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
             >
               <ProfileSettings />
             </motion.div>
@@ -1564,7 +1564,7 @@ function AppContent() {
               initial={{ opacity: 0, y: 15 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -15 }}
-              transition={{ duration: 0.4, ease: "easeOut" }}
+              transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
               className="max-w-7xl mx-auto px-4 py-8"
             >
               <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-8">
@@ -1639,7 +1639,7 @@ function AppContent() {
               initial={{ opacity: 0, y: 15 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -15 }}
-              transition={{ duration: 0.4, ease: "easeOut" }}
+              transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
             >
               <OwnerDashboard isTestMode={isTestMode} onBackToTraveler={() => handleNavigate('home')} />
             </motion.div>
@@ -1652,7 +1652,7 @@ function AppContent() {
               initial={{ opacity: 0, y: 15, scale: 0.98 }}
               animate={{ opacity: 1, y: 0, scale: 1 }}
               exit={{ opacity: 0, y: -15, scale: 0.98 }}
-              transition={{ duration: 0.4, ease: "easeOut" }}
+              transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
               className="max-w-7xl mx-auto px-4 py-8"
             >
               <AdminDashboard onBackToTraveler={() => handleNavigate('home')} />

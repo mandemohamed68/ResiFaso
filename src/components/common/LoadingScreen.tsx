@@ -29,7 +29,7 @@ export const LoadingScreen: React.FC = () => {
         <motion.div
           initial={{ scale: 0.8, opacity: 0 }}
           animate={{ scale: 1, opacity: 1 }}
-          transition={{ duration: 0.5, ease: "easeOut" }}
+          transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
           className="relative z-10 flex flex-col items-center"
         >
           <div className="w-24 h-24 mb-6 relative">
@@ -49,7 +49,7 @@ export const LoadingScreen: React.FC = () => {
           <motion.div
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.3, duration: 0.5 }}
+            transition={{ delay: 0.2, duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
             className="text-center"
           >
             <h2 className="text-2xl font-black text-slate-900 tracking-tighter uppercase mb-1">

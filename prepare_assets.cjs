@@ -6,7 +6,7 @@ if (!fs.existsSync(assetsDir)) {
   fs.mkdirSync(assetsDir);
 }
 
-const logoPath = path.join(__dirname, 'public', 'logoresifaso.png');
+const logoPath = path.join(__dirname, 'public', 'logoresifasoORG.png');
 if (fs.existsSync(logoPath)) {
   fs.copyFileSync(logoPath, path.join(assetsDir, 'icon.png'));
   fs.copyFileSync(logoPath, path.join(assetsDir, 'splash.png'));
