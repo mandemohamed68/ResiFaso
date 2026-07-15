@@ -4,6 +4,8 @@ import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { RoleProvider, useRole } from './contexts/RoleContext';
 import { ToastProvider, useToast } from './contexts/ToastContext';
 import { DataRefreshProvider, useDataRefresh } from './contexts/DataRefreshContext';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useResidences, useGlobalSettings } from './hooks/useQueries';
 import { Navbar } from './components/common/Navbar';
 import { LoadingScreen } from './components/common/LoadingScreen';
 import { Hero } from './components/home/Hero';
@@ -50,6 +52,46 @@ function AppContent() {
   const { currentRole, setCurrentRole } = useRole();
   const { addToast } = useToast();
   const { lastRefresh } = useDataRefresh();
+  const queryClient = useQueryClient();
+
+  const { data: resData, isLoading: resLoading } = useResidences();
+  const { data: gsData } = useGlobalSettings();
+
+  const [residences, setResidences] = useState<Residence[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    if (resData) setResidences(resData);
+  }, [resData]);
+
+  useEffect(() => {
+    setLoading(resLoading);
+  }, [resLoading]);
+
+  useEffect(() => {
+    if (gsData) {
+      const gs = gsData as any;
+      if (gs.isTestMode !== undefined) setIsTestMode(gs.isTestMode);
+      if (gs.commissionRate !== undefined) setCommissionRate(gs.commissionRate);
+      if (gs.enablePhoneCalls !== undefined) setEnablePhoneCalls(gs.enablePhoneCalls);
+      if (gs.enableWhatsApp !== undefined) setEnableWhatsApp(gs.enableWhatsApp);
+      if (gs.minReservationAmountEnabled !== undefined) setMinReservationAmountEnabled(gs.minReservationAmountEnabled);
+      if (gs.minReservationAmount !== undefined) setMinReservationAmount(gs.minReservationAmount);
+      if (gs.maxBookingsWithoutId !== undefined) setMaxBookingsWithoutId(Number(gs.maxBookingsWithoutId));
+      
+      if (gs.announcements && gs.announcements.length > 0) {
+        setAnnouncements(gs.announcements);
+      }
+      
+      if (gs.announcement) {
+        setGlobalAnnouncement({
+          text: gs.announcement.text || '',
+          type: gs.announcement.type || 'info',
+          active: !!gs.announcement.active
+        });
+      }
+    }
+  }, [gsData]);
   
   const [view, setView] = useState<'home' | 'search' | 'details' | 'admin' | 'bookings' | 'owner-dashboard' | 'profile' | 'messages' | 'favorites' | 'tos' | 'privacy' | 'faq' | 'contact' | 'guide' | 'reset-password'>('home');
   const [selectedResidence, setSelectedResidence] = useState<Residence | null>(null);
@@ -170,10 +212,8 @@ function AppContent() {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
-  // Database list and loadings
-  const [residences, setResidences] = useState<Residence[]>([]);
+  // Database list and loadings - Redundant now
   const [homePage, setHomePage] = useState(1);
-  const [loading, setLoading] = useState(true);
   const [commissionRate, setCommissionRate] = useState<number>(8);
 
   // Search filter options
@@ -189,50 +229,8 @@ function AppContent() {
     setHomePage(1);
   }, [searchFilters]);
 
-  // Synchroniser le Mode Test avec les Paramètres Globaux (API)
-  useEffect(() => {
-    const fetchSettings = async () => {
-      try {
-        const response = await apiFetch('/api/settings/global');
-        if (response.ok) {
-          const data = await response.json();
-          if (data.isTestMode !== undefined) setIsTestMode(data.isTestMode);
-          if (data.commissionRate !== undefined) setCommissionRate(data.commissionRate);
-          if (data.enablePhoneCalls !== undefined) setEnablePhoneCalls(data.enablePhoneCalls);
-          if (data.enableWhatsApp !== undefined) setEnableWhatsApp(data.enableWhatsApp);
-          if (data.minReservationAmountEnabled !== undefined) setMinReservationAmountEnabled(data.minReservationAmountEnabled);
-          if (data.minReservationAmount !== undefined) setMinReservationAmount(data.minReservationAmount);
-          if (data.maxBookingsWithoutId !== undefined) setMaxBookingsWithoutId(Number(data.maxBookingsWithoutId));
-          
-          if (data.announcements && data.announcements.length > 0) {
-            setAnnouncements(data.announcements);
-          } else if (data.announcement) {
-            const fallbackList = (data.announcement.text || '').split('\n').filter((l: string) => l.trim().length > 0);
-            setAnnouncements(fallbackList.map((t: string, i: number) => ({
-              id: `ann_fallback_${i}`,
-              text: t.trim(),
-              type: data.announcement.type || 'info',
-              active: !!data.announcement.active,
-              emoji: '📢'
-            })));
-          }
-
-          if (data.announcement) {
-            setGlobalAnnouncement({
-              text: data.announcement.text || '',
-              type: data.announcement.type || 'info',
-              active: !!data.announcement.active
-            });
-            setIsAnnouncementDismissed(false);
-          }
-        }
-      } catch (err) {
-        console.error("Error fetching global settings:", err);
-      }
-    };
-    fetchSettings();
-  }, []);
-
+  // Synchroniser le Mode Test avec les Paramètres Globaux (API) - Now handled by React Query GS query
+  
   // Fetch client bookings count to enforce the verification limit
   useEffect(() => {
     if (user && profile?.role === 'client') {
@@ -244,30 +242,8 @@ function AppContent() {
     }
   }, [user, profile, view, lastRefresh]);
 
-  // Fetch residences from API
-  useEffect(() => {
-    const fetchResidences = async () => {
-      const isInitial = residences.length === 0;
-      try {
-        if (isInitial) setLoading(true);
-        const response = await apiFetch('/api/residences');
-        if (response.ok) {
-          const data = await response.json();
-          // Filter published only if needed (backend should ideally handle this)
-          const published = data.filter((r: any) => r.status === 'published');
-          setResidences(published);
-        }
-      } catch (err) {
-        console.error("Error loading residences:", err);
-      } finally {
-        if (isInitial) {
-          setTimeout(() => setLoading(false), 800); // Small delay for smooth exit
-        }
-      }
-    };
-    fetchResidences();
-  }, [lastRefresh]);
-
+  // Fetch residences from API - Now handled by React Query useResidences
+  
   const handleResidenceClick = (residence: Residence) => {
     setSelectedResidence(residence);
     handleNavigate('details');

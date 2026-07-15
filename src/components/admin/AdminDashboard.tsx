@@ -15,6 +15,8 @@ import { motion, AnimatePresence } from 'motion/react';
 import { cn, formatFCFA, formatDateFr, formatDateTimeFr } from '../../lib/utils';
 import { useAuth } from '../../contexts/AuthContext';
 import { useDataRefresh } from '../../contexts/DataRefreshContext';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useAdminData } from '../../hooks/useQueries';
 import { PREDEFINED_TYPES } from '../booking/OwnerDashboard';
 import { resizeImage } from '../../lib/imageResize';
 import { 
@@ -63,7 +65,52 @@ export const AdminDashboard: React.FC<{ onBackToTraveler?: () => void }> = ({ on
   const { user } = useAuth();
   const { lastRefresh } = useDataRefresh();
   const { addToast } = useToast();
+  const queryClient = useQueryClient();
+  const { data: adminData, isLoading: isAdminLoading } = useAdminData(user?.role);
+
   const [activeTab, setActiveTab] = useState<'overview' | 'alerts' | 'listings' | 'users' | 'bookings' | 'revenue' | 'reviews' | 'reports' | 'settings' | 'logs' | 'ads' | 'withdrawals' | 'locations' | 'flash-info' | 'faq' | 'contact' | 'email' | 'verifications' | 'support'>('overview');
+  
+  // Sync adminData to states
+  useEffect(() => {
+    if (adminData) {
+      if (adminData.residences) setResidences(adminData.residences);
+      if (adminData.users) setUsers(adminData.users);
+      if (adminData.bookings) setBookings(adminData.bookings);
+      if (adminData.reviews) setReviews(adminData.reviews);
+      if (adminData.ads) setAds(adminData.ads);
+      if (adminData.withdrawals) setWithdrawals(adminData.withdrawals);
+      if (adminData.faqs) setFaqs(adminData.faqs);
+      if (adminData.messages) setContactMessages(adminData.messages);
+      if (adminData.verificationTypes) setVerificationTypes(adminData.verificationTypes);
+      if (adminData.contactSettings) setContactSettings(adminData.contactSettings as ContactSettings);
+      
+      const s = adminData.settings;
+      if (s) {
+        if (s.platformName !== undefined) setPlatformName(s.platformName);
+        if (s.footerContent !== undefined) setFooterContent(s.footerContent);
+        if (s.commissionRate !== undefined) setCommissionRate(s.commissionRate);
+        if (s.isTestMode !== undefined) setIsGlobalTestMode(s.isTestMode);
+        if (s.enablePhoneCalls !== undefined) setEnablePhoneCalls(s.enablePhoneCalls);
+        if (s.enableWhatsApp !== undefined) setEnableWhatsApp(s.enableWhatsApp);
+        if (s.minReservationAmountEnabled !== undefined) setMinReservationAmountEnabled(s.minReservationAmountEnabled);
+        if (s.minReservationAmount !== undefined) setMinReservationAmount(s.minReservationAmount);
+        if (s.refreshInterval !== undefined) setRefreshInterval(s.refreshInterval);
+        if (s.supportChatEnabled !== undefined) setSupportChatEnabled(s.supportChatEnabled);
+        if (s.supportChatOpenTime !== undefined) setSupportChatOpenTime(s.supportChatOpenTime);
+        if (s.supportChatCloseTime !== undefined) setSupportChatCloseTime(s.supportChatCloseTime);
+        if (s.maxBookingsWithoutId !== undefined) setMaxBookingsWithoutId(Number(s.maxBookingsWithoutId));
+        if (s.sappayClientId !== undefined) setSappayClientId(s.sappayClientId);
+        if (s.sappayClientSecret !== undefined) setSappayClientSecret(s.sappayClientSecret);
+        if (s.sappayUsername !== undefined) setSappayUsername(s.sappayUsername);
+        if (s.sappayPassword !== undefined) setSappayPassword(s.sappayPassword);
+        
+        if (s.announcements && s.announcements.length > 0) {
+          setAnnouncements(s.announcements);
+        }
+      }
+    }
+  }, [adminData]);
+
   const [verificationTypes, setVerificationTypes] = useState<any[]>([]);
   const [editingVerifType, setEditingVerifType] = useState<any | null>(null);
   const [isSavingVerifType, setIsSavingVerifType] = useState(false);
@@ -243,92 +290,8 @@ export const AdminDashboard: React.FC<{ onBackToTraveler?: () => void }> = ({ on
   const [isReloading, setIsReloading] = useState(false);
 
   const reloadData = async () => {
-    const isInitial = residences.length === 0 && users.length === 0;
-    if (isInitial) setIsReloading(true);
-    try {
-      const [
-        resList,
-        userList,
-        bookingList,
-        reviewList,
-        settingsData,
-        adList,
-        withdrawalList,
-        faqList,
-        contactSettingsData,
-        messageList,
-        verifTypeList
-      ] = await Promise.all([
-        getAllResidences().catch(() => []),
-        getAllUsers().catch(() => []),
-        getAllBookings().catch(() => []),
-        getAllReviews().catch(() => []),
-        getGlobalSettings().catch(() => ({})),
-        getAllAds().catch(() => []),
-        getAllWithdrawals().catch(() => []),
-        getAllFaqs().catch(() => []),
-        getContactSettings().catch(() => ({})),
-        getAllContactMessages().catch(() => []),
-        apiFetch('/api/admin/verification-types').then(r => r.ok ? r.json() : []).catch(() => [])
-      ]);
-
-      if (resList) setResidences(resList);
-      if (userList) setUsers(userList);
-      if (bookingList) setBookings(bookingList);
-      if (reviewList) setReviews(reviewList);
-      if (adList) setAds(adList);
-      if (withdrawalList) setWithdrawals(withdrawalList);
-      if (faqList) setFaqs(faqList);
-      if (messageList) setContactMessages(messageList);
-      if (verifTypeList && Array.isArray(verifTypeList)) setVerificationTypes(verifTypeList);
-
-      if (settingsData) {
-        if (settingsData.platformName !== undefined) setPlatformName(settingsData.platformName);
-        if (settingsData.footerContent !== undefined) setFooterContent(settingsData.footerContent);
-        if (settingsData.commissionRate !== undefined) setCommissionRate(settingsData.commissionRate);
-        if (settingsData.isTestMode !== undefined) setIsGlobalTestMode(settingsData.isTestMode);
-        if (settingsData.enablePhoneCalls !== undefined) setEnablePhoneCalls(settingsData.enablePhoneCalls);
-        if (settingsData.enableWhatsApp !== undefined) setEnableWhatsApp(settingsData.enableWhatsApp);
-        if (settingsData.minReservationAmountEnabled !== undefined) setMinReservationAmountEnabled(settingsData.minReservationAmountEnabled);
-        if (settingsData.minReservationAmount !== undefined) setMinReservationAmount(settingsData.minReservationAmount);
-        if (settingsData.refreshInterval !== undefined) setRefreshInterval(settingsData.refreshInterval);
-        if (settingsData.supportChatEnabled !== undefined) setSupportChatEnabled(settingsData.supportChatEnabled);
-        if (settingsData.supportChatOpenTime !== undefined) setSupportChatOpenTime(settingsData.supportChatOpenTime);
-        if (settingsData.supportChatCloseTime !== undefined) setSupportChatCloseTime(settingsData.supportChatCloseTime);
-        if (settingsData.maxBookingsWithoutId !== undefined) setMaxBookingsWithoutId(Number(settingsData.maxBookingsWithoutId));
-        if (settingsData.sappayClientId !== undefined) setSappayClientId(settingsData.sappayClientId);
-        if (settingsData.sappayClientSecret !== undefined) setSappayClientSecret(settingsData.sappayClientSecret);
-        if (settingsData.sappayUsername !== undefined) setSappayUsername(settingsData.sappayUsername);
-        if (settingsData.sappayPassword !== undefined) setSappayPassword(settingsData.sappayPassword);
-        
-        if (settingsData.announcements && settingsData.announcements.length > 0) {
-          setAnnouncements(settingsData.announcements);
-        } else if (settingsData.announcement) {
-          const fallbackList = (settingsData.announcement.text || '').split('\n').filter((l: string) => l.trim().length > 0);
-          setAnnouncements(fallbackList.map((t: string, i: number) => ({
-            id: `ann_fallback_${i}`,
-            text: t.trim(),
-            type: settingsData.announcement.type || 'info',
-            active: !!settingsData.announcement.active,
-            emoji: '📢'
-          })));
-        }
-
-        if (settingsData.announcement) {
-          setAnnouncementText(settingsData.announcement.text || '');
-          setAnnouncementType(settingsData.announcement.type || 'info');
-          setAnnouncementActive(settingsData.announcement.active || false);
-        }
-      }
-
-      if (contactSettingsData) {
-        setContactSettings(contactSettingsData as ContactSettings);
-      }
-    } catch (err) {
-      console.error("Error reloading admin data:", err);
-    } finally {
-      if (isInitial) setIsReloading(false);
-    }
+    // reloadData is now handled by React Query invalidation
+    queryClient.invalidateQueries({ queryKey: ['admin-data'] });
   };
 
   useEffect(() => {

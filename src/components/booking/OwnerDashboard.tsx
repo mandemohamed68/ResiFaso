@@ -4,6 +4,15 @@ import { useAuth } from '../../contexts/AuthContext';
 import { useToast } from '../../contexts/ToastContext';
 import { useDataRefresh } from '../../contexts/DataRefreshContext';
 import { apiFetch } from '../../lib/api';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { 
+  useOwnerResidences, 
+  useOwnerBookings, 
+  useOwnerWithdrawals, 
+  useGlobalSettings,
+  useUserProfile
+} from '../../hooks/useQueries';
+import { queryClient as globalQueryClient } from '../../lib/queryClient';
 import { 
   getOwnerResidences, 
   getOwnerBookings, 
@@ -819,9 +828,39 @@ export const PREDEFINED_TYPES = [
 export const OwnerDashboard: React.FC<{ isTestMode?: boolean; onBackToTraveler?: () => void }> = ({ isTestMode, onBackToTraveler }) => {
   const { user, profile, refreshProfile } = useAuth();
   const { lastRefresh, refreshData } = useDataRefresh();
+  const queryClient = useQueryClient();
+
+  const { data: resData, isLoading: resLoading } = useOwnerResidences(user?.uid);
+  const { data: bookData, isLoading: bookLoading } = useOwnerBookings(user?.uid);
+  const { data: withData } = useOwnerWithdrawals(user?.uid);
+  const { data: settingsData } = useGlobalSettings();
+  const { data: profileData } = useUserProfile(user?.uid);
+
   const [residences, setResidences] = useState<Residence[]>([]);
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    if (resData) {
+      const sorted = [...resData].sort((a, b) => 
+        new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime()
+      );
+      setResidences(sorted);
+    }
+  }, [resData]);
+
+  useEffect(() => {
+    if (bookData) {
+      const sorted = [...bookData].sort((a, b) => 
+        new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime()
+      );
+      setBookings(sorted);
+    }
+  }, [bookData]);
+
+  useEffect(() => {
+    setLoading(resLoading || bookLoading);
+  }, [resLoading, bookLoading]);
   const [listingsPage, setListingsPage] = useState(1);
   const [withdrawalsPage, setWithdrawalsPage] = useState(1);
 
@@ -853,6 +892,29 @@ export const OwnerDashboard: React.FC<{ isTestMode?: boolean; onBackToTraveler?:
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [newMessage, setNewMessage] = useState('');
   const [participantsInfo, setParticipantsInfo] = useState<Record<string, any>>({});
+
+  // Sync withdrawals and settings from React Query
+  useEffect(() => {
+    if (withData) setWithdrawals(withData);
+  }, [withData]);
+
+  useEffect(() => {
+    const s = settingsData as any;
+    if (s?.commissionRate !== undefined) {
+      setCommissionRate(s.commissionRate);
+    }
+  }, [settingsData]);
+
+  useEffect(() => {
+    if (profileData) {
+      if (profileData.hostCancellationFee !== undefined) {
+        setHostCancellationFee(Number(profileData.hostCancellationFee));
+      }
+      if (profileData.hostCancellationRulesText !== undefined) {
+        setHostCancellationRulesText(profileData.hostCancellationRulesText);
+      }
+    }
+  }, [profileData]);
 
   // Withdrawal features states
   const { allLocations } = useLocations();
@@ -990,7 +1052,10 @@ export const OwnerDashboard: React.FC<{ isTestMode?: boolean; onBackToTraveler?:
 
   useEffect(() => {
     if (user) {
-      fetchData();
+      queryClient.invalidateQueries({ queryKey: ['owner-residences', user?.uid] });
+      queryClient.invalidateQueries({ queryKey: ['owner-bookings', user?.uid] });
+      queryClient.invalidateQueries({ queryKey: ['owner-withdrawals', user?.uid] });
+      queryClient.invalidateQueries({ queryKey: ['user-profile', user?.uid] });
     }
   }, [user, lastRefresh]);
 
