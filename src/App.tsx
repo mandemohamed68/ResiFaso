@@ -32,7 +32,8 @@ import {
   createBooking, 
   getOrCreateConversation,
   updateBookingStatus,
-  sendNotification
+  sendNotification,
+  getClientBookings
 } from './lib/db';
 import { ProfileSettings } from './components/profile/ProfileSettings';
 import { LegalPage } from './components/legal/LegalPage';
@@ -96,6 +97,8 @@ function AppContent() {
   const [enableWhatsApp, setEnableWhatsApp] = useState<boolean>(true);
   const [minReservationAmountEnabled, setMinReservationAmountEnabled] = useState<boolean>(false);
   const [minReservationAmount, setMinReservationAmount] = useState<number>(5000);
+  const [maxBookingsWithoutId, setMaxBookingsWithoutId] = useState<number>(3);
+  const [clientBookingCount, setClientBookingCount] = useState<number>(0);
 
   const announcementsList = globalAnnouncement && globalAnnouncement.text
     ? globalAnnouncement.text.split('\n').map(t => t.trim()).filter(t => t.length > 0)
@@ -199,6 +202,7 @@ function AppContent() {
           if (data.enableWhatsApp !== undefined) setEnableWhatsApp(data.enableWhatsApp);
           if (data.minReservationAmountEnabled !== undefined) setMinReservationAmountEnabled(data.minReservationAmountEnabled);
           if (data.minReservationAmount !== undefined) setMinReservationAmount(data.minReservationAmount);
+          if (data.maxBookingsWithoutId !== undefined) setMaxBookingsWithoutId(Number(data.maxBookingsWithoutId));
           
           if (data.announcements && data.announcements.length > 0) {
             setAnnouncements(data.announcements);
@@ -228,6 +232,17 @@ function AppContent() {
     };
     fetchSettings();
   }, []);
+
+  // Fetch client bookings count to enforce the verification limit
+  useEffect(() => {
+    if (user && profile?.role === 'client') {
+      getClientBookings(user.uid).then(list => {
+        setClientBookingCount(list ? list.length : 0);
+      }).catch(err => {
+        console.error("Error fetching client bookings for restriction:", err);
+      });
+    }
+  }, [user, profile, view, lastRefresh]);
 
   // Fetch residences from API
   useEffect(() => {
@@ -473,6 +488,13 @@ function AppContent() {
       return;
     }
 
+    const hasUploadedId = !!(profile?.identityDocumentFront || profile?.idCardUrl || profile?.idNumber);
+    if (!hasUploadedId && clientBookingCount >= maxBookingsWithoutId) {
+      addToast(`Votre compte est restreint car vous avez atteint la limite de ${maxBookingsWithoutId} réservation(s) sans pièce d'identité. Veuillez ajouter votre pièce d'identité dans les Paramètres du Profil.`, 'error');
+      setView('profile');
+      return;
+    }
+
     try {
       // 1. Check for availability conflicts
       const response = await apiFetch(`/api/residences/${selectedResidence.id}/bookings`);
@@ -630,8 +652,14 @@ function AppContent() {
       />
       
       {profile?.isSuspended && (
-        <div className="bg-red-600 text-white font-black text-center py-4.5 px-6 text-xs uppercase tracking-widest shadow-lg border-b border-red-700 animate-in fade-in slide-in-from-top duration-500 z-50 relative">
+        <div className="bg-red-600 text-white font-black text-center py-4.5 px-6 text-xs uppercase tracking-widest shadow-lg border-b border-red-700 animate-in fade-in slide-in-from-top duration-500 z-50 relative font-sans">
           ⚠️ Attention : Votre compte a été suspendu par l'administration de la plateforme. Toute création de réservation ou d'hébergement est formellement bloquée.
+        </div>
+      )}
+
+      {user && profile?.role === 'client' && clientBookingCount >= maxBookingsWithoutId && !(profile?.identityDocumentFront || profile?.idCardUrl || profile?.idNumber) && (
+        <div className="bg-amber-600 text-white font-black text-center py-4.5 px-6 text-xs uppercase tracking-widest shadow-lg border-b border-amber-700 animate-in fade-in slide-in-from-top duration-500 z-50 relative font-sans">
+          ⚠️ Compte Restreint : Vous avez atteint la limite de {maxBookingsWithoutId} réservation(s) sans pièce d'identité. Veuillez <button onClick={() => setView('profile')} className="underline font-black hover:text-slate-100 cursor-pointer">compléter votre dossier en ajoutant votre pièce d'identité</button> pour débloquer votre compte.
         </div>
       )}
       

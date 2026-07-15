@@ -18,7 +18,7 @@ interface CustomSelectProps {
 
 export const CustomSelect: React.FC<CustomSelectProps> = ({ 
   label, 
-  options, 
+  options = [], 
   value, 
   onChange, 
   placeholder = "Sélectionner...",
@@ -28,7 +28,8 @@ export const CustomSelect: React.FC<CustomSelectProps> = ({
   const [search, setSearch] = useState('');
   const dropdownRef = useRef<HTMLDivElement>(null);
   
-  const selectedOption = options.find(opt => opt.id === value);
+  const safeOptions = options || [];
+  const selectedOption = safeOptions.find(opt => opt.id === value);
   const displayValue = selectedOption ? selectedOption.name : (value || search);
 
   useEffect(() => {
@@ -37,7 +38,7 @@ export const CustomSelect: React.FC<CustomSelectProps> = ({
     }
   }, [value]);
 
-  const filteredOptions = options.filter(opt => 
+  const filteredOptions = safeOptions.filter(opt => 
     opt.name.toLowerCase().includes(search.toLowerCase())
   );
 
@@ -46,7 +47,7 @@ export const CustomSelect: React.FC<CustomSelectProps> = ({
       if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
         const trimmedSearch = search.trim();
         if (trimmedSearch !== '') {
-          const exactMatch = options.find(opt => opt.name.toLowerCase() === trimmedSearch.toLowerCase());
+          const exactMatch = safeOptions.find(opt => opt.name.toLowerCase() === trimmedSearch.toLowerCase());
           if (exactMatch) {
             onChange(exactMatch.id);
           } else {
@@ -59,7 +60,7 @@ export const CustomSelect: React.FC<CustomSelectProps> = ({
     };
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, [search, options, onChange]);
+  }, [search, safeOptions, onChange]);
 
   return (
     <div className={cn("relative flex-1", isOpen && "z-[1010]")} ref={dropdownRef}>

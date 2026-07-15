@@ -25,7 +25,7 @@ export const BookingVerificationSection: React.FC<BookingVerificationSectionProp
   const [loading, setLoading] = useState(true);
   const [updatingId, setUpdatingId] = useState<string | null>(null);
   const [clientProfile, setClientProfile] = useState<any>(null);
-  const [showIdDocs, setShowIdDocs] = useState(false);
+  const [showIdDocs, setShowIdDocs] = useState(true);
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
 
   useEffect(() => {
@@ -119,30 +119,75 @@ export const BookingVerificationSection: React.FC<BookingVerificationSectionProp
         )}
       </div>
 
-      {showIdDocs && clientProfile && (
+      {showIdDocs && clientProfile && (clientProfile.identity_document_front || clientProfile.identityDocumentFront || clientProfile.idNumber) ? (
         <motion.div 
           initial={{ opacity: 0, height: 0 }}
           animate={{ opacity: 1, height: 'auto' }}
-          className="grid grid-cols-2 gap-4 bg-slate-50 p-4 rounded-2xl overflow-hidden"
+          className="bg-slate-50 p-4 rounded-2xl overflow-hidden space-y-4"
         >
-          <div className="space-y-2">
-            <span className="text-[9px] font-black text-slate-400 uppercase">Recto</span>
-            <img 
-              src={clientProfile.identity_document_front || clientProfile.identityDocumentFront} 
-              className="w-full h-32 object-cover rounded-lg border border-slate-200" 
-              alt="ID Front" 
-            />
-          </div>
-          <div className="space-y-2">
-            <span className="text-[9px] font-black text-slate-400 uppercase">Verso</span>
-            <img 
-              src={clientProfile.identity_document_back || clientProfile.identityDocumentBack} 
-              className="w-full h-32 object-cover rounded-lg border border-slate-200" 
-              alt="ID Back" 
-            />
+          {/* Document metadata info table */}
+          {(clientProfile.idNumber || clientProfile.idType) && (
+            <div className="bg-white border border-slate-200 rounded-xl p-3 text-xs grid grid-cols-2 gap-3">
+              <div>
+                <span className="text-[10px] text-slate-400 font-bold uppercase block">Type de pièce</span>
+                <span className="text-slate-900 font-extrabold">{clientProfile.idType || "Non spécifié"}</span>
+              </div>
+              <div>
+                <span className="text-[10px] text-slate-400 font-bold uppercase block">N° de document</span>
+                <span className="text-slate-900 font-extrabold">{clientProfile.idNumber || "Non spécifié"}</span>
+              </div>
+              {clientProfile.idExpiry && (
+                <div className="col-span-2">
+                  <span className="text-[10px] text-slate-400 font-bold uppercase block">Date d'expiration</span>
+                  <span className="text-slate-900 font-extrabold">{clientProfile.idExpiry}</span>
+                </div>
+              )}
+            </div>
+          )}
+
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <span className="text-[9px] font-black text-slate-400 uppercase">Recto</span>
+              {clientProfile.identity_document_front || clientProfile.identityDocumentFront ? (
+                <img 
+                  src={clientProfile.identity_document_front || clientProfile.identityDocumentFront} 
+                  className="w-full h-32 object-cover rounded-lg border border-slate-200" 
+                  alt="ID Front" 
+                />
+              ) : (
+                <div className="w-full h-32 rounded-lg border border-dashed border-slate-200 flex items-center justify-center text-[10px] text-slate-400 font-bold uppercase">
+                  Aucun recto
+                </div>
+              )}
+            </div>
+            <div className="space-y-2">
+              <span className="text-[9px] font-black text-slate-400 uppercase">Verso</span>
+              {clientProfile.identity_document_back || clientProfile.identityDocumentBack ? (
+                <img 
+                  src={clientProfile.identity_document_back || clientProfile.identityDocumentBack} 
+                  className="w-full h-32 object-cover rounded-lg border border-slate-200" 
+                  alt="ID Back" 
+                />
+              ) : (
+                <div className="w-full h-32 rounded-lg border border-dashed border-slate-200 flex items-center justify-center text-[10px] text-slate-400 font-bold uppercase">
+                  Aucun verso
+                </div>
+              )}
+            </div>
           </div>
         </motion.div>
-      )}
+      ) : showIdDocs && clientProfile ? (
+        <div className="bg-amber-50 border border-amber-200 rounded-2xl p-4 text-center text-xs text-amber-900 font-bold">
+          ⚠️ Le voyageur n'a pas encore téléversé sa pièce d'identité sur son compte. Veuillez impérativement exiger sa pièce d'identité physique originale au moment de la remise des clés.
+        </div>
+      ) : null}
+
+      <div className="bg-red-50 border border-red-200 rounded-xl p-3 text-[11px] text-red-900 font-bold flex items-start gap-2">
+        <span className="text-sm">🛑</span>
+        <p className="leading-normal">
+          <strong>Rappel réglementaire :</strong> Vous devez impérativement faire les vérifications physiques en vigueur demandées par l'État (vérifier et valider la pièce d'identité physique du voyageur) <strong>avant de lui remettre formellement les clés</strong>.
+        </p>
+      </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
         {types.map((type) => {

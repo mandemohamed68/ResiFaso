@@ -44,6 +44,7 @@ const DEFAULT_CONTACT_SETTINGS: ContactSettings = {
 import { useToast } from '../../contexts/ToastContext';
 import { AdminSupport } from './AdminSupport';
 import { RoleGuide } from '../common/RoleGuide';
+import { BookingVerificationSection } from '../booking/BookingVerificationSection';
 
 export const AVAILABLE_PERMISSIONS = [
   { id: 'manage_listings', label: 'Gérer les résidences' },
@@ -159,11 +160,13 @@ export const AdminDashboard: React.FC<{ onBackToTraveler?: () => void }> = ({ on
   const [supportChatEnabled, setSupportChatEnabled] = useState(true);
   const [supportChatOpenTime, setSupportChatOpenTime] = useState('08:00');
   const [supportChatCloseTime, setSupportChatCloseTime] = useState('20:00');
+  const [maxBookingsWithoutId, setMaxBookingsWithoutId] = useState(3);
   
   // Status Editing for Booking
   const [editingBookingId, setEditingBookingId] = useState<string | null>(null);
   const [tempBookingStatus, setTempBookingStatus] = useState<BookingStatus>('pending');
   const [tempPaymentStatus, setTempPaymentStatus] = useState<PaymentStatus>('pending');
+  const [selectedAdminBookingDetails, setSelectedAdminBookingDetails] = useState<Booking | null>(null);
 
   // Email Settings State
   const [emailSettings, setEmailSettings] = useState({
@@ -289,6 +292,7 @@ export const AdminDashboard: React.FC<{ onBackToTraveler?: () => void }> = ({ on
         if (settingsData.supportChatEnabled !== undefined) setSupportChatEnabled(settingsData.supportChatEnabled);
         if (settingsData.supportChatOpenTime !== undefined) setSupportChatOpenTime(settingsData.supportChatOpenTime);
         if (settingsData.supportChatCloseTime !== undefined) setSupportChatCloseTime(settingsData.supportChatCloseTime);
+        if (settingsData.maxBookingsWithoutId !== undefined) setMaxBookingsWithoutId(Number(settingsData.maxBookingsWithoutId));
         if (settingsData.sappayClientId !== undefined) setSappayClientId(settingsData.sappayClientId);
         if (settingsData.sappayClientSecret !== undefined) setSappayClientSecret(settingsData.sappayClientSecret);
         if (settingsData.sappayUsername !== undefined) setSappayUsername(settingsData.sappayUsername);
@@ -1140,6 +1144,7 @@ export const AdminDashboard: React.FC<{ onBackToTraveler?: () => void }> = ({ on
       supportChatEnabled: supportChatEnabled,
       supportChatOpenTime: supportChatOpenTime,
       supportChatCloseTime: supportChatCloseTime,
+      maxBookingsWithoutId: maxBookingsWithoutId,
       announcement: {
         text: announcementText,
         type: announcementType,
@@ -3007,16 +3012,24 @@ export const AdminDashboard: React.FC<{ onBackToTraveler?: () => void }> = ({ on
                                   </button>
                                 </div>
                               ) : (
-                                <button
-                                  onClick={() => {
-                                    setEditingBookingId(book.id);
-                                    setTempBookingStatus(book.bookingStatus);
-                                    setTempPaymentStatus(book.paymentStatus);
-                                  }}
-                                  className="text-[#EF2B2D] hover:underline text-[10px] font-black uppercase tracking-wider bg-red-50 px-2.5 py-1.5 rounded-lg cursor-pointer inline-block"
-                                >
-                                  Éditer statut
-                                </button>
+                                <div className="flex justify-center gap-2">
+                                  <button
+                                    onClick={() => {
+                                      setEditingBookingId(book.id);
+                                      setTempBookingStatus(book.bookingStatus);
+                                      setTempPaymentStatus(book.paymentStatus);
+                                    }}
+                                    className="text-[#EF2B2D] hover:underline text-[10px] font-black uppercase tracking-wider bg-red-50 px-2.5 py-1.5 rounded-lg cursor-pointer inline-block"
+                                  >
+                                    Éditer statut
+                                  </button>
+                                  <button
+                                    onClick={() => setSelectedAdminBookingDetails(book)}
+                                    className="bg-slate-900 hover:bg-slate-800 text-white text-[10px] font-black uppercase tracking-wider px-2.5 py-1.5 rounded-lg cursor-pointer inline-block"
+                                  >
+                                    Détails & Vérifs
+                                  </button>
+                                </div>
                               )}
                             </td>
                           </tr>
@@ -3102,6 +3115,73 @@ export const AdminDashboard: React.FC<{ onBackToTraveler?: () => void }> = ({ on
                 )}
               </div>
             )}
+
+            {selectedAdminBookingDetails && (() => {
+              const book = selectedAdminBookingDetails;
+              return (
+                <div className="fixed inset-0 z-[200] flex items-center justify-center p-4">
+                  <div className="absolute inset-0 bg-black/60 backdrop-blur-sm animate-fade-in" onClick={() => setSelectedAdminBookingDetails(null)} />
+                  <div className="relative w-full max-w-2xl bg-white rounded-3xl shadow-2xl overflow-hidden animate-in fade-in zoom-in duration-200 text-slate-800 font-sans">
+                    {/* Header */}
+                    <div className="p-6 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
+                      <div>
+                        <span className="px-2.5 py-0.5 bg-red-100 text-red-700 rounded text-[9px] font-black uppercase tracking-widest">DÉTAILS ADMIN - RÉSERVATION</span>
+                        <h4 className="text-lg font-black text-slate-900 uppercase tracking-tight mt-1">Voyage ID: #{book.id.slice(0, 10).toUpperCase()}</h4>
+                      </div>
+                      <button 
+                        type="button"
+                        onClick={() => setSelectedAdminBookingDetails(null)}
+                        className="p-2 hover:bg-slate-100 rounded-full text-slate-400 hover:text-slate-700 transition-colors cursor-pointer"
+                      >
+                        <X size={20} />
+                      </button>
+                    </div>
+
+                    {/* Content */}
+                    <div className="p-6 overflow-y-auto max-h-[70vh] space-y-6">
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div className="space-y-1 text-xs font-sans">
+                          <span className="block text-[10px] font-black text-slate-400 uppercase tracking-widest border-b pb-1 mb-2">📅 Séjour & Logistique</span>
+                          <div><span className="text-slate-400">Voyageur :</span> <strong className="text-slate-900">{book.clientName || book.clientId}</strong></div>
+                          <div><span className="text-slate-400">Arrivée :</span> <strong className="text-slate-900">{formatDateFr(book.checkIn)}</strong></div>
+                          <div><span className="text-slate-400">Départ :</span> <strong className="text-slate-900">{formatDateFr(book.checkOut)}</strong></div>
+                          <div><span className="text-slate-400">Voyageurs :</span> <strong className="text-slate-900">{book.guests || 1} personnes</strong></div>
+                        </div>
+
+                        <div className="space-y-1 text-xs font-sans">
+                          <span className="block text-[10px] font-black text-slate-400 uppercase tracking-widest border-b pb-1 mb-2">💰 Structure Financière</span>
+                          <div><span className="text-slate-400">Total :</span> <strong className="text-slate-900">{formatFCFA(book.totalPrice)} F CFA</strong></div>
+                          <div><span className="text-slate-400">Acompte Versé :</span> <strong className="text-green-600">{formatFCFA(book.advancePaid)} F CFA</strong></div>
+                          <div><span className="text-slate-400">Statut Réservation :</span> <strong className="text-slate-900 uppercase">{book.bookingStatus}</strong></div>
+                          <div><span className="text-slate-400">Statut Paiement :</span> <strong className="text-slate-900 uppercase">{book.paymentStatus}</strong></div>
+                        </div>
+                      </div>
+
+                      {/* Verification section */}
+                      <div className="border-t border-slate-100 pt-6">
+                        <BookingVerificationSection 
+                          bookingId={book.id}
+                          clientId={book.clientId}
+                          isPast={book.bookingStatus === 'completed'}
+                          canEdit={false} // Read-only for admin to view verifications done
+                        />
+                      </div>
+                    </div>
+
+                    {/* Footer */}
+                    <div className="p-6 bg-slate-50 border-t border-slate-100 flex justify-end">
+                      <button
+                        type="button"
+                        onClick={() => setSelectedAdminBookingDetails(null)}
+                        className="px-6 py-2.5 bg-slate-900 hover:bg-slate-800 text-white rounded-xl text-xs font-black uppercase tracking-wider transition-colors cursor-pointer"
+                      >
+                        Fermer
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              );
+            })()}
           </div>
         )}
 
@@ -3896,6 +3976,18 @@ export const AdminDashboard: React.FC<{ onBackToTraveler?: () => void }> = ({ on
                   onChange={(e) => setCommissionRate(Number(e.target.value))}
                   className="w-full bg-white border border-slate-250 rounded-xl px-4 py-3 text-sm font-black outline-none focus:ring-2 focus:ring-red-500" 
                 />
+              </div>
+
+              <div>
+                <label className="block text-xs font-black text-slate-500 uppercase tracking-widest mb-1.5 font-bold">Max réservations sans pièce d'identité (Dossier incomplet)</label>
+                <input 
+                  type="number" 
+                  value={maxBookingsWithoutId} 
+                  onChange={(e) => setMaxBookingsWithoutId(Math.max(1, Number(e.target.value)))}
+                  className="w-full bg-white border border-slate-250 rounded-xl px-4 py-3 text-sm font-black outline-none focus:ring-2 focus:ring-red-500" 
+                  placeholder="Ex: 3"
+                />
+                <span className="text-[10px] text-slate-400 font-medium mt-1 block">Si le client dépasse ce seuil sans téléverser sa pièce d'identité, son compte sera automatiquement restreint.</span>
               </div>
 
               <div>

@@ -515,6 +515,18 @@ async function startServer() {
     }
   });
 
+  app.get("/api/users/:uid", authenticateToken, async (req: AuthRequest, res) => {
+    try {
+      const userProfile = await queries.getUserProfile(req.params.uid);
+      if (!userProfile) {
+        return res.status(404).json({ error: "Utilisateur non trouvé" });
+      }
+      res.json(userProfile);
+    } catch (err: any) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
   app.put("/api/users/:uid", authenticateToken, async (req: AuthRequest, res) => {
     try {
       if (req.user?.uid !== req.params.uid && req.user?.role !== 'admin') {

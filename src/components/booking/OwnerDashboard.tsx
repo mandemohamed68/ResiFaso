@@ -626,7 +626,19 @@ const BookingTable: React.FC<BookingTableProps> = ({
                   </div>
 
                   {/* Verification Section */}
-                  <div className="md:col-span-2">
+                  <div className="md:col-span-2 space-y-4">
+                    <div className="bg-amber-50 border border-amber-200 rounded-2xl p-4.5 flex gap-3.5 items-start">
+                      <div className="bg-amber-500 text-white p-2 rounded-xl shrink-0 mt-0.5">
+                        <ShieldAlert size={18} strokeWidth={2.5} />
+                      </div>
+                      <div className="space-y-1">
+                        <span className="block text-xs font-black uppercase text-amber-950 tracking-wider">⚠️ Directive Étatique & Sécurité Hôte</span>
+                        <p className="text-[11px] font-bold text-amber-900 leading-normal">
+                          <strong>IMPORTANT :</strong> En tant qu'hôte, l'État vous impose d'effectuer rigoureusement toutes les vérifications réglementaires en vigueur (comparaison de la pièce d'identité physique du voyageur avec les détails ci-dessous) <strong>avant de lui remettre formellement les clés</strong> de l'hébergement.
+                        </p>
+                      </div>
+                    </div>
+
                     <BookingVerificationSection 
                       bookingId={selectedBookingForDetails.id}
                       clientId={selectedBookingForDetails.clientId}
@@ -805,7 +817,7 @@ export const PREDEFINED_TYPES = [
 ];
 
 export const OwnerDashboard: React.FC<{ isTestMode?: boolean; onBackToTraveler?: () => void }> = ({ isTestMode, onBackToTraveler }) => {
-  const { user, profile } = useAuth();
+  const { user, profile, refreshProfile } = useAuth();
   const { lastRefresh, refreshData } = useDataRefresh();
   const [residences, setResidences] = useState<Residence[]>([]);
   const [bookings, setBookings] = useState<Booking[]>([]);
@@ -1561,6 +1573,10 @@ export const OwnerDashboard: React.FC<{ isTestMode?: boolean; onBackToTraveler?:
         hostCancellationFee: hostCancellationFee,
         hostCancellationRulesText: hostCancellationRulesText
       });
+      if (refreshProfile) {
+        await refreshProfile();
+      }
+      await fetchData();
       triggerSuccess("Votre politique de remboursement personnalisée a été enregistrée avec succès ! Elle s'appliquera désormais à tous vos futurs séjours.");
     } catch (err) {
       console.error("Error saving policy: ", err);
