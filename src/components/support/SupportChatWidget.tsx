@@ -121,7 +121,7 @@ export const SupportChatWidget: React.FC = () => {
                 </div>
               ) : (
                 messages.map((msg) => {
-                  const isAdmin = msg.sender_id === 'admin';
+                  const isAdmin = (msg.senderId || msg.sender_id) === 'admin';
                   return (
                     <div key={msg.id} className={`flex ${isAdmin ? 'justify-start' : 'justify-end'}`}>
                       <div className={`max-w-[85%] rounded-2xl p-3 text-sm font-medium shadow-sm ${
@@ -131,7 +131,7 @@ export const SupportChatWidget: React.FC = () => {
                       }`}>
                         {msg.message}
                         <div className={`text-[9px] mt-1 text-right ${isAdmin ? 'text-slate-400' : 'text-red-200'}`}>
-                          {new Date(msg.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                          {new Date(msg.createdAt || msg.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                         </div>
                       </div>
                     </div>

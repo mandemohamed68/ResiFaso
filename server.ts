@@ -770,7 +770,9 @@ async function startServer() {
   // --- Support Chat ---
   app.get("/api/support/messages", authenticateToken, async (req: AuthRequest, res) => {
     try {
-      if (req.user?.role === 'admin') {
+      const showAll = req.query.all === 'true' && req.user?.role === 'admin';
+      
+      if (showAll) {
         const rows = await executeSql("SELECT * FROM support_chat_messages ORDER BY created_at ASC");
         res.json(rows);
       } else {

@@ -11,7 +11,7 @@ export const AdminSupport: React.FC = () => {
 
   const fetchMessages = async () => {
     try {
-      const res = await apiFetch('/api/support/messages');
+      const res = await apiFetch('/api/support/messages?all=true');
       if (res.ok) {
         setMessages(await res.json());
       }
@@ -37,15 +37,18 @@ export const AdminSupport: React.FC = () => {
 
   // Group messages by user
   const conversations = messages.reduce((acc, msg) => {
-    if (!acc[msg.user_id]) acc[msg.user_id] = [];
-    acc[msg.user_id].push(msg);
+    const uid = msg.userId || msg.user_id;
+    if (!acc[uid]) acc[uid] = [];
+    acc[uid].push(msg);
     return acc;
   }, {} as Record<string, any[]>);
 
   const sortedUsers = Object.keys(conversations).sort((a, b) => {
     const lastMsgA = conversations[a][conversations[a].length - 1];
     const lastMsgB = conversations[b][conversations[b].length - 1];
-    return new Date(lastMsgB.created_at).getTime() - new Date(lastMsgA.created_at).getTime();
+    const dateA = new Date(lastMsgA.createdAt || lastMsgA.created_at).getTime();
+    const dateB = new Date(lastMsgB.createdAt || lastMsgB.created_at).getTime();
+    return dateB - dateA;
   });
 
   const sendMessage = async (e: React.FormEvent) => {
@@ -107,7 +110,7 @@ export const AdminSupport: React.FC = () => {
                       {user.displayName}
                     </span>
                     <span className="text-[10px] text-slate-400 font-medium whitespace-nowrap ml-2">
-                      {new Date(lastMsg.created_at).toLocaleDateString([], { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                      {new Date(lastMsg.createdAt || lastMsg.created_at).toLocaleDateString([], { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
                     </span>
                   </div>
                   <p className="text-xs text-slate-500 truncate">{lastMsg.message}</p>
@@ -134,7 +137,7 @@ export const AdminSupport: React.FC = () => {
 
             <div className="flex-1 overflow-y-auto p-6 space-y-4">
               {conversations[selectedUserId].map(msg => {
-                const isAdmin = msg.sender_id === 'admin';
+                const isAdmin = (msg.senderId || msg.sender_id) === 'admin';
                 return (
                   <div key={msg.id} className={`flex ${isAdmin ? 'justify-end' : 'justify-start'}`}>
                     <div className={`max-w-[70%] rounded-2xl p-4 text-sm font-medium shadow-sm ${
@@ -144,7 +147,7 @@ export const AdminSupport: React.FC = () => {
                     }`}>
                       {msg.message}
                       <div className={`text-[10px] mt-2 text-right ${isAdmin ? 'text-red-200' : 'text-slate-400'}`}>
-                        {new Date(msg.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                        {new Date(msg.createdAt || msg.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                       </div>
                     </div>
                   </div>
