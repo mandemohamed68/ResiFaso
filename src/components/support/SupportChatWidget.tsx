@@ -32,8 +32,10 @@ export const SupportChatWidget: React.FC = () => {
   }, [isOpen, user]);
 
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [messages]);
+    if (messages.length > 0) {
+      messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    }
+  }, [messages, isOpen]);
 
   const fetchMessages = async () => {
     try {
@@ -122,16 +124,31 @@ export const SupportChatWidget: React.FC = () => {
               ) : (
                 messages.map((msg) => {
                   const isAdmin = (msg.senderId || msg.sender_id) === 'admin';
+                  const formatDate = (date: any) => {
+                    if (!date) return '';
+                    let d = new Date(date);
+                    if (isNaN(d.getTime()) && typeof date === 'string') {
+                      d = new Date(date.replace(' ', 'T'));
+                    }
+                    if (isNaN(d.getTime())) return '';
+                    return d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+                  };
+
                   return (
                     <div key={msg.id} className={`flex ${isAdmin ? 'justify-start' : 'justify-end'}`}>
                       <div className={`max-w-[85%] rounded-2xl p-3 text-sm font-medium shadow-sm ${
                         isAdmin 
-                          ? 'bg-white border border-slate-100 text-slate-800 rounded-tl-sm' 
-                          : 'bg-red-600 text-white rounded-tr-sm'
+                          ? 'bg-slate-100 border border-slate-200 text-slate-800 rounded-tl-none' 
+                          : 'bg-red-600 text-white rounded-tr-none'
                       }`}>
+                        {isAdmin && (
+                          <div className="text-[10px] font-bold text-red-600 uppercase tracking-wider mb-1">
+                            Support ResiFaso
+                          </div>
+                        )}
                         {msg.message}
                         <div className={`text-[9px] mt-1 text-right ${isAdmin ? 'text-slate-400' : 'text-red-200'}`}>
-                          {new Date(msg.createdAt || msg.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                          {formatDate(msg.createdAt || msg.created_at)}
                         </div>
                       </div>
                     </div>

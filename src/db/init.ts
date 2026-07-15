@@ -33,6 +33,7 @@ export const initDatabase = async () => {
         role VARCHAR(50) DEFAULT 'client',
         is_verified BOOLEAN DEFAULT 0,
         is_suspended BOOLEAN DEFAULT 0,
+        deactivated BOOLEAN DEFAULT 0,
         password_hash VARCHAR(255),
         identity_document_front LONGTEXT,
         identity_document_back LONGTEXT,
@@ -140,7 +141,7 @@ export const initDatabase = async () => {
       }
 
       // Ensure all extra user columns exist for MariaDB
-      const extraCols = ['identity_document_front', 'identity_document_back', 'permissions', 'id_number', 'id_type', 'id_expiry', 'id_card_url', 'verification_status', 'has_accepted_terms', 'host_cancellation_fee', 'host_cancellation_rules_text'];
+      const extraCols = ['identity_document_front', 'identity_document_back', 'permissions', 'id_number', 'id_type', 'id_expiry', 'id_card_url', 'verification_status', 'has_accepted_terms', 'host_cancellation_fee', 'host_cancellation_rules_text', 'deactivated'];
       for (const col of extraCols) {
         const columns: any = await executeSql(`
           SELECT COLUMN_NAME 
@@ -587,6 +588,7 @@ export const initDatabase = async () => {
         role TEXT DEFAULT 'client',
         is_verified BOOLEAN DEFAULT 0,
         is_suspended BOOLEAN DEFAULT 0,
+        deactivated BOOLEAN DEFAULT 0,
         password_hash TEXT,
         identity_document_front TEXT,
         identity_document_back TEXT,
@@ -612,7 +614,8 @@ export const initDatabase = async () => {
       { name: 'verification_status', type: "TEXT DEFAULT 'none'" },
       { name: 'has_accepted_terms', type: 'INTEGER DEFAULT 0' },
       { name: 'host_cancellation_fee', type: 'REAL DEFAULT 0' },
-      { name: 'host_cancellation_rules_text', type: 'TEXT' }
+      { name: 'host_cancellation_rules_text', type: 'TEXT' },
+      { name: 'deactivated', type: 'INTEGER DEFAULT 0' }
     ];
 
     // Users extra columns

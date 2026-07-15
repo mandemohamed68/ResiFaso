@@ -43,11 +43,20 @@ export const AdminSupport: React.FC = () => {
     return acc;
   }, {} as Record<string, any[]>);
 
+  const safeDate = (date: any) => {
+    if (!date) return new Date();
+    let d = new Date(date);
+    if (isNaN(d.getTime()) && typeof date === 'string') {
+      d = new Date(date.replace(' ', 'T'));
+    }
+    return isNaN(d.getTime()) ? new Date() : d;
+  };
+
   const sortedUsers = Object.keys(conversations).sort((a, b) => {
     const lastMsgA = conversations[a][conversations[a].length - 1];
     const lastMsgB = conversations[b][conversations[b].length - 1];
-    const dateA = new Date(lastMsgA.createdAt || lastMsgA.created_at).getTime();
-    const dateB = new Date(lastMsgB.createdAt || lastMsgB.created_at).getTime();
+    const dateA = safeDate(lastMsgA.createdAt || lastMsgA.created_at).getTime();
+    const dateB = safeDate(lastMsgB.createdAt || lastMsgB.created_at).getTime();
     return dateB - dateA;
   });
 
@@ -110,7 +119,7 @@ export const AdminSupport: React.FC = () => {
                       {user.displayName}
                     </span>
                     <span className="text-[10px] text-slate-400 font-medium whitespace-nowrap ml-2">
-                      {new Date(lastMsg.createdAt || lastMsg.created_at).toLocaleDateString([], { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                      {safeDate(lastMsg.createdAt || lastMsg.created_at).toLocaleDateString([], { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
                     </span>
                   </div>
                   <p className="text-xs text-slate-500 truncate">{lastMsg.message}</p>
@@ -147,7 +156,7 @@ export const AdminSupport: React.FC = () => {
                     }`}>
                       {msg.message}
                       <div className={`text-[10px] mt-2 text-right ${isAdmin ? 'text-red-200' : 'text-slate-400'}`}>
-                        {new Date(msg.createdAt || msg.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                        {safeDate(msg.createdAt || msg.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                       </div>
                     </div>
                   </div>

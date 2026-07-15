@@ -171,11 +171,23 @@ export const ProfileSettings: React.FC = () => {
     setIsSaving(true);
     try {
       
-      await apiFetch('/api/users/profile', { method: 'PUT', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${localStorage.getItem('auth_token')}` }, body: JSON.stringify({
-        displayName: displayName,
-        phoneNumber: phone,
-        phone: phone // for backward compatibility
-      }) });
+      const res = await apiFetch('/api/users/profile', { 
+        method: 'PUT', 
+        headers: { 
+          'Content-Type': 'application/json', 
+          'Authorization': `Bearer ${localStorage.getItem('auth_token')}` 
+        }, 
+        body: JSON.stringify({
+          displayName: displayName,
+          phoneNumber: phone
+        }) 
+      });
+
+      if (!res.ok) {
+        const errorData = await res.json();
+        throw new Error(errorData.error || 'Erreur lors de la sauvegarde');
+      }
+
       await refreshProfile();
       triggerSuccess('Informations personnelles enregistrées avec succès !');
     } catch (e) {
@@ -283,13 +295,19 @@ export const ProfileSettings: React.FC = () => {
     setIsSaving(true);
     try {
       
-      await apiFetch('/api/users/profile', { method: 'PUT', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${localStorage.getItem('auth_token')}` }, body: JSON.stringify({
+      const res = await apiFetch('/api/users/profile', { method: 'PUT', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${localStorage.getItem('auth_token')}` }, body: JSON.stringify({
         idType: idType,
         idNumber: idNumber,
         idExpiry: idExpiry,
         idCardUrl: capturedImage,
         verificationStatus: 'pending'
       }) });
+
+      if (!res.ok) {
+        const errorData = await res.json();
+        throw new Error(errorData.error || 'Erreur lors de la soumission');
+      }
+
       await refreshProfile();
       triggerSuccess(`Votre pièce d'identité (${idType}) a été enregistrée et soumise pour vérification. Notre équipe va l'analyser.`);
     } catch (e) {
@@ -306,9 +324,15 @@ export const ProfileSettings: React.FC = () => {
     setIsSaving(true);
     try {
       
-      await apiFetch('/api/users/profile', { method: 'PUT', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${localStorage.getItem('auth_token')}` }, body: JSON.stringify({
+      const res = await apiFetch('/api/users/profile', { method: 'PUT', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${localStorage.getItem('auth_token')}` }, body: JSON.stringify({
         photoURL: selectedPhotoURL
       }) });
+
+      if (!res.ok) {
+        const errorData = await res.json();
+        throw new Error(errorData.error || 'Erreur lors du changement de photo');
+      }
+
       await refreshProfile();
       triggerSuccess('Photo de profil mise à jour avec succès !');
     } catch (e) {
@@ -325,9 +349,15 @@ export const ProfileSettings: React.FC = () => {
     setIsSaving(true);
     try {
       
-      await apiFetch('/api/users/profile', { method: 'PUT', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${localStorage.getItem('auth_token')}` }, body: JSON.stringify({
+      const res = await apiFetch('/api/users/profile', { method: 'PUT', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${localStorage.getItem('auth_token')}` }, body: JSON.stringify({
         photoURL: ''
       }) });
+
+      if (!res.ok) {
+        const errorData = await res.json();
+        throw new Error(errorData.error || 'Erreur lors de la suppression de la photo');
+      }
+
       setSelectedPhotoURL('');
       await refreshProfile();
       triggerSuccess('Photo de profil supprimée.');
@@ -350,9 +380,15 @@ export const ProfileSettings: React.FC = () => {
         ...paymentPrefs,
         hasPreference: true
       };
-      await apiFetch('/api/users/profile', { method: 'PUT', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${localStorage.getItem('auth_token')}` }, body: JSON.stringify({
+      const res = await apiFetch('/api/users/profile', { method: 'PUT', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${localStorage.getItem('auth_token')}` }, body: JSON.stringify({
         paymentPreferences: updatedPrefs
       }) });
+
+      if (!res.ok) {
+        const errorData = await res.json();
+        throw new Error(errorData.error || 'Erreur lors de la sauvegarde');
+      }
+
       setPaymentPrefs(updatedPrefs);
       await refreshProfile();
       triggerSuccess('Préférences de paiement enregistrées avec succès !');
@@ -377,9 +413,15 @@ export const ProfileSettings: React.FC = () => {
         bankAccountName: '',
         bankAccountNumber: '',
       };
-      await apiFetch('/api/users/profile', { method: 'PUT', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${localStorage.getItem('auth_token')}` }, body: JSON.stringify({
+      const res = await apiFetch('/api/users/profile', { method: 'PUT', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${localStorage.getItem('auth_token')}` }, body: JSON.stringify({
         paymentPreferences: clearedPrefs
       }) });
+
+      if (!res.ok) {
+        const errorData = await res.json();
+        throw new Error(errorData.error || 'Erreur lors de la suppression');
+      }
+
       setPaymentPrefs(clearedPrefs);
       await refreshProfile();
       triggerSuccess('Moyen de paiement favori retiré.');
@@ -397,9 +439,15 @@ export const ProfileSettings: React.FC = () => {
     setIsSaving(true);
     try {
       
-      await apiFetch('/api/users/profile', { method: 'PUT', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${localStorage.getItem('auth_token')}` }, body: JSON.stringify({
+      const res = await apiFetch('/api/users/profile', { method: 'PUT', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${localStorage.getItem('auth_token')}` }, body: JSON.stringify({
         notifications: notifications
       }) });
+
+      if (!res.ok) {
+        const errorData = await res.json();
+        throw new Error(errorData.error || 'Erreur lors de la sauvegarde');
+      }
+
       await refreshProfile();
       triggerSuccess('Préférences d\'alertes et notifications enregistrées avec succès !');
     } catch (e) {
@@ -416,9 +464,15 @@ export const ProfileSettings: React.FC = () => {
     setIsSaving(true);
     try {
       
-      await apiFetch('/api/users/profile', { method: 'PUT', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${localStorage.getItem('auth_token')}` }, body: JSON.stringify({
+      const res = await apiFetch('/api/users/profile', { method: 'PUT', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${localStorage.getItem('auth_token')}` }, body: JSON.stringify({
         privacy: privacy
       }) });
+
+      if (!res.ok) {
+        const errorData = await res.json();
+        throw new Error(errorData.error || 'Erreur lors de la sauvegarde');
+      }
+
       await refreshProfile();
       triggerSuccess('Paramètres de confidentialité enregistrés avec succès !');
     } catch (e) {
@@ -462,9 +516,15 @@ export const ProfileSettings: React.FC = () => {
     setIsSaving(true);
     try {
       
-      await apiFetch('/api/users/profile', { method: 'PUT', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${localStorage.getItem('auth_token')}` }, body: JSON.stringify({
+      const res = await apiFetch('/api/users/profile', { method: 'PUT', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${localStorage.getItem('auth_token')}` }, body: JSON.stringify({
         deactivated: true
       }) });
+
+      if (!res.ok) {
+        const errorData = await res.json();
+        throw new Error(errorData.error || 'Erreur lors de la désactivation');
+      }
+
       addToast("Votre compte a été désactivé. À bientôt sur ResiFaso !", "error");
       await logOut();
     } catch (e) {
@@ -483,11 +543,17 @@ export const ProfileSettings: React.FC = () => {
     setIsSaving(true);
     try {
       
-      await apiFetch('/api/users/profile', { method: 'PUT', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${localStorage.getItem('auth_token')}` }, body: JSON.stringify({
+      const res = await apiFetch('/api/users/profile', { method: 'PUT', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${localStorage.getItem('auth_token')}` }, body: JSON.stringify({
         deactivated: true,
         displayName: "[Utilisateur Supprimé]",
         phoneNumber: ""
       }) });
+
+      if (!res.ok) {
+        const errorData = await res.json();
+        throw new Error(errorData.error || 'Erreur lors de la suppression');
+      }
+
       addToast("Vos données ont été supprimées. Déconnexion en cours.", "error");
       await logOut();
     } catch (e) {

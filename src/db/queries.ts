@@ -14,7 +14,7 @@ export const getUserProfile = async (uid: string) => {
       permissions, identity_document_front as identityDocumentFront, 
       identity_document_back as identityDocumentBack, id_number as idNumber, 
       id_type as idType, id_expiry as idExpiry, id_card_url as idCardUrl, 
-      verification_status as verificationStatus, phone_number as phoneNumber,
+      verification_status as verificationStatus, phone_number as phoneNumber, phone_number as phone,
       host_cancellation_fee as hostCancellationFee, host_cancellation_rules_text as hostCancellationRulesText
     FROM users 
     WHERE uid = ?
@@ -565,6 +565,15 @@ const VALID_RESIDENCE_COLS = new Set([
   'promo_price', 'rejection_reason', 'utilities_included', 'owner_phone', 'created_at'
 ]);
 
+const VALID_USER_COLS = new Set([
+  'uid', 'email', 'display_name', 'phone_number', 'photo_url', 'role', 
+  'is_verified', 'is_suspended', 'password_hash', 'identity_document_front', 
+  'identity_document_back', 'permissions', 'id_number', 'id_type', 
+  'id_expiry', 'id_card_url', 'verification_status', 'has_accepted_terms', 
+  'host_cancellation_fee', 'host_cancellation_rules_text', 'created_at',
+  'deactivated'
+]);
+
 export const updateResidence = async (id: string, updates: any) => {
   const { amenities, images, address, utilitiesIncluded, ...rest } = updates;
   
@@ -659,15 +668,25 @@ export const updateUserProfile = async (uid: string, updates: any) => {
     if (k === 'uid') continue;
     
     let dbValue = formatSqlValue(v);
+    let targetKey: string | null = null;
     
-    if (k === 'displayName') mappedUpdates.display_name = dbValue;
-    else if (k === 'photoUrl') mappedUpdates.photo_url = dbValue;
-    else if (k === 'isVerified') mappedUpdates.is_verified = dbValue;
-    else if (k === 'isSuspended') mappedUpdates.is_suspended = dbValue;
-    else if (k === 'phoneNumber') mappedUpdates.phone_number = dbValue;
-    else if (k === 'createdAt') mappedUpdates.created_at = dbValue;
-    else if (k === 'password') mappedUpdates.password_hash = dbValue;
-    else mappedUpdates[toSnakeCase(k)] = dbValue;
+    if (k === 'displayName') targetKey = 'display_name';
+    else if (k === 'photoUrl') targetKey = 'photo_url';
+    else if (k === 'isVerified') targetKey = 'is_verified';
+    else if (k === 'isSuspended') targetKey = 'is_suspended';
+    else if (k === 'phoneNumber') targetKey = 'phone_number';
+    else if (k === 'createdAt') targetKey = 'created_at';
+    else if (k === 'password') targetKey = 'password_hash';
+    else {
+      const snake = toSnakeCase(k);
+      if (VALID_USER_COLS.has(snake)) {
+        targetKey = snake;
+      }
+    }
+    
+    if (targetKey) {
+      mappedUpdates[targetKey] = dbValue;
+    }
   }
   
   const existing = await executeSql("SELECT uid FROM users WHERE uid = ?", [uid]);
