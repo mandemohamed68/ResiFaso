@@ -228,6 +228,9 @@ export const AdminDashboard: React.FC<{ onBackToTraveler?: () => void }> = ({ on
 
   // Custom Hard Reset Modal States
   const [showResetModal, setShowResetModal] = useState(false);
+  const [reassigningResId, setReassigningResId] = useState<string | null>(null);
+  const [reassignNewOwnerId, setReassignNewOwnerId] = useState('');
+  const [isReassigning, setIsReassigning] = useState(false);
   const [resetPassword, setResetPassword] = useState('');
   const [resetError, setResetError] = useState('');
   const [resetStep, setResetStep] = useState<1 | 2>(1);
@@ -670,6 +673,32 @@ export const AdminDashboard: React.FC<{ onBackToTraveler?: () => void }> = ({ on
       triggerSuccess("Résidence supprimée définitivement.");
     } catch (err) {
       console.error(err);
+    }
+  };
+
+  const handleReassignOwner = async () => {
+    if (!reassigningResId || !reassignNewOwnerId) return;
+    setIsReassigning(true);
+    try {
+      const response = await apiFetch(`/api/admin/residences/${reassigningResId}/reassign`, {
+        method: 'PUT',
+        body: JSON.stringify({ newOwnerId: reassignNewOwnerId })
+      });
+      if (response.ok) {
+        addToast("Propriétaire réassigné avec succès.", "success");
+        setReassigningResId(null);
+        setReassignNewOwnerId('');
+        await reloadData();
+        logAction(`Réassignation du logement ID #${reassigningResId} au nouveau propriétaire ID #${reassignNewOwnerId}`);
+      } else {
+        const data = await response.json();
+        addToast(data.error || "Erreur lors de la réassignation.", "error");
+      }
+    } catch (err) {
+      console.error(err);
+      addToast("Erreur lors de la réassignation.", "error");
+    } finally {
+      setIsReassigning(false);
     }
   };
 
@@ -2179,6 +2208,48 @@ export const AdminDashboard: React.FC<{ onBackToTraveler?: () => void }> = ({ on
                             >
                               <Edit3 size={14} />
                             </button>
+
+                            {reassigningResId === res.id ? (
+                              <div className="flex items-center gap-1 bg-slate-50 p-1 rounded-xl border border-slate-200">
+                                <select 
+                                  value={reassignNewOwnerId}
+                                  onChange={(e) => setReassignNewOwnerId(e.target.value)}
+                                  className="bg-white border border-slate-200 text-[10px] font-black p-1 rounded-lg outline-none max-w-[120px]"
+                                >
+                                  <option value="">Sélectionner Hôte...</option>
+                                  {users.filter(u => u.role === 'owner' || u.role === 'admin').map(u => (
+                                    <option key={u.uid} value={u.uid}>{u.displayName || u.email}</option>
+                                  ))}
+                                </select>
+                                <button 
+                                  onClick={handleReassignOwner}
+                                  disabled={!reassignNewOwnerId || isReassigning}
+                                  className="bg-green-600 text-white p-1.5 rounded-lg disabled:opacity-50 cursor-pointer"
+                                  title="Confirmer la réassignation"
+                                >
+                                  <Check size={12} />
+                                </button>
+                                <button 
+                                  onClick={() => setReassigningResId(null)}
+                                  className="bg-slate-200 text-slate-600 p-1.5 rounded-lg cursor-pointer"
+                                  title="Annuler"
+                                >
+                                  <X size={12} />
+                                </button>
+                              </div>
+                            ) : (
+                              <button
+                                onClick={() => {
+                                  setReassigningResId(res.id);
+                                  setReassignNewOwnerId(res.ownerId || '');
+                                }}
+                                className="bg-purple-50 text-purple-600 hover:bg-purple-600 hover:text-white border border-purple-100 p-1.5 rounded-lg transition cursor-pointer"
+                                title="Réassigner à un autre hôte"
+                              >
+                                <RefreshCw size={14} />
+                              </button>
+                            )}
+
                             {confirmDeleteId === res.id ? (
                               <div className="flex items-center justify-center gap-2">
                                 <button

@@ -323,6 +323,23 @@ async function startServer() {
     }
   });
 
+  app.put("/api/admin/residences/:id/reassign", authenticateToken, async (req: AuthRequest, res) => {
+    try {
+      if (req.user?.role !== 'admin') {
+        return res.status(403).json({ error: "Non autorisé" });
+      }
+      const { newOwnerId } = req.body;
+      if (!newOwnerId) return res.status(400).json({ error: "newOwnerId est requis" });
+      
+      await executeSql("UPDATE residences SET owner_id = ? WHERE id = ?", [newOwnerId, req.params.id]);
+      await executeSql("UPDATE bookings SET owner_id = ? WHERE residence_id = ?", [newOwnerId, req.params.id]);
+      
+      res.json({ success: true });
+    } catch (err: any) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
   // --- Bookings ---
   app.get("/api/bookings", authenticateToken, async (req: AuthRequest, res) => {
     try {
