@@ -71,6 +71,18 @@ export const useResidences = () => {
   });
 };
 
+export const usePartners = () => {
+  return useQuery({
+    queryKey: ['partners'],
+    queryFn: async () => {
+      const response = await apiFetch('/api/partners');
+      if (!response.ok) throw new Error('Failed to fetch partners');
+      return response.json();
+    },
+    staleTime: 1000 * 60 * 5, // 5 minutes
+  });
+};
+
 export const useAdminData = (role: string | undefined) => {
   return useQuery({
     queryKey: ['admin-data'],
@@ -86,7 +98,8 @@ export const useAdminData = (role: string | undefined) => {
         faqList,
         contactSettingsData,
         messageList,
-        verifTypeList
+        verifTypeList,
+        partnerList
       ] = await Promise.all([
         getAllResidences().catch(() => []),
         getAllUsers().catch(() => []),
@@ -98,7 +111,8 @@ export const useAdminData = (role: string | undefined) => {
         getAllFaqs().catch(() => []),
         getContactSettings().catch(() => ({})),
         getAllContactMessages().catch(() => []),
-        apiFetch('/api/admin/verification-types').then(r => r.ok ? r.json() : []).catch(() => [])
+        apiFetch('/api/admin/verification-types').then(r => r.ok ? r.json() : []).catch(() => []),
+        apiFetch('/api/partners').then(r => r.ok ? r.json() : []).catch(() => [])
       ]);
       return {
         residences: resList,
@@ -111,7 +125,8 @@ export const useAdminData = (role: string | undefined) => {
         faqs: faqList,
         contactSettings: contactSettingsData,
         messages: messageList,
-        verificationTypes: verifTypeList
+        verificationTypes: verifTypeList,
+        partners: partnerList
       };
     },
     enabled: role === 'admin',

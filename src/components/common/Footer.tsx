@@ -24,9 +24,9 @@ export const Footer: React.FC<FooterProps> = ({ onNavigate }) => {
   }, []);
 
   return (
-    <footer className="bg-slate-900 text-slate-400 py-[8vh] px-4 text-center border-t border-slate-800 mt-auto">
-      <div className="max-w-7xl mx-auto flex flex-col items-center justify-center gap-6">
-        <div className="flex flex-wrap justify-center gap-x-8 gap-y-4 text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 mb-4">
+    <footer className="bg-slate-900 text-slate-400 py-6 px-4 text-center border-t border-slate-800 mt-auto">
+      <div className="max-w-7xl mx-auto flex flex-col items-center justify-center gap-3">
+        <div className="flex flex-wrap justify-center gap-x-6 gap-y-2 text-[10px] font-black uppercase tracking-[0.2em] text-slate-500">
           <button onClick={() => onNavigate?.('home')} className="hover:text-red-500 transition-colors cursor-pointer">Accueil</button>
           <button onClick={() => onNavigate?.('tos')} className="hover:text-red-500 transition-colors cursor-pointer">Conditions d'utilisation</button>
           <button onClick={() => onNavigate?.('privacy')} className="hover:text-red-500 transition-colors cursor-pointer">Confidentialité</button>
@@ -34,7 +34,7 @@ export const Footer: React.FC<FooterProps> = ({ onNavigate }) => {
           <button onClick={() => onNavigate?.('contact')} className="hover:text-red-500 transition-colors cursor-pointer text-[#EF2B2D] font-extrabold">Contact</button>
         </div>
         
-        <div className="flex flex-col items-center gap-3">
+        <div className="flex flex-col items-center gap-1">
           <div className="flex items-center gap-2">
             <span className="w-8 h-px bg-slate-800"></span>
             <p className="font-bold text-slate-300 tracking-wide text-xs">{footerContent}</p>

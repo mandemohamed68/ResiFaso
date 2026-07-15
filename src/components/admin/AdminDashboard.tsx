@@ -68,7 +68,7 @@ export const AdminDashboard: React.FC<{ onBackToTraveler?: () => void }> = ({ on
   const queryClient = useQueryClient();
   const { data: adminData, isLoading: isAdminLoading } = useAdminData(user?.role);
 
-  const [activeTab, setActiveTab] = useState<'overview' | 'alerts' | 'listings' | 'users' | 'bookings' | 'revenue' | 'reviews' | 'reports' | 'settings' | 'logs' | 'ads' | 'withdrawals' | 'locations' | 'flash-info' | 'faq' | 'contact' | 'email' | 'verifications' | 'support'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'alerts' | 'listings' | 'users' | 'bookings' | 'revenue' | 'reviews' | 'reports' | 'settings' | 'logs' | 'ads' | 'withdrawals' | 'locations' | 'flash-info' | 'faq' | 'contact' | 'email' | 'verifications' | 'support' | 'partners'>('overview');
   
   // Sync adminData to states
   useEffect(() => {
@@ -83,6 +83,7 @@ export const AdminDashboard: React.FC<{ onBackToTraveler?: () => void }> = ({ on
       if (adminData.messages) setContactMessages(adminData.messages);
       if (adminData.verificationTypes) setVerificationTypes(adminData.verificationTypes);
       if (adminData.contactSettings) setContactSettings(adminData.contactSettings as ContactSettings);
+      if (adminData.partners) setPartners(adminData.partners);
       
       const s = adminData.settings;
       if (s) {
@@ -112,6 +113,11 @@ export const AdminDashboard: React.FC<{ onBackToTraveler?: () => void }> = ({ on
   }, [adminData]);
 
   const [verificationTypes, setVerificationTypes] = useState<any[]>([]);
+  const [partners, setPartners] = useState<any[]>([]);
+  const [newPartnerName, setNewPartnerName] = useState('');
+  const [newPartnerLogo, setNewPartnerLogo] = useState('');
+  const [isCreatingPartner, setIsCreatingPartner] = useState(false);
+  const [editingPartnerId, setEditingPartnerId] = useState<string | null>(null);
   const [editingVerifType, setEditingVerifType] = useState<any | null>(null);
   const [isSavingVerifType, setIsSavingVerifType] = useState(false);
   const [verifLabel, setVerifLabel] = useState('');
@@ -795,8 +801,73 @@ export const AdminDashboard: React.FC<{ onBackToTraveler?: () => void }> = ({ on
       setIsUpdatingUserSecurity(false);
     }
   };
+  // Partners Management
+  const handleCreatePartner = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsCreatingPartner(true);
+    try {
+      let logoUrl = newPartnerLogo;
+      if (newPartnerLogo.startsWith('data:image')) {
+        const response = await apiFetch('/api/upload', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ image: newPartnerLogo }),
+        });
+        const data = await response.json();
+        logoUrl = data.url;
+      }
+      
+      await apiFetch('/api/admin/partners', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          id: `p_${Date.now()}`,
+          name: newPartnerName,
+          logoUrl: logoUrl,
+        }),
+      });
+      setNewPartnerName('');
+      setNewPartnerLogo('');
+      queryClient.invalidateQueries({ queryKey: ['admin-data'] });
+      queryClient.invalidateQueries({ queryKey: ['partners'] });
+      addToast('Partenaire ajouté avec succès !', 'success');
+    } catch (err) {
+      console.error(err);
+      addToast('Erreur lors de l\'ajout du partenaire', 'error');
+    } finally {
+      setIsCreatingPartner(false);
+    }
+  };
 
-  // Helper to toggle suspension
+  const handleTogglePartner = async (id: string, isActive: boolean) => {
+    try {
+      await apiFetch(`/api/admin/partners/${id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ isActive: !isActive }),
+      });
+      queryClient.invalidateQueries({ queryKey: ['admin-data'] });
+      queryClient.invalidateQueries({ queryKey: ['partners'] });
+      addToast('Statut mis à jour avec succès', 'success');
+    } catch (err) {
+      console.error(err);
+      addToast('Erreur lors de la mise à jour', 'error');
+    }
+  };
+
+  const handleDeletePartner = async (id: string) => {
+    if (!window.confirm('Êtes-vous sûr de vouloir supprimer ce partenaire ?')) return;
+    try {
+      await apiFetch(`/api/admin/partners/${id}`, { method: 'DELETE' });
+      queryClient.invalidateQueries({ queryKey: ['admin-data'] });
+      queryClient.invalidateQueries({ queryKey: ['partners'] });
+      addToast('Partenaire supprimé !', 'success');
+    } catch (err) {
+      console.error(err);
+      addToast('Erreur lors de la suppression', 'error');
+    }
+  };
+
   const handleToggleSuspendUser = async (uid: string, email: string, isSuspendedNow: boolean) => {
     try {
       await updateUserProfile(uid, { isSuspended: !isSuspendedNow });
@@ -1758,6 +1829,7 @@ export const AdminDashboard: React.FC<{ onBackToTraveler?: () => void }> = ({ on
                 { id: 'email', label: 'Config Email (SMTP)', icon: Mail, permission: 'manage_settings' },
                 { id: 'logs', label: 'Logs en Temps Réel', icon: Activity, permission: 'manage_users' },
                 { id: 'faq', label: 'Gestion FAQ', icon: MessageSquare, permission: 'manage_faq' },
+                { id: 'partners', label: 'Nos Partenaires', icon: Award, permission: 'manage_settings' },
                 { id: 'contact', label: 'Gestion Contact', icon: Mail, badge: contactMessages.filter(m => m.status === 'unread').length, badgeColor: 'bg-[#EF2B2D]', permission: 'manage_contact' },
               ]
             }
@@ -1866,7 +1938,7 @@ export const AdminDashboard: React.FC<{ onBackToTraveler?: () => void }> = ({ on
       {/* Main Content */}
       <main className="flex-1 overflow-y-auto p-10 bg-white relative">
         {/* Floating Refresh/Sync bar */}
-        <div className="absolute top-8 right-10 z-20 flex items-center gap-3">
+        <div className="absolute top-2 right-10 z-20 flex items-center gap-3">
           <button
             onClick={() => setIsGuideOpen(true)}
             className="flex items-center gap-2 px-4 py-2 bg-slate-50 hover:bg-slate-100 border border-slate-200 text-slate-700 hover:text-slate-900 rounded-xl text-xs font-black uppercase tracking-wider transition-all duration-200 cursor-pointer shadow-sm"
@@ -4382,7 +4454,6 @@ export const AdminDashboard: React.FC<{ onBackToTraveler?: () => void }> = ({ on
                 {showAdForm ? "Fermer l'éditeur" : "Créer une Affiche"}
               </button>
             </div>
-
             {/* Metrics Widget */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div className="bg-slate-50 border border-slate-150 rounded-3xl p-6 flex items-center gap-4">
@@ -4896,6 +4967,114 @@ export const AdminDashboard: React.FC<{ onBackToTraveler?: () => void }> = ({ on
                   </div>
                 );
               })}
+            </div>
+          </div>
+        )}
+
+        {activeTab === 'partners' && (
+          <div className="space-y-6 animate-in fade-in" id="partners-tab-container">
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+              <div>
+                <h2 className="text-3xl font-black text-slate-900 tracking-tight leading-none mb-1">Nos Partenaires</h2>
+                <p className="text-slate-500 font-medium text-sm">Gérez les logos des entreprises et partenaires qui s'affichent sur la page d'accueil.</p>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+              {/* Form to add partner */}
+              <div className="bg-white border border-slate-100 rounded-[32px] p-6 shadow-sm h-fit">
+                <h3 className="font-black text-slate-900 text-lg mb-4">Ajouter un Partenaire</h3>
+                <form onSubmit={handleCreatePartner} className="space-y-4">
+                  <div>
+                    <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1.5">Nom du Partenaire</label>
+                    <input
+                      type="text"
+                      required
+                      value={newPartnerName}
+                      onChange={e => setNewPartnerName(e.target.value)}
+                      placeholder="Ex: Orange Money"
+                      className="w-full bg-slate-50 border border-slate-100 rounded-xl px-4 py-3 text-xs font-bold outline-none focus:ring-2 focus:ring-red-500 transition"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1.5">Logo du Partenaire</label>
+                    <input
+                      type="file"
+                      required
+                      accept="image/*"
+                      onChange={e => {
+                        const file = e.target.files?.[0];
+                        if (file) {
+                          const reader = new FileReader();
+                          reader.onloadend = () => setNewPartnerLogo(reader.result as string);
+                          reader.readAsDataURL(file);
+                        }
+                      }}
+                      className="w-full bg-slate-50 border border-slate-100 rounded-xl px-4 py-3 text-xs font-bold outline-none focus:ring-2 focus:ring-red-500 transition file:mr-4 file:py-1 file:px-4 file:rounded-full file:border-0 file:text-xs file:font-semibold file:bg-red-50 file:text-red-700 hover:file:bg-red-100"
+                    />
+                  </div>
+                  {newPartnerLogo && (
+                    <div className="p-4 bg-slate-50 rounded-2xl border border-slate-100 flex items-center justify-center">
+                      <img src={newPartnerLogo} alt="Preview" className="max-h-12 object-contain" />
+                    </div>
+                  )}
+                  <button
+                    type="submit"
+                    disabled={isCreatingPartner}
+                    className="w-full bg-slate-900 hover:bg-slate-800 text-white font-black text-xs uppercase tracking-widest py-4 px-6 rounded-2xl shadow-md transition disabled:opacity-50 cursor-pointer"
+                  >
+                    {isCreatingPartner ? "Création..." : "Ajouter le partenaire"}
+                  </button>
+                </form>
+              </div>
+
+              {/* Partners List */}
+              <div className="lg:col-span-2 space-y-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  {partners.map(partner => (
+                    <div key={partner.id} className="bg-white border border-slate-100 rounded-2xl p-4 flex items-center justify-between shadow-sm group">
+                      <div className="flex items-center gap-4">
+                        <div className="w-12 h-12 bg-slate-50 rounded-xl flex items-center justify-center p-2 border border-slate-100 overflow-hidden">
+                          <img src={partner.logoUrl} alt={partner.name} className={cn("w-full h-full object-contain transition", !partner.isActive && "grayscale opacity-30")} />
+                        </div>
+                        <div>
+                          <h4 className="font-black text-slate-900 text-sm tracking-tight">{partner.name}</h4>
+                          <span className={cn(
+                            "text-[9px] font-black uppercase tracking-widest",
+                            partner.isActive ? "text-green-600" : "text-slate-400"
+                          )}>
+                            {partner.isActive ? "Actif" : "Suspendu"}
+                          </span>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition">
+                        <button 
+                          onClick={() => handleTogglePartner(partner.id, partner.isActive)}
+                          className={cn(
+                            "p-2 rounded-lg transition border",
+                            partner.isActive ? "bg-amber-50 text-amber-600 border-amber-100" : "bg-green-50 text-green-600 border-green-100"
+                          )}
+                          title={partner.isActive ? "Suspendre" : "Activer"}
+                        >
+                          <Activity size={14} />
+                        </button>
+                        <button 
+                          onClick={() => handleDeletePartner(partner.id)}
+                          className="p-2 bg-red-50 text-red-600 border border-red-100 rounded-lg hover:bg-red-600 hover:text-white transition"
+                          title="Supprimer"
+                        >
+                          <Trash2 size={14} />
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                  {partners.length === 0 && (
+                    <div className="col-span-full py-12 bg-slate-50 rounded-3xl border border-dashed border-slate-200 text-center text-slate-400 font-bold text-sm">
+                      Aucun partenaire enregistré pour le moment.
+                    </div>
+                  )}
+                </div>
+              </div>
             </div>
           </div>
         )}

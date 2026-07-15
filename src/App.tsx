@@ -43,6 +43,8 @@ import { FAQPage } from './components/legal/FAQPage';
 import { ContactPage } from './components/legal/ContactPage';
 import { ResetPassword } from './components/auth/ResetPassword';
 import { Footer } from './components/common/Footer';
+import { Partners } from './components/home/Partners';
+import { Features } from './components/home/Features';
 import { BURKINA_LOCATIONS } from './constants/locations';
 import { GlobalModal } from './components/common/GlobalModal';
 import { apiFetch } from './lib/api';
@@ -824,37 +826,8 @@ function AppContent() {
                 )}
               </div>
 
-              {/* Service Trust Cards Section */}
-              <div className="bg-white py-16 mb-16 border-y border-slate-100">
-                <div className="max-w-7xl mx-auto px-4">
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-                    <div className="group flex flex-col items-center justify-center p-12 bg-white border border-slate-100 hover:border-red-100 hover:shadow-2xl hover:shadow-red-500/10 transition-all duration-500 rounded-[2rem] relative overflow-hidden">
-                      <div className="absolute inset-0 bg-gradient-to-br from-red-50/50 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
-                      <div className="w-20 h-20 bg-red-50 text-red-600 rounded-full flex items-center justify-center mb-8 group-hover:scale-110 group-hover:bg-red-600 group-hover:text-white transition-all duration-500 relative z-10 shadow-sm">
-                        <CheckCircle2 size={32} className="stroke-[2]" />
-                      </div>
-                      <h3 className="text-xl font-bold text-slate-900 mb-4 text-center tracking-tight relative z-10">Sécurité Garantie</h3>
-                      <p className="text-slate-500 text-sm text-center leading-relaxed max-w-[250px] relative z-10">Toutes nos résidences sont vérifiées manuellement par nos équipes.</p>
-                    </div>
-                    <div className="group flex flex-col items-center justify-center p-12 bg-white border border-slate-100 hover:border-red-100 hover:shadow-2xl hover:shadow-red-500/10 transition-all duration-500 rounded-[2rem] relative overflow-hidden">
-                      <div className="absolute inset-0 bg-gradient-to-br from-red-50/50 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
-                      <div className="w-20 h-20 bg-red-50 text-red-600 rounded-full flex items-center justify-center mb-8 group-hover:scale-110 group-hover:bg-red-600 group-hover:text-white transition-all duration-500 relative z-10 shadow-sm">
-                        <Star size={32} className="stroke-[2]" />
-                      </div>
-                      <h3 className="text-xl font-bold text-slate-900 mb-4 text-center tracking-tight relative z-10">Qualité Premium</h3>
-                      <p className="text-slate-500 text-sm text-center leading-relaxed max-w-[250px] relative z-10">Nous sélectionnons uniquement les meilleurs logements pour vous.</p>
-                    </div>
-                    <div className="group flex flex-col items-center justify-center p-12 bg-white border border-slate-100 hover:border-red-100 hover:shadow-2xl hover:shadow-red-500/10 transition-all duration-500 rounded-[2rem] relative overflow-hidden">
-                      <div className="absolute inset-0 bg-gradient-to-br from-red-50/50 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
-                      <div className="w-20 h-20 bg-red-50 text-red-600 rounded-full flex items-center justify-center mb-8 group-hover:scale-110 group-hover:bg-red-600 group-hover:text-white transition-all duration-500 relative z-10 shadow-sm">
-                        <ShieldCheck size={32} className="stroke-[2]" />
-                      </div>
-                      <h3 className="text-xl font-bold text-slate-900 mb-4 text-center tracking-tight relative z-10">Support Local</h3>
-                      <p className="text-slate-500 text-sm text-center leading-relaxed max-w-[250px] relative z-10">Une équipe sur place à Ouagadougou pour vous accompagner.</p>
-                    </div>
-                  </div>
-                </div>
-              </div>
+              <Partners />
+              <Features />
             </motion.div>
           )}
 

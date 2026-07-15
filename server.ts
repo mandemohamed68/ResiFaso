@@ -1341,6 +1341,73 @@ async function startServer() {
     }
   });
 
+  // --- Upload ---
+  app.post("/api/upload", authenticateToken, async (req: AuthRequest, res) => {
+    try {
+      if (!req.body.image) return res.status(400).json({ error: "Image requise" });
+      // Here you would normally upload to S3, Cloud Storage, or similar.
+      // Since we need to keep it simple and the user didn't specify,
+      // we'll return the provided base64 string as the URL.
+      // In a real production app, this must be replaced with proper storage.
+      const imageUrl = req.body.image; 
+      res.json({ url: imageUrl });
+    } catch (err: any) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  // --- Partners ---
+
+  app.get("/api/partners", async (req, res) => {
+    try {
+      const partners = await executeSql("SELECT id, name, logo_url as logoUrl, is_active as isActive FROM partners ORDER BY created_at DESC");
+      res.json(partners);
+    } catch (err: any) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  app.post("/api/admin/partners", authenticateToken, async (req: AuthRequest, res) => {
+    try {
+      if (req.user?.role !== 'admin') return res.status(403).json({ error: "Non autorisé" });
+      const { id, name, logoUrl } = req.body;
+      await executeSql("INSERT INTO partners (id, name, logo_url, is_active) VALUES (?, ?, ?, 1)", [id, name, logoUrl]);
+      res.json({ success: true });
+    } catch (err: any) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  app.patch("/api/admin/partners/:id", authenticateToken, async (req: AuthRequest, res) => {
+    try {
+      if (req.user?.role !== 'admin') return res.status(403).json({ error: "Non autorisé" });
+      const { name, logoUrl, isActive } = req.body;
+      const updates: any = {};
+      if (name !== undefined) updates.name = formatSqlValue(name);
+      if (logoUrl !== undefined) updates.logo_url = formatSqlValue(logoUrl);
+      if (isActive !== undefined) updates.is_active = isActive ? 1 : 0;
+
+      const fields = Object.keys(updates);
+      if (fields.length === 0) return res.json({ success: true });
+
+      const setClause = fields.map(f => `${f} = ?`).join(', ');
+      await executeSql(`UPDATE partners SET ${setClause} WHERE id = ?`, [...Object.values(updates), req.params.id]);
+      res.json({ success: true });
+    } catch (err: any) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  app.delete("/api/admin/partners/:id", authenticateToken, async (req: AuthRequest, res) => {
+    try {
+      if (req.user?.role !== 'admin') return res.status(403).json({ error: "Non autorisé" });
+      await executeSql("DELETE FROM partners WHERE id = ?", [req.params.id]);
+      res.json({ success: true });
+    } catch (err: any) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
   // ---------- FORGOT PASSWORD (squelette) ----------
   app.post("/api/auth/forgot-password", async (req, res) => {
     const { email } = req.body;

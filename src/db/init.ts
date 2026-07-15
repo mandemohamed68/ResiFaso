@@ -575,6 +575,17 @@ export const initDatabase = async () => {
     } catch (msgColErr: any) {
       console.warn("Avertissement migration MariaDB contact_messages:", msgColErr.message);
     }
+    // Partners Table
+    await executeSql(`
+      CREATE TABLE IF NOT EXISTS partners (
+        id VARCHAR(128) PRIMARY KEY,
+        name VARCHAR(255) NOT NULL,
+        logo_url LONGTEXT NOT NULL,
+        is_active BOOLEAN DEFAULT 1,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+      ) ENGINE=InnoDB
+    `);
+
     } finally {
       await executeSql("SET FOREIGN_KEY_CHECKS = 1");
     }
@@ -828,6 +839,17 @@ export const initDatabase = async () => {
         is_read BOOLEAN DEFAULT 0,
         created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
         FOREIGN KEY(user_id) REFERENCES users(uid)
+      )
+    `);
+
+    // Partners Table (SQLite)
+    await executeSql(`
+      CREATE TABLE IF NOT EXISTS partners (
+        id TEXT PRIMARY KEY,
+        name TEXT NOT NULL,
+        logo_url TEXT NOT NULL,
+        is_active INTEGER DEFAULT 1,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP
       )
     `);
 
