@@ -225,6 +225,12 @@ async function startServer() {
     try {
       await executeSql("ALTER TABLE users ADD COLUMN has_accepted_terms BOOLEAN DEFAULT 0");
     } catch (e) {}
+    try {
+      await executeSql("ALTER TABLE withdrawals ADD COLUMN transaction_id VARCHAR(255)");
+    } catch (e) {}
+    try {
+      await executeSql("ALTER TABLE withdrawals ADD COLUMN rejection_reason TEXT");
+    } catch (e) {}
   }
 
   const app = express();
@@ -1337,9 +1343,159 @@ async function startServer() {
     try {
       const id = 'wth_' + Math.random().toString(36).substr(2, 9);
       const { amount, phone, provider } = req.body;
-      await executeSql("INSERT INTO withdrawals (id, owner_id, amount, phone, provider) VALUES (?, ?, ?, ?, ?)", [id, req.user?.uid, amount, phone, provider]);
-      res.json({ success: true, id });
+      const ownerId = req.user?.uid;
+      const ownerName = (req.user as any)?.displayName || 'Hôte ResiFaso';
+      const amountNum = parseFloat(amount);
+
+      // Get global settings (for withdrawalMode)
+      let withdrawalMode = 'manual';
+      try {
+        const results = await executeSql("SELECT value FROM settings WHERE `key` = 'global'");
+        if (results && results.length > 0) {
+          const s = JSON.parse(results[0].value);
+          if (s?.withdrawalMode) withdrawalMode = s.withdrawalMode;
+        }
+      } catch (errSettings) {
+        console.warn("Error loading global settings for withdrawalMode:", errSettings);
+      }
+
+      if (withdrawalMode === 'auto') {
+        console.log(`[Auto Withdraw] Triggering automatic payout via SapPay for withdrawal request ${id} (Amount: ${amountNum})`);
+        const payoutResult = await performSappayPayout(amountNum, phone, provider);
+
+        if (payoutResult.success) {
+          // Success
+          await executeSql(
+            "INSERT INTO withdrawals (id, owner_id, amount, phone, provider, status, approved_at, transaction_id) VALUES (?, ?, ?, ?, ?, 'approved', ?, ?)",
+            [id, ownerId, amountNum, phone, provider, new Date().toISOString().replace('T', ' ').substring(0, 19), payoutResult.transactionId]
+          );
+
+          // Notify traveler / host
+          const hostNotifId = 'not_' + Math.random().toString(36).substr(2, 9);
+          await executeSql(
+            "INSERT INTO notifications (id, user_id, title, message, type, reference_id) VALUES (?, ?, ?, ?, ?, ?)",
+            [
+              hostNotifId,
+              ownerId,
+              "Retrait Effectué ⚡",
+              `Votre retrait de ${amountNum} F CFA via ${provider.toUpperCase()} a été traité automatiquement avec succès (TxID SapPay: ${payoutResult.transactionId}).`,
+              "payment",
+              id
+            ]
+          );
+
+          // Notify admins
+          try {
+            const admins = await executeSql("SELECT uid FROM users WHERE role = 'admin' OR email = 'mandemohamed68@gmail.com'");
+            for (const admin of admins) {
+              const adminNotifId = 'not_' + Math.random().toString(36).substr(2, 9);
+              await executeSql(
+                "INSERT INTO notifications (id, user_id, title, message, type, reference_id) VALUES (?, ?, ?, ?, ?, ?)",
+                [
+                  adminNotifId,
+                  admin.uid,
+                  "Retrait Automatique Réussi ⚡",
+                  `Un virement automatique de ${amountNum} F CFA pour l'hôte ${ownerName} a été payé avec succès via SapPay.`,
+                  "payment",
+                  id
+                ]
+              );
+            }
+          } catch (adminErr) {
+            console.error("Error notifying admins:", adminErr);
+          }
+
+          return res.json({ success: true, id, status: 'approved', transactionId: payoutResult.transactionId });
+        } else {
+          // Payout failed
+          await executeSql(
+            "INSERT INTO withdrawals (id, owner_id, amount, phone, provider, status, rejection_reason) VALUES (?, ?, ?, ?, ?, 'failed', ?)",
+            [id, ownerId, amountNum, phone, provider, payoutResult.error || "Erreur API SapPay"]
+          );
+
+          // Notify host of failure
+          const hostNotifId = 'not_' + Math.random().toString(36).substr(2, 9);
+          await executeSql(
+            "INSERT INTO notifications (id, user_id, title, message, type, reference_id) VALUES (?, ?, ?, ?, ?, ?)",
+            [
+              hostNotifId,
+              ownerId,
+              "Échec du Retrait ⚠️",
+              `La tentative de virement automatique pour votre retrait de ${amountNum} F CFA chez ResiFaso a échoué (Erreur: ${payoutResult.error || 'Erreur API'}). L'administration a été alertée pour procéder à une régularisation manuelle.`,
+              "payment",
+              id
+            ]
+          );
+
+          // Notify admins of failure
+          try {
+            const admins = await executeSql("SELECT uid FROM users WHERE role = 'admin' OR email = 'mandemohamed68@gmail.com'");
+            for (const admin of admins) {
+              const adminNotifId = 'not_' + Math.random().toString(36).substr(2, 9);
+              await executeSql(
+                "INSERT INTO notifications (id, user_id, title, message, type, reference_id) VALUES (?, ?, ?, ?, ?, ?)",
+                [
+                  adminNotifId,
+                  admin.uid,
+                  "Échec Retrait Automatique ⚠️",
+                  `Le virement automatique de ${amountNum} F CFA pour l'hôte ${ownerName} a échoué (Erreur: ${payoutResult.error}). Une action manuelle est requise.`,
+                  "payment",
+                  id
+                ]
+              );
+            }
+          } catch (adminErr) {
+            console.error("Error notifying admins:", adminErr);
+          }
+
+          return res.json({ success: false, id, status: 'failed', error: payoutResult.error });
+        }
+      } else {
+        // Manual Mode (default)
+        await executeSql(
+          "INSERT INTO withdrawals (id, owner_id, amount, phone, provider, status) VALUES (?, ?, ?, ?, ?, 'pending')",
+          [id, ownerId, amountNum, phone, provider]
+        );
+
+        // Notify host
+        const hostNotifId = 'not_' + Math.random().toString(36).substr(2, 9);
+        await executeSql(
+          "INSERT INTO notifications (id, user_id, title, message, type, reference_id) VALUES (?, ?, ?, ?, ?, ?)",
+          [
+            hostNotifId,
+            ownerId,
+            "Demande de Retrait Enregistrée ! 💸",
+            `Votre demande de retrait de ${amountNum} F CFA via ${provider.toUpperCase()} a été enregistrée. Elle est en attente de validation manuelle par l'administrateur.`,
+            "payment",
+            id
+          ]
+        );
+
+        // Notify admins
+        try {
+          const admins = await executeSql("SELECT uid FROM users WHERE role = 'admin' OR email = 'mandemohamed68@gmail.com'");
+          for (const admin of admins) {
+            const adminNotifId = 'not_' + Math.random().toString(36).substr(2, 9);
+            await executeSql(
+              "INSERT INTO notifications (id, user_id, title, message, type, reference_id) VALUES (?, ?, ?, ?, ?, ?)",
+              [
+                adminNotifId,
+                admin.uid,
+                "Nouvelle Demande de Retrait 📥",
+                `L'hôte ${ownerName} a demandé un retrait de ${amountNum} F CFA via ${provider.toUpperCase()}`,
+                "payment",
+                id
+              ]
+            );
+          }
+        } catch (adminErr) {
+          console.error("Error notifying admins:", adminErr);
+        }
+
+        return res.json({ success: true, id, status: 'pending' });
+      }
     } catch (err: any) {
+      console.error("Error creating withdrawal request:", err);
       res.status(500).json({ error: err.message });
     }
   });
@@ -1355,6 +1511,10 @@ async function startServer() {
           body['owner_id'] = formatSqlValue(value);
         } else if (key === 'createdAt') {
           body['created_at'] = formatSqlValue(value);
+        } else if (key === 'transactionId') {
+          body['transaction_id'] = formatSqlValue(value);
+        } else if (key === 'rejectionReason') {
+          body['rejection_reason'] = formatSqlValue(value);
         } else {
           body[key] = formatSqlValue(value);
         }
@@ -1364,6 +1524,127 @@ async function startServer() {
       await executeSql(`UPDATE withdrawals SET ${setClause} WHERE id = ?`, [...Object.values(body), req.params.id]);
       res.json({ success: true });
     } catch (err: any) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  app.post("/api/withdrawals/:id/payout", authenticateToken, async (req: AuthRequest, res) => {
+    try {
+      if (req.user?.role !== 'admin') return res.status(403).json({ error: "Non autorisé" });
+      
+      const { id } = req.params;
+      
+      // Fetch the withdrawal request
+      const withdrawals = await executeSql("SELECT * FROM withdrawals WHERE id = ?", [id]);
+      if (!withdrawals || withdrawals.length === 0) {
+        return res.status(404).json({ error: "Demande de retrait introuvable" });
+      }
+      
+      const withd = withdrawals[0];
+      const amount = parseFloat(withd.amount);
+      const phone = withd.phone;
+      const provider = withd.provider;
+      const ownerId = withd.owner_id || withd.ownerId;
+      
+      // Fetch user's name
+      let ownerName = "Hôte ResiFaso";
+      const userRows = await executeSql("SELECT display_name FROM users WHERE uid = ?", [ownerId]);
+      if (userRows && userRows.length > 0) {
+        ownerName = userRows[0].display_name || "Hôte ResiFaso";
+      }
+
+      console.log(`[Admin Payout Trigger] Initiating manual/retry payout via SapPay for withdrawal request ${id} (Amount: ${amount})`);
+      const payoutResult = await performSappayPayout(amount, phone, provider);
+      
+      if (payoutResult.success) {
+        // Success
+        await executeSql(
+          "UPDATE withdrawals SET status = 'approved', approved_at = ?, transaction_id = ?, rejection_reason = NULL WHERE id = ?",
+          [new Date().toISOString().replace('T', ' ').substring(0, 19), payoutResult.transactionId, id]
+        );
+        
+        // Notify host
+        const hostNotifId = 'not_' + Math.random().toString(36).substr(2, 9);
+        await executeSql(
+          "INSERT INTO notifications (id, user_id, title, message, type, reference_id) VALUES (?, ?, ?, ?, ?, ?)",
+          [
+            hostNotifId,
+            ownerId,
+            "Retrait Validé & Payé ! ⚡",
+            `Votre demande de retrait de ${amount} F CFA via ${provider.toUpperCase()} a été payée automatiquement avec succès via SapPay. (ID de transaction: ${payoutResult.transactionId})`,
+            "payment",
+            id
+          ]
+        );
+        
+        // Notify admins
+        try {
+          const admins = await executeSql("SELECT uid FROM users WHERE role = 'admin' OR email = 'mandemohamed68@gmail.com'");
+          for (const admin of admins) {
+            const adminNotifId = 'not_' + Math.random().toString(36).substr(2, 9);
+            await executeSql(
+              "INSERT INTO notifications (id, user_id, title, message, type, reference_id) VALUES (?, ?, ?, ?, ?, ?)",
+              [
+                adminNotifId,
+                admin.uid,
+                "Retrait Automatique Exécuté (Admin) ⚡",
+                `Le virement SapPay de ${amount} F CFA pour l'hôte ${ownerName} a été effectué avec succès.`,
+                "payment",
+                id
+              ]
+            );
+          }
+        } catch (adminErr) {
+          console.error("Error notifying admins:", adminErr);
+        }
+        
+        return res.json({ success: true, transactionId: payoutResult.transactionId });
+      } else {
+        // Failed
+        await executeSql(
+          "UPDATE withdrawals SET status = 'failed', rejection_reason = ? WHERE id = ?",
+          [payoutResult.error || "Erreur de virement SapPay", id]
+        );
+        
+        // Notify host
+        const hostNotifId = 'not_' + Math.random().toString(36).substr(2, 9);
+        await executeSql(
+          "INSERT INTO notifications (id, user_id, title, message, type, reference_id) VALUES (?, ?, ?, ?, ?, ?)",
+          [
+            hostNotifId,
+            ownerId,
+            "Échec du Virement de Retrait ⚠️",
+            `Le virement automatique pour votre retrait de ${amount} F CFA via ${provider.toUpperCase()} a échoué (Erreur: ${payoutResult.error || 'Erreur API'}). L'administration procédera à une vérification manuelle.`,
+            "payment",
+            id
+          ]
+        );
+        
+        // Notify admins
+        try {
+          const admins = await executeSql("SELECT uid FROM users WHERE role = 'admin' OR email = 'mandemohamed68@gmail.com'");
+          for (const admin of admins) {
+            const adminNotifId = 'not_' + Math.random().toString(36).substr(2, 9);
+            await executeSql(
+              "INSERT INTO notifications (id, user_id, title, message, type, reference_id) VALUES (?, ?, ?, ?, ?, ?)",
+              [
+                adminNotifId,
+                admin.uid,
+                "Échec Virement Retrait ⚠️",
+                `Le virement automatique de ${amount} F CFA pour l'hôte ${ownerName} a échoué (Erreur: ${payoutResult.error}).`,
+                "payment",
+                id
+              ]
+            );
+          }
+        } catch (adminErr) {
+          console.error("Error notifying admins:", adminErr);
+        }
+        
+        return res.status(500).json({ error: `Échec du virement automatique SapPay : ${payoutResult.error || 'Erreur API'}` });
+      }
+    } catch (err: any) {
+      console.error("Error in trigger payout:", err);
       res.status(500).json({ error: err.message });
     }
   });

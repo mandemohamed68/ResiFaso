@@ -5,7 +5,7 @@ import {
   LayoutDashboard, Home, Users, BarChart3, Settings, ShieldCheck, 
   Activity, Search, Trash2, Edit3, Plus, ArrowUpRight, TrendingUp, Calendar, Check, X, Eye,
   FileText, Download, Award, ShieldAlert, Megaphone, Upload, Wallet, ArrowLeft, MapPin, MessageSquare, Mail, Phone, Clock,
-  ChevronLeft, ChevronRight, RefreshCw, KeyRound, Shield, Compass
+  ChevronLeft, ChevronRight, RefreshCw, KeyRound, Shield, Compass, Zap, Sliders
 } from 'lucide-react';
 import { CustomSelect } from '../common/CustomSelect';
 import { Residence, UserProfile, UserRole, Booking, Review, BookingStatus, PaymentStatus, Advertisement, WithdrawalRequest, WithdrawalStatus, FAQItem, ContactMessage, ContactSettings } from '../../types';
@@ -105,6 +105,7 @@ export const AdminDashboard: React.FC<{ onBackToTraveler?: () => void }> = ({ on
         if (s.sappayUsername !== undefined) setSappayUsername(s.sappayUsername);
         if (s.sappayPassword !== undefined) setSappayPassword(s.sappayPassword);
         if (s.refundMode !== undefined) setRefundMode(s.refundMode);
+        if (s.withdrawalMode !== undefined) setWithdrawalMode(s.withdrawalMode);
         
         if (s.announcements && s.announcements.length > 0) {
           setAnnouncements(s.announcements);
@@ -199,6 +200,16 @@ export const AdminDashboard: React.FC<{ onBackToTraveler?: () => void }> = ({ on
   const [sappayUsername, setSappayUsername] = useState('mandemohamed68@gmail.com');
   const [sappayPassword, setSappayPassword] = useState('mm@27071986@');
   const [refundMode, setRefundMode] = useState<'manual' | 'auto'>('manual');
+  const [withdrawalMode, setWithdrawalMode] = useState<'manual' | 'auto'>('manual');
+  
+  // States for Withdrawals Force Update Modal
+  const [forceUpdateWithdrawal, setForceUpdateWithdrawal] = useState<WithdrawalRequest | null>(null);
+  const [forceStatus, setForceStatus] = useState<WithdrawalStatus>('pending');
+  const [forceTxId, setForceTxId] = useState('');
+  const [forceRejection, setForceRejection] = useState('');
+  const [forceNotifTitle, setForceNotifTitle] = useState('Mise à jour de votre retrait 💸');
+  const [forceNotifMessage, setForceNotifMessage] = useState('');
+  const [isSubmittingForce, setIsSubmittingForce] = useState(false);
   const [announcementText, setAnnouncementText] = useState('');
   const [announcementType, setAnnouncementType] = useState<'info' | 'warning' | 'success' | 'danger'>('info');
   const [announcementActive, setAnnouncementActive] = useState(false);
@@ -1212,6 +1223,7 @@ export const AdminDashboard: React.FC<{ onBackToTraveler?: () => void }> = ({ on
       supportChatCloseTime: supportChatCloseTime,
       maxBookingsWithoutId: maxBookingsWithoutId,
       refundMode: refundMode,
+      withdrawalMode: withdrawalMode,
       announcement: {
         text: announcementText,
         type: announcementType,
@@ -1257,6 +1269,7 @@ export const AdminDashboard: React.FC<{ onBackToTraveler?: () => void }> = ({ on
         supportChatCloseTime,
         maxBookingsWithoutId,
         refundMode: mode,
+        withdrawalMode: withdrawalMode,
         announcement: {
           text: announcementText,
           type: announcementType,
@@ -1272,6 +1285,89 @@ export const AdminDashboard: React.FC<{ onBackToTraveler?: () => void }> = ({ on
     } catch (err) {
       console.error(err);
       addToast("Erreur lors de la mise à jour du mode de remboursement.", "error");
+    }
+  };
+
+  const handleToggleWithdrawalMode = async (mode: 'manual' | 'auto') => {
+    try {
+      setWithdrawalMode(mode);
+      const settingsPayload = {
+        platformName,
+        footerContent,
+        commissionRate,
+        isTestMode: isGlobalTestMode,
+        sappayClientId,
+        sappayClientSecret,
+        sappayUsername,
+        sappayPassword,
+        enablePhoneCalls,
+        enableWhatsApp,
+        minReservationAmountEnabled,
+        minReservationAmount,
+        refreshInterval,
+        supportChatEnabled,
+        supportChatOpenTime,
+        supportChatCloseTime,
+        maxBookingsWithoutId,
+        refundMode: refundMode,
+        withdrawalMode: mode,
+        announcement: {
+          text: announcementText,
+          type: announcementType,
+          active: announcementActive,
+          updatedAt: new Date().toISOString()
+        },
+        announcements: announcements
+      };
+      await saveGlobalSettings(settingsPayload);
+      await reloadData();
+      logAction(`Mode de retrait des gains configuré sur : ${mode === 'auto' ? 'Automatique (Payout instantané)' : 'Manuel (Validation admin)'}`);
+      triggerSuccess(`Mode de retrait mis à jour avec succès : ${mode === 'auto' ? 'Automatique' : 'Manuel'}`);
+    } catch (err) {
+      console.error(err);
+      addToast("Erreur lors de la mise à jour du mode de retrait.", "error");
+    }
+  };
+
+  const handleSaveForceUpdate = async () => {
+    if (!forceUpdateWithdrawal) return;
+    setIsSubmittingForce(true);
+    try {
+      const payload: any = {
+        status: forceStatus,
+        transactionId: forceStatus === 'approved' ? (forceTxId || null) : null,
+        rejectionReason: (forceStatus === 'rejected' || forceStatus === 'failed') ? (forceRejection || null) : null,
+        approvedAt: forceStatus === 'approved' ? new Date().toISOString() : null
+      };
+      
+      await apiFetch(`/api/withdrawals/${forceUpdateWithdrawal.id}`, {
+        method: 'PATCH',
+        body: JSON.stringify(payload)
+      });
+      
+      if (forceNotifMessage.trim()) {
+        const notifId = 'not_' + Math.random().toString(36).substr(2, 9);
+        await apiFetch('/api/notifications', {
+          method: 'POST',
+          body: JSON.stringify({
+            userId: forceUpdateWithdrawal.ownerId,
+            title: forceNotifTitle,
+            message: forceNotifMessage,
+            type: 'payment',
+            referenceId: forceUpdateWithdrawal.id
+          })
+        });
+      }
+      
+      triggerSuccess("Forçage du statut appliqué et hôte notifié.");
+      logAction(`Forçage statut retrait #${forceUpdateWithdrawal.id} à ${forceStatus}`);
+      setForceUpdateWithdrawal(null);
+      await reloadData();
+    } catch (err: any) {
+      console.error(err);
+      addToast(`Erreur lors du forçage : ${err.message}`, "error");
+    } finally {
+      setIsSubmittingForce(false);
     }
   };
 
@@ -3566,6 +3662,209 @@ export const AdminDashboard: React.FC<{ onBackToTraveler?: () => void }> = ({ on
               </div>
             </div>
 
+            {/* Dual Mode Card for Withdrawals (Auto vs Manual) */}
+            <div className="bg-gradient-to-br from-slate-900 to-red-950 p-6 rounded-[32px] text-white shadow-xl flex flex-col md:flex-row md:items-center justify-between gap-6 border border-slate-800">
+              <div className="space-y-2">
+                <div className="flex items-center gap-2">
+                  <span className={cn(
+                    "w-2.5 h-2.5 rounded-full animate-pulse",
+                    withdrawalMode === 'auto' ? "bg-green-500" : "bg-amber-500"
+                  )} />
+                  <span className="text-[10px] font-black uppercase tracking-widest text-slate-400">Mode de Traitement Actuel</span>
+                </div>
+                <h3 className="text-xl font-black flex items-center gap-2">
+                  {withdrawalMode === 'auto' ? (
+                    <>Virement Mobile Automatique (SapPay) <span className="bg-green-500/20 text-green-400 text-[10px] px-2 py-0.5 rounded-full font-bold">ACTIF</span></>
+                  ) : (
+                    <>Traitement Manuel (Hors-Plateforme) <span className="bg-amber-500/20 text-amber-400 text-[10px] px-2 py-0.5 rounded-full font-bold">ACTIF</span></>
+                  )}
+                </h3>
+                <p className="text-xs text-slate-300 max-w-xl font-medium leading-relaxed">
+                  {withdrawalMode === 'auto' 
+                    ? "Enclenchement automatique : Dès la soumission d'une demande de retrait par l'hôte, le système initie immédiatement une transaction de payout (virement mobile instantané) via l'API SapPay. Le statut est mis à jour en temps réel."
+                    : "Règlement hors-plateforme : L'administrateur procède manuellement au virement ou paiement physique par ses propres moyens (espèces, Orange Money direct, etc.) puis valide la demande pour en notifier les intervenants."
+                  }
+                </p>
+              </div>
+              
+              <div className="flex bg-slate-800/80 p-1.5 rounded-2xl border border-slate-700/60 self-start md:self-auto shadow-inner">
+                <button
+                  onClick={() => handleToggleWithdrawalMode('manual')}
+                  className={cn(
+                    "px-4 py-2.5 rounded-xl text-xs font-black uppercase tracking-wider transition-all cursor-pointer flex items-center gap-1.5",
+                    withdrawalMode === 'manual'
+                      ? "bg-white text-slate-900 shadow-md scale-105"
+                      : "text-slate-400 hover:text-white"
+                  )}
+                >
+                  🖐️ Manuel
+                </button>
+                <button
+                  onClick={() => handleToggleWithdrawalMode('auto')}
+                  className={cn(
+                    "px-4 py-2.5 rounded-xl text-xs font-black uppercase tracking-wider transition-all cursor-pointer flex items-center gap-1.5",
+                    withdrawalMode === 'auto'
+                      ? "bg-red-600 text-white shadow-md scale-105"
+                      : "text-slate-400 hover:text-red-400"
+                  )}
+                >
+                  ⚡ Automatique
+                </button>
+              </div>
+            </div>
+
+            {/* Modal de Correction / Forçage Manuel (Anomalies) */}
+            {forceUpdateWithdrawal && (
+              <div className="fixed inset-0 bg-slate-950/70 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+                <div className="bg-white rounded-[32px] border border-slate-100 max-w-lg w-full overflow-hidden shadow-2xl animate-in zoom-in-95 duration-200">
+                  <div className="bg-slate-950 p-6 text-white flex justify-between items-center">
+                    <div>
+                      <h3 className="text-lg font-black flex items-center gap-2">
+                        <Sliders size={20} className="text-red-500" />
+                        Forçage & Régularisation
+                      </h3>
+                      <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider mt-1">Régularisation manuelle de retrait d'hôte</p>
+                    </div>
+                    <button 
+                      onClick={() => setForceUpdateWithdrawal(null)}
+                      className="p-1.5 hover:bg-white/10 rounded-xl transition text-white/70 hover:text-white cursor-pointer"
+                    >
+                      <X size={20} />
+                    </button>
+                  </div>
+                  
+                  <div className="p-6 space-y-4 max-h-[80vh] overflow-y-auto text-slate-700">
+                    {/* Withdrawal details brief */}
+                    <div className="bg-slate-50 p-4 rounded-2xl border border-slate-100 flex justify-between text-xs font-bold text-slate-600">
+                      <div>
+                        <span className="block text-[9px] uppercase tracking-wider text-slate-400">Demandeur</span>
+                        <span className="text-slate-900 font-black">{users.find(u=>u.uid === forceUpdateWithdrawal.ownerId)?.displayName || 'Inconnu'}</span>
+                      </div>
+                      <div>
+                        <span className="block text-[9px] uppercase tracking-wider text-slate-400">Montant</span>
+                        <span className="text-slate-950 font-black">{formatCurrency(forceUpdateWithdrawal.amount)} F CFA</span>
+                      </div>
+                      <div>
+                        <span className="block text-[9px] uppercase tracking-wider text-slate-400">Canal</span>
+                        <span className="text-slate-900 font-black uppercase">{forceUpdateWithdrawal.provider}</span>
+                      </div>
+                    </div>
+
+                    {/* Choose target status */}
+                    <div>
+                      <label className="block text-xs font-black text-slate-400 uppercase tracking-wider mb-1.5">Forcer le Statut Réel</label>
+                      <div className="grid grid-cols-4 gap-2">
+                        {([
+                          { id: 'pending', label: 'En attente', color: 'border-amber-200 hover:bg-amber-50 text-amber-700' },
+                          { id: 'approved', label: 'Payé', color: 'border-green-200 hover:bg-green-50 text-green-700' },
+                          { id: 'failed', label: 'Échoué', color: 'border-orange-200 hover:bg-orange-50 text-orange-700' },
+                          { id: 'rejected', label: 'Refusé', color: 'border-red-200 hover:bg-red-50 text-red-700' }
+                        ] as const).map((st) => (
+                          <button
+                            key={st.id}
+                            type="button"
+                            onClick={() => {
+                              setForceStatus(st.id);
+                              // Auto populate appropriate titles
+                              if (st.id === 'approved') {
+                                setForceNotifTitle("Retrait Validé & Payé ! ⚡");
+                                setForceNotifMessage(`Félicitations, votre demande de retrait de ${forceUpdateWithdrawal.amount} F CFA a été validée et régularisée avec succès par nos services financiers.`);
+                              } else if (st.id === 'failed') {
+                                setForceNotifTitle("Échec de Retrait Enregistré ⚠️");
+                                setForceNotifMessage(`La tentative de transfert pour votre retrait de ${forceUpdateWithdrawal.amount} F CFA est en anomalie technique. Notre équipe étudie une solution alternative.`);
+                              } else if (st.id === 'rejected') {
+                                setForceNotifTitle("Retrait Refusé ❌");
+                                setForceNotifMessage(`Votre demande de retrait de ${forceUpdateWithdrawal.amount} F CFA a été refusée.`);
+                              }
+                            }}
+                            className={cn(
+                              "py-2 rounded-xl border text-center text-[10px] font-black uppercase tracking-wider transition-all cursor-pointer",
+                              forceStatus === st.id 
+                                ? "bg-slate-950 text-white border-slate-950 scale-105 shadow-sm" 
+                                : st.color
+                            )}
+                          >
+                            {st.label}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* ID Transaction field (only for Approved) */}
+                    {forceStatus === 'approved' && (
+                      <div>
+                        <label className="block text-xs font-black text-slate-400 uppercase tracking-wider mb-1">ID Transaction SapPay / Opérateur (TxID)</label>
+                        <input
+                          type="text"
+                          placeholder="Ex: TXN826491749"
+                          value={forceTxId}
+                          onChange={(e) => setForceTxId(e.target.value)}
+                          className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-xs font-bold text-slate-900 outline-none focus:bg-white focus:ring-2 focus:ring-red-500 transition-all"
+                        />
+                      </div>
+                    )}
+
+                    {/* Error message / rejection reason field (for Failed/Rejected) */}
+                    {(forceStatus === 'rejected' || forceStatus === 'failed') && (
+                      <div>
+                        <label className="block text-xs font-black text-slate-400 uppercase tracking-wider mb-1">Motif de Rejet / Erreur technique</label>
+                        <input
+                          type="text"
+                          placeholder="Ex: Compte non identifié ou solde insuffisant"
+                          value={forceRejection}
+                          onChange={(e) => setForceRejection(e.target.value)}
+                          className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-xs font-bold text-slate-900 outline-none focus:bg-white focus:ring-2 focus:ring-red-500 transition-all"
+                        />
+                      </div>
+                    )}
+
+                    {/* Notification customization */}
+                    <div className="border-t border-slate-100 pt-4 space-y-3">
+                      <span className="block text-xs font-black text-slate-900 uppercase tracking-wider">Message de notification à l'Hôte</span>
+                      
+                      <div>
+                        <label className="block text-[10px] text-slate-400 font-bold uppercase tracking-wider mb-1 font-black">Titre de la notification</label>
+                        <input
+                          type="text"
+                          value={forceNotifTitle}
+                          onChange={(e) => setForceNotifTitle(e.target.value)}
+                          className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2 text-xs font-bold text-slate-900 outline-none focus:bg-white focus:ring-2 focus:ring-red-500 transition-all"
+                        />
+                      </div>
+                      
+                      <div>
+                        <label className="block text-[10px] text-slate-400 font-bold uppercase tracking-wider mb-1 font-black">Message explicatif</label>
+                        <textarea
+                          rows={3}
+                          value={forceNotifMessage}
+                          onChange={(e) => setForceNotifMessage(e.target.value)}
+                          className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2 text-xs font-bold text-slate-900 outline-none focus:bg-white focus:ring-2 focus:ring-red-500 transition-all resize-none font-sans"
+                        />
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="bg-slate-50 p-4 border-t border-slate-100 flex justify-end gap-3">
+                    <button
+                      type="button"
+                      onClick={() => setForceUpdateWithdrawal(null)}
+                      className="px-4 py-2 text-xs font-black text-slate-500 hover:text-slate-700 bg-white border border-slate-200 rounded-xl cursor-pointer hover:bg-slate-50 transition"
+                    >
+                      Annuler
+                    </button>
+                    <button
+                      type="button"
+                      disabled={isSubmittingForce}
+                      onClick={handleSaveForceUpdate}
+                      className="px-5 py-2 text-xs font-black text-white bg-slate-950 hover:bg-red-600 rounded-xl cursor-pointer disabled:opacity-50 transition flex items-center gap-1.5"
+                    >
+                      {isSubmittingForce ? "Régularisation..." : "Appliquer le Forçage 🛠️"}
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
+
             <div className="bg-white border border-slate-100 rounded-[32px] overflow-hidden shadow-sm">
               <div className="overflow-x-auto">
                 <table className="w-full text-left border-collapse">
@@ -3611,47 +3910,108 @@ export const AdminDashboard: React.FC<{ onBackToTraveler?: () => void }> = ({ on
                               {new Date(withd.createdAt).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' })}
                             </td>
                             <td className="py-4 px-6">
-                              <span className={cn(
-                                "px-2.5 py-1 rounded-full text-[9px] font-black uppercase inline-block",
-                                withd.status === 'pending' ? 'bg-amber-50 text-amber-700' : 
-                                withd.status === 'approved' ? 'bg-green-50 text-green-700' : 'bg-red-50 text-red-700'
-                              )}>
-                                {withd.status === 'pending' ? 'En attente' : withd.status === 'approved' ? 'Payé' : 'Refusé'}
-                              </span>
+                              <div className="space-y-1">
+                                <span className={cn(
+                                  "px-2.5 py-1 rounded-full text-[9px] font-black uppercase inline-block",
+                                  withd.status === 'pending' ? 'bg-amber-50 text-amber-700' : 
+                                  withd.status === 'approved' ? 'bg-green-50 text-green-700' : 
+                                  withd.status === 'failed' ? 'bg-orange-50 text-orange-700 border border-orange-200' : 'bg-red-50 text-red-700'
+                                )}>
+                                  {withd.status === 'pending' ? 'En attente' : 
+                                   withd.status === 'approved' ? 'Payé' : 
+                                   withd.status === 'failed' ? 'Échoué' : 'Refusé'}
+                                </span>
+                                
+                                {withd.transactionId && (
+                                  <div className="block">
+                                    <span className="text-[9px] bg-slate-100 text-slate-600 px-1.5 py-0.5 rounded font-mono font-bold">
+                                      TxID: {withd.transactionId}
+                                    </span>
+                                  </div>
+                                )}
+                                
+                                {withd.rejectionReason && (
+                                  <div className="block max-w-[150px] overflow-hidden text-ellipsis whitespace-nowrap" title={withd.rejectionReason}>
+                                    <span className="text-[9px] text-red-500 font-medium font-mono">
+                                      Err: {withd.rejectionReason}
+                                    </span>
+                                  </div>
+                                )}
+                              </div>
                             </td>
                             <td className="py-4 px-6 text-right">
-                              {withd.status === 'pending' && (
-                                <div className="flex justify-end gap-2">
-                                  <button
-                                    onClick={async () => {
-                                      if (confirm(`Voulez-vous marquer comme PAYÉ le retrait de ${withd.amount} F pour ${owner?.displayName || 'cet hôte'} ?`)) {
-                                        await updateWithdrawalStatus(withd.id, 'approved', new Date().toISOString());
-                                        await reloadData();
-                                        triggerSuccess("Retrait marqué comme payé.");
-                                        logAction(`Validation retrait #${withd.id} pour ${withd.amount} F`);
-                                      }
-                                    }}
-                                    className="p-2 bg-green-50 text-green-600 hover:bg-green-600 hover:text-white rounded-xl transition cursor-pointer"
-                                    title="Approuver & Marquer comme payé"
-                                  >
-                                    <Check size={14} />
-                                  </button>
-                                  <button
-                                    onClick={async () => {
-                                      if (confirm("Voulez-vous rejeter cette demande de retrait ?")) {
-                                        await updateWithdrawalStatus(withd.id, 'rejected');
-                                        await reloadData();
-                                        triggerSuccess("Retrait rejeté.");
-                                        logAction(`REJET retrait #${withd.id}`);
-                                      }
-                                    }}
-                                    className="p-2 bg-red-50 text-red-600 hover:bg-red-600 hover:text-white rounded-xl transition cursor-pointer"
-                                    title="Rejeter la demande"
-                                  >
-                                    <X size={14} />
-                                  </button>
-                                </div>
-                              )}
+                              <div className="flex justify-end gap-2">
+                                {/* Standard Manual Approval (when pending or failed) */}
+                                {(withd.status === 'pending' || withd.status === 'failed') && (
+                                  <>
+                                    <button
+                                      onClick={async () => {
+                                        if (confirm(`Voulez-vous valider MANUELLEMENT (Règlement Hors-Plateforme) le retrait de ${withd.amount} F pour ${owner?.displayName || 'cet hôte'} ?`)) {
+                                          await updateWithdrawalStatus(withd.id, 'approved', new Date().toISOString());
+                                          await reloadData();
+                                          triggerSuccess("Retrait marqué comme payé manuellement.");
+                                          logAction(`Validation manuelle retrait #${withd.id} de ${withd.amount} F`);
+                                        }
+                                      }}
+                                      className="p-2 bg-green-50 text-green-600 hover:bg-green-600 hover:text-white rounded-xl transition cursor-pointer"
+                                      title="Valider Manuellement (Hors-plateforme)"
+                                    >
+                                      <Check size={14} />
+                                    </button>
+                                    
+                                    <button
+                                      onClick={async () => {
+                                        if (confirm(`Voulez-vous déclencher un virement automatique de ${withd.amount} F CFA via SapPay vers le numéro ${withd.phone} (${withd.provider.toUpperCase()}) ?`)) {
+                                          try {
+                                            await apiFetch(`/api/withdrawals/${withd.id}/payout`, { method: 'POST' });
+                                            await reloadData();
+                                            triggerSuccess("Virement automatique SapPay exécuté avec succès !");
+                                            logAction(`Virement automatique SapPay exécuté pour retrait #${withd.id}`);
+                                          } catch (err: any) {
+                                            alert(`Erreur lors du virement : ${err.message}`);
+                                            await reloadData();
+                                          }
+                                        }
+                                      }}
+                                      className="p-2 bg-amber-50 text-amber-600 hover:bg-amber-500 hover:text-white rounded-xl transition cursor-pointer animate-pulse"
+                                      title="Lancer le virement automatique (SapPay)"
+                                    >
+                                      <Zap size={14} />
+                                    </button>
+
+                                    <button
+                                      onClick={async () => {
+                                        if (confirm("Voulez-vous rejeter cette demande de retrait ?")) {
+                                          await updateWithdrawalStatus(withd.id, 'rejected');
+                                          await reloadData();
+                                          triggerSuccess("Retrait rejeté.");
+                                          logAction(`REJET retrait #${withd.id}`);
+                                        }
+                                      }}
+                                      className="p-2 bg-red-50 text-red-600 hover:bg-red-600 hover:text-white rounded-xl transition cursor-pointer"
+                                      title="Rejeter la demande"
+                                    >
+                                      <X size={14} />
+                                    </button>
+                                  </>
+                                )}
+
+                                {/* Force Update & Correction (Accessible for ALL rows, including failed/approved) */}
+                                <button
+                                  onClick={() => {
+                                    setForceUpdateWithdrawal(withd);
+                                    setForceStatus(withd.status as any);
+                                    setForceTxId(withd.transactionId || '');
+                                    setForceRejection(withd.rejectionReason || '');
+                                    setForceNotifTitle('Mise à jour de votre retrait 💸');
+                                    setForceNotifMessage(`Mise à jour de votre demande de retrait de ${withd.amount} F CFA.`);
+                                  }}
+                                  className="p-2 bg-slate-100 text-slate-700 hover:bg-slate-950 hover:text-white rounded-xl transition cursor-pointer"
+                                  title="Forçage Manuel / Correction anomalie"
+                                >
+                                  <Sliders size={14} />
+                                </button>
+                              </div>
                             </td>
                           </tr>
                         );

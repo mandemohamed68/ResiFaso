@@ -186,7 +186,7 @@ export interface Advertisement {
   endAt?: string;
 }
 
-export type WithdrawalStatus = 'pending' | 'approved' | 'rejected';
+export type WithdrawalStatus = 'pending' | 'approved' | 'rejected' | 'failed';
 export type MobileMoneyProvider = 'orange' | 'moov' | 'telecel' | 'coris';
 
 export interface WithdrawalRequest {
@@ -200,6 +200,8 @@ export interface WithdrawalRequest {
   status: WithdrawalStatus;
   createdAt: string;
   approvedAt?: string;
+  transactionId?: string;
+  rejectionReason?: string;
 }
 
 export interface FAQItem {

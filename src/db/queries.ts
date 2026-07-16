@@ -482,7 +482,8 @@ export const getAllWithdrawals = async (ownerId?: string) => {
   let sql = `
     SELECT 
       id, owner_id as ownerId, amount, phone, provider, status, 
-      created_at as createdAt, approved_at as approvedAt 
+      created_at as createdAt, approved_at as approvedAt,
+      transaction_id as transactionId, rejection_reason as rejectionReason
     FROM withdrawals
   `;
   let params: any[] = [];
