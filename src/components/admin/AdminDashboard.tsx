@@ -819,6 +819,14 @@ export const AdminDashboard: React.FC<{ onBackToTraveler?: () => void }> = ({ on
     }
   };
   // Partners Management
+  const formatWebsiteUrl = (url: string) => {
+    if (!url) return '';
+    if (!/^https?:\/\//i.test(url)) {
+      return `https://${url}`;
+    }
+    return url;
+  };
+
   const handleCreatePartner = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsCreatingPartner(true);
@@ -841,7 +849,7 @@ export const AdminDashboard: React.FC<{ onBackToTraveler?: () => void }> = ({ on
           id: `p_${Date.now()}`,
           name: newPartnerName,
           logoUrl: logoUrl,
-          websiteUrl: newPartnerWebsite || null,
+          websiteUrl: formatWebsiteUrl(newPartnerWebsite) || null,
         }),
       });
       setNewPartnerName('');
@@ -865,7 +873,7 @@ export const AdminDashboard: React.FC<{ onBackToTraveler?: () => void }> = ({ on
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           name: editPartnerName,
-          websiteUrl: editPartnerWebsite || null
+          websiteUrl: formatWebsiteUrl(editPartnerWebsite) || null
         })
       });
       setEditingPartnerId(null);
@@ -2977,7 +2985,7 @@ export const AdminDashboard: React.FC<{ onBackToTraveler?: () => void }> = ({ on
                 <tbody className="divide-y divide-slate-100">
                   {filteredUsers.slice((usersPage - 1) * 50, usersPage * 50).map(usr => {
                     const isListedSU = isSuperAdminEmail(usr.email);
-                    const isSuspended = usr.isSuspended === true;
+                    const isSuspended = !!usr.isSuspended;
                     return (
                       <React.Fragment key={usr.uid}>
                         <tr className={cn(
@@ -5900,7 +5908,7 @@ export const AdminDashboard: React.FC<{ onBackToTraveler?: () => void }> = ({ on
                               </span>
                               {partner.websiteUrl && (
                                 <a 
-                                  href={partner.websiteUrl} 
+                                  href={partner.websiteUrl.match(/^https?:\/\//i) ? partner.websiteUrl : `https://${partner.websiteUrl}`} 
                                   target="_blank" 
                                   rel="noopener noreferrer" 
                                   className="text-[10px] text-blue-600 hover:underline font-bold mt-0.5 truncate max-w-[140px]"

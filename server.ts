@@ -644,6 +644,10 @@ async function startServer() {
       if (isApproval) {
         const forceManual = req.body.forceManual === true;
         const triggerPayout = req.body.triggerPayout === true;
+        delete req.body.forceManual;
+        delete req.body.triggerPayout;
+        delete req.body.force_manual;
+        delete req.body.trigger_payout;
         
         // Decide whether to run payout:
         // Run payout only if explicitly requested, or if mode is auto and not forced to manual

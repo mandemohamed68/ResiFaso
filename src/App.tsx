@@ -629,7 +629,7 @@ function AppContent() {
         activeView={view}
       />
       
-      {profile?.isSuspended && (
+      {!!profile?.isSuspended && (
         <div className="bg-red-600 text-white font-black text-center py-4.5 px-6 text-xs uppercase tracking-widest shadow-lg border-b border-red-700 animate-in fade-in slide-in-from-top duration-500 z-50 relative font-sans">
           ⚠️ Attention : Votre compte a été suspendu par l'administration de la plateforme. Toute création de réservation ou d'hébergement est formellement bloquée.
         </div>
@@ -717,7 +717,7 @@ function AppContent() {
                         >
                           {filteredResidences.slice((homePage - 1) * 60, homePage * 60).map((res) => (
                             <div key={res.id} className="relative">
-                              {res.recommended && (
+                              {!!res.recommended && (
                                 <span className="absolute top-3 left-3 bg-red-600 text-yellow-400 text-[9px] font-black uppercase tracking-widest px-2.5 py-1 rounded-md z-10 shadow-sm border border-red-500">
                                   Recommended Faso ★
                                 </span>
@@ -947,19 +947,19 @@ function AppContent() {
                       <Star size={16} className={cn("text-yellow-500", selectedResidence.rating ? "fill-yellow-500" : "")} />
                       <span className="font-black">{selectedResidence.rating || "4.8"} <span className="text-slate-400 font-bold">({selectedResidence.reviewCount || 24} avis)</span></span>
                     </div>
-                    {selectedResidence.rooms && (
+                    {!!selectedResidence.rooms && (
                       <div className="flex items-center gap-1 text-xs font-black text-slate-500 uppercase tracking-widest bg-slate-100 px-3 py-1 rounded-xl">
                         {selectedResidence.rooms} Pièces
                       </div>
                     )}
                     {selectedResidence.utilitiesIncluded && (
                       <div className="flex gap-2">
-                        {selectedResidence.utilitiesIncluded.water && (
+                        {!!selectedResidence.utilitiesIncluded.water && (
                           <div className="flex items-center gap-1 text-[10px] font-black text-blue-600 uppercase tracking-widest bg-blue-50 px-3 py-1 rounded-xl border border-blue-100">
                             Eau incluse
                           </div>
                         )}
-                        {selectedResidence.utilitiesIncluded.electricity && (
+                        {!!selectedResidence.utilitiesIncluded.electricity && (
                           <div className="flex items-center gap-1 text-[10px] font-black text-amber-600 uppercase tracking-widest bg-amber-50 px-3 py-1 rounded-xl border border-amber-100">
                             Élec. incluse
                           </div>

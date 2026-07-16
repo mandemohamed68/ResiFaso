@@ -38,10 +38,11 @@ export const Partners = () => {
             const className = "flex items-center gap-3 grayscale opacity-40 hover:grayscale-0 hover:opacity-100 transition-all duration-300 " + (hasWebsite ? "cursor-pointer" : "");
 
             if (hasWebsite) {
+              const href = partner.websiteUrl.match(/^https?:\/\//i) ? partner.websiteUrl : `https://${partner.websiteUrl}`;
               return (
                 <a 
                   key={`${partner.id}-${idx}`}
-                  href={partner.websiteUrl}
+                  href={href}
                   target="_blank"
                   rel="noopener noreferrer"
                   className={className}
