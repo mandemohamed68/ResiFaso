@@ -582,9 +582,11 @@ export const initDatabase = async () => {
         name VARCHAR(255) NOT NULL,
         logo_url LONGTEXT NOT NULL,
         is_active BOOLEAN DEFAULT 1,
+        website_url VARCHAR(500) NULL,
         created_at DATETIME DEFAULT CURRENT_TIMESTAMP
       ) ENGINE=InnoDB
     `);
+    await safeAlter('partners', 'website_url', 'VARCHAR(500) NULL');
 
     } finally {
       await executeSql("SET FOREIGN_KEY_CHECKS = 1");
@@ -849,9 +851,11 @@ export const initDatabase = async () => {
         name TEXT NOT NULL,
         logo_url TEXT NOT NULL,
         is_active INTEGER DEFAULT 1,
+        website_url TEXT NULL,
         created_at DATETIME DEFAULT CURRENT_TIMESTAMP
       )
     `);
+    await safeAlter('partners', 'website_url', 'TEXT NULL');
 
     // Notifications Table
     await executeSql(`

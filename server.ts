@@ -1941,7 +1941,7 @@ async function startServer() {
 
   app.get("/api/partners", async (req, res) => {
     try {
-      const partners = await executeSql("SELECT id, name, logo_url as logoUrl, is_active as isActive FROM partners ORDER BY created_at DESC");
+      const partners = await executeSql("SELECT id, name, logo_url as logoUrl, is_active as isActive, website_url as websiteUrl FROM partners ORDER BY created_at DESC");
       res.json(partners);
     } catch (err: any) {
       res.status(500).json({ error: err.message });
@@ -1951,8 +1951,8 @@ async function startServer() {
   app.post("/api/admin/partners", authenticateToken, async (req: AuthRequest, res) => {
     try {
       if (req.user?.role !== 'admin') return res.status(403).json({ error: "Non autorisé" });
-      const { id, name, logoUrl } = req.body;
-      await executeSql("INSERT INTO partners (id, name, logo_url, is_active) VALUES (?, ?, ?, 1)", [id, name, logoUrl]);
+      const { id, name, logoUrl, websiteUrl } = req.body;
+      await executeSql("INSERT INTO partners (id, name, logo_url, website_url, is_active) VALUES (?, ?, ?, ?, 1)", [id, name, logoUrl, websiteUrl || null]);
       res.json({ success: true });
     } catch (err: any) {
       res.status(500).json({ error: err.message });
@@ -1962,11 +1962,12 @@ async function startServer() {
   app.patch("/api/admin/partners/:id", authenticateToken, async (req: AuthRequest, res) => {
     try {
       if (req.user?.role !== 'admin') return res.status(403).json({ error: "Non autorisé" });
-      const { name, logoUrl, isActive } = req.body;
+      const { name, logoUrl, isActive, websiteUrl } = req.body;
       const updates: any = {};
       if (name !== undefined) updates.name = formatSqlValue(name);
       if (logoUrl !== undefined) updates.logo_url = formatSqlValue(logoUrl);
       if (isActive !== undefined) updates.is_active = isActive ? 1 : 0;
+      if (websiteUrl !== undefined) updates.website_url = formatSqlValue(websiteUrl);
 
       const fields = Object.keys(updates);
       if (fields.length === 0) return res.json({ success: true });

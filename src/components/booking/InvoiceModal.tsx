@@ -1,5 +1,5 @@
 import { formatCurrency } from '../../utils/currency';
-import React, { useRef } from 'react';
+import React, { useRef, useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { X, Download, Printer } from 'lucide-react';
 import { Booking, Residence } from '../../types';
@@ -32,16 +32,42 @@ export const InvoiceModal: React.FC<InvoiceModalProps> = ({
     
   const remaining = booking.totalPrice - totalPaid;
 
+  const [logoBase64, setLogoBase64] = useState<string>('');
+
+  useEffect(() => {
+    let active = true;
+    const loadLogo = async () => {
+      try {
+        const response = await fetch('/logoresifasoORG.png');
+        if (!response.ok) throw new Error("Status " + response.status);
+        const blob = await response.blob();
+        const reader = new FileReader();
+        reader.onloadend = () => {
+          if (active) {
+            setLogoBase64(reader.result as string);
+          }
+        };
+        reader.readAsDataURL(blob);
+      } catch (error) {
+        console.error("Failed to load logo for PDF generation", error);
+      }
+    };
+    loadLogo();
+    return () => {
+      active = false;
+    };
+  }, []);
+
   const handleDownloadPDF = () => {
-    const doc = generateInvoice(booking, residence, clientName);
+    const doc = generateInvoice(booking, residence, clientName, logoBase64);
     doc.save(`Recu_${booking.id}_ResiFaso.pdf`);
   };
 
   const handlePrint = () => {
     try {
-      const doc = generateInvoice(booking, residence, clientName);
+      const doc = generateInvoice(booking, residence, clientName, logoBase64);
       doc.save(`Recu_${booking.id}_ResiFaso_Impression.pdf`);
-      addToast("Le reçu a été téléchargé au format PDF. Veuillez l'ouvrir pour l'imprimer.", "error");
+      addToast("Le reçu a été téléchargé au format PDF. Veuillez l'ouvrir pour l'imprimer.", "info");
     } catch (e) {
       console.error("Erreur lors de l'impression:", e);
       addToast("Une erreur s'est produite lors de la préparation de l'impression.", "error");
@@ -115,7 +141,7 @@ export const InvoiceModal: React.FC<InvoiceModalProps> = ({
                 {/* Header */}
                 <div className="flex flex-col sm:flex-row justify-between items-start mb-10 border-b border-slate-150 pb-8 gap-4">
                   <div className="flex items-center gap-3">
-                    <img src="/logoresifaso.png" alt="ResiFaso Logo" className="h-12 object-contain" referrerPolicy="no-referrer" />
+                    <img src="/logoresifasoORG.png" alt="ResiFaso Logo" className="h-12 object-contain" referrerPolicy="no-referrer" />
                     <div>
                       <h1 className="text-2xl font-black text-slate-900 tracking-tight">ResiFaso</h1>
                       <p className="text-[10px] text-slate-400 font-extrabold tracking-wider uppercase">Burkina Faso</p>

@@ -118,8 +118,11 @@ export const AdminDashboard: React.FC<{ onBackToTraveler?: () => void }> = ({ on
   const [partners, setPartners] = useState<any[]>([]);
   const [newPartnerName, setNewPartnerName] = useState('');
   const [newPartnerLogo, setNewPartnerLogo] = useState('');
+  const [newPartnerWebsite, setNewPartnerWebsite] = useState('');
   const [isCreatingPartner, setIsCreatingPartner] = useState(false);
   const [editingPartnerId, setEditingPartnerId] = useState<string | null>(null);
+  const [editPartnerName, setEditPartnerName] = useState('');
+  const [editPartnerWebsite, setEditPartnerWebsite] = useState('');
   const [editingVerifType, setEditingVerifType] = useState<any | null>(null);
   const [isSavingVerifType, setIsSavingVerifType] = useState(false);
   const [verifLabel, setVerifLabel] = useState('');
@@ -838,10 +841,12 @@ export const AdminDashboard: React.FC<{ onBackToTraveler?: () => void }> = ({ on
           id: `p_${Date.now()}`,
           name: newPartnerName,
           logoUrl: logoUrl,
+          websiteUrl: newPartnerWebsite || null,
         }),
       });
       setNewPartnerName('');
       setNewPartnerLogo('');
+      setNewPartnerWebsite('');
       queryClient.invalidateQueries({ queryKey: ['admin-data'] });
       queryClient.invalidateQueries({ queryKey: ['partners'] });
       addToast('Partenaire ajouté avec succès !', 'success');
@@ -850,6 +855,26 @@ export const AdminDashboard: React.FC<{ onBackToTraveler?: () => void }> = ({ on
       addToast('Erreur lors de l\'ajout du partenaire', 'error');
     } finally {
       setIsCreatingPartner(false);
+    }
+  };
+
+  const handleUpdatePartner = async (partnerId: string) => {
+    try {
+      await apiFetch(`/api/admin/partners/${partnerId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: editPartnerName,
+          websiteUrl: editPartnerWebsite || null
+        })
+      });
+      setEditingPartnerId(null);
+      queryClient.invalidateQueries({ queryKey: ['admin-data'] });
+      queryClient.invalidateQueries({ queryKey: ['partners'] });
+      addToast('Partenaire mis à jour avec succès !', 'success');
+    } catch (err) {
+      console.error(err);
+      addToast('Erreur lors de la mise à jour', 'error');
     }
   };
 
@@ -1389,12 +1414,8 @@ export const AdminDashboard: React.FC<{ onBackToTraveler?: () => void }> = ({ on
         payload.triggerPayout = true;
       }
 
-      const response = await fetch(`/api/bookings/${bookingId}`, {
+      const response = await apiFetch(`/api/bookings/${bookingId}`, {
         method: 'PATCH',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('token')}`
-        },
         body: JSON.stringify(payload)
       });
       if (!response.ok) {
@@ -1417,12 +1438,8 @@ export const AdminDashboard: React.FC<{ onBackToTraveler?: () => void }> = ({ on
     if (reason === null) return;
     setIsSaving(true);
     try {
-      const response = await fetch(`/api/bookings/${bookingId}`, {
+      const response = await apiFetch(`/api/bookings/${bookingId}`, {
         method: 'PATCH',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('token')}`
-        },
         body: JSON.stringify({ refundStatus: 'rejected', refundReason: reason })
       });
       if (!response.ok) {
@@ -5799,6 +5816,16 @@ export const AdminDashboard: React.FC<{ onBackToTraveler?: () => void }> = ({ on
                       className="w-full bg-slate-50 border border-slate-100 rounded-xl px-4 py-3 text-xs font-bold outline-none focus:ring-2 focus:ring-red-500 transition file:mr-4 file:py-1 file:px-4 file:rounded-full file:border-0 file:text-xs file:font-semibold file:bg-red-50 file:text-red-700 hover:file:bg-red-100"
                     />
                   </div>
+                  <div>
+                    <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1.5">Site Internet (Lien optionnel)</label>
+                    <input
+                      type="url"
+                      value={newPartnerWebsite}
+                      onChange={e => setNewPartnerWebsite(e.target.value)}
+                      placeholder="Ex: https://orangemoney.bf"
+                      className="w-full bg-slate-50 border border-slate-100 rounded-xl px-4 py-3 text-xs font-bold outline-none focus:ring-2 focus:ring-red-500 transition"
+                    />
+                  </div>
                   {newPartnerLogo && (
                     <div className="p-4 bg-slate-50 rounded-2xl border border-slate-100 flex items-center justify-center">
                       <img src={newPartnerLogo} alt="Preview" className="max-h-12 object-contain" />
@@ -5818,41 +5845,105 @@ export const AdminDashboard: React.FC<{ onBackToTraveler?: () => void }> = ({ on
               <div className="lg:col-span-2 space-y-4">
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   {partners.map(partner => (
-                    <div key={partner.id} className="bg-white border border-slate-100 rounded-2xl p-4 flex items-center justify-between shadow-sm group">
-                      <div className="flex items-center gap-4">
-                        <div className="w-12 h-12 bg-slate-50 rounded-xl flex items-center justify-center p-2 border border-slate-100 overflow-hidden">
-                          <img src={partner.logoUrl} alt={partner.name} className={cn("w-full h-full object-contain transition", !partner.isActive && "grayscale opacity-30")} />
+                    editingPartnerId === partner.id ? (
+                      <div key={partner.id} className="bg-white border-2 border-red-200 rounded-2xl p-4 shadow-sm space-y-3 col-span-1">
+                        <div className="space-y-2">
+                          <div>
+                            <label className="block text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">Nom du Partenaire</label>
+                            <input
+                              type="text"
+                              value={editPartnerName}
+                              onChange={e => setEditPartnerName(e.target.value)}
+                              className="w-full bg-slate-50 border border-slate-100 rounded-lg px-2.5 py-1.5 text-xs font-bold outline-none focus:ring-1 focus:ring-red-500 transition"
+                            />
+                          </div>
+                          <div>
+                            <label className="block text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">Site Internet (Lien)</label>
+                            <input
+                              type="text"
+                              value={editPartnerWebsite}
+                              onChange={e => setEditPartnerWebsite(e.target.value)}
+                              placeholder="https://example.com"
+                              className="w-full bg-slate-50 border border-slate-100 rounded-lg px-2.5 py-1.5 text-xs font-bold outline-none focus:ring-1 focus:ring-red-500 transition"
+                            />
+                          </div>
                         </div>
-                        <div>
-                          <h4 className="font-black text-slate-900 text-sm tracking-tight">{partner.name}</h4>
-                          <span className={cn(
-                            "text-[9px] font-black uppercase tracking-widest",
-                            partner.isActive ? "text-green-600" : "text-slate-400"
-                          )}>
-                            {partner.isActive ? "Actif" : "Suspendu"}
-                          </span>
+                        <div className="flex justify-end gap-2 pt-1 border-t border-slate-50">
+                          <button
+                            onClick={() => setEditingPartnerId(null)}
+                            className="px-2.5 py-1.5 text-[10px] font-black text-slate-500 bg-slate-100 rounded-lg hover:bg-slate-200 transition"
+                          >
+                            Annuler
+                          </button>
+                          <button
+                            onClick={() => handleUpdatePartner(partner.id)}
+                            className="px-2.5 py-1.5 text-[10px] font-black text-white bg-slate-900 rounded-lg hover:bg-slate-800 transition"
+                          >
+                            Enregistrer
+                          </button>
                         </div>
                       </div>
-                      <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition">
-                        <button 
-                          onClick={() => handleTogglePartner(partner.id, partner.isActive)}
-                          className={cn(
-                            "p-2 rounded-lg transition border",
-                            partner.isActive ? "bg-amber-50 text-amber-600 border-amber-100" : "bg-green-50 text-green-600 border-green-100"
-                          )}
-                          title={partner.isActive ? "Suspendre" : "Activer"}
-                        >
-                          <Activity size={14} />
-                        </button>
-                        <button 
-                          onClick={() => handleDeletePartner(partner.id)}
-                          className="p-2 bg-red-50 text-red-600 border border-red-100 rounded-lg hover:bg-red-600 hover:text-white transition"
-                          title="Supprimer"
-                        >
-                          <Trash2 size={14} />
-                        </button>
+                    ) : (
+                      <div key={partner.id} className="bg-white border border-slate-100 rounded-2xl p-4 flex items-center justify-between shadow-sm group">
+                        <div className="flex items-center gap-4">
+                          <div className="w-12 h-12 bg-slate-50 rounded-xl flex items-center justify-center p-2 border border-slate-100 overflow-hidden">
+                            <img src={partner.logoUrl} alt={partner.name} className={cn("w-full h-full object-contain transition", !partner.isActive && "grayscale opacity-30")} />
+                          </div>
+                          <div>
+                            <h4 className="font-black text-slate-900 text-sm tracking-tight">{partner.name}</h4>
+                            <div className="flex flex-col">
+                              <span className={cn(
+                                "text-[9px] font-black uppercase tracking-widest",
+                                partner.isActive ? "text-green-600" : "text-slate-400"
+                              )}>
+                                {partner.isActive ? "Actif" : "Suspendu"}
+                              </span>
+                              {partner.websiteUrl && (
+                                <a 
+                                  href={partner.websiteUrl} 
+                                  target="_blank" 
+                                  rel="noopener noreferrer" 
+                                  className="text-[10px] text-blue-600 hover:underline font-bold mt-0.5 truncate max-w-[140px]"
+                                  title={partner.websiteUrl}
+                                >
+                                  {partner.websiteUrl.replace(/^https?:\/\/(www\.)?/, '')}
+                                </a>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition">
+                          <button 
+                            onClick={() => {
+                              setEditingPartnerId(partner.id);
+                              setEditPartnerName(partner.name);
+                              setEditPartnerWebsite(partner.websiteUrl || '');
+                            }}
+                            className="p-2 bg-slate-50 text-slate-600 border border-slate-100 rounded-lg hover:bg-slate-100 transition"
+                            title="Modifier"
+                          >
+                            <Edit3 size={14} />
+                          </button>
+                          <button 
+                            onClick={() => handleTogglePartner(partner.id, partner.isActive)}
+                            className={cn(
+                              "p-2 rounded-lg transition border",
+                              partner.isActive ? "bg-amber-50 text-amber-600 border-amber-100" : "bg-green-50 text-green-600 border-green-100"
+                            )}
+                            title={partner.isActive ? "Suspendre" : "Activer"}
+                          >
+                            <Activity size={14} />
+                          </button>
+                          <button 
+                            onClick={() => handleDeletePartner(partner.id)}
+                            className="p-2 bg-red-50 text-red-600 border border-red-100 rounded-lg hover:bg-red-600 hover:text-white transition"
+                            title="Supprimer"
+                          >
+                            <Trash2 size={14} />
+                          </button>
+                        </div>
                       </div>
-                    </div>
+                    )
                   ))}
                   {partners.length === 0 && (
                     <div className="col-span-full py-12 bg-slate-50 rounded-3xl border border-dashed border-slate-200 text-center text-slate-400 font-bold text-sm">

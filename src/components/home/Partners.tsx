@@ -24,14 +24,39 @@ export const Partners = () => {
             ease: "linear" 
           }}
         >
-          {[...activePartners, ...activePartners, ...activePartners].map((partner, idx) => (
-            <div key={`${partner.id}-${idx}`} className="flex items-center gap-3 grayscale opacity-40 hover:grayscale-0 hover:opacity-100 transition-all duration-300">
-              <div className="w-8 h-8 rounded-lg overflow-hidden bg-white shadow-sm flex items-center justify-center p-1.5 border border-slate-100">
-                <img src={partner.logoUrl} alt={partner.name} className="w-full h-full object-contain" />
+          {[...activePartners, ...activePartners, ...activePartners].map((partner, idx) => {
+            const hasWebsite = !!partner.websiteUrl;
+            const content = (
+              <>
+                <div className="w-8 h-8 rounded-lg overflow-hidden bg-white shadow-sm flex items-center justify-center p-1.5 border border-slate-100">
+                  <img src={partner.logoUrl} alt={partner.name} className="w-full h-full object-contain" />
+                </div>
+                <span className="text-xs font-black text-slate-500 uppercase tracking-widest">{partner.name}</span>
+              </>
+            );
+
+            const className = "flex items-center gap-3 grayscale opacity-40 hover:grayscale-0 hover:opacity-100 transition-all duration-300 " + (hasWebsite ? "cursor-pointer" : "");
+
+            if (hasWebsite) {
+              return (
+                <a 
+                  key={`${partner.id}-${idx}`}
+                  href={partner.websiteUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className={className}
+                >
+                  {content}
+                </a>
+              );
+            }
+
+            return (
+              <div key={`${partner.id}-${idx}`} className={className}>
+                {content}
               </div>
-              <span className="text-xs font-black text-slate-500 uppercase tracking-widest">{partner.name}</span>
-            </div>
-          ))}
+            );
+          })}
         </motion.div>
       </div>
     </div>
