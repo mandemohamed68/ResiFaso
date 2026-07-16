@@ -126,7 +126,8 @@ export interface Booking {
   cancelledBy?: 'client' | 'owner' | 'admin';
   cancellationReason?: string;
   cancelledAt?: string;
-  refundStatus?: 'none' | 'pending' | 'refunded';
+  refundStatus?: 'none' | 'pending' | 'refunded' | 'rejected' | 'failed';
+  refundReason?: string;
   refundAmount?: number;
   refundPhone?: string;
   refundProvider?: string;

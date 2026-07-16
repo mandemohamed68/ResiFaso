@@ -117,14 +117,25 @@ export const LegalPage: React.FC<{ type: 'tos' | 'privacy' | 'guide' }> = ({ typ
             </p>
           </LegalSection>
 
-          <LegalSection title="6. Paiements et Commissions" icon={Scale}>
+          <LegalSection title="6. Paiements, Commissions et Remboursements" icon={Scale}>
             <p>
               ResiFaso prélève une commission de service sur chaque transaction pour assurer le fonctionnement de la plateforme, 
-              la sécurisation des paiements et le support client.
+              la sécurisation des paiements et le support client. **Cette commission de service de la plateforme est strictement non remboursable** 
+              en cas d'annulation par le voyageur, afin de couvrir les coûts de transaction opérationnels.
             </p>
             <p>
               Les modalités d'annulation et de remboursement sont définies spécifiquement pour chaque logement par l'Hôte, 
-              dans le cadre des options proposées par la plateforme.
+              selon des politiques prédéfinies ("Flexible", "Modérée", "Stricte") qui déterminent la part des frais d'annulation fixes conservés par l'Hôte.
+            </p>
+            <p>
+              Le calcul du remboursement s'effectue automatiquement selon la formule suivante :
+              <br />
+              <strong className="block my-2 bg-slate-50 p-3 rounded-xl border border-slate-100 font-mono text-xs text-slate-700">
+                Montant Remboursé = Montant Versé - Commission Plateforme (retenue) - Frais d'Annulation Hôte - Coût des Nuits Consommées
+              </strong>
+            </p>
+            <p>
+              Toute demande d'annulation est notifiée immédiatement à toutes les parties prenantes (Voyageur, Hôte, et Administrateur) avec le détail explicatif des calculs. L'Hôte a également la possibilité d'accorder un remboursement exceptionnel en cas de force majeure.
             </p>
           </LegalSection>
 
@@ -158,8 +169,9 @@ export const LegalPage: React.FC<{ type: 'tos' | 'privacy' | 'guide' }> = ({ typ
         <LegalSection title="2. Utilisation des Données" icon={Shield}>
           <p>Vos données sont utilisées exclusivement pour :</p>
           <ul className="list-disc pl-5 space-y-2">
-            <li>Gérer vos réservations et communications.</li>
-            <li>Sécuriser les transactions financières.</li>
+            <li>Gérer vos réservations, annulations et demandes de remboursements.</li>
+            <li>Sécuriser les transactions financières et procéder aux virements/payouts automatiques ou administratifs.</li>
+            <li>Notifier les intervenants (Voyageurs, Hôtes, Administrateurs) lors d'un calcul ou d'une modification de solde ou de remboursement.</li>
             <li>Améliorer l'expérience utilisateur sur ResiFaso.</li>
             <li>Respecter nos obligations légales et réglementaires.</li>
           </ul>

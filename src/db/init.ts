@@ -981,7 +981,7 @@ export const initDatabase = async () => {
         {
           id: 'faq_pay_1',
           question: "Quels sont les moyens de paiement acceptés ?",
-          answer: "Nous acceptons les paiements mobiles les plus populaires au Burkina Faso : Orange Money et Moov Money. Toutes les transactions sont chiffrées et hautement sécurisées pour votre sérénité.",
+          answer: "Nous acceptons les paiements mobiles les plus populaires au Burkina Faso : Orange Money, Moov Money, Telecel Money et Coris Money. Toutes les transactions sont chiffrées et hautement sécurisées pour votre sérénité.",
           category: 'payment',
           order: 1
         },
@@ -1002,7 +1002,7 @@ export const initDatabase = async () => {
         {
           id: 'faq_host_2',
           question: "Comment et quand puis-je retirer mes gains d'hôte ?",
-          answer: "Les acomptes payés en ligne par vos clients sont ajoutés à votre portefeuille hôte. Vous pouvez soumettre une demande de retrait vers votre compte Orange Money ou Moov Money directement depuis votre tableau de bord dès que vous le souhaitez.",
+          answer: "Les acomptes payés en ligne par vos clients sont ajoutés à votre portefeuille hôte. Vous pouvez soumettre une demande de retrait vers votre compte Orange Money, Moov Money, Telecel Money ou Coris Money directement depuis votre tableau de bord dès que vous le souhaitez.",
           category: 'host',
           order: 2
         }

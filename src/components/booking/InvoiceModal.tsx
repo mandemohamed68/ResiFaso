@@ -109,58 +109,95 @@ export const InvoiceModal: React.FC<InvoiceModalProps> = ({
             </div>
 
             {/* Invoice Content */}
-            <div className="p-6 sm:p-10 max-h-[70vh] overflow-y-auto print:max-h-none print:overflow-visible print:p-8 bg-white bg-[radial-gradient(#e5e7eb_1px,transparent_1px)] [background-size:16px_16px]">
-              <div ref={invoiceRef} className="bg-white p-6 sm:p-10 shadow-sm border border-slate-100 rounded-2xl print:border-none print:shadow-none print:p-0 relative">
+            <div className="p-6 sm:p-10 max-h-[70vh] overflow-y-auto print:max-h-none print:overflow-visible print:p-8 bg-slate-50">
+              <div ref={invoiceRef} className="bg-white p-6 sm:p-10 shadow-sm border border-slate-150 rounded-2xl print:border-none print:shadow-none print:p-0 relative">
                 
                 {/* Header */}
-                <div className="flex justify-between items-start mb-10 border-b border-slate-100 pb-8">
-                  <div>
-                    <h1 className="text-3xl font-black text-red-600 tracking-tight">RESIFASO</h1>
-                    <p className="text-sm font-bold text-slate-400 mt-1 uppercase tracking-widest">Reçu de réservation</p>
+                <div className="flex flex-col sm:flex-row justify-between items-start mb-10 border-b border-slate-150 pb-8 gap-4">
+                  <div className="flex items-center gap-3">
+                    <img src="/logoresifaso.png" alt="ResiFaso Logo" className="h-12 object-contain" referrerPolicy="no-referrer" />
+                    <div>
+                      <h1 className="text-2xl font-black text-slate-900 tracking-tight">ResiFaso</h1>
+                      <p className="text-[10px] text-slate-400 font-extrabold tracking-wider uppercase">Burkina Faso</p>
+                    </div>
                   </div>
-                  <div className="text-right">
-                    <p className="text-xs text-slate-500 font-medium">Facture N°</p>
-                    <p className="font-mono font-bold text-slate-900">{booking.id.slice(0, 10).toUpperCase()}</p>
-                    <p className="text-xs text-slate-500 mt-2 font-medium">Date d'émission</p>
-                    <p className="font-bold text-slate-900">{new Date().toLocaleDateString('fr-FR')}</p>
+                  <div className="text-left sm:text-right">
+                    <span className={`inline-block px-3 py-1 rounded-full text-xs font-black uppercase tracking-wider mb-3 ${
+                      booking.paymentStatus === 'fully_paid' ? "bg-green-100 text-green-700" : "bg-amber-100 text-amber-700"
+                    }`}>
+                      {booking.paymentStatus === 'fully_paid' ? 'Facture Soldée' : 'Acompte Payé'}
+                    </span>
+                    <p className="text-xs text-slate-500 font-medium">Facture N° <span className="font-mono font-bold text-slate-900">{booking.id.slice(0, 10).toUpperCase()}</span></p>
+                    <p className="text-xs text-slate-500 mt-1 font-medium">Date d'émission : <span className="font-bold text-slate-950">{new Date().toLocaleDateString('fr-FR')}</span></p>
                   </div>
                 </div>
 
-                {/* Info blocks */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-8 mb-10">
-                  <div className="p-5 bg-slate-50 rounded-2xl border border-slate-100/60">
-                    <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3">Facturé à</h3>
-                    <p className="font-bold text-slate-900">{clientName || 'Voyageur ResiFaso'}</p>
-                    <p className="text-sm text-slate-500 mt-1">Voyageur</p>
+                {/* Company & Client Addresses */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-8 mb-10 text-xs">
+                  <div className="p-5 bg-slate-50 rounded-2xl border border-slate-100">
+                    <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3">Émetteur</h3>
+                    <p className="font-extrabold text-slate-900 text-sm">ResiFaso S.A.</p>
+                    <p className="text-slate-500 mt-1 leading-relaxed">
+                      Secteur 15, Ouagadougou<br />
+                      Burkina Faso<br />
+                      Email : contact@resifaso.com<br />
+                      Web : www.resifaso.com
+                    </p>
                   </div>
                   
-                  <div className="p-5 bg-slate-50 rounded-2xl border border-slate-100/60">
-                    <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3">Détails de l'hébergement</h3>
-                    <p className="font-bold text-slate-900">{residence?.title || 'Logement non spécifié'}</p>
-                    <p className="text-sm text-slate-500 mt-1">{residence?.type || '-'}</p>
-                    {(residence?.address || residence?.city) && (
-                      <p className="text-sm text-slate-500">{residence?.address?.city || residence?.city}, {residence?.address?.neighborhood || residence?.neighborhood}</p>
-                    )}
+                  <div className="p-5 bg-slate-50 rounded-2xl border border-slate-100">
+                    <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3">Facturé à</h3>
+                    <p className="font-extrabold text-slate-900 text-sm">{clientName || 'Voyageur ResiFaso'}</p>
+                    <p className="text-slate-500 mt-1 leading-relaxed">
+                      Client Voyageur<br />
+                      Plateforme ResiFaso<br />
+                      Burkina Faso
+                    </p>
                   </div>
                 </div>
 
-                {/* Stay Table */}
+                {/* Stay Table (Professional itemized) */}
                 <div className="mb-8">
-                  <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-4">Détails du Séjour</h3>
+                  <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-4">Description des Prestations</h3>
                   <div className="border border-slate-200 rounded-2xl overflow-hidden">
-                    <table className="w-full text-left">
-                      <thead className="bg-slate-50 border-b border-slate-200">
+                    <table className="w-full text-left text-xs">
+                      <thead className="bg-slate-50 border-b border-slate-200 text-slate-600 font-extrabold">
                         <tr>
-                          <th className="p-4 text-xs font-bold text-slate-600">Arrivée</th>
-                          <th className="p-4 text-xs font-bold text-slate-600">Départ</th>
-                          <th className="p-4 text-xs font-bold text-slate-600 text-right">Voyageurs</th>
+                          <th className="p-4">Désignation</th>
+                          <th className="p-4 text-center">Nuits</th>
+                          <th className="p-4 text-right">Prix Unitaire (F CFA)</th>
+                          <th className="p-4 text-right">Montant (F CFA)</th>
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-slate-100">
                         <tr>
-                          <td className="p-4 font-bold text-slate-900">{new Date(booking.checkIn).toLocaleDateString('fr-FR')}</td>
-                          <td className="p-4 font-bold text-slate-900">{new Date(booking.checkOut).toLocaleDateString('fr-FR')}</td>
-                          <td className="p-4 font-bold text-slate-900 text-right">{booking.guests}</td>
+                          <td className="p-4">
+                            <p className="font-extrabold text-slate-900">{residence?.title || 'Séjour en résidence'}</p>
+                            <p className="text-slate-500 mt-0.5 text-[11px]">
+                              Du {new Date(booking.checkIn).toLocaleDateString('fr-FR')} au {new Date(booking.checkOut).toLocaleDateString('fr-FR')} ({booking.guests} voyageur(s))
+                            </p>
+                            {residence?.city && (
+                              <p className="text-slate-400 text-[10px] italic">{residence.city} {residence.neighborhood ? `- ${residence.neighborhood}` : ''}</p>
+                            )}
+                          </td>
+                          <td className="p-4 text-center font-bold text-slate-900">
+                            {(() => {
+                              const checkInDate = new Date(booking.checkIn);
+                              const checkOutDate = new Date(booking.checkOut);
+                              const diffTime = Math.abs(checkOutDate.getTime() - checkInDate.getTime());
+                              return Math.ceil(diffTime / (1000 * 60 * 60 * 24)) || 1;
+                            })()}
+                          </td>
+                          <td className="p-4 text-right font-bold text-slate-900">
+                            {(() => {
+                              const checkInDate = new Date(booking.checkIn);
+                              const checkOutDate = new Date(booking.checkOut);
+                              const diffTime = Math.abs(checkOutDate.getTime() - checkInDate.getTime());
+                              const n = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) || 1;
+                              return formatCurrency(Math.round(booking.totalPrice / n));
+                            })()}
+                          </td>
+                          <td className="p-4 text-right font-black text-slate-900">{formatCurrency(booking.totalPrice)}</td>
                         </tr>
                       </tbody>
                     </table>
@@ -168,48 +205,41 @@ export const InvoiceModal: React.FC<InvoiceModalProps> = ({
                 </div>
 
                 {/* Financial Summary */}
-                <div className="flex flex-col sm:flex-row justify-end border-t border-slate-100 pt-8 mt-4">
-                  <div className="w-full sm:w-1/2 space-y-4">
-                    <div className="flex justify-between items-center text-sm font-medium text-slate-600">
-                      <span>Montant Total</span>
-                      <span className="font-bold text-slate-900">{formatCurrency(booking.totalPrice)} F CFA</span>
+                <div className="flex flex-col sm:flex-row justify-end border-t border-slate-100 pt-8 mt-4 text-xs">
+                  <div className="w-full sm:w-1/2 space-y-3.5">
+                    <div className="flex justify-between items-center text-slate-600">
+                      <span className="font-bold">Total Brut</span>
+                      <span className="font-bold text-slate-950">{formatCurrency(booking.totalPrice)} F CFA</span>
                     </div>
-                    <div className="flex justify-between items-center text-sm font-medium text-slate-600">
-                      <span>Total Payé</span>
-                      <span className="font-bold text-green-600">
+                    <div className="flex justify-between items-center text-slate-600 border-b border-slate-100 pb-3">
+                      <span className="font-bold">Acompte Payé en Ligne</span>
+                      <span className="font-extrabold text-green-600">
                         - {formatCurrency(totalPaid)} F CFA
                       </span>
                     </div>
-                    {booking.paymentStatus === 'advance_paid' && (
-                      <div className="flex justify-between items-center border-t border-slate-100 pt-4 mt-2">
-                        <span className="font-bold text-slate-900 uppercase text-xs tracking-wider">Reste à payer à l'arrivée</span>
-                        <span className="text-xl font-black text-red-600">{formatCurrency(remaining)} F CFA</span>
+                    {booking.paymentStatus === 'advance_paid' ? (
+                      <div className="flex justify-between items-center pt-2">
+                        <span className="font-black text-slate-900 uppercase text-xs tracking-wider">Reste à payer à l'arrivée</span>
+                        <span className="text-lg font-black text-red-600 bg-red-50 border border-red-100 px-3 py-1.5 rounded-xl">{formatCurrency(remaining)} F CFA</span>
                       </div>
-                    )}
-                    {booking.paymentStatus === 'fully_paid' && (
-                      <div className="flex justify-between items-center border-t border-slate-100 pt-4 mt-2">
-                        <span className="font-bold text-slate-900 uppercase text-xs tracking-wider">Solde Restant</span>
-                        <span className="text-xl font-black text-slate-400">0 F CFA</span>
+                    ) : (
+                      <div className="flex justify-between items-center pt-2">
+                        <span className="font-black text-slate-900 uppercase text-xs tracking-wider">Solde Restant</span>
+                        <span className="text-lg font-black text-green-600 bg-green-50 border border-green-100 px-3 py-1.5 rounded-xl">0 F CFA (Réglé)</span>
                       </div>
                     )}
                   </div>
                 </div>
 
-                {/* Footer Stamp */}
-                <div className="mt-12 pt-8 border-t border-slate-100 flex justify-between items-center">
-                  <div className="text-xs text-slate-400 font-medium max-w-[250px]">
+                {/* Footer notes */}
+                <div className="mt-12 pt-8 border-t border-slate-150 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 text-xs text-slate-400 font-medium">
+                  <div className="max-w-md">
                     {booking.paymentStatus === 'advance_paid' 
-                      ? `Le solde de ${formatCurrency(remaining)} F CFA doit être réglé au moment de la remise des clés.`
-                      : 'Ce séjour a été entièrement réglé. Merci de votre confiance.'}
+                      ? `Note réglementaire : Le solde de ${formatCurrency(remaining)} F CFA doit être réglé directement auprès de l'hôte au moment de la remise des clés de l'appartement.`
+                      : 'Ce séjour a été intégralement réglé par Mobile Money. Merci pour votre réservation sur la plateforme ResiFaso.'}
                   </div>
-                  
-                  <div className="flex items-center justify-center p-3 border-2 border-red-600/30 rounded-full w-24 h-24 rotate-[-15deg] opacity-70">
-                    <div className="text-center">
-                      <p className="text-[10px] uppercase font-black text-red-600/80 tracking-widest leading-none mb-1">Status</p>
-                      <p className="text-base uppercase font-black text-red-600 leading-none">
-                        {booking.paymentStatus === 'fully_paid' ? 'SOLDÉ' : 'PAYÉ'}
-                      </p>
-                    </div>
+                  <div className="text-slate-400 text-[10px] uppercase font-black tracking-widest text-right">
+                    Document officiel ResiFaso
                   </div>
                 </div>
 

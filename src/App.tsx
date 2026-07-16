@@ -1447,7 +1447,7 @@ function AppContent() {
                     
                     <p className="text-center text-[10px] text-slate-400 mt-4 leading-tight font-medium">
                       Paiement sécurisé déclenché après confirmation.<br />
-                      Intégration Orange Money & Moov Money Burkina.
+                      Intégration Orange Money, Moov Money, Telecel Money & Coris Money Burkina.
                     </p>
                   </div>
                 </div>

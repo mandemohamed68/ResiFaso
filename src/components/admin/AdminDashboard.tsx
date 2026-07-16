@@ -68,7 +68,7 @@ export const AdminDashboard: React.FC<{ onBackToTraveler?: () => void }> = ({ on
   const queryClient = useQueryClient();
   const { data: adminData, isLoading: isAdminLoading } = useAdminData(user?.role);
 
-  const [activeTab, setActiveTab] = useState<'overview' | 'alerts' | 'listings' | 'users' | 'bookings' | 'revenue' | 'reviews' | 'reports' | 'settings' | 'logs' | 'ads' | 'withdrawals' | 'locations' | 'flash-info' | 'faq' | 'contact' | 'email' | 'verifications' | 'support' | 'partners'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'alerts' | 'listings' | 'users' | 'bookings' | 'revenue' | 'reviews' | 'reports' | 'settings' | 'logs' | 'ads' | 'withdrawals' | 'locations' | 'flash-info' | 'faq' | 'contact' | 'email' | 'verifications' | 'support' | 'partners' | 'refunds'>('overview');
   
   // Sync adminData to states
   useEffect(() => {
@@ -104,6 +104,7 @@ export const AdminDashboard: React.FC<{ onBackToTraveler?: () => void }> = ({ on
         if (s.sappayClientSecret !== undefined) setSappayClientSecret(s.sappayClientSecret);
         if (s.sappayUsername !== undefined) setSappayUsername(s.sappayUsername);
         if (s.sappayPassword !== undefined) setSappayPassword(s.sappayPassword);
+        if (s.refundMode !== undefined) setRefundMode(s.refundMode);
         
         if (s.announcements && s.announcements.length > 0) {
           setAnnouncements(s.announcements);
@@ -180,6 +181,7 @@ export const AdminDashboard: React.FC<{ onBackToTraveler?: () => void }> = ({ on
   const [reviewsPage, setReviewsPage] = useState(1);
   const [logsPage, setLogsPage] = useState(1);
   const [supportPage, setSupportPage] = useState(1);
+  const [refundsPage, setRefundsPage] = useState(1);
 
   // Reset page numbers when data lists/filters update
   useEffect(() => { setResidencesPage(1); }, [searchQuery]);
@@ -196,6 +198,7 @@ export const AdminDashboard: React.FC<{ onBackToTraveler?: () => void }> = ({ on
   const [sappayClientSecret, setSappayClientSecret] = useState('7qrVeDjSmDQjHksFyzKriidK3iuSo3RK6h5voHnbXAAPZvQEQnF9LIPzjqOcg4POqmikuUoJ7ynI565leEzbFhSnKZynwCLVOChma3y7vesLBRwaoyixtLcknd4g6Rdm');
   const [sappayUsername, setSappayUsername] = useState('mandemohamed68@gmail.com');
   const [sappayPassword, setSappayPassword] = useState('mm@27071986@');
+  const [refundMode, setRefundMode] = useState<'manual' | 'auto'>('manual');
   const [announcementText, setAnnouncementText] = useState('');
   const [announcementType, setAnnouncementType] = useState<'info' | 'warning' | 'success' | 'danger'>('info');
   const [announcementActive, setAnnouncementActive] = useState(false);
@@ -1208,6 +1211,7 @@ export const AdminDashboard: React.FC<{ onBackToTraveler?: () => void }> = ({ on
       supportChatOpenTime: supportChatOpenTime,
       supportChatCloseTime: supportChatCloseTime,
       maxBookingsWithoutId: maxBookingsWithoutId,
+      refundMode: refundMode,
       announcement: {
         text: announcementText,
         type: announcementType,
@@ -1226,6 +1230,115 @@ export const AdminDashboard: React.FC<{ onBackToTraveler?: () => void }> = ({ on
     } catch (err) {
       console.error(err);
       addToast("Erreur lors de la sauvegarde de la configuration.", "error");
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const handleToggleRefundMode = async (mode: 'manual' | 'auto') => {
+    try {
+      setRefundMode(mode);
+      const settingsPayload = {
+        platformName,
+        footerContent,
+        commissionRate,
+        isTestMode: isGlobalTestMode,
+        sappayClientId,
+        sappayClientSecret,
+        sappayUsername,
+        sappayPassword,
+        enablePhoneCalls,
+        enableWhatsApp,
+        minReservationAmountEnabled,
+        minReservationAmount,
+        refreshInterval,
+        supportChatEnabled,
+        supportChatOpenTime,
+        supportChatCloseTime,
+        maxBookingsWithoutId,
+        refundMode: mode,
+        announcement: {
+          text: announcementText,
+          type: announcementType,
+          active: announcementActive,
+          updatedAt: new Date().toISOString()
+        },
+        announcements: announcements
+      };
+      await saveGlobalSettings(settingsPayload);
+      await reloadData();
+      logAction(`Mode de remboursement configuré sur : ${mode === 'auto' ? 'Automatique (Payout instantané)' : 'Manuel (Validation admin)'}`);
+      triggerSuccess(`Mode de remboursement mis à jour avec succès : ${mode === 'auto' ? 'Automatique' : 'Manuel'}`);
+    } catch (err) {
+      console.error(err);
+      addToast("Erreur lors de la mise à jour du mode de remboursement.", "error");
+    }
+  };
+
+  const handleApproveRefund = async (bookingId: string, type: 'manual' | 'automatic_retry') => {
+    const isManual = type === 'manual';
+    const message = isManual 
+      ? "Confirmez-vous le remboursement MANUEL (hors-plateforme / cash / car) ? La réservation sera marquée comme remboursée avec succès, aucun virement SapPay ne sera initié."
+      : "Confirmez-vous le virement AUTOMATIQUE SapPay ? Cela va déclencher un transfert immédiat vers le compte Mobile Money renseigné par le client.";
+
+    if (!window.confirm(message)) {
+      return;
+    }
+    setIsSaving(true);
+    try {
+      const payload: any = { refundStatus: 'refunded' };
+      if (isManual) {
+        payload.forceManual = true;
+      } else {
+        payload.triggerPayout = true;
+      }
+
+      const response = await fetch(`/api/bookings/${bookingId}`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
+        },
+        body: JSON.stringify(payload)
+      });
+      if (!response.ok) {
+        const errData = await response.json();
+        throw new Error(errData.error || "Une erreur est survenue.");
+      }
+      await reloadData();
+      logAction(`Remboursement approuvé (${isManual ? 'Manuel hors-plateforme' : 'Automatique SapPay'}) pour la réservation #${bookingId}`);
+      triggerSuccess(isManual ? "Remboursement manuel enregistré avec succès !" : "Virement automatique SapPay effectué et enregistré avec succès !");
+    } catch (err: any) {
+      console.error(err);
+      addToast(err.message || "Erreur lors de l'approbation du remboursement.", "error");
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const handleRejectRefund = async (bookingId: string) => {
+    const reason = window.prompt("Veuillez saisir le motif du rejet du remboursement :");
+    if (reason === null) return;
+    setIsSaving(true);
+    try {
+      const response = await fetch(`/api/bookings/${bookingId}`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
+        },
+        body: JSON.stringify({ refundStatus: 'rejected', refundReason: reason })
+      });
+      if (!response.ok) {
+        const errData = await response.json();
+        throw new Error(errData.error || "Une erreur est survenue.");
+      }
+      await reloadData();
+      logAction(`Remboursement rejeté pour la réservation #${bookingId}. Motif : ${reason}`);
+      triggerSuccess("Le remboursement a été rejeté.");
+    } catch (err: any) {
+      console.error(err);
+      addToast(err.message || "Erreur lors du rejet du remboursement.", "error");
     } finally {
       setIsSaving(false);
     }
@@ -1816,6 +1929,7 @@ export const AdminDashboard: React.FC<{ onBackToTraveler?: () => void }> = ({ on
                 { id: 'bookings', label: 'Réservations', icon: Calendar, badge: bookings.filter(b=>b.bookingStatus==='pending').length, badgeColor: 'bg-blue-600', permission: 'manage_bookings' },
                 { id: 'revenue', label: 'Finances', icon: TrendingUp, permission: 'manage_bookings' },
                 { id: 'withdrawals', label: 'Demandes de Retrait', icon: Download, badge: withdrawals.filter(w=>w.status==='pending').length, badgeColor: 'bg-yellow-500', permission: 'manage_withdrawals' },
+                { id: 'refunds', label: 'Remboursements', icon: Wallet, badge: bookings.filter(b=>b.refundStatus==='pending').length, badgeColor: 'bg-red-500', permission: 'manage_withdrawals' },
                 { id: 'locations', label: 'Villes & Quartiers', icon: MapPin, permission: 'manage_listings' },
                 { id: 'ads', label: 'Affiches & Pubs', icon: Megaphone, badge: ads.filter(a => a.isActive).length, badgeColor: 'bg-green-600', permission: 'manage_ads' },
                 { id: 'flash-info', label: 'Flash Info', icon: Megaphone, badge: announcementActive ? 1 : 0, badgeColor: 'bg-red-500', permission: 'manage_settings' },
@@ -3004,7 +3118,7 @@ export const AdminDashboard: React.FC<{ onBackToTraveler?: () => void }> = ({ on
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
               <div>
                 <h2 className="text-3xl font-black text-slate-900 tracking-tight leading-none mb-1">Réservations</h2>
-                <p className="text-slate-500 font-medium text-sm">Contrôlez et éditez les réservations actives ou en attente d'acomptes Orange/Moov.</p>
+                <p className="text-slate-500 font-medium text-sm">Contrôlez et éditez les réservations actives ou en attente d'acomptes Mobile Money.</p>
               </div>
 
               {/* Status Filters */}
@@ -3322,7 +3436,7 @@ export const AdminDashboard: React.FC<{ onBackToTraveler?: () => void }> = ({ on
               <div className="bg-slate-900 p-8 rounded-[32px] text-white overflow-hidden relative flex flex-col justify-center">
                 <div className="absolute top-0 right-0 w-24 h-24 bg-red-600/10 blur-3xl rounded-full"></div>
                 <span className="block text-[10px] text-slate-400/80 uppercase font-black tracking-widest mb-2">Projections Mobiles Faso</span>
-                <p className="text-xs leading-relaxed text-slate-300 font-medium mb-4">La passerelle SMS connecte les paiements Orange Money ({totalRevenue > 0 ? "92% d'infra stable" : "Initiale"}) et Moov Money Burkina.</p>
+                <p className="text-xs leading-relaxed text-slate-300 font-medium mb-4">La passerelle SMS connecte les paiements Orange Money, Moov Money, Telecel Money et Coris Money Burkina.</p>
                 <div className="w-full bg-white/10 h-1.5 rounded-full overflow-hidden">
                   <div className="bg-green-600 h-full w-[95%]"></div>
                 </div>
@@ -4808,6 +4922,318 @@ export const AdminDashboard: React.FC<{ onBackToTraveler?: () => void }> = ({ on
             </div>
           </div>
         )}
+
+        {/* TAB 14.5: REFUNDS & PAYOUT MANAGEMENT */}
+        {activeTab === 'refunds' && (() => {
+          const refundBookings = bookings.filter(b => b.refundStatus && b.refundStatus !== 'none');
+          const pendingRefunds = bookings.filter(b => b.refundStatus === 'pending');
+          const failedRefunds = bookings.filter(b => b.refundStatus === 'failed');
+          const processedRefunds = bookings.filter(b => b.refundStatus === 'refunded');
+          const rejectedRefunds = bookings.filter(b => b.refundStatus === 'rejected');
+
+          const totalPendingAmt = pendingRefunds.reduce((sum, b) => sum + (b.refundAmount || 0), 0);
+          const totalFailedAmt = failedRefunds.reduce((sum, b) => sum + (b.refundAmount || 0), 0);
+          const totalProcessedAmt = processedRefunds.reduce((sum, b) => sum + (b.refundAmount || 0), 0);
+
+          return (
+            <div className="space-y-6 animate-in fade-in" id="refunds-admin-tab">
+              <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                <div>
+                  <h2 className="text-3xl font-black text-slate-900 tracking-tight leading-none mb-1">Gestion des Remboursements</h2>
+                  <p className="text-slate-500 font-medium text-sm">Gérez les remboursements des voyageurs suite à une annulation et configurez le mode de payout automatique.</p>
+                </div>
+              </div>
+
+              {/* STATS & CONTROL GRID */}
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                {/* CARD 1: REFUND MODE TOGGLE */}
+                <div className="bg-slate-55 bg-gradient-to-br from-slate-900 to-slate-950 text-white border border-slate-800 p-6 rounded-[32px] flex flex-col justify-between shadow-md">
+                  <div>
+                    <span className="text-[10px] uppercase font-black text-slate-400 tracking-widest block mb-2">Mode de Remboursement Actuel</span>
+                    <div className="flex items-center gap-2 mb-4">
+                      {refundMode === 'auto' ? (
+                        <>
+                          <span className="w-2.5 h-2.5 bg-green-500 rounded-full animate-ping"></span>
+                          <span className="w-2.5 h-2.5 bg-green-500 rounded-full absolute"></span>
+                          <span className="text-lg font-black text-green-400">AUTOMATIQUE ⚡</span>
+                        </>
+                      ) : (
+                        <>
+                          <span className="w-2.5 h-2.5 bg-yellow-500 rounded-full"></span>
+                          <span className="text-lg font-black text-yellow-400">MANUEL 🛡️</span>
+                        </>
+                      )}
+                    </div>
+                    <p className="text-xs text-slate-400 leading-relaxed font-medium mb-4">
+                      {refundMode === 'auto' 
+                        ? "Les remboursements sont calculés et payés instantanément par Mobile Money (payout SapPay) dès l'annulation du voyageur."
+                        : "Les annulations sont placées en attente. L'administration doit valider manuellement chaque virement depuis ce tableau."}
+                    </p>
+                  </div>
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() => handleToggleRefundMode('auto')}
+                      disabled={isSaving}
+                      className={cn(
+                        "flex-1 text-center py-2 px-3 rounded-xl text-xs font-black transition cursor-pointer",
+                        refundMode === 'auto'
+                          ? "bg-green-600 text-white"
+                          : "bg-slate-800 hover:bg-slate-700 text-slate-300"
+                      )}
+                    >
+                      Mode Auto ⚡
+                    </button>
+                    <button
+                      onClick={() => handleToggleRefundMode('manual')}
+                      disabled={isSaving}
+                      className={cn(
+                        "flex-1 text-center py-2 px-3 rounded-xl text-xs font-black transition cursor-pointer",
+                        refundMode === 'manual'
+                          ? "bg-yellow-600 text-white"
+                          : "bg-slate-800 hover:bg-slate-700 text-slate-300"
+                      )}
+                    >
+                      Mode Manuel 🛡️
+                    </button>
+                  </div>
+                </div>
+
+                {/* CARD 2: PENDING & FAILED REFUNDS */}
+                <div className="bg-white border border-slate-100 p-6 rounded-[32px] flex flex-col justify-between shadow-sm">
+                  <div>
+                    <span className="text-[10px] uppercase font-black text-slate-400 tracking-widest block mb-2">Demandes en Attente / Échecs</span>
+                    <div className="text-3xl font-black text-slate-900 tracking-tighter mb-1">
+                      {formatFCFA(totalPendingAmt + totalFailedAmt)}
+                    </div>
+                    <p className="text-xs text-slate-500 font-medium">
+                      {pendingRefunds.length} en attente ({formatFCFA(totalPendingAmt)}) &amp; {failedRefunds.length} échec(s) de payout ({formatFCFA(totalFailedAmt)}).
+                    </p>
+                  </div>
+                  <div className="mt-4 pt-4 border-t border-slate-50 flex items-center justify-between text-xs font-bold text-slate-400">
+                    <span>Validation ou relance requise</span>
+                    <span className={cn(
+                      "px-2.5 py-1 rounded-full text-[10px] font-black uppercase",
+                      failedRefunds.length > 0 ? "text-red-600 bg-red-50" : "text-yellow-600 bg-yellow-50"
+                    )}>
+                      {failedRefunds.length > 0 ? "Échecs détectés" : "Action requise"}
+                    </span>
+                  </div>
+                </div>
+
+                {/* CARD 3: PROCESSED REFUNDS */}
+                <div className="bg-white border border-slate-100 p-6 rounded-[32px] flex flex-col justify-between shadow-sm">
+                  <div>
+                    <span className="text-[10px] uppercase font-black text-slate-400 tracking-widest block mb-2">Total Remboursé</span>
+                    <div className="text-3xl font-black text-green-600 tracking-tighter mb-1">
+                      {formatFCFA(totalProcessedAmt)}
+                    </div>
+                    <p className="text-xs text-slate-500 font-medium">
+                      {processedRefunds.length} transaction(s) de remboursement finalisée(s) (manuel ou auto).
+                    </p>
+                  </div>
+                  <div className="mt-4 pt-4 border-t border-slate-50 flex items-center justify-between text-xs font-bold text-slate-400">
+                    <span>Paiements sécurisés</span>
+                    <span className="text-green-600 bg-green-50 px-2.5 py-1 rounded-full text-[10px] font-black uppercase">
+                      Opérationnel
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              {/* REFUNDS LIST */}
+              <div className="bg-white border border-slate-100 rounded-[32px] overflow-hidden shadow-sm">
+                <div className="p-6 border-b border-slate-50 flex items-center justify-between">
+                  <h3 className="font-black text-slate-900 text-lg">Registre des Demandes de Remboursement</h3>
+                  <div className="text-xs text-slate-400 font-bold">
+                    Affichage de {refundBookings.length} dossiers
+                  </div>
+                </div>
+
+                <div className="overflow-x-auto">
+                  <table className="w-full text-left border-collapse">
+                    <thead>
+                      <tr className="border-b border-slate-100 bg-slate-50/40 text-[10px] font-black text-slate-400 uppercase tracking-widest">
+                        <th className="py-5 px-6">Voyageur / Client</th>
+                        <th className="py-5 px-6">Hébergement</th>
+                        <th className="py-5 px-6">Montant du Remboursement</th>
+                        <th className="py-5 px-6">Coordonnées de Payout</th>
+                        <th className="py-5 px-6">Date de l'Annulation</th>
+                        <th className="py-5 px-6">Statut</th>
+                        <th className="py-5 px-6 text-right">Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-50 text-sm font-bold text-slate-700">
+                      {refundBookings.length === 0 ? (
+                        <tr>
+                          <td colSpan={7} className="py-16 text-center">
+                            <div className="flex flex-col items-center justify-center space-y-3">
+                              <div className="w-16 h-16 bg-slate-50 rounded-full flex items-center justify-center text-slate-400">
+                                <Wallet size={28} />
+                              </div>
+                              <p className="text-slate-400 font-extrabold text-base">Aucun remboursement à afficher</p>
+                              <p className="text-slate-300 text-xs font-semibold max-w-xs">
+                                Les demandes de remboursement apparaîtront ici dès qu'un client effectuera une annulation de séjour payé.
+                              </p>
+                            </div>
+                          </td>
+                        </tr>
+                      ) : (
+                        refundBookings
+                          .slice((refundsPage - 1) * 30, refundsPage * 30)
+                          .map((book) => {
+                            const matchedRes = residences.find(r => r.id === book.residenceId);
+                            const displayResTitle = matchedRes?.title || `Réservation #${book.id.slice(0, 8)}`;
+                            return (
+                              <tr key={book.id} className="hover:bg-slate-50/40 transition">
+                                <td className="py-5 px-6">
+                                  <div className="flex flex-col">
+                                    <span className="font-extrabold text-slate-900">{book.clientName || 'Voyageur'}</span>
+                                    <span className="text-[10px] text-slate-400 font-medium">ID: #{book.clientId?.slice(0, 8)}</span>
+                                  </div>
+                                </td>
+                                <td className="py-5 px-6">
+                                  <span className="font-bold text-slate-800 text-xs max-w-[200px] block truncate" title={displayResTitle}>
+                                    {displayResTitle}
+                                  </span>
+                                </td>
+                                <td className="py-5 px-6">
+                                  <div className="flex flex-col">
+                                    <span className="font-extrabold text-slate-900 text-base">{formatFCFA(book.refundAmount || 0)}</span>
+                                    <span className="text-[9px] text-slate-400 font-semibold leading-none mt-0.5">
+                                      Acompte initial : {formatFCFA(book.advancePaid || book.totalPrice)}
+                                    </span>
+                                  </div>
+                                </td>
+                                <td className="py-5 px-6">
+                                  <div className="flex flex-col">
+                                    <span className="font-extrabold text-slate-900 font-mono text-sm">
+                                      {book.refundPhone || 'Non spécifié'}
+                                    </span>
+                                    <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest mt-0.5">
+                                      {book.refundProvider || 'Mobile Money'}
+                                    </span>
+                                  </div>
+                                </td>
+                                <td className="py-5 px-6 text-slate-500 font-medium text-xs">
+                                  {book.cancelledAt ? formatDateFr(book.cancelledAt) : 'N/A'}
+                                </td>
+                                <td className="py-5 px-6">
+                                  {book.refundStatus === 'pending' && (
+                                    <span className="bg-yellow-50 text-yellow-600 px-3 py-1.5 rounded-full text-[10px] font-black uppercase tracking-wider">
+                                      En attente ⏳
+                                    </span>
+                                  )}
+                                  {book.refundStatus === 'failed' && (
+                                    <div className="flex flex-col">
+                                      <span className="bg-rose-50 text-rose-600 px-3 py-1.5 rounded-full text-[10px] font-black uppercase tracking-wider w-fit">
+                                        Échec Payout ⚠️
+                                      </span>
+                                      {book.refundReason && (
+                                        <span className="text-[10px] italic text-rose-500 mt-1 block max-w-[150px] truncate" title={book.refundReason}>
+                                          Erreur : {book.refundReason}
+                                        </span>
+                                      )}
+                                    </div>
+                                  )}
+                                  {book.refundStatus === 'refunded' && (
+                                    <div className="flex flex-col">
+                                      <span className="bg-green-50 text-green-600 px-3 py-1.5 rounded-full text-[10px] font-black uppercase tracking-wider w-fit">
+                                        Remboursé ✅
+                                      </span>
+                                      {book.transactionId && (
+                                        <span className="text-[9px] font-mono font-medium text-slate-400 mt-1 block">
+                                          TxID: {book.transactionId}
+                                        </span>
+                                      )}
+                                    </div>
+                                  )}
+                                  {book.refundStatus === 'rejected' && (
+                                    <div className="flex flex-col">
+                                      <span className="bg-red-50 text-red-600 px-3 py-1.5 rounded-full text-[10px] font-black uppercase tracking-wider w-fit">
+                                        Rejeté ❌
+                                      </span>
+                                      {book.refundReason && (
+                                        <span className="text-[10px] italic text-slate-400 mt-1 block max-w-[150px] truncate" title={book.refundReason}>
+                                          Motif : {book.refundReason}
+                                        </span>
+                                      )}
+                                    </div>
+                                  )}
+                                </td>
+                                <td className="py-5 px-6 text-right">
+                                  <div className="flex flex-wrap items-center justify-end gap-2">
+                                    {(book.refundStatus === 'pending' || book.refundStatus === 'failed') && (
+                                      <>
+                                        <button
+                                          onClick={() => handleApproveRefund(book.id, 'manual')}
+                                          disabled={isSaving}
+                                          className="bg-slate-100 hover:bg-slate-200 text-slate-800 font-extrabold px-3 py-2 rounded-xl text-xs transition cursor-pointer flex items-center gap-1 shadow-sm"
+                                          title="Marquer comme remboursé sans passer par SapPay (cash / car / etc.)"
+                                        >
+                                          <Check size={12} className="text-green-600" /> Rembourser (Hors-Plateforme)
+                                        </button>
+                                        <button
+                                          onClick={() => handleApproveRefund(book.id, 'automatic_retry')}
+                                          disabled={isSaving}
+                                          className="bg-green-600 hover:bg-green-700 text-white font-black px-3 py-2 rounded-xl text-xs transition cursor-pointer shadow-sm flex items-center gap-1"
+                                          title="Déclencher / Retenter un virement automatique via SapPay"
+                                        >
+                                          <Check size={12} /> Virement SapPay ⚡
+                                        </button>
+                                        <button
+                                          onClick={() => handleRejectRefund(book.id)}
+                                          disabled={isSaving}
+                                          className="bg-red-50 hover:bg-red-100 text-red-600 border border-red-100 font-extrabold px-3 py-2 rounded-xl text-xs transition cursor-pointer"
+                                          title="Rejeter la demande"
+                                        >
+                                          Rejeter
+                                        </button>
+                                      </>
+                                    )}
+                                    {book.refundStatus === 'refunded' && (
+                                      <span className="text-[11px] text-slate-400 font-medium">
+                                        Traité le {book.refundProcessedAt ? formatDateFr(book.refundProcessedAt) : 'N/A'}
+                                      </span>
+                                    )}
+                                    {book.refundStatus === 'rejected' && (
+                                      <span className="text-[11px] text-slate-400 font-medium">Rejeté</span>
+                                    )}
+                                  </div>
+                                </td>
+                              </tr>
+                            );
+                          })
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+
+                {/* PAGINATION */}
+                {refundBookings.length > 30 && (
+                  <div className="p-6 border-t border-slate-50 flex flex-col sm:flex-row items-center justify-between gap-4">
+                    <button
+                      disabled={refundsPage === 1}
+                      onClick={() => setRefundsPage(prev => Math.max(prev - 1, 1))}
+                      className="text-xs bg-slate-50 hover:bg-slate-100 border border-slate-200 text-slate-600 px-4 py-2 rounded-xl disabled:opacity-50 transition cursor-pointer font-bold"
+                    >
+                      Précédent
+                    </button>
+                    <span className="text-xs font-bold text-slate-400">
+                      Page {refundsPage} sur {Math.ceil(refundBookings.length / 30)}
+                    </span>
+                    <button
+                      disabled={refundsPage === Math.ceil(refundBookings.length / 30)}
+                      onClick={() => setRefundsPage(prev => Math.min(prev + 1, Math.ceil(refundBookings.length / 30)))}
+                      className="text-xs bg-slate-50 hover:bg-slate-100 border border-slate-200 text-slate-600 px-4 py-2 rounded-xl disabled:opacity-50 transition cursor-pointer font-bold"
+                    >
+                      Suivant
+                    </button>
+                  </div>
+                )}
+              </div>
+            </div>
+          );
+        })()}
 
        {/* TAB 15: LOCATIONS MANAGEMENT */}
         {activeTab === 'locations' && (

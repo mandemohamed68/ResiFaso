@@ -33,7 +33,7 @@ export const RoleGuide: React.FC<RoleGuideProps> = ({ role, isOpen, onClose }) =
     },
     {
       title: "2. Réservation & Acompte Sécurisé",
-      description: "Lancez votre demande de réservation. Pour confirmer définitivement votre séjour, réglez l'acompte demandé (50%) en toute sécurité directement sur l'application via Orange Money, Moov Money, Telecel Cash ou Coris Money.",
+      description: "Lancez votre demande de réservation. Pour confirmer définitivement votre séjour, réglez l'acompte demandé (50%) en toute sécurité directement sur l'application via Orange Money, Moov Money, Telecel Money ou Coris Money.",
       icon: <CreditCard className="text-emerald-600" size={24} />
     },
     {
@@ -76,7 +76,7 @@ export const RoleGuide: React.FC<RoleGuideProps> = ({ role, isOpen, onClose }) =
     },
     {
       title: "5. Demande de Retrait de Fonds",
-      description: "Retirez vos gains accumulés en toute simplicité. Soumettez une demande de retrait vers votre numéro Orange Money, Moov Money ou virement bancaire et suivez l'avancement du traitement par l'administration.",
+      description: "Retirez vos gains accumulés en toute simplicité. Soumettez une demande de retrait vers votre numéro Orange Money, Moov Money, Telecel Money, Coris Money ou virement bancaire et suivez l'avancement du traitement par l'administration.",
       icon: <Award className="text-yellow-600" size={24} />
     }
   ];

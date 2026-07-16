@@ -220,11 +220,11 @@ const CancellationModal: React.FC<CancellationModalProps> = ({ isOpen, onClose, 
     if (isStayStarted) {
       scenarioLabel = "Séjour commencé et interrompu";
       calculatedRefund = Math.max(0, paidAmount - (costOfNightsSpent + hostCancellationFee));
-      explanationStr = `Séjour débuté (${nightsSpent} nuit(s) consommée(s)). Votre remboursement est calculé sur le montant versé (${formatCurrency(paidAmount)} F CFA), déduction faite des frais administratifs fixes de l'Hôte (${formatCurrency(hostCancellationFee)} F CFA) et du coût des nuitées déjà consommées (${formatCurrency(costOfNightsSpent)} F CFA).`;
+      explanationStr = `Séjour débuté (${nightsSpent} nuit(s) consommée(s)). Votre remboursement est calculé sur le montant versé (${formatCurrency(paidAmount)} F CFA), déduction faite des frais administratifs fixes de l'Hôte (${formatCurrency(hostCancellationFee)} F CFA), du coût des nuitées déjà consommées (${formatCurrency(costOfNightsSpent)} F CFA), et des frais de service de la plateforme (non remboursables).`;
     } else {
       scenarioLabel = "Séjour non commencé";
       calculatedRefund = Math.max(0, paidAmount - hostCancellationFee);
-      explanationStr = `Séjour de ${totalNights} nuit(s) non débuté. Vous êtes remboursé du montant versé (${formatCurrency(paidAmount)} F CFA) moins les frais d'annulation fixes de l'Hôte (${formatCurrency(hostCancellationFee)} F CFA).`;
+      explanationStr = `Séjour de ${totalNights} nuit(s) non débuté. Vous êtes remboursé du montant versé (${formatCurrency(paidAmount)} F CFA) moins les frais d'annulation fixes de l'Hôte (${formatCurrency(hostCancellationFee)} F CFA) et les frais de service de la plateforme (non remboursables).`;
     }
   }
 
@@ -384,10 +384,10 @@ const CancellationModal: React.FC<CancellationModalProps> = ({ isOpen, onClose, 
                 <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Opérateur de Remboursement</label>
                 <div className="grid grid-cols-4 gap-2">
                   {[
-                    { id: 'orange', label: 'Orange' },
-                    { id: 'moov', label: 'Moov' },
-                    { id: 'telecel', label: 'Telecel' },
-                    { id: 'coris', label: 'Coris' }
+                    { id: 'orange', label: 'Orange Money' },
+                    { id: 'moov', label: 'Moov Money' },
+                    { id: 'telecel', label: 'Telecel Money' },
+                    { id: 'coris', label: 'Coris Money' }
                   ].map((prov) => (
                     <button
                       key={prov.id}

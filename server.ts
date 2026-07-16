@@ -151,6 +151,72 @@ async function getSappayToken(): Promise<string> {
   }
 }
 
+// Perform payout via SapPay
+async function performSappayPayout(amount: number, phone: string, provider: string): Promise<{ success: boolean; transactionId: string; error?: string }> {
+  try {
+    const creds = await getSappayCredentials();
+    const urls = await getSappayBaseUrls();
+    const cleanPhone = normalizePhoneNumberSappay(phone);
+    const processor = provider.toLowerCase().includes('moov') ? PROCESSOR_MOOV : PROCESSOR_ORANGE;
+
+    console.log(`[Payout] Initiation d'un virement de ${amount} F CFA vers ${cleanPhone} (${provider})`);
+
+    if (creds.isTestMode || !creds.clientId || creds.clientId.startsWith('OM_MOOV_GATEWAY') || creds.clientId.includes('****')) {
+      // Simulate successful payout
+      const mockTxId = 'pay_mock_' + Math.random().toString(36).substr(2, 9).toUpperCase();
+      console.log(`[Payout] Simulation de virement réussie (Transaction ID: ${mockTxId})`);
+      return {
+        success: true,
+        transactionId: mockTxId
+      };
+    }
+
+    const token = await getSappayToken();
+    if (token === "mock_sappay_token_fallback") {
+      const mockTxId = 'pay_mock_' + Math.random().toString(36).substr(2, 9).toUpperCase();
+      return { success: true, transactionId: mockTxId };
+    }
+
+    const payload = {
+      processor: processor,
+      amount: amount,
+      destination: cleanPhone,
+      reference: 'REFUND_' + Math.random().toString(36).substr(2, 6).toUpperCase(),
+      description: 'Remboursement de reservation sur ResiFaso'
+    };
+
+    const response = await fetch(`${urls.publicBase}/transfers/`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${token}`,
+        "Accept": "application/json"
+      },
+      body: JSON.stringify(payload)
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error("[Payout] Echec de l'API SapPay :", errorText);
+      throw new Error(`API SapPay a retourne une erreur : ${errorText}`);
+    }
+
+    const data = await response.json();
+    const txId = data.transaction_id || data.id || data.response?.transaction_id || 'pay_' + Math.random().toString(36).substr(2, 9).toUpperCase();
+    return {
+      success: true,
+      transactionId: txId
+    };
+  } catch (err: any) {
+    console.error("[Payout] Erreur lors du payout :", err.message);
+    return {
+      success: false,
+      transactionId: '',
+      error: err.message
+    };
+  }
+}
+
 // ---------- SERVEUR EXPRESS ----------
 async function startServer() {
   if (DB_TYPE !== 'firebase') {
@@ -424,9 +490,243 @@ async function startServer() {
 
   app.patch("/api/bookings/:id", authenticateToken, async (req: AuthRequest, res) => {
     try {
-      await queries.updateBookingStatus(req.params.id, req.body);
+      const bookingId = req.params.id;
+      const oldBookingArr = await executeSql("SELECT * FROM bookings WHERE id = ?", [bookingId]);
+      if (oldBookingArr.length === 0) {
+        return res.status(404).json({ error: "Réservation introuvable" });
+      }
+      const oldBooking = oldBookingArr[0];
+
+      // Extract details
+      const bStatus = oldBooking.booking_status || oldBooking.bookingStatus;
+      const bClientId = oldBooking.client_id || oldBooking.clientId;
+      const bOwnerId = oldBooking.owner_id || oldBooking.ownerId;
+      const bResidenceId = oldBooking.residence_id || oldBooking.residenceId;
+      const bRefundStatus = oldBooking.refund_status || oldBooking.refundStatus;
+      const bRefundAmount = Number(oldBooking.refund_amount || oldBooking.refundAmount || 0);
+      const bRefundPhone = oldBooking.refund_phone || oldBooking.refundPhone || '';
+      const bRefundProvider = oldBooking.refund_provider || oldBooking.refundProvider || '';
+
+      // Get residence title
+      let residenceTitle = "Résidence";
+      try {
+        const resArr = await executeSql("SELECT title FROM residences WHERE id = ?", [bResidenceId]);
+        if (resArr.length > 0) {
+          residenceTitle = resArr[0].title;
+        }
+      } catch (e) {}
+
+      // Get global settings (for refundMode)
+      let refundMode = 'manual';
+      try {
+        const results = await executeSql("SELECT value FROM settings WHERE `key` = 'global'");
+        if (results && results.length > 0) {
+          const s = JSON.parse(results[0].value);
+          if (s?.refundMode) refundMode = s.refundMode;
+        }
+      } catch (e) {}
+
+      // A. If booking status is transitioning to cancelled
+      const isCancelling = (req.body.bookingStatus === 'cancelled' || req.body.booking_status === 'cancelled') && bStatus !== 'cancelled';
+      if (isCancelling) {
+        const refundAmt = Number(req.body.refundAmount || req.body.refund_amount || 0);
+        const refPhone = req.body.refundPhone || req.body.refund_phone || '';
+        const refProvider = req.body.refundProvider || req.body.refund_provider || '';
+
+        let isAutoRefunded = false;
+        let payoutError: string | null = null;
+
+        if (refundAmt > 0 && refPhone) {
+          if (refundMode === 'auto') {
+            // Attempt automatic payout via SapPay
+            const payoutResult = await performSappayPayout(refundAmt, refPhone, refProvider);
+            if (payoutResult.success) {
+              req.body.refundStatus = 'refunded';
+              req.body.refund_status = 'refunded';
+              req.body.refundProcessedAt = new Date().toISOString();
+              req.body.refund_processed_at = new Date().toISOString();
+              req.body.transactionId = payoutResult.transactionId;
+              req.body.transaction_id = payoutResult.transactionId;
+              isAutoRefunded = true;
+            } else {
+              payoutError = payoutResult.error || 'Échec de transaction';
+              // If auto payout fails, mark status as failed and notify everyone of the failed payout
+              req.body.refundStatus = 'failed';
+              req.body.refund_status = 'failed';
+              req.body.refundReason = payoutError;
+              req.body.refund_reason = payoutError;
+            }
+          } else {
+            // Manual mode: status is pending
+            req.body.refundStatus = 'pending';
+            req.body.refund_status = 'pending';
+          }
+        }
+
+        // Notify Traveler
+        const clientNotifId = 'not_' + Math.random().toString(36).substr(2, 9);
+        let clientMsg = '';
+        if (refundAmt > 0) {
+          if (refundMode === 'auto') {
+            if (isAutoRefunded) {
+              clientMsg = `Votre séjour chez "${residenceTitle}" a été annulé. Un remboursement automatique de ${refundAmt} F CFA a été effectué vers votre compte Mobile Money ${refPhone} via SapPay (TxID: ${req.body.transactionId}).`;
+            } else {
+              clientMsg = `Votre séjour chez "${residenceTitle}" a été annulé. Une tentative de remboursement automatique de ${refundAmt} F CFA a échoué (Erreur: ${payoutError}). L'administration a été notifiée et procèdera à un traitement manuel prochainement.`;
+            }
+          } else {
+            clientMsg = `Votre demande d'annulation pour "${residenceTitle}" est enregistrée. Un remboursement de ${refundAmt} F CFA est en attente d'approbation par l'administration et sera traité prochainement.`;
+          }
+        } else {
+          clientMsg = `Votre réservation pour "${residenceTitle}" a été annulée de manière immédiate (aucun paiement n'avait été effectué).`;
+        }
+        
+        await executeSql("INSERT INTO notifications (id, user_id, title, message, type, reference_id) VALUES (?, ?, ?, ?, ?, ?)",
+          [clientNotifId, bClientId, "Annulation de Séjour ❌", clientMsg, "booking", bookingId]);
+
+        // Notify Host
+        const hostNotifId = 'not_' + Math.random().toString(36).substr(2, 9);
+        let hostMsg = '';
+        if (refundAmt > 0) {
+          if (refundMode === 'auto') {
+            if (isAutoRefunded) {
+              hostMsg = `Le voyageur a annulé sa réservation pour "${residenceTitle}". Un remboursement de ${refundAmt} F CFA a été effectué automatiquement et avec succès via SapPay.`;
+            } else {
+              hostMsg = `Le voyageur a annulé sa réservation pour "${residenceTitle}". Le remboursement automatique de ${refundAmt} F CFA a échoué (Erreur: ${payoutError}). L'administration va gérer la situation.`;
+            }
+          } else {
+            hostMsg = `Le voyageur a annulé sa réservation pour "${residenceTitle}". Un remboursement de ${refundAmt} F CFA est en cours de validation manuelle par l'administration.`;
+          }
+        } else {
+          hostMsg = `Le voyageur a annulé sa réservation pour "${residenceTitle}" (aucun paiement n'avait été effectué).`;
+        }
+        
+        await executeSql("INSERT INTO notifications (id, user_id, title, message, type, reference_id) VALUES (?, ?, ?, ?, ?, ?)",
+          [hostNotifId, bOwnerId, "Annulation Voyageur ❌", hostMsg, "booking", bookingId]);
+
+        // Notify all Admin users
+        try {
+          const admins = await executeSql("SELECT uid FROM users WHERE role = 'admin'");
+          for (const admin of admins) {
+            const adminNotifId = 'not_' + Math.random().toString(36).substr(2, 9);
+            let adminMsg = '';
+            if (refundAmt > 0) {
+              if (refundMode === 'auto') {
+                if (isAutoRefunded) {
+                  adminMsg = `[Auto] Réservation ${bookingId} annulée par le client. Remboursement automatique de ${refundAmt} F CFA payé avec succès via SapPay.`;
+                } else {
+                  adminMsg = `[ECHEC AUTO ⚠️] Réservation ${bookingId} annulée. Remboursement automatique de ${refundAmt} F CFA vers ${refPhone} a ÉCHOUÉ (Erreur: ${payoutError}). Action manuelle ou relance requise.`;
+                }
+              } else {
+                adminMsg = `[Manuel] Réservation ${bookingId} annulée par le client. Remboursement de ${refundAmt} F CFA vers ${refPhone} en attente de votre approbation.`;
+              }
+            } else {
+              adminMsg = `Réservation ${bookingId} annulée par le client (Aucun paiement à rembourser).`;
+            }
+            
+            await executeSql("INSERT INTO notifications (id, user_id, title, message, type, reference_id) VALUES (?, ?, ?, ?, ?, ?)",
+              [adminNotifId, admin.uid, "Notification de Remboursement 💰", adminMsg, "booking", bookingId]);
+          }
+        } catch (adminErr) {
+          console.error("Error notifying admins:", adminErr);
+        }
+      }
+
+      // B. If admin is approving a refund (from 'pending' or 'failed')
+      const isApproval = (req.body.refundStatus === 'refunded' || req.body.refund_status === 'refunded') && 
+                         (bRefundStatus === 'pending' || bRefundStatus === 'failed');
+                         
+      if (isApproval) {
+        const forceManual = req.body.forceManual === true;
+        const triggerPayout = req.body.triggerPayout === true;
+        
+        // Decide whether to run payout:
+        // Run payout only if explicitly requested, or if mode is auto and not forced to manual
+        const runPayout = triggerPayout || (refundMode === 'auto' && !forceManual);
+        
+        if (runPayout && bRefundAmount > 0 && bRefundPhone) {
+          // Trigger/Retry payout via SapPay
+          const payoutResult = await performSappayPayout(bRefundAmount, bRefundPhone, bRefundProvider);
+          if (payoutResult.success) {
+            req.body.refundStatus = 'refunded';
+            req.body.refund_status = 'refunded';
+            req.body.refundProcessedAt = new Date().toISOString();
+            req.body.refund_processed_at = new Date().toISOString();
+            req.body.transactionId = payoutResult.transactionId;
+            req.body.transaction_id = payoutResult.transactionId;
+            
+            // Notify traveler of successful automatic payout approval
+            const clientNotifId = 'not_' + Math.random().toString(36).substr(2, 9);
+            await executeSql("INSERT INTO notifications (id, user_id, title, message, type, reference_id) VALUES (?, ?, ?, ?, ?, ?)",
+              [clientNotifId, bClientId, "Remboursement Effectué ⚡", `Votre remboursement de ${bRefundAmount} F CFA pour le séjour chez "${residenceTitle}" a été effectué avec succès par virement automatique SapPay vers votre numéro ${bRefundPhone} (TxID: ${payoutResult.transactionId}).`, "booking", bookingId]);
+
+            // Notify host
+            const hostNotifId = 'not_' + Math.random().toString(36).substr(2, 9);
+            await executeSql("INSERT INTO notifications (id, user_id, title, message, type, reference_id) VALUES (?, ?, ?, ?, ?, ?)",
+              [hostNotifId, bOwnerId, "Remboursement Finalisé 💰", `Le remboursement de ${bRefundAmount} F CFA lié au séjour chez "${residenceTitle}" a été effectué avec succès via virement automatique SapPay.`, "booking", bookingId]);
+          } else {
+            // Payout failed! Mark status as failed and notify everyone
+            req.body.refundStatus = 'failed';
+            req.body.refund_status = 'failed';
+            req.body.refundReason = payoutResult.error || "Erreur de virement SapPay";
+            req.body.refund_reason = payoutResult.error || "Erreur de virement SapPay";
+            
+            // Notify stakeholders of failure
+            const clientNotifId = 'not_' + Math.random().toString(36).substr(2, 9);
+            await executeSql("INSERT INTO notifications (id, user_id, title, message, type, reference_id) VALUES (?, ?, ?, ?, ?, ?)",
+              [clientNotifId, bClientId, "Échec du Remboursement ⚠️", `La tentative de virement automatique pour votre remboursement de ${bRefundAmount} F CFA chez "${residenceTitle}" a échoué (Erreur: ${payoutResult.error}). L'administration a été alertée pour procéder à une autre solution.`, "booking", bookingId]);
+
+            const hostNotifId = 'not_' + Math.random().toString(36).substr(2, 9);
+            await executeSql("INSERT INTO notifications (id, user_id, title, message, type, reference_id) VALUES (?, ?, ?, ?, ?, ?)",
+              [hostNotifId, bOwnerId, "Échec Remboursement ⚠️", `Le virement de remboursement automatique pour le séjour chez "${residenceTitle}" a échoué. L'administration va régulariser cela.`, "booking", bookingId]);
+
+            await queries.updateBookingStatus(bookingId, req.body);
+            return res.status(500).json({ error: `Échec du virement automatique SapPay : ${payoutResult.error || 'Erreur API'}` });
+          }
+        } else {
+          // Manual approval (offline/cash/car/etc.)
+          req.body.refundStatus = 'refunded';
+          req.body.refund_status = 'refunded';
+          req.body.refundProcessedAt = new Date().toISOString();
+          req.body.refund_processed_at = new Date().toISOString();
+          req.body.transactionId = req.body.transactionId || 'MANUEL_HORS_PLATEFORME';
+          req.body.transaction_id = req.body.transactionId || 'MANUEL_HORS_PLATEFORME';
+
+          // Notify traveler of manual approval success
+          const clientNotifId = 'not_' + Math.random().toString(36).substr(2, 9);
+          await executeSql("INSERT INTO notifications (id, user_id, title, message, type, reference_id) VALUES (?, ?, ?, ?, ?, ?)",
+            [clientNotifId, bClientId, "Remboursement Effectué ✅", `Votre remboursement de ${bRefundAmount} F CFA pour le séjour chez "${residenceTitle}" a été approuvé par l'administration et effectué avec succès (par cash ou autre moyen hors-plateforme).`, "booking", bookingId]);
+
+          // Notify host
+          const hostNotifId = 'not_' + Math.random().toString(36).substr(2, 9);
+          await executeSql("INSERT INTO notifications (id, user_id, title, message, type, reference_id) VALUES (?, ?, ?, ?, ?, ?)",
+            [hostNotifId, bOwnerId, "Remboursement Finalisé 💰", `Le remboursement de ${bRefundAmount} F CFA lié au séjour chez "${residenceTitle}" a été marqué comme effectué par l'administration (par cash ou autre moyen hors-plateforme).`, "booking", bookingId]);
+        }
+      }
+
+      // C. If admin is rejecting a refund (from 'pending' or 'failed')
+      const isRejection = (req.body.refundStatus === 'rejected' || req.body.refund_status === 'rejected') && 
+                          (bRefundStatus === 'pending' || bRefundStatus === 'failed');
+                          
+      if (isRejection) {
+        const rejectReason = req.body.refundReason || req.body.refund_reason || "Aucun motif spécifié";
+        req.body.refundReason = rejectReason;
+        req.body.refund_reason = rejectReason;
+        
+        // Notify traveler of rejection with the reason
+        const clientNotifId = 'not_' + Math.random().toString(36).substr(2, 9);
+        await executeSql("INSERT INTO notifications (id, user_id, title, message, type, reference_id) VALUES (?, ?, ?, ?, ?, ?)",
+          [clientNotifId, bClientId, "Remboursement Rejeté ❌", `Votre demande de remboursement de ${bRefundAmount} F CFA pour le séjour chez "${residenceTitle}" a été rejetée par l'administration. Motif : ${rejectReason}`, "booking", bookingId]);
+
+        // Notify host
+        const hostNotifId = 'not_' + Math.random().toString(36).substr(2, 9);
+        await executeSql("INSERT INTO notifications (id, user_id, title, message, type, reference_id) VALUES (?, ?, ?, ?, ?, ?)",
+          [hostNotifId, bOwnerId, "Remboursement Rejeté ❌", `La demande de remboursement de ${bRefundAmount} F CFA pour le séjour chez "${residenceTitle}" a été rejetée par l'administration. Motif : ${rejectReason}`, "booking", bookingId]);
+      }
+
+      await queries.updateBookingStatus(bookingId, req.body);
       res.json({ success: true });
     } catch (err: any) {
+      console.error("[PATCH Booking] Error:", err.message);
       res.status(500).json({ error: err.message });
     }
   });

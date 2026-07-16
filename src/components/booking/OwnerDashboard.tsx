@@ -3500,7 +3500,7 @@ export const OwnerDashboard: React.FC<{ isTestMode?: boolean; onBackToTraveler?:
                     </div>
 
                     <div className="bg-slate-50 border border-slate-100 rounded-2xl p-4 text-xs font-semibold leading-relaxed text-slate-500">
-                      Un frais de transaction de <strong className="text-red-700">10%</strong> sera prélevé par la plateforme sur chaque nuitée pour le fonctionnement des APIs Mobile Money SMS de ResiFaso. Les fonds restants (90%) sont versés en continu sur votre compte Orange Money ou Moov Money.
+                      Un frais de transaction de <strong className="text-red-700">10%</strong> sera prélevé par la plateforme sur chaque nuitée pour le fonctionnement des APIs Mobile Money SMS de ResiFaso. Les fonds restants (90%) sont versés en continu sur votre compte Orange Money, Moov Money, Telecel Money ou Coris Money.
                     </div>
                   </motion.div>
                 )}

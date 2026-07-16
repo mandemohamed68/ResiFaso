@@ -1008,7 +1008,7 @@ export const ProfileSettings: React.FC = () => {
                       </div>
                       <div>
                         <p className="font-extrabold text-sm text-slate-900 capitalize">
-                          {paymentPrefs.mobileMoneyProvider === 'orange' ? 'Orange Money Burkina' : 'Moov Money'}
+                          {paymentPrefs.mobileMoneyProvider === 'orange' ? 'Orange Money' : paymentPrefs.mobileMoneyProvider === 'moov' ? 'Moov Money' : paymentPrefs.mobileMoneyProvider === 'telecel' ? 'Telecel Money' : 'Coris Money'}
                         </p>
                         <p className="text-xs text-slate-500 font-bold mt-0.5">N° : {paymentPrefs.mobileMoneyNumber}</p>
                         {paymentPrefs.bankAccountName && (
@@ -1036,7 +1036,7 @@ export const ProfileSettings: React.FC = () => {
               ) : (
                 <form onSubmit={handleSavePaymentPreferences} className="space-y-4 max-w-md bg-slate-50 p-6 rounded-2xl border border-slate-100" id="payment-pref-form">
                   <h3 className="font-black text-slate-900 text-sm mb-2">Configurer votre compte Mobile Money</h3>
-                  <p className="text-xs text-slate-500 font-medium mb-4">Utilisez Orange ou Moov pour percevoir d'éventuels remboursements ou verser des acomptes simplifiés.</p>
+                  <p className="text-xs text-slate-500 font-medium mb-4">Configurez votre compte Mobile Money pour percevoir d'éventuels remboursements ou verser des acomptes simplifiés.</p>
                   
                   <div>
                     <label className="block text-xs font-black text-slate-500 uppercase tracking-wider mb-2">Opérateur</label>
