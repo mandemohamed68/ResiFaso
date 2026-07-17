@@ -329,7 +329,9 @@ function AppContent() {
 
   const calculateAdvance = (res: Residence) => {
     const total = calculateTotal(res);
-    const advancePercent = res.advancePercentage || 30;
+    const advancePercent = res.advancePercentage !== undefined && res.advancePercentage !== null 
+      ? res.advancePercentage 
+      : (res.advance_percentage !== undefined && res.advance_percentage !== null ? res.advance_percentage : 100);
     return Math.round(total * (advancePercent / 100));
   };
 

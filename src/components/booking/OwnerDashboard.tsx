@@ -1091,7 +1091,7 @@ export const OwnerDashboard: React.FC<{ isTestMode?: boolean; onBackToTraveler?:
   const [pricePerNight, setPricePerNight] = useState('');
   const [utilitiesIncluded, setUtilitiesIncluded] = useState({ water: false, electricity: false });
   const [pricingTiers, setPricingTiers] = useState<{ minNights: number, pricePerNight: number }[]>([]);
-  const [advancePercentage, setAdvancePercentage] = useState(30);
+  const [advancePercentage, setAdvancePercentage] = useState(100);
   const [cleaningFee, setCleaningFee] = useState('');
   const [serviceFee, setServiceFee] = useState('0');
   const [useServiceFee, setUseServiceFee] = useState(false);
@@ -1587,7 +1587,7 @@ export const OwnerDashboard: React.FC<{ isTestMode?: boolean; onBackToTraveler?:
     setSelectedNeighborhoodId('');
     setStreet('');
     setPricePerNight('');
-    setAdvancePercentage(30);
+    setAdvancePercentage(100);
     setCleaningFee('');
     setServiceFee('0');
     setUseServiceFee(false);

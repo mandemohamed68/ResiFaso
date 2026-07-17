@@ -6866,7 +6866,7 @@ export const AdminDashboard: React.FC<{ onBackToTraveler?: () => void }> = ({ on
                   <h4 className="text-xs font-black text-slate-900 uppercase tracking-widest">Contact Propriétaire</h4>
                   <div className="space-y-1.5 text-xs text-slate-600 font-semibold">
                     <p><span className="text-slate-400 font-bold uppercase text-[10px]">Téléphone / WhatsApp :</span> <span className="font-black text-red-650">{selectedResForDetail.ownerPhone || "Non renseigné"}</span></p>
-                    <p><span className="text-slate-400 font-bold uppercase text-[10px]">Acompte requis :</span> {selectedResForDetail.advancePercentage || 30}% à la réservation</p>
+                    <p><span className="text-slate-400 font-bold uppercase text-[10px]">Acompte requis :</span> {selectedResForDetail.advancePercentage !== undefined && selectedResForDetail.advancePercentage !== null ? selectedResForDetail.advancePercentage : (selectedResForDetail.advance_percentage !== undefined && selectedResForDetail.advance_percentage !== null ? selectedResForDetail.advance_percentage : 100)}% à la réservation</p>
                     <p><span className="text-slate-400 font-bold uppercase text-[10px]">Frais plateforme :</span> {commissionRate}%</p>
                     {(selectedResForDetail.serviceFee > 0 || selectedResForDetail.service_fee > 0) && (
                       <p><span className="text-slate-400 font-bold uppercase text-[10px]">Frais additionnel :</span> {formatCurrency(selectedResForDetail.serviceFee || selectedResForDetail.service_fee)} F CFA</p>
