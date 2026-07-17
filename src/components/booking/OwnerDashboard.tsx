@@ -900,10 +900,12 @@ export const OwnerDashboard: React.FC<{ isTestMode?: boolean; onBackToTraveler?:
 
   useEffect(() => {
     const s = settingsData as any;
-    if (s?.commissionRate !== undefined) {
+    if (profileData?.commissionPercentage !== undefined) {
+      setCommissionRate(profileData.commissionPercentage);
+    } else if (s?.commissionRate !== undefined) {
       setCommissionRate(s.commissionRate);
     }
-  }, [settingsData]);
+  }, [settingsData, profileData]);
 
   useEffect(() => {
     if (profileData) {

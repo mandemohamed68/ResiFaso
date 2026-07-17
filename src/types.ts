@@ -26,6 +26,7 @@ export interface UserProfile {
   permissions?: string;
   identityDocumentBack?: string;
   hasAcceptedTerms?: boolean;
+  commissionPercentage?: number;
 }
 
 export interface VerificationType {

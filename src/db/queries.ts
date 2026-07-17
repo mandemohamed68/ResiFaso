@@ -580,7 +580,7 @@ const VALID_USER_COLS = new Set([
   'identity_document_back', 'permissions', 'id_number', 'id_type', 
   'id_expiry', 'id_card_url', 'verification_status', 'has_accepted_terms', 
   'host_cancellation_fee', 'host_cancellation_rules_text', 'created_at',
-  'deactivated'
+  'deactivated', 'commission_percentage'
 ]);
 
 export const updateResidence = async (id: string, updates: any) => {
@@ -684,6 +684,7 @@ export const updateUserProfile = async (uid: string, updates: any) => {
     else if (k === 'isVerified') targetKey = 'is_verified';
     else if (k === 'isSuspended') targetKey = 'is_suspended';
     else if (k === 'phoneNumber') targetKey = 'phone_number';
+    else if (k === 'commissionPercentage') targetKey = 'commission_percentage';
     else if (k === 'createdAt') targetKey = 'created_at';
     else if (k === 'password') targetKey = 'password_hash';
     else {

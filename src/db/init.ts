@@ -1,4 +1,5 @@
 import { executeSql } from './index';
+import bcrypt from 'bcrypt';
 
 export const initDatabase = async () => {
   const dbType = process.env.DB_TYPE || (process.env.NODE_ENV === 'production' ? 'mariadb' : 'sqlite');
@@ -19,6 +20,7 @@ export const initDatabase = async () => {
   };
 
   if (dbType === 'mariadb') {
+    console.log("Starting MariaDB schema initialization...");
     // MariaDB/MySQL compatible schema
     await executeSql("SET FOREIGN_KEY_CHECKS = 0");
     try {
@@ -43,12 +45,16 @@ export const initDatabase = async () => {
         id_expiry VARCHAR(255),
         id_card_url LONGTEXT,
         verification_status VARCHAR(50) DEFAULT 'none',
+        commission_percentage DECIMAL(10, 2) NULL,
         host_cancellation_fee DECIMAL(10, 2) DEFAULT 0,
         created_at DATETIME DEFAULT CURRENT_TIMESTAMP
       ) ENGINE=InnoDB
     `);
 
     // Migration: Ensure password_hash is large enough (fix for older DBs)
+    try {
+      await executeSql("ALTER TABLE users ADD COLUMN commission_percentage DECIMAL(10, 2) NULL");
+    } catch (err) {}
     try {
       await executeSql("ALTER TABLE users ADD COLUMN host_cancellation_fee DECIMAL(10, 2) DEFAULT 0");
     } catch (err) {}
@@ -62,7 +68,6 @@ export const initDatabase = async () => {
       await executeSql("ALTER TABLE users MODIFY COLUMN identity_document_front LONGTEXT");
       await executeSql("ALTER TABLE users MODIFY COLUMN identity_document_back LONGTEXT");
       await executeSql("ALTER TABLE users MODIFY COLUMN id_card_url LONGTEXT");
-      console.log("Migration MariaDB: Colonnes users document et password_hash mises à jour.");
     } catch (err) {}
 
     try {
@@ -72,7 +77,7 @@ export const initDatabase = async () => {
     // Ensure 'uid' column exists in MariaDB for compatibility with imported SQL dumps
     try {
       const columns: any = await executeSql(`
-        SELECT COLUMN_NAME, CHARACTER_MAXIMUM_LENGTH
+        SELECT COLUMN_NAME
         FROM INFORMATION_SCHEMA.COLUMNS 
         WHERE TABLE_SCHEMA = DATABASE() 
           AND TABLE_NAME = 'users' 
@@ -98,28 +103,8 @@ export const initDatabase = async () => {
         await executeSql("ALTER TABLE users MODIFY uid VARCHAR(255) NOT NULL");
         await executeSql("ALTER TABLE users ADD UNIQUE KEY uk_users_uid (uid)");
       } else {
-        // Make sure we resolve any null/empty values before modifying column to NOT NULL
-        let updateQuery = "UPDATE users SET uid = email WHERE uid IS NULL OR uid = ''";
-        try {
-          const idCheck = await executeSql(`
-            SELECT COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS
-            WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'users' AND COLUMN_NAME = 'id'
-          `);
-          if (idCheck && idCheck.length > 0) {
-            updateQuery = "UPDATE users SET uid = COALESCE(id, email) WHERE uid IS NULL OR uid = ''";
-          }
-        } catch (err) {}
-        await executeSql(updateQuery);
-
-        // Force length to 255 to match notifications.user_id and ensure unique index
+        // Force length to 255
         await executeSql("ALTER TABLE users MODIFY uid VARCHAR(255) NOT NULL");
-        
-        const indexes: any = await executeSql(`
-          SHOW INDEX FROM users WHERE Column_name = 'uid' AND Non_unique = 0
-        `);
-        if (!indexes || indexes.length === 0) {
-          await executeSql("ALTER TABLE users ADD UNIQUE KEY uk_users_uid (uid)");
-        }
       }
 
       // Ensure 'password_hash' column exists (might be named 'password' in imported dumps)
@@ -133,15 +118,18 @@ export const initDatabase = async () => {
       const hasPassword = pwColumns.some((c: any) => (c.columnName || c.COLUMN_NAME) === 'password');
 
       if (!hasPasswordHash && hasPassword) {
-        console.log("Migration MariaDB: Renommage de 'password' en 'password_hash'...");
         await executeSql("ALTER TABLE users CHANGE COLUMN password password_hash VARCHAR(255)");
       } else if (!hasPasswordHash && !hasPassword) {
-        console.log("Migration MariaDB: Ajout de la colonne 'password_hash'...");
         await executeSql("ALTER TABLE users ADD COLUMN password_hash VARCHAR(255)");
       }
 
       // Ensure all extra user columns exist for MariaDB
-      const extraCols = ['identity_document_front', 'identity_document_back', 'permissions', 'id_number', 'id_type', 'id_expiry', 'id_card_url', 'verification_status', 'has_accepted_terms', 'host_cancellation_fee', 'host_cancellation_rules_text', 'deactivated'];
+      const extraCols = [
+        'identity_document_front', 'identity_document_back', 'permissions', 
+        'id_number', 'id_type', 'id_expiry', 'id_card_url', 
+        'verification_status', 'has_accepted_terms', 'host_cancellation_fee', 
+        'host_cancellation_rules_text', 'deactivated', 'commission_percentage'
+      ];
       for (const col of extraCols) {
         const columns: any = await executeSql(`
           SELECT COLUMN_NAME 
@@ -155,39 +143,27 @@ export const initDatabase = async () => {
           let typeDef = "LONGTEXT NULL";
           if (col === 'verification_status') {
             typeDef = "VARCHAR(50) DEFAULT 'none'";
-          } else if (col === 'id_card_url' || col === 'identity_document_front' || col === 'identity_document_back' || col === 'display_name') {
+          } else if (['id_card_url', 'identity_document_front', 'identity_document_back', 'display_name'].includes(col)) {
             typeDef = "LONGTEXT NULL";
-          } else if (col === 'id_number' || col === 'id_type' || col === 'id_expiry') {
+          } else if (['id_number', 'id_type', 'id_expiry'].includes(col)) {
             typeDef = "VARCHAR(255) NULL";
           } else if (col === 'has_accepted_terms') {
             typeDef = "BOOLEAN DEFAULT 0";
-          } else if (col === 'host_cancellation_fee') {
-            typeDef = "DECIMAL(10, 2) DEFAULT 0";
+          } else if (col === 'host_cancellation_fee' || col === 'commission_percentage') {
+            typeDef = "DECIMAL(10, 2) DEFAULT NULL";
+            if (col === 'host_cancellation_fee') typeDef = "DECIMAL(10, 2) DEFAULT 0";
           } else if (col === 'host_cancellation_rules_text') {
             typeDef = "TEXT NULL";
           }
           try {
             await executeSql(`ALTER TABLE users ADD COLUMN ${col} ${typeDef}`);
-          } catch (err: any) {
-            const msg = err.message || '';
-            if (msg.includes('duplicate') || msg.includes('already exists') || msg.includes('Duplicate')) {
-              console.log(`Colonne '${col}' existe déjà.`);
-            } else {
-              console.error(`Erreur lors de l'ajout de la colonne '${col}':`, msg);
-            }
-          }
-        } else {
-          // If column exists, ensure it's LONGTEXT for documents
-          if (['identity_document_front', 'identity_document_back', 'id_card_url'].includes(col)) {
-             try {
-               await executeSql(`ALTER TABLE users MODIFY COLUMN ${col} LONGTEXT`);
-             } catch (err) {}
-          }
+          } catch (err: any) {}
         }
       }
     } catch (err: any) {
       console.warn("Migration MariaDB users check failed:", err.message);
     }
+
 
     // Ensure a trigger exists to keep 'id' and 'uid' in sync on insertion
     try {
@@ -614,6 +590,7 @@ export const initDatabase = async () => {
         id_expiry TEXT,
         id_card_url TEXT,
         verification_status TEXT DEFAULT 'none',
+        commission_percentage REAL NULL,
         created_at DATETIME DEFAULT CURRENT_TIMESTAMP
       )
     `);
@@ -631,7 +608,8 @@ export const initDatabase = async () => {
       { name: 'has_accepted_terms', type: 'INTEGER DEFAULT 0' },
       { name: 'host_cancellation_fee', type: 'REAL DEFAULT 0' },
       { name: 'host_cancellation_rules_text', type: 'TEXT' },
-      { name: 'deactivated', type: 'INTEGER DEFAULT 0' }
+      { name: 'deactivated', type: 'INTEGER DEFAULT 0' },
+      { name: 'commission_percentage', type: 'REAL NULL' }
     ];
 
     // Users extra columns
@@ -941,8 +919,13 @@ export const initDatabase = async () => {
   try {
     const existingGlobal = await executeSql("SELECT * FROM settings WHERE `key` = 'global'");
     if (!existingGlobal || existingGlobal.length === 0) {
-      await executeSql("INSERT INTO settings (`key`, value) VALUES ('global', ?)", [JSON.stringify({})]);
+      await executeSql("INSERT INTO settings (\`key\`, value) VALUES ('global', ?)", [JSON.stringify({})]);
       console.log("Seeded 'global' setting with default empty object.");
+    }
+    const existingCommission = await executeSql("SELECT * FROM settings WHERE \`key\` = 'platform_commission'");
+    if (!existingCommission || existingCommission.length === 0) {
+      await executeSql("INSERT INTO settings (\`key\`, value) VALUES ('platform_commission', '10')");
+      console.log("Seeded 'platform_commission' setting with 10%.");
     }
   } catch (seedErr: any) {
     console.warn("Could not seed default settings:", seedErr.message);
@@ -1032,7 +1015,6 @@ export const initDatabase = async () => {
     const existing = await executeSql("SELECT uid FROM users WHERE email = ?", [superAdminEmail]);
     if (!existing || existing.length === 0) {
       console.log("Seeding Super Admin...");
-      const bcrypt = await import("bcrypt");
       const hashedPassword = await bcrypt.hash(superAdminPass, 10);
       const uid = 'admin_master';
       await executeSql(

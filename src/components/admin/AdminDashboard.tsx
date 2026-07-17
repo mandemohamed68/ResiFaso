@@ -156,6 +156,8 @@ export const AdminDashboard: React.FC<{ onBackToTraveler?: () => void }> = ({ on
   const [editingRes, setEditingRes] = useState<Residence | null>(null);
   const [selectedResForDetail, setSelectedResForDetail] = useState<Residence | null>(null);
   const [selectedUserForDetail, setSelectedUserForDetail] = useState<UserProfile | null>(null);
+  const [editingUserCommission, setEditingUserCommission] = useState<string>('');
+  const [isSavingUserCommission, setIsSavingUserCommission] = useState(false);
   const [isSavingRes, setIsSavingRes] = useState(false);
   const [editResTitle, setEditResTitle] = useState('');
   const [editResCityId, setEditResCityId] = useState('');
@@ -248,6 +250,30 @@ export const AdminDashboard: React.FC<{ onBackToTraveler?: () => void }> = ({ on
     fromName: 'ResiFaso',
     fromEmail: 'noreply@resifaso.com'
   });
+
+  const handleUpdateUserCommission = async () => {
+    if (!selectedUserForDetail) return;
+    setIsSavingUserCommission(true);
+    try {
+      const commValue = editingUserCommission.trim() === '' ? null : parseFloat(editingUserCommission);
+      await updateUserProfile(selectedUserForDetail.uid, {
+        commissionPercentage: commValue ?? undefined
+      });
+      addToast("Commission personnalisée mise à jour avec succès.", "success");
+      logAction(`Commission personnalisée de ${selectedUserForDetail.email} mise à jour à ${commValue !== null ? commValue + '%' : 'par défaut'}`);
+      
+      // Update local state
+      setUsers(prev => prev.map(u => 
+        u.uid === selectedUserForDetail.uid ? { ...u, commissionPercentage: commValue ?? undefined } : u
+      ));
+      setSelectedUserForDetail(prev => prev ? { ...prev, commissionPercentage: commValue ?? undefined } : null);
+    } catch (err) {
+      console.error(err);
+      addToast("Erreur lors de la mise à jour de la commission.", "error");
+    } finally {
+      setIsSavingUserCommission(false);
+    }
+  };
   const [isSavingEmailSettings, setIsSavingEmailSettings] = useState(false);
 
   // Live Audit Logs Console state
@@ -1947,7 +1973,11 @@ export const AdminDashboard: React.FC<{ onBackToTraveler?: () => void }> = ({ on
   
   const totalRevenue = bookings
     .filter(b => b.paymentStatus === 'advance_paid' || b.paymentStatus === 'fully_paid')
-    .reduce((sum, b) => sum + (b.totalPrice * (commissionRate / 100)), 0);
+    .reduce((sum, b) => {
+      const host = users.find(u => u.uid === b.ownerId);
+      const hostCommission = host?.commissionPercentage !== undefined ? host.commissionPercentage : commissionRate;
+      return sum + (b.totalPrice * (hostCommission / 100));
+    }, 0);
 
   const grossRevenue = bookings
     .filter(b => b.paymentStatus === 'advance_paid' || b.paymentStatus === 'fully_paid')
@@ -3052,7 +3082,10 @@ export const AdminDashboard: React.FC<{ onBackToTraveler?: () => void }> = ({ on
                           <td className="p-4 text-right">
                             <div className="flex items-center justify-end gap-1">
                               <button 
-                                onClick={() => setSelectedUserForDetail(usr)}
+                                onClick={() => {
+                                  setSelectedUserForDetail(usr);
+                                  setEditingUserCommission(usr.commissionPercentage?.toString() || '');
+                                }}
                                 className="flex items-center gap-2 px-3 py-2 rounded-xl bg-slate-900 text-white hover:bg-red-600 transition shadow-xl shadow-slate-200/50 cursor-pointer text-[9px] font-black uppercase tracking-widest active:scale-95"
                                 title="Voir les détails complets"
                               >
@@ -7067,6 +7100,58 @@ export const AdminDashboard: React.FC<{ onBackToTraveler?: () => void }> = ({ on
                   </div>
                 </div>
               </div>
+
+              {/* Commission Management for Owners */}
+              {(selectedUserForDetail.role === 'owner' || selectedUserForDetail.role === 'admin' || selectedUserForDetail.role === 'manager') && (
+                <div className="bg-red-50 p-6 rounded-[24px] border border-red-100 space-y-4">
+                  <div className="flex items-center gap-2 mb-1">
+                    <TrendingUp size={18} className="text-red-600" />
+                    <h4 className="text-sm font-black text-slate-900 uppercase tracking-tight">Gestion des Commissions</h4>
+                  </div>
+                  <p className="text-xs text-slate-600 font-medium">
+                    Définissez un pourcentage de commission spécifique pour cet hôte. Si rien n'est défini, la commission par défaut de la plateforme ({commissionRate}%) sera appliquée.
+                  </p>
+                  <div className="flex gap-3">
+                    <div className="relative flex-1">
+                      <input
+                        type="number"
+                        step="0.1"
+                        min="0"
+                        max="100"
+                        placeholder={`Défaut: ${commissionRate}%`}
+                        value={editingUserCommission}
+                        onChange={(e) => setEditingUserCommission(e.target.value)}
+                        className="w-full bg-white border border-slate-200 rounded-xl px-4 py-3 text-sm font-black text-slate-900 focus:outline-none focus:ring-2 focus:ring-red-500/20 focus:border-red-500 transition-all"
+                      />
+                      <span className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 font-black text-sm">%</span>
+                    </div>
+                    <button
+                      onClick={handleUpdateUserCommission}
+                      disabled={isSavingUserCommission}
+                      className="px-6 py-3 bg-red-600 text-white font-black rounded-xl text-xs uppercase tracking-widest shadow-lg shadow-red-200 hover:bg-red-700 transition active:scale-95 disabled:opacity-50 cursor-pointer flex items-center gap-2"
+                    >
+                      {isSavingUserCommission ? (
+                        <RefreshCw size={14} className="animate-spin" />
+                      ) : (
+                        <Check size={14} />
+                      )}
+                      Enregistrer
+                    </button>
+                  </div>
+                  {selectedUserForDetail.commissionPercentage !== undefined && (
+                    <button
+                      onClick={() => {
+                        setEditingUserCommission('');
+                        // We need to call the save function with empty string to reset
+                        setTimeout(() => handleUpdateUserCommission(), 0);
+                      }}
+                      className="text-[10px] font-black text-slate-400 hover:text-red-600 uppercase tracking-widest transition"
+                    >
+                      Réinitialiser par défaut
+                    </button>
+                  )}
+                </div>
+              )}
 
               {/* Permissions if Admin/Manager */}
               {(selectedUserForDetail.role === 'admin' || selectedUserForDetail.role === 'manager') && (
