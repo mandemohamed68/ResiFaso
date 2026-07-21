@@ -3,8 +3,13 @@
   "appName": "ResiFaso",
   "webDir": "dist",
   "server": {
-    "androidScheme": "http",
-    "cleartext": true
+    "androidScheme": "https",
+    "hostname": "resifaso.net",
+    "cleartext": true,
+    "allowNavigation": [
+      "resifaso.net",
+      "*.resifaso.net"
+    ]
   },
   "plugins": {
     "SplashScreen": {

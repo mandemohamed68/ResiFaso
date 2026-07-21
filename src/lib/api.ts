@@ -17,8 +17,8 @@ export function getApiUrl(): string {
 
   let customUrl = typeof window !== 'undefined' ? localStorage.getItem('custom_server_url') : null;
   if (customUrl) {
-    if (customUrl.includes(':2020')) {
-      customUrl = customUrl.replace(':2020', ':2000');
+    if (customUrl.includes(':2020') || customUrl.includes(':2000') || customUrl.includes('167.172.39.172')) {
+      customUrl = 'https://resifaso.net';
       try {
         localStorage.setItem('custom_server_url', customUrl);
       } catch (e) {
@@ -44,7 +44,7 @@ export function getApiUrl(): string {
       return envUrl.replace(/\/$/, '').replace(/\/api$/, '');
     }
     
-    return 'https://resi-faso-backend.onrender.com'; // Suggested production fallback
+    return 'https://resifaso.net'; // Production domain fallback
   }
 
   const envUrl = import.meta.env.VITE_API_URL || import.meta.env.VITE_APP_URL;
@@ -57,7 +57,7 @@ export function getApiUrl(): string {
     return window.location.origin;
   }
   
-  return 'http://167.172.39.172:2000';
+  return 'https://resifaso.net';
 }
 
 export async function apiFetch(path: string, options: RequestInit = {}): Promise<Response> {

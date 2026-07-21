@@ -127,7 +127,7 @@ cd /var/www/resifaso
 cp .env.example .env
 nano .env
 ```
-*(Assurez-vous que `PORT=3000` (pour Node en interne) et que `VITE_API_URL=http://167.172.39.172:2020/api` pour être intercepté par Nginx)*.
+*(Assurez-vous que `PORT=3000` (pour Node en interne) et que `VITE_API_URL=https://resifaso.net`)*.
 
 5. **Installer les dépendances et compiler :**
 ```bash
@@ -142,36 +142,40 @@ pm2 start npm --name "resifaso" -- run start
 pm2 save
 pm2 startup
 ```
-*(Puisque Nginx écoutera sur le port 2000 publiquement, l'application Node en arrière-plan tourne sur le port 3000).*
+*(Nginx écoutera sur le port 80 / 443 (HTTPS resifaso.net) publiquement et transmettra au port 3000 local).*
 
 ---
 
-## 🌐 ÉTAPE 5 : Configuration de Nginx (Serveur Web)
+## 🌐 ÉTAPE 5 : Configuration de Nginx & Certbot HTTPS (https://resifaso.net)
 
-Ici, Nginx va écouter sur le port **2000** et transmettre le trafic en interne vers l'application Node qui tourne sur le port **3000**.
+Ici, Nginx va écouter sur le port **80 / 443** pour le domaine `resifaso.net` et transmettre le trafic en interne vers l'application Node qui tourne sur le port **3000**.
 
-1. **Installer Nginx :**
+1. **Installer Nginx & Certbot :**
 ```bash
-sudo apt install -y nginx
+sudo apt update
+sudo apt install -y nginx certbot python3-certbot-nginx
 ```
 
-2. **Créer le bloc de configuration :**
+2. **Créer le bloc de configuration Nginx :**
 ```bash
 sudo nano /etc/nginx/sites-available/resifaso
 ```
-Collez cette configuration (Nginx transmet le trafic du port 2000 vers le port 3000 local) :
+Collez cette configuration :
 ```nginx
 server {
-    listen 2000;
-    server_name 167.172.39.172;
+    listen 80;
+    server_name resifaso.net www.resifaso.net;
     
     location / {
-        # Transmet le trafic 2000 public vers le port 3000 interne
+        # Transmet le trafic HTTPS public vers le port 3000 interne
         proxy_pass http://127.0.0.1:3000;
         proxy_http_version 1.1;
         proxy_set_header Upgrade $http_upgrade;
         proxy_set_header Connection 'upgrade';
         proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
         proxy_cache_bypass $http_upgrade;
     }
 
@@ -183,24 +187,16 @@ server {
 }
 ```
 
-3. **Activer le site et redémarrer Nginx :**
+3. **Activer le site et générer le certificat SSL gratuit (HTTPS) :**
 ```bash
 sudo ln -s /etc/nginx/sites-available/resifaso /etc/nginx/sites-enabled/
-# Tester la syntaxe Nginx
 sudo nginx -t
-# Redémarrer Nginx
 sudo systemctl restart nginx
-```
-🎉 Votre application Web est maintenant en ligne !
 
-*(Optionnel)* Pour avoir le HTTPS (le cadenas vert), exécutez :
-```bash
-sudo apt install snapd
-sudo snap install core; sudo snap refresh core
-sudo snap install --classic certbot
-sudo ln -s /snap/bin/certbot /usr/bin/certbot
-sudo certbot --nginx -d votredomaine.com
+# Sécuriser avec un certificat SSL Certbot Let's Encrypt
+sudo certbot --nginx -d resifaso.net -d www.resifaso.net
 ```
+🎉 Votre application Web est maintenant entièrement en ligne et sécurisée sur **https://resifaso.net** !
 
 ---
 
