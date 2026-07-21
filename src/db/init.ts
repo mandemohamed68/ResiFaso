@@ -431,16 +431,29 @@ export const initDatabase = async () => {
     // Notifications Table (with corrected user_id length matching users.uid)
     try {
       let uidLength = 128; // Default fallback
+      let collationClause = "";
       try {
         const uidCols: any = await executeSql(`
-          SELECT CHARACTER_MAXIMUM_LENGTH 
+          SELECT 
+            CHARACTER_MAXIMUM_LENGTH AS max_len,
+            CHARACTER_SET_NAME AS char_set,
+            COLLATION_NAME AS coll_name
           FROM INFORMATION_SCHEMA.COLUMNS 
           WHERE TABLE_SCHEMA = DATABASE() 
             AND TABLE_NAME = 'users' 
             AND COLUMN_NAME = 'uid'
         `);
-        if (uidCols && uidCols.length > 0 && uidCols[0].CHARACTER_MAXIMUM_LENGTH) {
-          uidLength = Number(uidCols[0].CHARACTER_MAXIMUM_LENGTH);
+        if (uidCols && uidCols.length > 0) {
+          const maxLen = uidCols[0].maxLen;
+          const charSet = uidCols[0].charSet;
+          const collName = uidCols[0].collName;
+          
+          if (maxLen) {
+            uidLength = Number(maxLen);
+          }
+          if (charSet && collName) {
+            collationClause = ` CHARACTER SET ${charSet} COLLATE ${collName}`;
+          }
         }
       } catch (lenErr) {
         // Fallback to 128
@@ -449,7 +462,7 @@ export const initDatabase = async () => {
       await executeSql(`
         CREATE TABLE IF NOT EXISTS notifications (
           id VARCHAR(128) PRIMARY KEY,
-          user_id VARCHAR(${uidLength}) NOT NULL,
+          user_id VARCHAR(${uidLength})${collationClause} NOT NULL,
           title VARCHAR(255),
           message TEXT,
           type VARCHAR(50),
@@ -468,9 +481,9 @@ export const initDatabase = async () => {
         // Fallback or ignore
       }
 
-      // Explicitly modify existing user_id column to match users.uid length
+      // Explicitly modify existing user_id column to match users.uid length and collation
       try {
-        await executeSql(`ALTER TABLE notifications MODIFY COLUMN user_id VARCHAR(${uidLength}) NOT NULL`);
+        await executeSql(`ALTER TABLE notifications MODIFY COLUMN user_id VARCHAR(${uidLength})${collationClause} NOT NULL`);
       } catch (modifyErr: any) {
         // Ignored or already aligned
       }

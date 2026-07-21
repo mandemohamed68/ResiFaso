@@ -1901,12 +1901,41 @@ export const OwnerDashboard: React.FC<{ isTestMode?: boolean; onBackToTraveler?:
       )}
       
       {/* Upper Panel */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-10">
-        <div>
+      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6 mb-10">
+        <div className="max-w-xs xl:max-w-sm">
           <h2 className="text-3xl font-black text-slate-900 tracking-tight leading-none mb-2 underline decoration-yellow-400 decoration-4 underline-offset-4">Espace Propriétaire</h2>
           <p className="text-slate-500 text-sm font-medium">Gérez vos biens immobiliers et optimisez vos rendements au Burkina.</p>
         </div>
-        <div className="flex items-center gap-3 self-start md:self-auto shrink-0">
+        
+        {/* Directives de l'hôte obligatoires */}
+        <div className="flex-1 max-w-xl bg-amber-50/70 border border-amber-200/50 rounded-2xl p-4 flex gap-4 items-center">
+          <div className="bg-amber-500 text-white p-2 rounded-xl shrink-0">
+            <ShieldAlert size={18} />
+          </div>
+          <div className="text-xs leading-snug">
+            <span className="font-black text-amber-950 uppercase tracking-widest block mb-1">📌 Directives Obligatoires de l'Hôte</span>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-x-4 gap-y-1 text-slate-700 font-semibold">
+              <div className="flex items-center gap-1.5">
+                <span className="text-amber-500 font-black">•</span>
+                <span>Acompte de 100% par défaut à la réservation</span>
+              </div>
+              <div className="flex items-center gap-1.5">
+                <span className="text-amber-500 font-black">•</span>
+                <span>Contrôle physique rigoureux de la pièce d'identité (KYC)</span>
+              </div>
+              <div className="flex items-center gap-1.5">
+                <span className="text-amber-500 font-black">•</span>
+                <span>Forage ou plaques solaires recommandés (SONABEL)</span>
+              </div>
+              <div className="flex items-center gap-1.5">
+                <span className="text-amber-500 font-black">•</span>
+                <span>Enregistrement obligatoire de l'heure d'arrivée/départ</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div className="flex items-center gap-3 self-start lg:self-auto shrink-0">
           <button 
             onClick={() => setIsGuideOpen(true)}
             className="flex items-center gap-2 px-5 py-3.5 bg-slate-100 hover:bg-slate-200 text-slate-700 hover:text-slate-900 font-black text-xs uppercase tracking-wider rounded-2xl transition-all cursor-pointer border border-slate-200/40"
