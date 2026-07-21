@@ -116,6 +116,20 @@ function AppContent() {
   const [isDarkMode, setIsDarkMode] = useState(() => {
     return localStorage.getItem('theme') === 'dark';
   });
+  const [isOnline, setIsOnline] = useState(() => typeof window !== 'undefined' ? window.navigator.onLine : true);
+
+  useEffect(() => {
+    const handleOnline = () => setIsOnline(true);
+    const handleOffline = () => setIsOnline(false);
+
+    window.addEventListener('online', handleOnline);
+    window.addEventListener('offline', handleOffline);
+
+    return () => {
+      window.removeEventListener('online', handleOnline);
+      window.removeEventListener('offline', handleOffline);
+    };
+  }, []);
 
   useEffect(() => {
     if (isDarkMode) {
@@ -634,6 +648,13 @@ function AppContent() {
       {!!profile?.isSuspended && (
         <div className="bg-red-600 text-white font-black text-center py-4.5 px-6 text-xs uppercase tracking-widest shadow-lg border-b border-red-700 animate-in fade-in slide-in-from-top duration-500 z-50 relative font-sans">
           ⚠️ Attention : Votre compte a été suspendu par l'administration de la plateforme. Toute création de réservation ou d'hébergement est formellement bloquée.
+        </div>
+      )}
+
+      {!isOnline && (
+        <div className="bg-slate-900 text-white font-black text-center py-4.5 px-6 text-xs uppercase tracking-widest shadow-lg border-b border-slate-950 animate-in fade-in slide-in-from-top duration-500 z-50 relative font-sans flex items-center justify-center gap-2">
+          <span className="w-2.5 h-2.5 bg-red-500 rounded-full animate-ping shrink-0" />
+          <span>🔴 Mode Hors Ligne activé. L'application utilise la base de données locale (SQLite). Vos actions seront synchronisées dès le retour de la connexion.</span>
         </div>
       )}
 
