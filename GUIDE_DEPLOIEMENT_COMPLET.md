@@ -148,7 +148,17 @@ pm2 startup
 
 ## 🌐 ÉTAPE 5 : Configuration de Nginx & Certbot HTTPS (https://resifaso.net)
 
-Ici, Nginx va écouter sur le port **80 / 443** pour le domaine `resifaso.net` et transmettre le trafic en interne vers l'application Node qui tourne sur le port **3000**.
+> ⚠️ **IMPORTANT SI VOUS AVEZ PLUSIEURS SITES SUR LE MÊME SERVEUR (ex: ResiFaso + FasoExpress) :**
+> Si `resifaso.net` affiche la page de **FasoExpress**, c'est parce que Nginx renvoie vers le site par défaut ("default_server") ou que les deux projets utilisent le même port interne (ex: 3000).
+>
+> **Solution pour séparer les 2 plateformes :**
+> 1. **Distinguer les ports PM2 :**
+>    - **ResiFaso** tourne sur le port `3000` (`PORT=3000` dans `.env`).
+>    - **FasoExpress** tourne sur le port `3001` (ou un autre port, ex: `2000`).
+> 2. **Supprimer le fichier par défaut Nginx** pour éviter que tout trafic non reconnu pointe sur FasoExpress :
+>    ```bash
+>    sudo rm /etc/nginx/sites-enabled/default
+>    ```
 
 1. **Installer Nginx & Certbot :**
 ```bash
@@ -156,18 +166,18 @@ sudo apt update
 sudo apt install -y nginx certbot python3-certbot-nginx
 ```
 
-2. **Créer le bloc de configuration Nginx :**
+2. **Créer le bloc Nginx spécifique pour ResiFaso :**
 ```bash
 sudo nano /etc/nginx/sites-available/resifaso
 ```
-Collez cette configuration :
+Collez cette configuration (seule `resifaso.net` sera interceptée ici) :
 ```nginx
 server {
     listen 80;
     server_name resifaso.net www.resifaso.net;
     
     location / {
-        # Transmet le trafic HTTPS public vers le port 3000 interne
+        # Transmet le trafic vers le port 3000 de ResiFaso
         proxy_pass http://127.0.0.1:3000;
         proxy_http_version 1.1;
         proxy_set_header Upgrade $http_upgrade;
@@ -179,7 +189,7 @@ server {
         proxy_cache_bypass $http_upgrade;
     }
 
-    # Configuration du cache pour les assets vitaux
+    # Configuration du cache pour les assets
     location ~* \.(js|css|png|jpg|jpeg|gif|ico|svg)$ {
         expires 30d;
         add_header Cache-Control "public, no-transform";
@@ -187,16 +197,45 @@ server {
 }
 ```
 
-3. **Activer le site et générer le certificat SSL gratuit (HTTPS) :**
+3. **Créer le bloc Nginx séparé pour FasoExpress (si applicable) :**
 ```bash
-sudo ln -s /etc/nginx/sites-available/resifaso /etc/nginx/sites-enabled/
+sudo nano /etc/nginx/sites-available/fasoexpress
+```
+```nginx
+server {
+    listen 80;
+    server_name fasoexpress.net www.fasoexpress.net;
+
+    location / {
+        # Transmet le trafic vers le port de FasoExpress (ex: 3001 ou 2000)
+        proxy_pass http://127.0.0.1:3001;
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection 'upgrade';
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_cache_bypass $http_upgrade;
+    }
+}
+```
+
+4. **Activer les sites et générer les certificats SSL HTTPS :**
+```bash
+# Activer ResiFaso et FasoExpress
+sudo ln -sf /etc/nginx/sites-available/resifaso /etc/nginx/sites-enabled/
+sudo ln -sf /etc/nginx/sites-available/fasoexpress /etc/nginx/sites-enabled/
+
+# Vérifier la syntaxe et redémarrer Nginx
 sudo nginx -t
 sudo systemctl restart nginx
 
-# Sécuriser avec un certificat SSL Certbot Let's Encrypt
+# Générer les certificats SSL HTTPS gratuits séparément
 sudo certbot --nginx -d resifaso.net -d www.resifaso.net
+sudo certbot --nginx -d fasoexpress.net -d www.fasoexpress.net
 ```
-🎉 Votre application Web est maintenant entièrement en ligne et sécurisée sur **https://resifaso.net** !
+🎉 Désormais, **https://resifaso.net** affichera uniquement ResiFaso, et **https://fasoexpress.net** affichera uniquement FasoExpress !
 
 ---
 

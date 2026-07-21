@@ -967,14 +967,14 @@ export const initDatabase = async () => {
         {
           id: 'faq_book_1',
           question: "Comment réserver une résidence sur ResiFaso ?",
-          answer: "Recherchez la ville ou le quartier de votre choix, sélectionnez la résidence qui répond à vos besoins, choisissez vos dates et cliquez sur 'Réserver'. Vous devrez ensuite verser un acompte de garantie (généralement 30%) par Mobile Money pour confirmer votre réservation.",
+          answer: "Recherchez la ville ou le quartier de votre choix, sélectionnez la résidence qui répond à vos besoins, choisissez vos dates et cliquez sur 'Réserver'. Vous devrez ensuite verser l'acompte de garantie requis par Mobile Money pour confirmer votre réservation.",
           category: 'booking',
           order: 1
         },
         {
           id: 'faq_book_2',
           question: "Puis-je modifier ou annuler ma réservation ?",
-          answer: "Oui, vous pouvez demander l'annulation de votre séjour depuis votre espace client dans l'onglet 'Mes Séjours'. Selon la politique d'annulation de l'hôte et la proximité de votre séjour, un remboursement complet ou partiel de l'acompte pourra être accordé.",
+          answer: "Oui, vous pouvez demander l'annulation de votre séjour depuis votre espace client dans l'onglet 'Mes Séjours'. Selon la politique d'annulation de l'hôte et la proximité de votre séjour, un remboursement calculé sur l'acompte pourra être accordé (hors commission de service).",
           category: 'booking',
           order: 2
         },
@@ -988,7 +988,7 @@ export const initDatabase = async () => {
         {
           id: 'faq_pay_2',
           question: "Comment fonctionne l'acompte et le solde restant ?",
-          answer: "Pour réserver une résidence, vous payez un acompte de 30% en ligne via Mobile Money lors de la confirmation. Les 70% restants (le solde) doivent être réglés directement à l'hôte lors de votre arrivée et de la remise des clés.",
+          answer: "Pour réserver une résidence, vous payez l'acompte exigé en ligne via Mobile Money lors de la confirmation. Le solde restant doit être réglé directement à l'hôte lors de votre arrivée et de la remise des clés.",
           category: 'payment',
           order: 2
         },

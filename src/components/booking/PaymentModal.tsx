@@ -434,9 +434,12 @@ export const PaymentModal: React.FC<Props> = ({ isOpen, onClose, amount, residen
         </div>
 
         {/* Footer info */}
-        <div className="p-4 bg-gray-50 border-t border-gray-100 text-center">
+        <div className="p-4 bg-gray-50 border-t border-gray-100 text-center space-y-1">
           <p className="text-[10px] text-gray-400 font-bold uppercase tracking-widest flex items-center justify-center gap-2">
             <ShieldCheck size={12} /> Transaction sécurisée par cryptage SSL
+          </p>
+          <p className="text-[9px] text-slate-400 font-medium leading-tight">
+            🛡️ En payant cet acompte, vous acceptez les conditions d'annulation. La commission de service de la plateforme est non remboursable.
           </p>
         </div>
       </motion.div>

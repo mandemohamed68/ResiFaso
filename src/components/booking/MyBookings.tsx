@@ -478,12 +478,16 @@ const SuiviReservationModal: React.FC<SuiviReservationModalProps> = ({ isOpen, o
     },
     {
       id: 'payment',
-      label: "Paiement de l'acompte (30%)",
+      label: booking.paymentStatus === 'fully_paid'
+        ? "Paiement Intégral (100%)"
+        : booking.paymentStatus === 'advance_paid'
+          ? `Paiement de l'acompte (${(booking.totalPrice > 0 && booking.advancePaid > 0) ? Math.round((booking.advancePaid / booking.totalPrice) * 100) : 30}%)`
+          : "Paiement de l'acompte",
       description: booking.paymentStatus === 'pending'
-        ? "Versez l'acompte requis de 30% pour verrouiller définitivement vos dates."
-        : booking.paymentStatus === 'advance_paid' || booking.paymentStatus === 'fully_paid'
-          ? `Acompte de ${formatCurrency(booking.advancePaid)} F CFA reçu par l'hôte.`
-          : "Paiement en attente.",
+        ? "En attente de paiement. Versez l'acompte requis pour verrouiller définitivement vos dates."
+        : booking.paymentStatus === 'fully_paid'
+          ? `Totalité du séjour (${formatCurrency(booking.totalPrice)} F CFA) réglée et sécurisée.`
+          : `Acompte de ${formatCurrency(booking.advancePaid)} F CFA (${(booking.totalPrice > 0 && booking.advancePaid > 0) ? Math.round((booking.advancePaid / booking.totalPrice) * 100) : 30}%) reçu et sécurisé par l'hôte.`,
       date: (booking.paymentStatus === 'advance_paid' || booking.paymentStatus === 'fully_paid') ? formatDateFr(booking.createdAt) : undefined,
       status: (booking.paymentStatus === 'advance_paid' || booking.paymentStatus === 'fully_paid')
         ? 'completed'
@@ -672,8 +676,16 @@ const SuiviReservationModal: React.FC<SuiviReservationModalProps> = ({ isOpen, o
                 <span className="font-black text-slate-950 text-sm">{formatCurrency(booking.totalPrice)} F CFA</span>
               </div>
               <div className="py-2.5 flex justify-between items-center">
-                <span className="text-slate-500 font-bold">Acompte Payé (30%)</span>
-                <span className="font-black text-green-600">{formatCurrency(totalPaid)} F CFA</span>
+                <span className="text-slate-500 font-bold">
+                  {booking.paymentStatus === 'fully_paid' 
+                    ? 'Total Payé (100%)' 
+                    : booking.paymentStatus === 'advance_paid'
+                      ? `Acompte Payé (${(booking.totalPrice > 0 && booking.advancePaid > 0) ? Math.round((booking.advancePaid / booking.totalPrice) * 100) : 30}%)`
+                      : 'Acompte Payé (En attente)'}
+                </span>
+                <span className={cn("font-black", totalPaid > 0 ? "text-green-600" : "text-amber-600")}>
+                  {formatCurrency(totalPaid)} F CFA
+                </span>
               </div>
               <div className="py-2.5 flex justify-between items-center bg-red-100/10 px-2 -mx-2 rounded-lg">
                 <span className="text-red-800 font-bold">Reste à payer (à l'arrivée)</span>
@@ -681,8 +693,23 @@ const SuiviReservationModal: React.FC<SuiviReservationModalProps> = ({ isOpen, o
               </div>
             </div>
 
-            <div className="text-[10px] text-slate-500 leading-relaxed font-medium bg-white p-3 rounded-xl border border-slate-100">
-              💡 <strong>Rappel crucial :</strong> L'acompte de 30% a été versé et sécurisé en ligne. Le solde restant de <strong>{formatCurrency(remainingToPay)} F CFA</strong> est à régler directement à l'hôte lors de la remise des clés de la résidence (en espèces ou par Mobile Money local).
+            <div className="text-[10px] text-slate-600 leading-relaxed font-medium bg-white p-3.5 rounded-xl border border-slate-100 space-y-2">
+              {booking.paymentStatus === 'pending' ? (
+                <p>
+                  💡 <strong>Rappel de paiement :</strong> L'acompte est en attente de versement. Effectuez le paiement de l'acompte requis en ligne pour bloquer vos dates. Le solde de <strong>{formatCurrency(remainingToPay)} F CFA</strong> sera réglé directement à l'hôte à l'arrivée.
+                </p>
+              ) : booking.paymentStatus === 'advance_paid' ? (
+                <p>
+                  💡 <strong>Rappel crucial :</strong> L'acompte de <strong>{formatCurrency(booking.advancePaid)} F CFA ({(booking.totalPrice > 0 && booking.advancePaid > 0) ? Math.round((booking.advancePaid / booking.totalPrice) * 100) : 30}%)</strong> a été versé et sécurisé en ligne. Le solde restant de <strong>{formatCurrency(remainingToPay)} F CFA</strong> est à régler directement à l'hôte lors de la remise des clés de la résidence (en espèces ou par Mobile Money local).
+                </p>
+              ) : (
+                <p>
+                  💡 <strong>Rappel :</strong> La totalité de votre séjour (<strong>{formatCurrency(booking.totalPrice)} F CFA</strong>) a été réglée et sécurisée en ligne. Aucun solde supplémentaire n'est dû à l'arrivée.
+                </p>
+              )}
+              <p className="text-[9px] text-slate-400 font-semibold border-t border-slate-100 pt-2 flex items-center gap-1">
+                🛡️ <strong>Politique d'annulation :</strong> Toute demande d'annulation est soumise à la politique définie par l'hôte. Les frais administratifs et la commission de service restent non remboursables.
+              </p>
             </div>
           </div>
         </div>
