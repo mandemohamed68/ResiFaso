@@ -43,7 +43,8 @@ try {
     fcmInitialized = true;
     console.log("[FCM] Firebase Admin SDK initialized successfully!");
   } else {
-    console.warn("[FCM] Service account file or environment variable not provided or incomplete.");
+    // Silently ignore if not provided to avoid cluttering logs
+    // console.warn("[FCM] Service account file or environment variable not provided or incomplete.");
   }
 } catch (error: any) {
   console.error("[FCM] Failed to initialize Firebase Admin SDK:", error.message);

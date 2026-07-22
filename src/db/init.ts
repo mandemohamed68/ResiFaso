@@ -111,14 +111,18 @@ export const initDatabase = async () => {
       try {
         const userCols: any = await executeSql("SHOW COLUMNS FROM users");
         if (Array.isArray(userCols)) {
-          const colNames = userCols.map((c: any) => (c.Field || c.field || c.COLUMN_NAME || c.column_name || '').toLowerCase());
-          const hasPasswordHash = colNames.includes('password_hash');
+          const colNames = userCols.map((c: any) => {
+            const val = String(c.Field || c.field || c.COLUMN_NAME || c.column_name || c.columnName || '');
+            // Convert any camelCase or mixed case back to lowercase alphanumeric for robust comparison
+            return val.toLowerCase().replace(/[^a-z0-9]/g, '');
+          });
+          const hasPasswordHash = colNames.includes('passwordhash');
           const hasPassword = colNames.includes('password');
 
           if (!hasPasswordHash && hasPassword) {
-            await executeSql("ALTER TABLE users CHANGE COLUMN password password_hash VARCHAR(255)");
+            try { await executeSql("ALTER TABLE users CHANGE COLUMN password password_hash VARCHAR(255)"); } catch (e) {}
           } else if (!hasPasswordHash && !hasPassword) {
-            await executeSql("ALTER TABLE users ADD COLUMN password_hash VARCHAR(255)");
+            try { await executeSql("ALTER TABLE users ADD COLUMN password_hash VARCHAR(255)"); } catch (e) {}
           }
         }
       } catch (e) {

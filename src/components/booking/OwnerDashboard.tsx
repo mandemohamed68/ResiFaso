@@ -1407,9 +1407,9 @@ export const OwnerDashboard: React.FC<{ isTestMode?: boolean; onBackToTraveler?:
       await fetchData();
       refreshData();
       triggerSuccess("Réservation approuvée avec succès !");
-    } catch (err) {
-      console.error(err);
-      addToast("Erreur lors de l'approbation.", 'error');
+    } catch (err: any) {
+      console.error("[handleApproveBooking] Error:", err);
+      addToast(err.message || "Erreur lors de l'approbation.", 'error');
     }
   };
 

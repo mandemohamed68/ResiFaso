@@ -89,13 +89,14 @@ export async function apiFetch(path: string, options: RequestInit = {}): Promise
   } catch (err) {
     console.error(`[apiFetch] Network error for ${fullUrl}:`, err);
     // Return a mock response object to prevent downstream .json() crashes if not checked
-    const emptyHeaders = new Headers();
     return {
       ok: false,
       status: 0,
-      headers: emptyHeaders,
+      headers: {
+        get: () => null
+      },
       json: async () => ({ error: "Network error" }),
       text: async () => "Network error"
-    } as Response;
+    } as unknown as Response;
   }
 }
