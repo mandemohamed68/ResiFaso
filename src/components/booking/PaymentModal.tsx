@@ -214,6 +214,9 @@ export const PaymentModal: React.FC<Props> = ({ isOpen, onClose, amount, residen
         // If the message looks like HTML, it's likely a 404/500 from the server (not the API)
         if (typeof msg === 'string' && (msg.includes('<!DOCTYPE') || msg.includes('<html'))) {
           msg = `Erreur de communication avec le serveur (Code: ${resp.status}). Veuillez vérifier que le serveur est bien démarré et à jour.`;
+        } else if (resp.status === 404) {
+          // If it's a 404 but not HTML, it's likely a JSON error from Sappay (endpoint not found)
+          msg = `L'endpoint de paiement est introuvable (Sappay 404). Détails: ${msg}`;
         }
         
         const lowerMsg = msg.toLowerCase();

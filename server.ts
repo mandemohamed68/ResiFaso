@@ -1860,7 +1860,7 @@ async function startServer() {
   //  Elles utilisent executeSql / queries, donc OK.)
 
   // ---------- SAPPAY – INIT ----------
-  app.post("/api/payment/sappay/init", async (req, res) => {
+  app.post(["/api/payment/sappay/init", "/api/payments/sappay/init"], async (req, res) => {
     const { amount, note, email } = req.body;
     try {
       const credentials = await getSappayCredentials();
@@ -1874,7 +1874,7 @@ async function startServer() {
           country: 1
         },
         amount: parseFloat(amount).toFixed(2),
-        note: note || "Validation acompte"
+        note: note || "Validation acompte Residence MEUBLE"
       };
 
       if (credentials.isTestMode) {
@@ -1884,11 +1884,14 @@ async function startServer() {
         });
       }
 
-      console.log(`[Sappay Init] Requesting invoice with amount: ${amount}`);
-      const response = await fetch(`${urls.publicBase}/invoice/`, {
+      const targetUrl = `${urls.publicBase.replace(/\/$/, '')}/invoice/`;
+      console.log(`[Sappay Init] Requesting: ${targetUrl} | Amount: ${amount}`);
+      
+      const response = await fetch(targetUrl, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
+          "Accept": "application/json",
           "Authorization": `Bearer ${token}`
         },
         body: JSON.stringify(payload)
@@ -1896,7 +1899,8 @@ async function startServer() {
 
       if (!response.ok) {
         const text = await response.text();
-        throw new Error(`Erreur Sappay création facture : ${text}`);
+        console.error(`[Sappay Init] Error ${response.status}:`, text);
+        throw new Error(`Erreur Sappay création facture (${response.status}): ${text}`);
       }
 
       const data = await response.json();
@@ -1905,7 +1909,7 @@ async function startServer() {
 
       res.json({ invoice_id: invoiceId, access_token: token });
     } catch (error: any) {
-      console.error("Erreur /sappay/init :", error);
+      console.error("Erreur /api/payment/sappay/init :", error);
       const credentials = await getSappayCredentials();
       if (credentials.isTestMode) {
         return res.json({ invoice_id: `mock_inv_${Date.now()}`, access_token: "mock" });
@@ -1915,7 +1919,7 @@ async function startServer() {
   });
 
   // ---------- SAPPAY – GET OTP (avec gestion des opérateurs PULL) ----------
-  app.post("/api/payment/sappay/get-otp", async (req, res) => {
+  app.post(["/api/payment/sappay/get-otp", "/api/payments/sappay/get-otp"], async (req, res) => {
     const { customer_msisdn, invoice_id, payment_processor_id, access_token } = req.body;
 
     // Opérateurs PULL-OTP (l'OTP est généré manuellement par l'utilisateur via USSD)
@@ -1941,11 +1945,14 @@ async function startServer() {
         });
       }
 
-      console.log(`[Sappay OTP] Requesting OTP for invoice ${invoice_id}`);
-      const response = await fetch(`${urls.checkoutBase}/get-otp/`, {
+      const targetUrl = `${urls.checkoutBase.replace(/\/$/, '')}/get-otp/`;
+      console.log(`[Sappay OTP] Requesting: ${targetUrl} | Invoice: ${invoice_id}`);
+      
+      const response = await fetch(targetUrl, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
+          "Accept": "application/json",
           "Authorization": `Bearer ${access_token}`
         },
         body: JSON.stringify({
@@ -1957,7 +1964,8 @@ async function startServer() {
 
       if (!response.ok) {
         const text = await response.text();
-        throw new Error(`Erreur Sappay get-otp : ${text}`);
+        console.error(`[Sappay OTP] Error ${response.status}:`, text);
+        throw new Error(`Erreur Sappay get-otp (${response.status}): ${text}`);
       }
 
       const data = await response.json();
@@ -1966,7 +1974,7 @@ async function startServer() {
         message: data.message || "OTP envoyé par SMS."
       });
     } catch (error: any) {
-      console.error("Erreur /sappay/get-otp :", error);
+      console.error("Erreur /api/payment/sappay/get-otp :", error);
       const credentials = await getSappayCredentials();
       if (credentials.isTestMode) {
         return res.json({ trans_id: `mock_txn_${Date.now()}`, message: "OTP simulé (1234/123456)" });
@@ -1976,12 +1984,12 @@ async function startServer() {
   });
 
   // ---------- SAPPAY – PERFORM ----------
-  app.post("/api/payment/sappay/perform", async (req, res) => {
+  app.post(["/api/payment/sappay/perform", "/api/payments/sappay/perform"], async (req, res) => {
     const { invoice_id, payment_processor_id, customer_msisdn, otp, trans_id, access_token } = req.body;
     try {
       const credentials = await getSappayCredentials();
+      const urls = await getSappayBaseUrls();
       const isTestMode = credentials.isTestMode || req.body.isTestMode || false;
-      const urls = { checkoutBase: isTestMode ? SAPPAY_BASE_CHECKOUT_SANDBOX : SAPPAY_BASE_CHECKOUT_PROD };
 
       if (isTestMode) {
         if (otp && (otp === "1234" || otp === "123456" || otp.length >= 4)) {
@@ -1998,32 +2006,38 @@ async function startServer() {
       };
       if (trans_id) payload.trans_id = trans_id;
 
-      const headers: any = {
-        "Content-Type": "application/json",
-        "Authorization": `Bearer ${access_token}`
-      };
-
-      console.log(`[Sappay Perform] Attempting payment for invoice ${invoice_id} with OTP: ${otp}`);
-      const response = await fetch(`${urls.checkoutBase}/perform/`, {
+      const targetUrl = `${urls.checkoutBase.replace(/\/$/, '')}/perform/`;
+      console.log(`[Sappay Perform] Requesting: ${targetUrl} | Invoice: ${invoice_id} | OTP: ${otp}`);
+      
+      const response = await fetch(targetUrl, {
         method: "POST",
-        headers,
+        headers: {
+          "Content-Type": "application/json",
+          "Accept": "application/json",
+          "Authorization": `Bearer ${access_token}`
+        },
         body: JSON.stringify(payload)
       });
 
       const responseText = await response.text();
       if (!response.ok) {
+        console.error(`[Sappay Perform] Error ${response.status}:`, responseText);
         let detail = responseText;
-        try { const err = JSON.parse(responseText); detail = err.message || err.error || detail; } catch (e) {}
+        try { 
+          const err = JSON.parse(responseText); 
+          detail = err.message || err.error || err.details || detail; 
+        } catch (e) {}
         return res.status(response.status).json({ error: "Erreur Sappay perform", details: detail });
       }
 
       const data = JSON.parse(responseText);
       res.status(response.status).json(data);
     } catch (error: any) {
-      console.error("Erreur /sappay/perform :", error);
+      console.error("Erreur /api/payment/sappay/perform :", error);
       res.status(500).json({ error: error.message });
     }
   });
+
 
   // ---------- AVIS (REVIEWS) – version SQL ----------
   app.post("/api/submit-review", authenticateToken, async (req: AuthRequest, res) => {
