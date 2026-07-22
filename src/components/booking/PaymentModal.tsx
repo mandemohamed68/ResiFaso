@@ -86,9 +86,21 @@ export const PaymentModal: React.FC<Props> = ({ isOpen, onClose, amount, residen
         })
       });
       
-      const initData = await initResp.json();
+      let initData: any = {};
+      const initContentType = initResp.headers.get("content-type");
+      if (initContentType && initContentType.includes("application/json")) {
+        initData = await initResp.json();
+      } else {
+        const text = await initResp.text();
+        if (!initResp.ok) {
+          const errMsg = text.includes('<html') ? `Erreur serveur (${initResp.status})` : text;
+          throw new Error(`Initialisation échouée: ${errMsg}`);
+        }
+        try { initData = JSON.parse(text); } catch(e) { initData = { error: text }; }
+      }
+      
       if (!initResp.ok) {
-        throw new Error(initData.error || `Erreur lors de l'initialisation de la facture (${initResp.status})`);
+        throw new Error(initData.error || initData.message || `Erreur d'initialisation (${initResp.status})`);
       }
       
       const currentInvoiceId = initData.invoice_id;
@@ -113,9 +125,21 @@ export const PaymentModal: React.FC<Props> = ({ isOpen, onClose, amount, residen
           })
         });
         
-        const otpData = await otpResp.json();
+        let otpData: any = {};
+        const otpContentType = otpResp.headers.get("content-type");
+        if (otpContentType && otpContentType.includes("application/json")) {
+          otpData = await otpResp.json();
+        } else {
+          const text = await otpResp.text();
+          if (!otpResp.ok) {
+            const errMsg = text.includes('<html') ? `Erreur serveur (${otpResp.status})` : text;
+            throw new Error(`Demande OTP échouée: ${errMsg}`);
+          }
+          try { otpData = JSON.parse(text); } catch(e) { otpData = { error: text }; }
+        }
+        
         if (!otpResp.ok) {
-          throw new Error(otpData.error || `Erreur de demande OTP (${otpResp.status})`);
+          throw new Error(otpData.error || otpData.message || `Erreur de demande OTP (${otpResp.status})`);
         }
         
         if (otpData.trans_id) {
@@ -167,10 +191,30 @@ export const PaymentModal: React.FC<Props> = ({ isOpen, onClose, amount, residen
         })
       });
       
-      const data = await resp.json();
+      let data: any = {};
+      const contentType = resp.headers.get("content-type");
+      if (contentType && contentType.includes("application/json")) {
+        data = await resp.json();
+      } else {
+        const text = await resp.text();
+        if (!resp.ok) {
+          throw new Error(`Erreur serveur (${resp.status}). Veuillez vérifier la configuration de l'API.`);
+        }
+        try {
+          data = JSON.parse(text);
+        } catch (e) {
+          data = { error: text };
+        }
+      }
+
       if (!resp.ok) {
         // Humanize common Sappay errors from details or error fields
-        let msg = data.details || data.error || "Validation OTP échouée.";
+        let msg = data.details || data.error || data.message || "Validation OTP échouée.";
+        
+        // If the message looks like HTML, don't show it
+        if (typeof msg === 'string' && (msg.includes('<!DOCTYPE') || msg.includes('<html'))) {
+          msg = `Erreur de communication avec le serveur (Code: ${resp.status}).`;
+        }
         
         const lowerMsg = msg.toLowerCase();
         if (lowerMsg.includes("invalid otp") || lowerMsg.includes("otp incorrect") || lowerMsg.includes("otp invalide")) {

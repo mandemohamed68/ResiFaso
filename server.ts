@@ -507,10 +507,12 @@ async function startServer() {
 
       // Check for overlapping bookings
       // An overlap occurs if: (new_check_in <= existing_check_out) AND (existing_check_in <= new_check_out)
+      // Only paid bookings (at least deposit) block the dates.
       const overlaps = await executeSql(`
         SELECT id, check_in, check_out FROM bookings 
         WHERE residence_id = ? 
         AND LOWER(booking_status) NOT IN ('cancelled', 'declined', 'annulee', 'annulé', 'refusee', 'refusé', 'expired', 'canceled')
+        AND LOWER(payment_status) IN ('paid', 'advance_paid', 'partial_paid', 'partiel')
         AND (check_in <= ? AND ? <= check_out)
       `, [residenceId, checkOut, checkIn]);
 
@@ -544,6 +546,7 @@ async function startServer() {
 
       // Extract details
       const bStatus = oldBooking.booking_status || oldBooking.bookingStatus;
+      const bPaymentStatus = oldBooking.payment_status || oldBooking.paymentStatus;
       const bClientId = oldBooking.client_id || oldBooking.clientId;
       const bOwnerId = oldBooking.owner_id || oldBooking.ownerId;
       const bResidenceId = oldBooking.residence_id || oldBooking.residenceId;
@@ -770,6 +773,54 @@ async function startServer() {
         const hostNotifId = 'not_' + Math.random().toString(36).substr(2, 9);
         await executeSql("INSERT INTO notifications (id, user_id, title, message, type, reference_id) VALUES (?, ?, ?, ?, ?, ?)",
           [hostNotifId, bOwnerId, "Remboursement Rejeté ❌", `La demande de remboursement de ${bRefundAmount} F CFA pour le séjour chez "${residenceTitle}" a été rejetée par l'administration. Motif : ${rejectReason}`, "booking", bookingId]);
+      }
+
+      // D. Automatic Conflict Resolution after payment
+      const isPaying = (req.body.paymentStatus === 'paid' || req.body.paymentStatus === 'advance_paid' || 
+                        req.body.payment_status === 'paid' || req.body.payment_status === 'advance_paid') && 
+                       (bPaymentStatus !== 'paid' && bPaymentStatus !== 'advance_paid');
+
+      if (isPaying) {
+          const checkIn = oldBooking.check_in || oldBooking.checkIn;
+          const checkOut = oldBooking.check_out || oldBooking.checkOut;
+          
+          const conflicts = await executeSql(`
+            SELECT id, client_id as clientId FROM bookings
+            WHERE residence_id = ? 
+            AND id != ?
+            AND LOWER(booking_status) NOT IN ('cancelled', 'declined', 'annulee', 'annulé', 'refusee', 'refusé', 'expired', 'canceled')
+            AND (
+              (check_in >= ? AND check_in < ?) OR
+              (check_out > ? AND check_out <= ?) OR
+              (check_in <= ? AND check_out >= ?)
+            )
+          `, [bResidenceId, bookingId, checkIn, checkOut, checkIn, checkOut, checkIn, checkOut]);
+
+          for (const conflict of conflicts) {
+              const cId = conflict.id;
+              const cClientId = conflict.clientId || conflict.client_id;
+              
+              await queries.updateBookingStatus(cId, {
+                  bookingStatus: 'declined',
+                  cancellationReason: "Quelqu'un a réservé les mêmes dates et a payé son acompte à votre place."
+              });
+
+              const notifId = 'not_' + Math.random().toString(36).substr(2, 9);
+              await executeSql("INSERT INTO notifications (id, user_id, title, message, type, reference_id) VALUES (?, ?, ?, ?, ?, ?)",
+                [notifId, cClientId, "Réservation Rejetée ⚠️", `Votre réservation pour "${residenceTitle}" a été rejetée car un autre client a payé son acompte pour les mêmes dates avant vous.`, "booking", cId]);
+          }
+      }
+
+      // E. Prevent check-in if not paid
+      const isCheckingIn = (req.body.stayStatus === 'ongoing' || req.body.stay_status === 'ongoing') && 
+                           (oldBooking.stay_status !== 'ongoing');
+      
+      if (isCheckingIn) {
+          const currentPaymentStatus = req.body.paymentStatus || req.body.payment_status || oldBooking.payment_status || oldBooking.paymentStatus;
+          const statusStr = String(currentPaymentStatus || '').toLowerCase();
+          if (statusStr !== 'paid' && statusStr !== 'advance_paid') {
+              return res.status(400).json({ error: "Le séjour ne peut pas débuter tant que l'acompte n'est pas payé." });
+          }
       }
 
       await queries.updateBookingStatus(bookingId, req.body);

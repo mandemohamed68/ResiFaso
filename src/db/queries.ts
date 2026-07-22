@@ -94,6 +94,7 @@ export const getAllResidences = async (ownerId?: string) => {
     SELECT residence_id, check_in, check_out 
     FROM bookings 
     WHERE LOWER(booking_status) NOT IN ('cancelled', 'declined', 'annulee', 'annulé', 'refusee', 'refusé', 'expired', 'canceled')
+    AND LOWER(payment_status) IN ('paid', 'advance_paid', 'partial_paid', 'partiel')
   `);
 
   const bookingsMap: Record<string, any[]> = {};
@@ -185,7 +186,9 @@ export const getResidenceById = async (id: string) => {
   const bookings = await executeSql(`
     SELECT check_in, check_out 
     FROM bookings 
-    WHERE residence_id = ? AND LOWER(booking_status) NOT IN ('cancelled', 'declined', 'annulee', 'annulé', 'refusee', 'refusé', 'expired', 'canceled')
+    WHERE residence_id = ? 
+    AND LOWER(booking_status) NOT IN ('cancelled', 'declined', 'annulee', 'annulé', 'refusee', 'refusé', 'expired', 'canceled')
+    AND LOWER(payment_status) IN ('paid', 'advance_paid', 'partial_paid', 'partiel')
   `, [id]);
   
   return {
@@ -698,6 +701,15 @@ export const updateBookingStatus = async (id: string, updates: any) => {
       mappedUpdates[snakeKey] = formatSqlValue(v);
     }
   }
+
+  // Automatic stay status synchronization
+  if (mappedUpdates.booking_status) {
+    const status = String(mappedUpdates.booking_status).toLowerCase();
+    if (status === 'cancelled' || status === 'declined' || status === 'annulé' || status === 'annulee' || status === 'refusé' || status === 'refusee') {
+      mappedUpdates.stay_status = 'completed';
+    }
+  }
+
   const fields = Object.keys(mappedUpdates);
   if (fields.length === 0) return;
   const setClause = fields.map(f => `${f} = ?`).join(', ');

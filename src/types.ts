@@ -106,8 +106,8 @@ export interface Residence {
   lng?: number;
 }
 
-export type PaymentStatus = "pending" | "advance_paid" | "fully_paid" | "failed";
-export type BookingStatus = "pending" | "confirmed" | "cancelled" | "completed";
+export type PaymentStatus = "pending" | "advance_paid" | "fully_paid" | "failed" | "paid";
+export type BookingStatus = "pending" | "confirmed" | "cancelled" | "completed" | "declined";
 
 export interface Booking {
   id: string;
