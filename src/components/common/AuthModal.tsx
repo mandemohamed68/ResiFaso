@@ -28,18 +28,24 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onNavigat
   const [acceptTerms, setAcceptTerms] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
 
+  // States for password reset testability
+  const [resetCode, setResetCode] = useState('');
+  const [newPassword, setNewPassword] = useState('');
+  const [resetStep, setResetStep] = useState<'request' | 'reset'>('request');
+  const [testCodeMessage, setTestCodeMessage] = useState<string | null>(null);
+
   if (!isOpen) return null;
 
   const handleForgotPassword = async () => {
     if (!email) {
-      setError("Veuillez saisir votre adresse email pour recevoir le lien de réinitialisation.");
+      setError("Veuillez saisir votre adresse email.");
       return;
     }
     setLoading(true);
     setError(null);
     setSuccess(null);
+    setTestCodeMessage(null);
     try {
-      // Call custom API for password reset to use configured SMTP
       const response = await apiFetch('/api/auth/forgot-password', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -52,10 +58,52 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onNavigat
         throw new Error(data.error || "Une erreur est survenue lors de l'envoi de l'email.");
       }
 
-      setSuccess("Un email de réinitialisation de mot de passe a été envoyé à " + email + ". Veuillez vérifier votre boîte de réception.");
+      setSuccess("Un code de réinitialisation a été généré avec succès pour " + email + ".");
+      if (data.code) {
+        setResetCode(data.code);
+        setTestCodeMessage("Pour tester facilement, le code généré est : " + data.code);
+      }
+      setResetStep('reset');
     } catch (err: any) {
       console.error("Password reset error:", err);
       setError(err.message || "Une erreur est survenue lors de l'envoi de l'email de réinitialisation.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleResetPassword = async () => {
+    if (!email || !resetCode || !newPassword) {
+      setError("Veuillez remplir tous les champs (Email, Code, Nouveau mot de passe).");
+      return;
+    }
+    setLoading(true);
+    setError(null);
+    setSuccess(null);
+    try {
+      const response = await apiFetch('/api/auth/reset-password', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, code: resetCode, newPassword })
+      });
+      
+      const data = await response.json();
+      
+      if (!response.ok) {
+        throw new Error(data.error || "Le code est incorrect ou a expiré.");
+      }
+
+      setSuccess("Votre mot de passe a été réinitialisé avec succès ! Vous pouvez maintenant vous connecter.");
+      setTestCodeMessage(null);
+      setTimeout(() => {
+        setIsForgotPassword(false);
+        setResetStep('request');
+        setError(null);
+        setSuccess(null);
+      }, 3000);
+    } catch (err: any) {
+      console.error("Password reset finish error:", err);
+      setError(err.message || "Une erreur est survenue lors de la réinitialisation du mot de passe.");
     } finally {
       setLoading(false);
     }
@@ -185,44 +233,132 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onNavigat
         </AnimatePresence>
 
         {isForgotPassword ? (
-          <form onSubmit={(e) => { e.preventDefault(); handleForgotPassword(); }} className="space-y-4">
-            <div>
-              <label className="block text-xs font-black text-slate-400 uppercase tracking-wider mb-2">Adresse Email</label>
-              <div className="relative">
-                <Mail className="absolute left-4 top-3.5 text-slate-300" size={18} />
-                <input
-                  type="email"
-                  required
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  placeholder="nom@exemple.com"
-                  className="w-full bg-slate-50 border border-slate-100 hover:border-slate-200 focus:bg-white focus:border-red-500 rounded-2xl py-3.5 pl-12 pr-4 outline-none text-sm font-bold transition-all placeholder:text-slate-300"
-                />
+          <div className="space-y-4">
+            {testCodeMessage && (
+              <div className="p-3.5 bg-blue-50 border border-blue-100 rounded-2xl text-blue-800 text-xs font-semibold mb-4">
+                {testCodeMessage}
               </div>
-            </div>
+            )}
 
-            <button
-              type="submit"
-              disabled={loading}
-              className="w-full bg-red-600 text-white rounded-2xl py-4 text-xs font-black uppercase tracking-[0.2em] shadow-xl shadow-red-100 hover:bg-red-700 transition-all hover:scale-[1.02] active:scale-[0.98] disabled:opacity-50 disabled:pointer-events-none mt-2"
-            >
-              {loading ? "Envoi..." : "Envoyer le lien de réinitialisation"}
-            </button>
+            {resetStep === 'request' ? (
+              <form onSubmit={(e) => { e.preventDefault(); handleForgotPassword(); }} className="space-y-4">
+                <div>
+                  <label className="block text-xs font-black text-slate-400 uppercase tracking-wider mb-2">Adresse Email</label>
+                  <div className="relative">
+                    <Mail className="absolute left-4 top-3.5 text-slate-300" size={18} />
+                    <input
+                      type="email"
+                      required
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                      placeholder="nom@exemple.com"
+                      className="w-full bg-slate-50 border border-slate-100 hover:border-slate-200 focus:bg-white focus:border-red-500 rounded-2xl py-3.5 pl-12 pr-4 outline-none text-sm font-bold transition-all placeholder:text-slate-300"
+                    />
+                  </div>
+                </div>
+
+                <button
+                  type="submit"
+                  disabled={loading}
+                  className="w-full bg-red-600 text-white rounded-2xl py-4 text-xs font-black uppercase tracking-[0.2em] shadow-xl shadow-red-100 hover:bg-red-700 transition-all hover:scale-[1.02] active:scale-[0.98] disabled:opacity-50 disabled:pointer-events-none mt-2"
+                >
+                  {loading ? "Génération du code..." : "Demander un code de réinitialisation"}
+                </button>
+              </form>
+            ) : (
+              <form onSubmit={(e) => { e.preventDefault(); handleResetPassword(); }} className="space-y-4">
+                <div>
+                  <label className="block text-xs font-black text-slate-400 uppercase tracking-wider mb-2">Adresse Email</label>
+                  <div className="relative">
+                    <Mail className="absolute left-4 top-3.5 text-slate-300" size={18} />
+                    <input
+                      type="email"
+                      disabled
+                      value={email}
+                      className="w-full bg-slate-100 border border-slate-100 rounded-2xl py-3.5 pl-12 pr-4 outline-none text-sm font-bold text-slate-500"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-black text-slate-400 uppercase tracking-wider mb-2">Code de Réinitialisation (6 chiffres)</label>
+                  <div className="relative">
+                    <Lock className="absolute left-4 top-3.5 text-slate-300" size={18} />
+                    <input
+                      type="text"
+                      required
+                      maxLength={6}
+                      value={resetCode}
+                      onChange={(e) => setResetCode(e.target.value)}
+                      placeholder="Ex: 123456"
+                      className="w-full bg-slate-50 border border-slate-100 hover:border-slate-200 focus:bg-white focus:border-red-500 rounded-2xl py-3.5 pl-12 pr-4 outline-none text-sm font-bold transition-all placeholder:text-slate-300"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-black text-slate-400 uppercase tracking-wider mb-2">Nouveau mot de passe</label>
+                  <div className="relative">
+                    <Lock className="absolute left-4 top-3.5 text-slate-300" size={18} />
+                    <input
+                      type={showPassword ? "text" : "password"}
+                      required
+                      value={newPassword}
+                      onChange={(e) => setNewPassword(e.target.value)}
+                      placeholder="••••••••"
+                      className="w-full bg-slate-50 border border-slate-100 hover:border-slate-200 focus:bg-white focus:border-red-500 rounded-2xl py-3.5 pl-12 pr-12 outline-none text-sm font-bold transition-all placeholder:text-slate-300"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowPassword(!showPassword)}
+                      className="absolute right-4 top-3.5 text-slate-400 hover:text-slate-600"
+                    >
+                      {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                    </button>
+                  </div>
+                </div>
+
+                <button
+                  type="submit"
+                  disabled={loading}
+                  className="w-full bg-red-600 text-white rounded-2xl py-4 text-xs font-black uppercase tracking-[0.2em] shadow-xl shadow-red-100 hover:bg-red-700 transition-all hover:scale-[1.02] active:scale-[0.98] disabled:opacity-50 disabled:pointer-events-none mt-2"
+                >
+                  {loading ? "Mise à jour..." : "Mettre à jour le mot de passe"}
+                </button>
+
+                <div className="text-center pt-1">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setResetStep('request');
+                      setError(null);
+                      setSuccess(null);
+                      setTestCodeMessage(null);
+                    }}
+                    className="text-xs font-bold text-red-600 hover:text-red-700 transition-colors"
+                  >
+                    Renvoyer un nouveau code
+                  </button>
+                </div>
+              </form>
+            )}
 
             <div className="text-center pt-2">
               <button
                 type="button"
                 onClick={() => {
                   setIsForgotPassword(false);
+                  setResetStep('request');
                   setError(null);
                   setSuccess(null);
+                  setTestCodeMessage(null);
                 }}
                 className="text-xs font-bold text-slate-500 hover:text-red-600 transition-colors"
               >
                 Retour à la connexion
               </button>
             </div>
-          </form>
+          </div>
         ) : (
           <>
             <form onSubmit={handleSubmit} className="space-y-4">

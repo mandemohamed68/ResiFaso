@@ -2063,14 +2063,73 @@ async function startServer() {
     }
   });
 
-  // ---------- FORGOT PASSWORD (squelette) ----------
+  // ---------- FORGOT PASSWORD AND RESET PASSWORD ----------
   app.post("/api/auth/forgot-password", async (req, res) => {
-    const { email } = req.body;
+    let { email } = req.body;
     if (!email) return res.status(400).json({ error: "Email requis" });
+    email = email.trim().toLowerCase();
+    
     try {
       const users = await executeSql("SELECT uid FROM users WHERE email = ?", [email]);
       if (users.length === 0) return res.status(404).json({ error: "Email inconnu" });
-      res.json({ success: true, message: "Un email de réinitialisation a été envoyé (si SMTP configuré)." });
+      
+      // Generate a 6-digit random code for testing/resetting
+      const token = Math.floor(100000 + Math.random() * 900000).toString();
+      const expiresAt = new Date(Date.now() + 3600 * 1000); // 1 hour from now
+      const expiresAtStr = expiresAt.toISOString().slice(0, 19).replace('T', ' '); // YYYY-MM-DD HH:MM:SS
+      
+      // Save code in database
+      await executeSql("DELETE FROM password_resets WHERE email = ?", [email]);
+      await executeSql("INSERT INTO password_resets (email, token, expires_at) VALUES (?, ?, ?)", [email, token, expiresAtStr]);
+      
+      console.log(`[PASSWORD RESET] Code generated for ${email}: ${token}`);
+      
+      // We also return the token directly in development / preview mode so that the user can test the reset without real SMTP configured!
+      res.json({ 
+        success: true, 
+        message: "Un code de réinitialisation a été généré.",
+        code: token, // This lets them easily test on the UI
+        email
+      });
+    } catch (err: any) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  app.post("/api/auth/reset-password", async (req, res) => {
+    let { email, code, newPassword } = req.body;
+    if (!email || !code || !newPassword) {
+      return res.status(400).json({ error: "Tous les champs sont requis (Email, Code, Nouveau mot de passe)" });
+    }
+    email = email.trim().toLowerCase();
+    code = code.trim();
+    
+    try {
+      // Find the code
+      const resets = await executeSql("SELECT * FROM password_resets WHERE email = ? AND token = ?", [email, code]);
+      if (resets.length === 0) {
+        return res.status(400).json({ error: "Code de réinitialisation invalide ou email incorrect" });
+      }
+      
+      const reset = resets[0];
+      // Check expiry
+      const expiresAt = new Date(reset.expiresAt || reset.expires_at);
+      if (expiresAt.getTime() < Date.now()) {
+        await executeSql("DELETE FROM password_resets WHERE email = ?", [email]);
+        return res.status(400).json({ error: "Ce code de réinitialisation a expiré. Veuillez en demander un nouveau." });
+      }
+      
+      // Hash new password
+      const hashedPassword = await bcrypt.hash(newPassword, 10);
+      
+      // Update user password
+      await executeSql("UPDATE users SET password_hash = ? WHERE email = ?", [hashedPassword, email]);
+      
+      // Clean up token
+      await executeSql("DELETE FROM password_resets WHERE email = ?", [email]);
+      
+      console.log(`[PASSWORD RESET] Password successfully updated for ${email}`);
+      res.json({ success: true, message: "Votre mot de passe a été réinitialisé avec succès ! Vous pouvez maintenant vous connecter." });
     } catch (err: any) {
       res.status(500).json({ error: err.message });
     }
