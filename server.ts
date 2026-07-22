@@ -577,6 +577,14 @@ async function startServer() {
       // A. If booking status is transitioning to cancelled
       const isCancelling = (req.body.bookingStatus === 'cancelled' || req.body.booking_status === 'cancelled') && bStatus !== 'cancelled';
       if (isCancelling) {
+        // If it was ongoing, mark it as completed/finished instantly
+        if (oldBooking.stay_status === 'ongoing' || oldBooking.stayStatus === 'ongoing') {
+          req.body.stayStatus = 'completed';
+          req.body.stay_status = 'completed';
+          req.body.checkedOutAt = new Date().toISOString();
+          req.body.checked_out_at = new Date().toISOString();
+        }
+
         const refundAmt = Number(req.body.refundAmount || req.body.refund_amount || 0);
         const refPhone = req.body.refundPhone || req.body.refund_phone || '';
         const refProvider = req.body.refundProvider || req.body.refund_provider || '';
@@ -1876,7 +1884,8 @@ async function startServer() {
         });
       }
 
-      const response = await fetch(`${urls.publicBase}/invoice/`, {
+      console.log(`[Sappay Init] Requesting invoice with amount: ${amount}`);
+      const response = await fetch(`${urls.publicBase}/invoice`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -1932,7 +1941,8 @@ async function startServer() {
         });
       }
 
-      const response = await fetch(`${urls.checkoutBase}/get-otp/`, {
+      console.log(`[Sappay OTP] Requesting OTP for invoice ${invoice_id}`);
+      const response = await fetch(`${urls.checkoutBase}/get-otp`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -1993,7 +2003,8 @@ async function startServer() {
         "Authorization": `Bearer ${access_token}`
       };
 
-      const response = await fetch(`${urls.checkoutBase}/perform/`, {
+      console.log(`[Sappay Perform] Attempting payment for invoice ${invoice_id} with OTP: ${otp}`);
+      const response = await fetch(`${urls.checkoutBase}/perform`, {
         method: "POST",
         headers,
         body: JSON.stringify(payload)

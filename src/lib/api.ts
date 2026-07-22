@@ -4,7 +4,8 @@ export function getApiUrl(): string {
   }
 
   // If we are in AI Studio development mode, always use relative paths
-  if (window.location.hostname.includes('ais-dev') || window.location.hostname.includes('localhost') || window.location.hostname.includes('127.0.0.1')) {
+  const hostname = window.location.hostname;
+  if (hostname.includes('ais-dev') || hostname.includes('localhost') || hostname.includes('127.0.0.1') || hostname.includes('run.app')) {
     return '';
   }
 
@@ -18,10 +19,10 @@ export function getApiUrl(): string {
     
     const envUrl = import.meta.env.VITE_API_URL || import.meta.env.VITE_APP_URL;
     if (envUrl && envUrl !== 'MY_APP_URL' && envUrl !== 'MY_API_URL') {
-      return envUrl.replace(/\/$/, '').replace(/\/api$/, '');
+      return envUrl.replace(/\/$/, '');
     }
     
-    // Fallback to the known production URL only if we are absolutely sure
+    // Fallback to the known production URL
     return 'https://resifaso.net';
   }
 

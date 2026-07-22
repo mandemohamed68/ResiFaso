@@ -1690,7 +1690,7 @@ function AppContent() {
           amount={activeBookingForPayment.amount}
           residenceTitle={activeBookingForPayment.title}
           isTestMode={isTestMode}
-          utilitiesIncluded={residences.find(r => r.id === activeBookingForPayment.residenceId)?.utilitiesIncluded}
+          utilitiesIncluded={activeBookingForPayment ? residences.find(r => r.id === activeBookingForPayment.residenceId)?.utilitiesIncluded : undefined}
           onSuccess={async () => {
             if (activeBookingForPayment?.id) {
               try {

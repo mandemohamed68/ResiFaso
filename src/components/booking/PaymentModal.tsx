@@ -213,7 +213,11 @@ export const PaymentModal: React.FC<Props> = ({ isOpen, onClose, amount, residen
         
         // If the message looks like HTML, don't show it
         if (typeof msg === 'string' && (msg.includes('<!DOCTYPE') || msg.includes('<html'))) {
-          msg = `Erreur de communication avec le serveur (Code: ${resp.status}).`;
+          if (resp.status === 404) {
+            msg = `Le service de paiement est momentanément indisponible (404). Veuillez vérifier que le serveur est bien à jour.`;
+          } else {
+            msg = `Erreur de communication avec le serveur (Code: ${resp.status}).`;
+          }
         }
         
         const lowerMsg = msg.toLowerCase();

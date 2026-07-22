@@ -47,7 +47,7 @@ export const getAllUsers = async () => {
   `);
 };
 
-// Residences
+  // Residences
 export const getAllResidences = async (ownerId?: string) => {
   let sql = `
     SELECT 
@@ -73,8 +73,20 @@ export const getAllResidences = async (ownerId?: string) => {
 
   if (rows.length === 0) return [];
 
-  const allAmenities = await executeSql("SELECT residence_id, amenity FROM residence_amenities");
-  const allImages = await executeSql("SELECT residence_id, image_url FROM residence_images");
+  const ids = rows.map(r => r.id);
+  const placeHolders = ids.map(() => "?").join(",");
+
+  const [allAmenities, allImages, activeBookings] = await Promise.all([
+    executeSql(`SELECT residence_id, amenity FROM residence_amenities WHERE residence_id IN (${placeHolders})`, ids),
+    executeSql(`SELECT residence_id, image_url FROM residence_images WHERE residence_id IN (${placeHolders})`, ids),
+    executeSql(`
+      SELECT residence_id, check_in, check_out 
+      FROM bookings 
+      WHERE residence_id IN (${placeHolders})
+      AND LOWER(booking_status) NOT IN ('cancelled', 'declined', 'annulee', 'annulé', 'refusee', 'refusé', 'expired', 'canceled')
+      AND LOWER(payment_status) IN ('paid', 'advance_paid', 'partial_paid', 'partiel')
+    `, ids)
+  ]);
 
   const amenitiesMap: Record<string, string[]> = {};
   allAmenities.forEach((a: any) => {
@@ -89,13 +101,6 @@ export const getAllResidences = async (ownerId?: string) => {
     if (!imagesMap[resId]) imagesMap[resId] = [];
     imagesMap[resId].push(i.image_url || i.imageUrl);
   });
-
-  const activeBookings = await executeSql(`
-    SELECT residence_id, check_in, check_out 
-    FROM bookings 
-    WHERE LOWER(booking_status) NOT IN ('cancelled', 'declined', 'annulee', 'annulé', 'refusee', 'refusé', 'expired', 'canceled')
-    AND LOWER(payment_status) IN ('paid', 'advance_paid', 'partial_paid', 'partiel')
-  `);
 
   const bookingsMap: Record<string, any[]> = {};
   const todayStr = new Date().toISOString().split('T')[0];
