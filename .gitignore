@@ -6,3 +6,10 @@ coverage/
 *.log
 .env*
 !.env.example
+
+# Credentials & Service accounts
+resifaso-firebase-adminsdk-*.json
+google-services.json
+GoogleService-Info.plist
+*.plist
+*.sqlite*

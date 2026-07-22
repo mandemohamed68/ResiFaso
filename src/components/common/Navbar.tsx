@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
 import { useRole } from '../../contexts/RoleContext';
 import { useToast } from '../../contexts/ToastContext';
@@ -11,6 +11,7 @@ import { cn } from '../../lib/utils';
 import { UserRole } from '../../types';
 import { AuthModal } from './AuthModal';
 import { apiFetch } from '../../lib/api';
+import { requestNotificationPermission, showNotification } from '../../lib/notifications';
 
 export const Navbar: React.FC<{ 
   onNavigate: (view: any) => void;
@@ -27,6 +28,33 @@ export const Navbar: React.FC<{
 
   const [notifications, setNotifications] = useState<any[]>([]);
   const [isNotifOpen, setIsNotifOpen] = useState(false);
+  const prevUnreadIdsRef = useRef<Set<string>>(new Set());
+  const isFirstLoadRef = useRef(true);
+
+  // Expose notification callback to navigate when clicked
+  useEffect(() => {
+    (window as any).onNavigateNotification = (url: string) => {
+      if (url === 'notifications' || url === 'chat' || url === 'bookings') {
+        if (url === 'chat') {
+          onNavigate('messaging');
+        } else if (url === 'bookings') {
+          onNavigate('bookings');
+        } else {
+          setIsNotifOpen(true);
+        }
+      }
+    };
+    return () => {
+      delete (window as any).onNavigateNotification;
+    };
+  }, [onNavigate]);
+
+  // Request notification permissions when user logs in
+  useEffect(() => {
+    if (user) {
+      requestNotificationPermission();
+    }
+  }, [user]);
 
   const fetchNotifications = async () => {
     if (!user) return;
@@ -38,6 +66,40 @@ export const Navbar: React.FC<{
       if (response.ok) {
         const data = await response.json();
         setNotifications(data);
+
+        // Check for new unread notifications to trigger native / web alerts
+        const unreadItems = data.filter((n: any) => {
+          const isRead = n.is_read !== undefined ? !!n.is_read : !!n.isRead;
+          return !isRead;
+        });
+
+        if (isFirstLoadRef.current) {
+          // On first load, just record the existing unread IDs to avoid spamming
+          const initialSet = new Set<string>();
+          unreadItems.forEach((n: any) => initialSet.add(String(n.id)));
+          prevUnreadIdsRef.current = initialSet;
+          isFirstLoadRef.current = false;
+        } else {
+          // Identify any new unread item that we haven't seen in this session
+          for (const item of unreadItems) {
+            const idStr = String(item.id);
+            if (!prevUnreadIdsRef.current.has(idStr)) {
+              prevUnreadIdsRef.current.add(idStr);
+              // Determine routing payload based on type
+              let redirectUrl = 'notifications';
+              if (item.type === 'message') redirectUrl = 'chat';
+              if (item.type === 'booking') redirectUrl = 'bookings';
+
+              // Show native notification with custom WhatsApp sound & alert chimes!
+              showNotification(
+                item.id,
+                item.title || "ResiFaso",
+                item.message || item.body || "Nouvelle notification reçue",
+                { url: redirectUrl }
+              );
+            }
+          }
+        }
       }
     } catch (err) {
       console.error("Error loading notifications:", err);

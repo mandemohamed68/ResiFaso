@@ -10,6 +10,7 @@ import { initDatabase } from './src/db/init';
 import { formatSqlValue } from './src/db/queries';
 import { authenticateToken, AuthRequest } from './src/lib/auth-middleware';
 import * as queries from './src/db/queries';
+import { registerDeviceToken, unregisterDeviceToken, sendPushNotification, sendPushToAll } from './src/lib/fcm-server';
 
 dotenv.config();
 
@@ -231,6 +232,31 @@ async function startServer() {
     try {
       await executeSql("ALTER TABLE withdrawals ADD COLUMN rejection_reason TEXT");
     } catch (e) {}
+    try {
+      if (DB_TYPE === 'mariadb') {
+        await executeSql(`
+          CREATE TABLE IF NOT EXISTS user_push_tokens (
+            user_id VARCHAR(128) NOT NULL,
+            token VARCHAR(255) NOT NULL,
+            device_type VARCHAR(50),
+            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+            PRIMARY KEY (user_id, token)
+          ) ENGINE=InnoDB
+        `);
+      } else {
+        await executeSql(`
+          CREATE TABLE IF NOT EXISTS user_push_tokens (
+            user_id TEXT NOT NULL,
+            token TEXT NOT NULL,
+            device_type TEXT,
+            updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+            PRIMARY KEY (user_id, token)
+          )
+        `);
+      }
+    } catch (e) {
+      console.error("Error creating user_push_tokens table:", e);
+    }
   }
 
   const app = express();
@@ -1679,6 +1705,49 @@ async function startServer() {
       await executeSql("INSERT INTO notifications (id, user_id, title, message, type, reference_id) VALUES (?, ?, ?, ?, ?, ?)", 
         [id, targetUserId, title, message, type, targetReferenceId]);
       res.json({ success: true, id });
+    } catch (err: any) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  // Register device token for FCM Push Notifications
+  app.post("/api/notifications/register-token", authenticateToken, async (req: AuthRequest, res) => {
+    try {
+      const { token, deviceType } = req.body;
+      if (!token) {
+        return res.status(400).json({ error: "token is required" });
+      }
+      const success = await registerDeviceToken(req.user!.uid, token, deviceType);
+      res.json({ success });
+    } catch (err: any) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  // Unregister device token
+  app.post("/api/notifications/unregister-token", authenticateToken, async (req: AuthRequest, res) => {
+    try {
+      const { token } = req.body;
+      if (!token) {
+        return res.status(400).json({ error: "token is required" });
+      }
+      const success = await unregisterDeviceToken(token);
+      res.json({ success });
+    } catch (err: any) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  // Send a test FCM push notification
+  app.post("/api/notifications/test-push", authenticateToken, async (req: AuthRequest, res) => {
+    try {
+      const { title, body } = req.body;
+      const success = await sendPushNotification(
+        req.user!.uid,
+        title || "🔔 Test de Notification ResiFaso",
+        body || "Félicitations, vos notifications instantanées sont configurées avec succès !"
+      );
+      res.json({ success, message: success ? "Notification de test envoyée avec succès !" : "Aucun appareil enregistré trouvé pour cet utilisateur." });
     } catch (err: any) {
       res.status(500).json({ error: err.message });
     }

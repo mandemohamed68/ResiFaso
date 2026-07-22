@@ -18,6 +18,7 @@ const PRESET_AVATARS = [
 ];
 
 import { useToast } from '../../contexts/ToastContext';
+import { requestNotificationPermission, showNotification } from '../../lib/notifications';
 
 export const ProfileSettings: React.FC = () => {
   const { profile, user, refreshProfile, logOut } = useAuth();
@@ -1133,6 +1134,63 @@ export const ProfileSettings: React.FC = () => {
               
               <div className="space-y-6">
                 <div className="space-y-4">
+                  <div className="flex flex-col md:flex-row items-start md:items-center justify-between p-5 border border-dashed border-red-200 rounded-2xl bg-red-50/20 gap-4">
+                    <div className="max-w-md">
+                      <h3 className="font-extrabold text-sm text-slate-900 flex items-center gap-2">
+                        <span>🔔</span> Testeur de notifications instantanées
+                      </h3>
+                      <p className="text-xs text-slate-500 font-medium mt-1">
+                        Demandez l'autorisation et recevez immédiatement une alerte d'essai sonore et visuelle identique à Facebook ou WhatsApp.
+                      </p>
+                    </div>
+                    <div className="flex flex-col sm:flex-row gap-2 shrink-0">
+                      <button
+                        type="button"
+                        onClick={async () => {
+                          const granted = await requestNotificationPermission();
+                          if (granted) {
+                            await showNotification(
+                              "test_notif",
+                              "🔔 ResiFaso",
+                              "Félicitations ! Vos notifications (style Facebook/WhatsApp) sont activées et prêtes."
+                            );
+                            addToast("Notification de test envoyée avec succès !", "success");
+                          } else {
+                            addToast("VIlliez autoriser les notifications dans les paramètres de votre appareil.", "warning");
+                          }
+                        }}
+                        className="bg-slate-900 hover:bg-slate-800 text-white px-5 py-2.5 rounded-xl text-xs font-black uppercase tracking-wider transition cursor-pointer"
+                      >
+                        Tester le son local
+                      </button>
+                      <button
+                        type="button"
+                        onClick={async () => {
+                          try {
+                            const res = await apiFetch("/api/notifications/test-push", {
+                              method: "POST"
+                            });
+                            if (res.ok) {
+                              const data = await res.json();
+                              if (data.success) {
+                                addToast("Push serveur envoyé avec succès !", "success");
+                              } else {
+                                addToast(data.message || "Aucun appareil FCM enregistré trouvé pour votre compte.", "warning");
+                              }
+                            } else {
+                              addToast("Erreur lors de l'envoi du push serveur.", "error");
+                            }
+                          } catch (err: any) {
+                            addToast(err.message, "error");
+                          }
+                        }}
+                        className="bg-red-600 hover:bg-red-700 text-white px-5 py-2.5 rounded-xl text-xs font-black uppercase tracking-wider transition cursor-pointer"
+                      >
+                        Tester le Push FCM (Serveur)
+                      </button>
+                    </div>
+                  </div>
+
                   <div className="flex flex-row items-center justify-between p-5 border border-slate-100 rounded-2xl bg-slate-50">
                     <div className="max-w-md pr-4">
                       <h3 className="font-extrabold text-sm text-slate-900">Messages instantanés des hôtes</h3>

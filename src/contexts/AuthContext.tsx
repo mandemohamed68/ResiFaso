@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { UserProfile, UserRole } from '../types';
 import { apiFetch } from '../lib/api';
+import { registerPushNotifications, unregisterPushNotifications } from '../lib/notifications';
 
 interface AuthContextType {
   user: any | null;
@@ -52,6 +53,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   useEffect(() => {
     fetchProfile();
   }, []);
+
+  useEffect(() => {
+    if (user?.uid) {
+      registerPushNotifications(user.uid);
+    } else {
+      unregisterPushNotifications();
+    }
+  }, [user]);
 
   const login = async (email: string, password: string) => {
     const response = await apiFetch('/api/auth/login', {
