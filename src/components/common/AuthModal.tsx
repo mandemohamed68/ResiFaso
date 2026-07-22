@@ -59,8 +59,8 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onNavigat
       }
 
       setSuccess("Un e-mail contenant le code de sécurité a été transmis à " + email + ". Veuillez vérifier votre messagerie.");
+      setResetCode('');
       if (data.code) {
-        setResetCode(data.code);
         setTestCodeMessage("Réf. validation : #" + data.code);
       }
       setResetStep('reset');
