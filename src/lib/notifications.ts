@@ -173,7 +173,7 @@ export async function registerPushNotifications(userId: string) {
     await PushNotifications.addListener('registration', async (token) => {
       console.log('[FCM Client] Push registration success, token:', token.value);
       try {
-        await apiFetch('/api/notifications/register-token', {
+        await apiFetch('/api/user-alerts/register-token', {
           method: 'POST',
           body: JSON.stringify({
             token: token.value,

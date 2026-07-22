@@ -62,7 +62,7 @@ export const Navbar: React.FC<{
     if (!token) return;
 
     try {
-      const response = await apiFetch('/api/notifications');
+      const response = await apiFetch('/api/user-alerts');
       if (response.ok) {
         const data = await response.json();
         setNotifications(data);
@@ -115,7 +115,7 @@ export const Navbar: React.FC<{
 
   const handleMarkAsRead = async (id: string) => {
     try {
-      const response = await apiFetch(`/api/notifications/${id}/read`, {
+      const response = await apiFetch(`/api/user-alerts/${id}/read`, {
         method: 'POST'
       });
       if (response.ok) {
@@ -132,7 +132,7 @@ export const Navbar: React.FC<{
         const isRead = n.is_read !== undefined ? !!n.is_read : !!n.isRead;
         return !isRead;
       });
-      await Promise.all(unread.map(n => apiFetch(`/api/notifications/${n.id}/read`, {
+      await Promise.all(unread.map(n => apiFetch(`/api/user-alerts/${n.id}/read`, {
         method: 'POST'
       })));
       setNotifications(prev => prev.map(n => ({ ...n, is_read: 1, isRead: true })));

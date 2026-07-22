@@ -71,8 +71,10 @@ export async function apiFetch(path: string, options: RequestInit = {}): Promise
     ? path 
     : (baseUrl ? `${baseUrl}${cleanPath}` : cleanPath);
 
+  const isExternal = path.startsWith('http://') || path.startsWith('https://');
+
   const headers = new Headers(options.headers || {});
-  if (token && !headers.has('Authorization')) {
+  if (token && !headers.has('Authorization') && !isExternal) {
     headers.set('Authorization', `Bearer ${token}`);
   }
   if (!headers.has('Content-Type') && (options.method === 'POST' || options.method === 'PUT' || options.method === 'PATCH')) {

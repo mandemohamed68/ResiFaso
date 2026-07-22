@@ -21,7 +21,7 @@ export const Hero: React.FC = () => {
   useEffect(() => {
     const fetchAds = async () => {
       try {
-        const response = await apiFetch('/api/ads');
+        const response = await apiFetch('/api/promotions');
         if (!response.ok) throw new Error('Failed to fetch ads');
         const list: Advertisement[] = await response.json();
         const activeOnly = list.filter(item => item.isActive);

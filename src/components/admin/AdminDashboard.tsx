@@ -1407,7 +1407,7 @@ export const AdminDashboard: React.FC<{ onBackToTraveler?: () => void }> = ({ on
       
       if (forceNotifMessage.trim()) {
         const notifId = 'not_' + Math.random().toString(36).substr(2, 9);
-        await apiFetch('/api/notifications', {
+        await apiFetch('/api/user-alerts', {
           method: 'POST',
           body: JSON.stringify({
             userId: forceUpdateWithdrawal.ownerId,
