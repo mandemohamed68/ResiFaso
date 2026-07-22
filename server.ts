@@ -1186,7 +1186,7 @@ async function startServer() {
   });
 
   // --- Ads ---
-  app.get("/api/ads", async (req, res) => {
+  app.get("/api/promotions", async (req, res) => {
     try {
       const ads = await queries.getAllAds();
       res.json(ads);
@@ -1195,7 +1195,7 @@ async function startServer() {
     }
   });
 
-  app.post("/api/ads", authenticateToken, async (req: AuthRequest, res) => {
+  app.post("/api/promotions", authenticateToken, async (req: AuthRequest, res) => {
     try {
       if (req.user?.role !== 'admin') return res.status(403).json({ error: "Non autorisé" });
       const id = req.body.id || 'ad_' + Math.random().toString(36).substr(2, 9);
@@ -1231,7 +1231,7 @@ async function startServer() {
     }
   });
 
-  app.delete("/api/ads/:id", authenticateToken, async (req: AuthRequest, res) => {
+  app.delete("/api/promotions/:id", authenticateToken, async (req: AuthRequest, res) => {
     try {
       if (req.user?.role !== 'admin') return res.status(403).json({ error: "Non autorisé" });
       await executeSql("DELETE FROM advertisements WHERE id = ?", [req.params.id]);
@@ -1681,7 +1681,7 @@ async function startServer() {
   });
 
   // --- Notifications ---
-  app.get("/api/notifications", authenticateToken, async (req: AuthRequest, res) => {
+  app.get("/api/user-alerts", authenticateToken, async (req: AuthRequest, res) => {
     try {
       const { userId } = req.query;
       const targetId = (userId as string) || req.user?.uid || '';
@@ -1692,7 +1692,7 @@ async function startServer() {
     }
   });
 
-  app.post("/api/notifications", authenticateToken, async (req: AuthRequest, res) => {
+  app.post("/api/user-alerts", authenticateToken, async (req: AuthRequest, res) => {
     try {
       const id = 'not_' + Math.random().toString(36).substr(2, 9);
       const { user_id, userId, title, message, type, reference_id, referenceId } = req.body;
@@ -1712,7 +1712,7 @@ async function startServer() {
   });
 
   // Register device token for FCM Push Notifications
-  app.post("/api/notifications/register-token", authenticateToken, async (req: AuthRequest, res) => {
+  app.post("/api/user-alerts/register-token", authenticateToken, async (req: AuthRequest, res) => {
     try {
       const { token, deviceType } = req.body;
       if (!token) {
@@ -1726,7 +1726,7 @@ async function startServer() {
   });
 
   // Unregister device token
-  app.post("/api/notifications/unregister-token", authenticateToken, async (req: AuthRequest, res) => {
+  app.post("/api/user-alerts/unregister-token", authenticateToken, async (req: AuthRequest, res) => {
     try {
       const { token } = req.body;
       if (!token) {
@@ -1740,7 +1740,7 @@ async function startServer() {
   });
 
   // Send a test FCM push notification
-  app.post("/api/notifications/test-push", authenticateToken, async (req: AuthRequest, res) => {
+  app.post("/api/user-alerts/test-push", authenticateToken, async (req: AuthRequest, res) => {
     try {
       const { title, body } = req.body;
       const success = await sendPushNotification(
@@ -1754,7 +1754,7 @@ async function startServer() {
     }
   });
 
-  app.post("/api/notifications/:id/read", authenticateToken, async (req, res) => {
+  app.post("/api/user-alerts/:id/read", authenticateToken, async (req, res) => {
     try {
       await executeSql("UPDATE notifications SET is_read = 1 WHERE id = ?", [req.params.id]);
       res.json({ success: true });
@@ -1763,7 +1763,7 @@ async function startServer() {
     }
   });
 
-  app.post("/api/notifications/read-all", authenticateToken, async (req: AuthRequest, res) => {
+  app.post("/api/user-alerts/read-all", authenticateToken, async (req: AuthRequest, res) => {
     try {
       const userId = req.body.userId || req.user?.uid;
       await executeSql("UPDATE notifications SET is_read = 1 WHERE user_id = ?", [userId]);

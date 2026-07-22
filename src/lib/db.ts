@@ -140,20 +140,20 @@ export async function sendNotification(notif: any): Promise<void> {
     type: notif.type,
     reference_id: notif.referenceId || notif.reference_id
   };
-  await apiFetch('/api/notifications', {
+  await apiFetch('/api/user-alerts', {
     method: 'POST',
     body: JSON.stringify(data)
   });
 }
 
 export async function markNotificationAsRead(id: string): Promise<void> {
-  await apiFetch(`/api/notifications/${id}/read`, {
+  await apiFetch(`/api/user-alerts/${id}/read`, {
     method: 'POST'
   });
 }
 
 export async function markAllNotificationsAsRead(userId: string): Promise<void> {
-  await apiFetch(`/api/notifications/read-all`, {
+  await apiFetch(`/api/user-alerts/read-all`, {
     method: 'POST',
     body: JSON.stringify({ userId })
   });
@@ -274,18 +274,18 @@ export async function deleteFaq(id: string): Promise<void> {
 // ==========================================
 
 export async function getAllAds(): Promise<any[]> {
-  return apiFetch('/api/ads').catch(() => []);
+  return apiFetch('/api/promotions').catch(() => []);
 }
 
 export async function saveAd(ad: any): Promise<void> {
-  await apiFetch('/api/ads', {
+  await apiFetch('/api/promotions', {
     method: 'POST',
     body: JSON.stringify(ad)
   });
 }
 
 export async function deleteAd(id: string): Promise<void> {
-  await apiFetch(`/api/ads/${id}`, {
+  await apiFetch(`/api/promotions/${id}`, {
     method: 'DELETE'
   });
 }

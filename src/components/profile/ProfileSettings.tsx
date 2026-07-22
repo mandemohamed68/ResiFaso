@@ -1171,7 +1171,7 @@ export const ProfileSettings: React.FC = () => {
                         type="button"
                         onClick={async () => {
                           try {
-                            const res = await apiFetch("/api/notifications/test-push", {
+                            const res = await apiFetch("/api/user-alerts/test-push", {
                               method: "POST"
                             });
                             if (res.ok) {
