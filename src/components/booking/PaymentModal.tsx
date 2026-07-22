@@ -211,13 +211,9 @@ export const PaymentModal: React.FC<Props> = ({ isOpen, onClose, amount, residen
         // Humanize common Sappay errors from details or error fields
         let msg = data.details || data.error || data.message || "Validation OTP échouée.";
         
-        // If the message looks like HTML, don't show it
+        // If the message looks like HTML, it's likely a 404/500 from the server (not the API)
         if (typeof msg === 'string' && (msg.includes('<!DOCTYPE') || msg.includes('<html'))) {
-          if (resp.status === 404) {
-            msg = `Le service de paiement est momentanément indisponible (404). Veuillez vérifier que le serveur est bien à jour.`;
-          } else {
-            msg = `Erreur de communication avec le serveur (Code: ${resp.status}).`;
-          }
+          msg = `Erreur de communication avec le serveur (Code: ${resp.status}). Veuillez vérifier que le serveur est bien démarré et à jour.`;
         }
         
         const lowerMsg = msg.toLowerCase();

@@ -9,12 +9,9 @@ import { getApiUrl } from './lib/api';
 try {
   const baseUrl = getApiUrl();
   const hostname = window.location.hostname;
-  const isDev = hostname.includes('ais-dev') || 
-                hostname.includes('localhost') || 
-                hostname.includes('127.0.0.1') ||
-                hostname.includes('run.app');
+  const isAistudioPreview = hostname.includes('ais-dev') || hostname.includes('ais-pre');
 
-  if (baseUrl && !isDev) {
+  if (baseUrl && isAistudioPreview) {
     const originalFetch = window.fetch;
     window.fetch = function(input: RequestInfo | URL, init?: RequestInit) {
       const url = typeof input === 'string' ? input : (input instanceof Request ? input.url : input.toString());

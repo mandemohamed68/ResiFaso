@@ -22,8 +22,8 @@ export function getApiUrl(): string {
       return envUrl.replace(/\/$/, '');
     }
     
-    // Fallback to the known production URL
-    return 'https://resifaso.net';
+    // Standard web browser -> use relative paths
+    return '';
   }
 
   // Standard web browser -> use relative paths

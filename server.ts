@@ -1976,7 +1976,7 @@ async function startServer() {
   });
 
   // ---------- SAPPAY – PERFORM ----------
-  app.post(["/api/payments/sappay/perform", "/api/payment/sappay/perform"], async (req, res) => {
+  app.post("/api/payment/sappay/perform", async (req, res) => {
     const { invoice_id, payment_processor_id, customer_msisdn, otp, trans_id, access_token } = req.body;
     try {
       const credentials = await getSappayCredentials();
