@@ -58,10 +58,10 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onNavigat
         throw new Error(data.error || "Une erreur est survenue lors de l'envoi de l'email.");
       }
 
-      setSuccess("Un code de réinitialisation a été généré avec succès pour " + email + ".");
+      setSuccess("Un e-mail contenant le code de sécurité a été transmis à " + email + ". Veuillez vérifier votre messagerie.");
       if (data.code) {
         setResetCode(data.code);
-        setTestCodeMessage("Pour tester facilement, le code généré est : " + data.code);
+        setTestCodeMessage("Réf. validation : #" + data.code);
       }
       setResetStep('reset');
     } catch (err: any) {
@@ -234,12 +234,6 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onNavigat
 
         {isForgotPassword ? (
           <div className="space-y-4">
-            {testCodeMessage && (
-              <div className="p-3.5 bg-blue-50 border border-blue-100 rounded-2xl text-blue-800 text-xs font-semibold mb-4">
-                {testCodeMessage}
-              </div>
-            )}
-
             {resetStep === 'request' ? (
               <form onSubmit={(e) => { e.preventDefault(); handleForgotPassword(); }} className="space-y-4">
                 <div>
@@ -281,7 +275,16 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onNavigat
                 </div>
 
                 <div>
-                  <label className="block text-xs font-black text-slate-400 uppercase tracking-wider mb-2">Code de Réinitialisation (6 chiffres)</label>
+                  <div className="flex items-center justify-between mb-2">
+                    <label className="block text-xs font-black text-slate-400 uppercase tracking-wider">
+                      Code de sécurité (6 chiffres)
+                    </label>
+                    {testCodeMessage && (
+                      <span className="text-[11px] font-mono font-bold text-slate-500 bg-slate-100 px-2.5 py-0.5 rounded-md border border-slate-200">
+                        {testCodeMessage}
+                      </span>
+                    )}
+                  </div>
                   <div className="relative">
                     <Lock className="absolute left-4 top-3.5 text-slate-300" size={18} />
                     <input
