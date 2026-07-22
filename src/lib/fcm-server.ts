@@ -1,37 +1,50 @@
 import { initializeApp, cert } from "firebase-admin/app";
 import { getMessaging } from "firebase-admin/messaging";
-import { readFileSync } from "fs";
+import { readFileSync, existsSync } from "fs";
 import path from "path";
 import { executeSql } from "../db/index";
 
 let fcmInitialized = false;
 
 try {
-  let serviceAccount: any;
+  let serviceAccount: any = null;
+  const localAccountPath = path.join(process.cwd(), "resifaso-firebase-adminsdk-fbsvc-23372c78ad.json");
 
-  if (process.env.FIREBASE_SERVICE_ACCOUNT && process.env.FIREBASE_SERVICE_ACCOUNT.trim()) {
+  // First try local JSON file if present
+  if (existsSync(localAccountPath)) {
     try {
-      serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT.trim());
-    } catch (e: any) {
-      try {
-        const decoded = Buffer.from(process.env.FIREBASE_SERVICE_ACCOUNT.trim(), "base64").toString("utf8");
-        serviceAccount = JSON.parse(decoded);
-      } catch (e2) {
-        // Fallback to local file if environment variable is invalid JSON
-        const serviceAccountPath = path.join(process.cwd(), "resifaso-firebase-adminsdk-fbsvc-23372c78ad.json");
-        serviceAccount = JSON.parse(readFileSync(serviceAccountPath, "utf8"));
-      }
-    }
-  } else {
-    const serviceAccountPath = path.join(process.cwd(), "resifaso-firebase-adminsdk-fbsvc-23372c78ad.json");
-    serviceAccount = JSON.parse(readFileSync(serviceAccountPath, "utf8"));
+      const content = readFileSync(localAccountPath, "utf8");
+      serviceAccount = JSON.parse(content);
+    } catch (e) {}
   }
 
-  initializeApp({
-    credential: cert(serviceAccount)
-  });
-  fcmInitialized = true;
-  console.log("[FCM] Firebase Admin SDK initialized successfully!");
+  // Fallback or override with environment variable if valid JSON
+  if (!serviceAccount && process.env.FIREBASE_SERVICE_ACCOUNT) {
+    const rawEnv = process.env.FIREBASE_SERVICE_ACCOUNT.trim();
+    if (rawEnv.startsWith("{")) {
+      try {
+        serviceAccount = JSON.parse(rawEnv);
+      } catch (e) {}
+    }
+    if (!serviceAccount) {
+      try {
+        const decoded = Buffer.from(rawEnv, "base64").toString("utf8");
+        if (decoded.startsWith("{")) {
+          serviceAccount = JSON.parse(decoded);
+        }
+      } catch (e) {}
+    }
+  }
+
+  if (serviceAccount && serviceAccount.project_id) {
+    initializeApp({
+      credential: cert(serviceAccount)
+    });
+    fcmInitialized = true;
+    console.log("[FCM] Firebase Admin SDK initialized successfully!");
+  } else {
+    console.warn("[FCM] Service account file or environment variable not provided or incomplete.");
+  }
 } catch (error: any) {
   console.error("[FCM] Failed to initialize Firebase Admin SDK:", error.message);
 }

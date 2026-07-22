@@ -660,10 +660,27 @@ export const createResidence = async (res: any) => {
   }
 };
 
+const VALID_BOOKING_COLS = new Set([
+  'id', 'residence_id', 'client_id', 'owner_id', 'check_in', 'check_out', 
+  'guests', 'total_price', 'advance_paid', 'payment_status', 'booking_status', 
+  'transaction_id', 'cancelled_by', 'cancellation_reason', 'cancelled_at', 
+  'refund_status', 'refund_amount', 'refund_phone', 'refund_provider', 
+  'refund_processed_at', 'refund_reason', 'stay_status', 'checked_in_at', 
+  'checked_out_at', 'host_cancellation_fee', 'nights_consumed', 
+  'cost_of_nights_spent', 'verifications_status', 'created_at'
+]);
+
 export const updateBookingStatus = async (id: string, updates: any) => {
   const mappedUpdates: any = {};
   for (const [k, v] of Object.entries(updates)) {
-    mappedUpdates[toSnakeCase(k)] = formatSqlValue(v);
+    if (k === 'id') continue;
+    let snakeKey = toSnakeCase(k);
+    if (snakeKey === 'refund_reason') {
+      mappedUpdates['cancellation_reason'] = formatSqlValue(v);
+    }
+    if (VALID_BOOKING_COLS.has(snakeKey)) {
+      mappedUpdates[snakeKey] = formatSqlValue(v);
+    }
   }
   const fields = Object.keys(mappedUpdates);
   if (fields.length === 0) return;

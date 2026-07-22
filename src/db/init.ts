@@ -108,21 +108,18 @@ export const initDatabase = async () => {
       }
 
       // Ensure 'password_hash' column exists (might be named 'password' in imported dumps)
-      const pwColumns: any = await executeSql(`
-        SELECT COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS 
-        WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'users' 
-        AND COLUMN_NAME IN ('password_hash', 'password')
-      `);
-
-      const getColName = (c: any) => String(c.columnName || c.COLUMN_NAME || c.column_name || '').toLowerCase();
-      const hasPasswordHash = pwColumns.some((c: any) => getColName(c) === 'password_hash');
-      const hasPassword = pwColumns.some((c: any) => getColName(c) === 'password');
-
       try {
-        if (!hasPasswordHash && hasPassword) {
-          await executeSql("ALTER TABLE users CHANGE COLUMN password password_hash VARCHAR(255)");
-        } else if (!hasPasswordHash && !hasPassword) {
-          await executeSql("ALTER TABLE users ADD COLUMN password_hash VARCHAR(255)");
+        const userCols: any = await executeSql("SHOW COLUMNS FROM users");
+        if (Array.isArray(userCols)) {
+          const colNames = userCols.map((c: any) => (c.Field || c.field || c.COLUMN_NAME || c.column_name || '').toLowerCase());
+          const hasPasswordHash = colNames.includes('password_hash');
+          const hasPassword = colNames.includes('password');
+
+          if (!hasPasswordHash && hasPassword) {
+            await executeSql("ALTER TABLE users CHANGE COLUMN password password_hash VARCHAR(255)");
+          } else if (!hasPasswordHash && !hasPassword) {
+            await executeSql("ALTER TABLE users ADD COLUMN password_hash VARCHAR(255)");
+          }
         }
       } catch (e) {
         // Ignored if column already exists or changed
@@ -333,6 +330,13 @@ export const initDatabase = async () => {
     } catch (err: any) {
       console.warn("Avertissement migration MariaDB bookings.verifications_status:", err.message);
     }
+
+    try {
+      const colCheck = await executeSql("SHOW COLUMNS FROM bookings LIKE 'refund_reason'");
+      if (!colCheck || colCheck.length === 0) {
+        await executeSql("ALTER TABLE bookings ADD COLUMN refund_reason TEXT NULL");
+      }
+    } catch (err: any) {}
 
     // Reviews Table
     await executeSql(`
