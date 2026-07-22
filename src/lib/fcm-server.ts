@@ -104,7 +104,7 @@ export async function sendPushNotification(
   data?: Record<string, string>
 ): Promise<boolean> {
   if (!fcmInitialized) {
-    console.warn("[FCM] Firebase Admin SDK not initialized. Cannot send push notification.");
+    // Silent return when FCM is not configured to avoid flooding the server logs
     return false;
   }
 

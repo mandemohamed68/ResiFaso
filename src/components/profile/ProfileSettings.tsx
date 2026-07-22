@@ -207,6 +207,9 @@ export const ProfileSettings: React.FC = () => {
   const startCamera = async () => {
     setCameraError(null);
     try {
+      if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+        throw new Error("navigator.mediaDevices.getUserMedia is not supported");
+      }
       const stream = await navigator.mediaDevices.getUserMedia({
         video: { facingMode: 'environment', width: { ideal: 1280 }, height: { ideal: 720 } }
       });
@@ -217,8 +220,14 @@ export const ProfileSettings: React.FC = () => {
         if (video) video.srcObject = stream;
       }, 300);
     } catch (err) {
-      console.error("Camera access error:", err);
-      setCameraError("Impossible d'accéder à l'appareil photo. Veuillez utiliser l'onglet de téléversement ou accorder les permissions.");
+      console.warn("Camera getUserMedia failed, falling back to native file capture:", err);
+      // Fallback: Trigger the native mobile camera capture input directly
+      const fallbackInput = document.getElementById('id-doc-camera-raw-input');
+      if (fallbackInput) {
+        fallbackInput.click();
+      } else {
+        setCameraError("Impossible d'accéder à l'appareil photo. Veuillez utiliser l'onglet de téléversement ou accorder les permissions.");
+      }
     }
   };
 
@@ -856,6 +865,15 @@ export const ProfileSettings: React.FC = () => {
                               id="id-doc-file-raw-input"
                               onClick={(e) => e.stopPropagation()}
                               accept="image/*"
+                              className="hidden" 
+                              onChange={handleIdentityFileChange}
+                            />
+                            <input 
+                              type="file" 
+                              id="id-doc-camera-raw-input"
+                              onClick={(e) => e.stopPropagation()}
+                              accept="image/*"
+                              capture="environment"
                               className="hidden" 
                               onChange={handleIdentityFileChange}
                             />

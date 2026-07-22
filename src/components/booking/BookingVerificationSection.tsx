@@ -108,7 +108,7 @@ export const BookingVerificationSection: React.FC<BookingVerificationSectionProp
         <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-1.5">
           🛡️ Vérifications de : <span className="text-slate-900">{clientProfile?.display_name || clientProfile?.displayName || 'Voyageur'}</span>
         </span>
-        {clientProfile && (clientProfile.identity_document_front || clientProfile.identityDocumentFront) && (
+        {clientProfile && (clientProfile.identity_document_front || clientProfile.identityDocumentFront || clientProfile.idCardUrl || clientProfile.id_card_url) && (
           <button 
             onClick={() => setShowIdDocs(!showIdDocs)}
             className="flex items-center gap-1 text-[10px] font-black text-red-600 uppercase hover:underline"
@@ -119,7 +119,7 @@ export const BookingVerificationSection: React.FC<BookingVerificationSectionProp
         )}
       </div>
 
-      {showIdDocs && clientProfile && (clientProfile.identity_document_front || clientProfile.identityDocumentFront || clientProfile.idNumber) ? (
+      {showIdDocs && clientProfile && (clientProfile.identity_document_front || clientProfile.identityDocumentFront || clientProfile.idCardUrl || clientProfile.id_card_url || clientProfile.idNumber) ? (
         <motion.div 
           initial={{ opacity: 0, height: 0 }}
           animate={{ opacity: 1, height: 'auto' }}
@@ -145,32 +145,34 @@ export const BookingVerificationSection: React.FC<BookingVerificationSectionProp
             </div>
           )}
 
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div className="space-y-2">
-              <span className="text-[9px] font-black text-slate-400 uppercase">Recto</span>
-              {clientProfile.identity_document_front || clientProfile.identityDocumentFront ? (
+              <span className="text-[9px] font-black text-slate-400 uppercase">Recto / Document Principal</span>
+              {clientProfile.identity_document_front || clientProfile.identityDocumentFront || clientProfile.idCardUrl || clientProfile.id_card_url ? (
                 <img 
-                  src={clientProfile.identity_document_front || clientProfile.identityDocumentFront} 
-                  className="w-full h-32 object-cover rounded-lg border border-slate-200" 
+                  src={clientProfile.identity_document_front || clientProfile.identityDocumentFront || clientProfile.idCardUrl || clientProfile.id_card_url} 
+                  className="w-full h-44 object-cover rounded-lg border border-slate-200" 
                   alt="ID Front" 
+                  referrerPolicy="no-referrer"
                 />
               ) : (
-                <div className="w-full h-32 rounded-lg border border-dashed border-slate-200 flex items-center justify-center text-[10px] text-slate-400 font-bold uppercase">
+                <div className="w-full h-44 rounded-lg border border-dashed border-slate-200 flex items-center justify-center text-[10px] text-slate-400 font-bold uppercase">
                   Aucun recto
                 </div>
               )}
             </div>
             <div className="space-y-2">
-              <span className="text-[9px] font-black text-slate-400 uppercase">Verso</span>
+              <span className="text-[9px] font-black text-slate-400 uppercase">Verso (si applicable)</span>
               {clientProfile.identity_document_back || clientProfile.identityDocumentBack ? (
                 <img 
                   src={clientProfile.identity_document_back || clientProfile.identityDocumentBack} 
-                  className="w-full h-32 object-cover rounded-lg border border-slate-200" 
+                  className="w-full h-44 object-cover rounded-lg border border-slate-200" 
                   alt="ID Back" 
+                  referrerPolicy="no-referrer"
                 />
               ) : (
-                <div className="w-full h-32 rounded-lg border border-dashed border-slate-200 flex items-center justify-center text-[10px] text-slate-400 font-bold uppercase">
-                  Aucun verso
+                <div className="w-full h-44 rounded-lg border border-dashed border-slate-200 flex items-center justify-center text-[10px] text-slate-400 font-bold text-center leading-relaxed p-4 uppercase">
+                  Aucun verso / Non requis
                 </div>
               )}
             </div>
