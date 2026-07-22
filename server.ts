@@ -1885,7 +1885,7 @@ async function startServer() {
       }
 
       console.log(`[Sappay Init] Requesting invoice with amount: ${amount}`);
-      const response = await fetch(`${urls.publicBase}/invoice`, {
+      const response = await fetch(`${urls.publicBase}/invoice/`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -1942,7 +1942,7 @@ async function startServer() {
       }
 
       console.log(`[Sappay OTP] Requesting OTP for invoice ${invoice_id}`);
-      const response = await fetch(`${urls.checkoutBase}/get-otp`, {
+      const response = await fetch(`${urls.checkoutBase}/get-otp/`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -2004,7 +2004,7 @@ async function startServer() {
       };
 
       console.log(`[Sappay Perform] Attempting payment for invoice ${invoice_id} with OTP: ${otp}`);
-      const response = await fetch(`${urls.checkoutBase}/perform`, {
+      const response = await fetch(`${urls.checkoutBase}/perform/`, {
         method: "POST",
         headers,
         body: JSON.stringify(payload)
