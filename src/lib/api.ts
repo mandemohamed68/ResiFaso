@@ -25,11 +25,13 @@ export function getApiUrl(): string {
         console.error('Failed to update custom_server_url in localStorage', e);
       }
     }
-    return customUrl.trim().replace(/\/$/, '');
+    // Only use customUrl for web if it's explicitly set for dev purposes, but prefer relative paths in production
   }
 
-  if (isPreview && !isCapacitor) {
-    // In preview mode, always use relative paths to hit the local Express server
+  // If we're on the web (not a mobile app wrapper), we should use relative paths
+  // to avoid CORS issues between www. and non-www. domains.
+  if (typeof window !== 'undefined' && !isCapacitor) {
+    // Just return empty string to make all fetch requests relative to current origin (e.g. /api/...)
     return '';
   }
 
@@ -47,14 +49,11 @@ export function getApiUrl(): string {
     return 'https://resifaso.net'; // Production domain fallback
   }
 
+  // Fallback for server-side rendering or non-browser environments
   const envUrl = import.meta.env.VITE_API_URL || import.meta.env.VITE_APP_URL;
   if (envUrl && envUrl !== 'MY_APP_URL' && envUrl !== 'MY_API_URL') {
     const cleanUrl = envUrl.replace(/\/$/, '').replace(/\/api$/, '');
     return cleanUrl;
-  }
-  
-  if (typeof window !== 'undefined') {
-    return window.location.origin;
   }
   
   return 'https://resifaso.net';
@@ -90,9 +89,11 @@ export async function apiFetch(path: string, options: RequestInit = {}): Promise
   } catch (err) {
     console.error(`[apiFetch] Network error for ${fullUrl}:`, err);
     // Return a mock response object to prevent downstream .json() crashes if not checked
+    const emptyHeaders = new Headers();
     return {
       ok: false,
       status: 0,
+      headers: emptyHeaders,
       json: async () => ({ error: "Network error" }),
       text: async () => "Network error"
     } as Response;

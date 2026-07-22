@@ -20,11 +20,11 @@ const apiFetch = async (endpoint: string, options: any = {}) => {
   try {
     const response = await globalApiFetch(endpoint, options);
     if (!response.ok) {
-      const contentType = response.headers.get("content-type");
+      const contentType = response.headers?.get ? response.headers.get("content-type") : null;
       const errorData = (contentType && contentType.includes("application/json")) ? await response.json().catch(() => ({})) : {};
       throw new Error(errorData.error || `API Error: ${response.status} ${response.statusText}`);
     }
-    const contentType = response.headers.get("content-type");
+    const contentType = response.headers?.get ? response.headers.get("content-type") : null;
     if (contentType && contentType.includes("application/json")) {
       return response.json();
     }
