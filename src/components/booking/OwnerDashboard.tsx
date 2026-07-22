@@ -414,7 +414,7 @@ const BookingTable: React.FC<BookingTableProps> = ({
                          </button>
                        )}
 
-                       {b.stayStatus === 'ongoing' && (
+                       {b.stayStatus === 'ongoing' && b.bookingStatus !== 'cancelled' && b.bookingStatus !== 'declined' && (
                          <button
                            onClick={() => handleEndStay(b)}
                            className="w-full py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-black uppercase tracking-wider transition-all flex items-center justify-center gap-1.5 cursor-pointer shadow-sm shadow-indigo-100"
@@ -1371,7 +1371,7 @@ export const OwnerDashboard: React.FC<{ isTestMode?: boolean; onBackToTraveler?:
     return presentBookings.some(b => 
       b.residenceId === resId && 
       b.bookingStatus === 'confirmed' && 
-      (b.paymentStatus === 'advance_paid' || b.paymentStatus === 'fully_paid')
+      (b.paymentStatus === 'paid' || b.paymentStatus === 'advance_paid' || b.paymentStatus === 'fully_paid')
     );
   };
 

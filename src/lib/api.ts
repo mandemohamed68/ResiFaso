@@ -1,13 +1,13 @@
 export function getApiUrl(): string {
   if (typeof window === 'undefined') {
-    const envUrl = import.meta.env.VITE_API_URL || import.meta.env.VITE_APP_URL;
-    if (envUrl && envUrl !== 'MY_APP_URL' && envUrl !== 'MY_API_URL') {
-      return envUrl.replace(/\/$/, '').replace(/\/api$/, '');
-    }
-    return 'https://resifaso.net';
+    return '';
   }
 
-  // At this point we are in a browser environment
+  // If we are in AI Studio development mode, always use relative paths
+  if (window.location.hostname.includes('ais-dev') || window.location.hostname.includes('localhost') || window.location.hostname.includes('127.0.0.1')) {
+    return '';
+  }
+
   const isCapacitor = window.location.protocol === 'capacitor:' ||
                       window.location.origin.startsWith('ionic:') ||
                       ((window as any).Capacitor?.getPlatform?.() === 'ios' || (window as any).Capacitor?.getPlatform?.() === 'android');
@@ -20,6 +20,8 @@ export function getApiUrl(): string {
     if (envUrl && envUrl !== 'MY_APP_URL' && envUrl !== 'MY_API_URL') {
       return envUrl.replace(/\/$/, '').replace(/\/api$/, '');
     }
+    
+    // Fallback to the known production URL only if we are absolutely sure
     return 'https://resifaso.net';
   }
 

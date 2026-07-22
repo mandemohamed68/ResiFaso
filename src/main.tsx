@@ -8,17 +8,19 @@ import { getApiUrl } from './lib/api';
 
 // Intercept relative API requests and redirect them to the configured server URL (e.g., https://resifaso.net)
 const baseUrl = getApiUrl();
-if (baseUrl) {
+if (baseUrl && !window.location.hostname.includes('ais-dev')) {
   const originalFetch = window.fetch;
   try {
     Object.defineProperty(window, 'fetch', {
       value: function (input: RequestInfo | URL, init?: RequestInit) {
-        if (typeof input === 'string' && input.startsWith('/api')) {
-          return originalFetch(`${baseUrl}${input}`, init);
-        } else if (input instanceof Request && input.url.startsWith('/api')) {
-          const newUrl = `${baseUrl}${input.url}`;
-          const newRequest = new Request(newUrl, input);
-          return originalFetch(newRequest, init);
+        const url = typeof input === 'string' ? input : (input instanceof Request ? input.url : input.toString());
+        
+        if (url.startsWith('/api') && !url.startsWith(baseUrl)) {
+          const newUrl = `${baseUrl}${url}`;
+          if (input instanceof Request) {
+            return originalFetch(new Request(newUrl, input), init);
+          }
+          return originalFetch(newUrl, init);
         }
         return originalFetch(input, init);
       },
@@ -27,17 +29,7 @@ if (baseUrl) {
       enumerable: true
     });
   } catch (e) {
-    console.error("Failed to redefine fetch via defineProperty:", e);
-    try {
-      (window as any).fetch = function (input: any, init: any) {
-        if (typeof input === 'string' && input.startsWith('/api')) {
-          return originalFetch(`${baseUrl}${input}`, init);
-        }
-        return originalFetch(input, init);
-      };
-    } catch (err) {
-      console.error("Could not patch window.fetch:", err);
-    }
+    console.error("Failed to redefine fetch:", e);
   }
 }
 
