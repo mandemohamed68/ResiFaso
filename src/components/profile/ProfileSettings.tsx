@@ -640,7 +640,7 @@ export const ProfileSettings: React.FC = () => {
                 }}
                 className={`flex items-center gap-3 px-4 py-3 rounded-xl text-left text-sm font-bold transition-all ${
                   activeTab === tab.id
-                    ? 'bg-red-50 text-[#EF2B2D] shadow-sm border-l-4 border-[#EF2B2D]'
+                    ? 'bg-red-50 text-[#EF2B2D] border border-red-100/60 shadow-xs'
                     : tab.danger
                     ? 'text-red-500 hover:bg-red-50'
                     : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'

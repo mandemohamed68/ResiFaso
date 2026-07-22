@@ -346,28 +346,28 @@ export const Navbar: React.FC<{
                             let Icon = Info;
                             let iconColor = "text-blue-600";
                             let bgColor = "bg-blue-50/60";
-                            let accentColor = "border-l-blue-500";
+                            let unreadBorder = "border-blue-200 ring-1 ring-blue-50/50";
                             
                             if (notif.type === 'booking') {
                               Icon = CalendarCheck;
                               iconColor = "text-emerald-600";
                               bgColor = "bg-emerald-50/60";
-                              accentColor = "border-l-emerald-500";
+                              unreadBorder = "border-emerald-200 ring-1 ring-emerald-50/50";
                             } else if (notif.type === 'alert' || notif.type === 'danger') {
                               Icon = AlertCircle;
                               iconColor = "text-red-600";
                               bgColor = "bg-red-50/60";
-                              accentColor = "border-l-red-500";
+                              unreadBorder = "border-red-200 ring-1 ring-red-50/50";
                             } else if (notif.type === 'warning') {
                               Icon = AlertTriangle;
                               iconColor = "text-amber-600";
                               bgColor = "bg-amber-50/60";
-                              accentColor = "border-l-amber-500";
+                              unreadBorder = "border-amber-200 ring-1 ring-amber-50/50";
                             } else if (notif.type === 'success') {
                               Icon = CheckCircle2;
                               iconColor = "text-emerald-600";
                               bgColor = "bg-emerald-50/60";
-                              accentColor = "border-l-emerald-500";
+                              unreadBorder = "border-emerald-200 ring-1 ring-emerald-50/50";
                             }
 
                             return (
@@ -388,10 +388,10 @@ export const Navbar: React.FC<{
                                   setIsNotifOpen(false);
                                 }}
                                 className={cn(
-                                  "group relative p-3 rounded-2xl border border-l-4 border-slate-100 transition-all duration-300 cursor-pointer flex gap-3.5 hover:bg-slate-50/50 hover:scale-[1.01] hover:shadow-xs",
+                                  "group relative p-3 rounded-2xl border transition-all duration-300 cursor-pointer flex gap-3.5 hover:bg-slate-50/50 hover:scale-[1.01] hover:shadow-xs",
                                   isRead 
                                     ? "bg-white border-slate-100 opacity-75 hover:opacity-100" 
-                                    : cn("bg-white border-slate-200 shadow-xs ring-1 ring-slate-900/5", accentColor)
+                                    : cn("bg-white border-slate-200 shadow-xs", unreadBorder)
                                 )}
                               >
                                 {/* Unread dot badge indicator */}

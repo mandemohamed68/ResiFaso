@@ -6332,7 +6332,7 @@ export const AdminDashboard: React.FC<{ onBackToTraveler?: () => void }> = ({ on
                         }}
                         className={cn(
                           "bg-slate-50 hover:bg-slate-100 border rounded-2xl p-4 transition-all duration-200 cursor-pointer flex justify-between items-start gap-4",
-                          msg.status === 'unread' ? "border-l-4 border-l-red-500 border-slate-100" : "border-slate-100"
+                          msg.status === 'unread' ? "border-red-300 shadow-xs bg-white" : "border-slate-200/60"
                         )}
                       >
                         <div className="space-y-1 min-w-0 flex-1">

@@ -1027,7 +1027,7 @@ function AppContent() {
 
                   <div className="mb-12">
                     <h2 className="text-2xl font-bold mb-4">Description</h2>
-                    <div className="bg-slate-50 p-6 rounded-2xl border-l-4 border-red-500 relative">
+                    <div className="bg-slate-50/70 p-6 rounded-2xl border border-slate-200/50 relative">
                       <p className={cn("text-slate-600 leading-relaxed text-lg italic transition-all duration-300 overflow-hidden", !isDescriptionExpanded ? "max-h-32 sm:max-h-none" : "max-h-[1000px]")}>
                         {selectedResidence.description}
                       </p>
@@ -1388,7 +1388,7 @@ function AppContent() {
                         return (
                           <>
                             {/* Note détaillée sur les charges */}
-                            <div className="p-4 bg-slate-900 rounded-2xl mb-6 border-l-4 border-red-500 shadow-lg">
+                            <div className="p-4 bg-slate-950 rounded-2xl mb-6 border border-slate-800 shadow-lg">
                               <p className="text-[10px] font-black text-red-400 uppercase tracking-widest mb-3 flex items-center gap-2">
                                 <ShieldAlert size={12} />
                                 Récapitulatif des charges :
