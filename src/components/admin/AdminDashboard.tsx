@@ -1098,6 +1098,7 @@ export const AdminDashboard: React.FC<{ onBackToTraveler?: () => void }> = ({ on
         isVerified: true,
         verificationStatus: 'verified'
       }) });
+      await reloadData();
       logAction(`Identité certifiée et validée pour l'utilisateur ${displayName} (${email})`);
       triggerSuccess(`Compte de ${displayName} vérifié et certifié !`);
     } catch (err) {
@@ -1110,12 +1111,12 @@ export const AdminDashboard: React.FC<{ onBackToTraveler?: () => void }> = ({ on
     try {
       const updates: any = { 
         isVerified: false,
-        verificationStatus: 'none',
+        verificationStatus: 'rejected',
         idCardUrl: "" // Reset so they can retake photo or scan
       };
-      await updateUserProfile(uid, updates);
-                await reloadData();
-      logAction(`Identité REFUSÉE et réinitialisée pour l'utilisateur ${displayName} (${email})`);
+      await apiFetch(`/api/users/${uid}`, { method: 'PUT', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${localStorage.getItem('auth_token')}` }, body: JSON.stringify(updates) });
+      await reloadData();
+      logAction(`Identité REFUSÉE pour l'utilisateur ${displayName} (${email})`);
       triggerSuccess(`Demande de ${displayName} refusée.`);
     } catch (err) {
       console.error(err);

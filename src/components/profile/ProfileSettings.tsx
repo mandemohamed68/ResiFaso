@@ -23,6 +23,10 @@ import { requestNotificationPermission, showNotification } from '../../lib/notif
 export const ProfileSettings: React.FC = () => {
   const { profile, user, refreshProfile, logOut } = useAuth();
   const { addToast } = useToast();
+
+  useEffect(() => {
+    refreshProfile();
+  }, []);
   const [activeTab, setActiveTab] = useState<Tab>('personal');
   const [isSaving, setIsSaving] = useState(false);
   const [saveSuccess, setSaveSuccess] = useState<string | null>(null);

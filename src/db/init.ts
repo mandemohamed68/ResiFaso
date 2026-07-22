@@ -114,13 +114,18 @@ export const initDatabase = async () => {
         AND COLUMN_NAME IN ('password_hash', 'password')
       `);
 
-      const hasPasswordHash = pwColumns.some((c: any) => (c.columnName || c.COLUMN_NAME) === 'password_hash');
-      const hasPassword = pwColumns.some((c: any) => (c.columnName || c.COLUMN_NAME) === 'password');
+      const getColName = (c: any) => String(c.columnName || c.COLUMN_NAME || c.column_name || '').toLowerCase();
+      const hasPasswordHash = pwColumns.some((c: any) => getColName(c) === 'password_hash');
+      const hasPassword = pwColumns.some((c: any) => getColName(c) === 'password');
 
-      if (!hasPasswordHash && hasPassword) {
-        await executeSql("ALTER TABLE users CHANGE COLUMN password password_hash VARCHAR(255)");
-      } else if (!hasPasswordHash && !hasPassword) {
-        await executeSql("ALTER TABLE users ADD COLUMN password_hash VARCHAR(255)");
+      try {
+        if (!hasPasswordHash && hasPassword) {
+          await executeSql("ALTER TABLE users CHANGE COLUMN password password_hash VARCHAR(255)");
+        } else if (!hasPasswordHash && !hasPassword) {
+          await executeSql("ALTER TABLE users ADD COLUMN password_hash VARCHAR(255)");
+        }
+      } catch (e) {
+        // Ignored if column already exists or changed
       }
 
       // Ensure all extra user columns exist for MariaDB

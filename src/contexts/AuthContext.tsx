@@ -52,6 +52,25 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   useEffect(() => {
     fetchProfile();
+
+    // Auto sync profile status live every 8s when authenticated
+    const interval = setInterval(() => {
+      if (localStorage.getItem('auth_token')) {
+        fetchProfile();
+      }
+    }, 8000);
+
+    const handleFocus = () => {
+      if (localStorage.getItem('auth_token')) {
+        fetchProfile();
+      }
+    };
+    window.addEventListener('focus', handleFocus);
+
+    return () => {
+      clearInterval(interval);
+      window.removeEventListener('focus', handleFocus);
+    };
   }, []);
 
   useEffect(() => {

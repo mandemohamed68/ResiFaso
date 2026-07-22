@@ -9,13 +9,18 @@ let fcmInitialized = false;
 try {
   let serviceAccount: any;
 
-  if (process.env.FIREBASE_SERVICE_ACCOUNT) {
+  if (process.env.FIREBASE_SERVICE_ACCOUNT && process.env.FIREBASE_SERVICE_ACCOUNT.trim()) {
     try {
-      serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT);
+      serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT.trim());
     } catch (e: any) {
-      // In case it is base64 encoded to avoid multiline issues in some hosters
-      const decoded = Buffer.from(process.env.FIREBASE_SERVICE_ACCOUNT, "base64").toString("utf8");
-      serviceAccount = JSON.parse(decoded);
+      try {
+        const decoded = Buffer.from(process.env.FIREBASE_SERVICE_ACCOUNT.trim(), "base64").toString("utf8");
+        serviceAccount = JSON.parse(decoded);
+      } catch (e2) {
+        // Fallback to local file if environment variable is invalid JSON
+        const serviceAccountPath = path.join(process.cwd(), "resifaso-firebase-adminsdk-fbsvc-23372c78ad.json");
+        serviceAccount = JSON.parse(readFileSync(serviceAccountPath, "utf8"));
+      }
     }
   } else {
     const serviceAccountPath = path.join(process.cwd(), "resifaso-firebase-adminsdk-fbsvc-23372c78ad.json");
