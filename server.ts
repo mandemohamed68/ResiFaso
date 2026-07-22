@@ -28,7 +28,7 @@ const PROCESSOR_CORIS = "11702302492453862";
 const SAPPAY_BASE_PUBLIC_SANDBOX = "https://sandbox.sappay.net/api/v1";
 const SAPPAY_BASE_CHECKOUT_SANDBOX = "https://sandbox.sappay.net/api/v1/checkout";
 const SAPPAY_BASE_PUBLIC_PROD = "https://api.prod.sappay.net/api/public";
-const SAPPAY_BASE_CHECKOUT_PROD = "https://api.prod.sappay.net/api/checkout";
+const SAPPAY_BASE_CHECKOUT_PROD = "https://api.prod.sappay.net/api/public/checkout";
 
 // Récupération des identifiants Sappay depuis la base (ou .env)
 async function getSappayCredentials() {
@@ -1945,7 +1945,7 @@ async function startServer() {
         });
       }
 
-      const targetUrl = urls.checkoutBase.replace(/\/$/, '') + '/get-otp';
+      const targetUrl = urls.checkoutBase.replace(/\/$/, '') + '/get-otp/';
       console.log(`[Sappay OTP] Requesting: ${targetUrl} | Invoice: ${invoice_id}`);
       
       const response = await fetch(targetUrl, {
@@ -2006,7 +2006,7 @@ async function startServer() {
       };
       if (trans_id) payload.trans_id = trans_id;
 
-      const targetUrl = urls.checkoutBase.replace(/\/$/, '') + '/perform';
+      const targetUrl = urls.checkoutBase.replace(/\/$/, '') + '/perform/';
       console.log(`[Sappay Perform] Requesting: ${targetUrl} | Invoice: ${invoice_id} | OTP: ${otp}`);
       
       const response = await fetch(targetUrl, {
