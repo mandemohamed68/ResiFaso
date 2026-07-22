@@ -13,5 +13,15 @@ if (fs.existsSync(logoPath)) {
   console.log('Assets prepared for Capacitor in assets/ directory.');
 } else {
   console.error('Error: public/logoresifaso.png not found');
-  process.exit(1);
 }
+
+const googleServicesSrc = path.join(__dirname, 'google-services.json');
+const googleServicesDest = path.join(__dirname, 'android', 'app', 'google-services.json');
+if (fs.existsSync(googleServicesSrc)) {
+  const androidAppDir = path.join(__dirname, 'android', 'app');
+  if (fs.existsSync(androidAppDir)) {
+    fs.copyFileSync(googleServicesSrc, googleServicesDest);
+    console.log('google-services.json copied to android/app/google-services.json successfully.');
+  }
+}
+

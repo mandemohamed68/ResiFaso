@@ -5,6 +5,7 @@ import dotenv from "dotenv";
 import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
 import cors from "cors";
+import nodemailer from "nodemailer";
 import { executeSql } from './src/db/index';
 import { initDatabase } from './src/db/init';
 import { formatSqlValue } from './src/db/queries';
@@ -338,7 +339,7 @@ async function startServer() {
       }
 
       const pwdHash = user.passwordHash || user.password_hash;
-      if (!pwdHash) return res.status(401).json({ error: "Compte sans mot de passe local." });
+      if (!pwdHash) return res.status(401).json({ error: "Ce compte n'a pas encore de mot de passe local. Veuillez cliquer sur 'Oublié ?' pour en définir un." });
 
       const match = await bcrypt.compare(password, pwdHash);
       if (!match) return res.status(401).json({ error: "Identifiants invalides" });
@@ -2083,12 +2084,49 @@ async function startServer() {
       await executeSql("INSERT INTO password_resets (email, token, expires_at) VALUES (?, ?, ?)", [email, token, expiresAtStr]);
       
       console.log(`[PASSWORD RESET] Code generated for ${email}: ${token}`);
+
+      let emailSent = false;
+      if (process.env.SMTP_HOST && process.env.SMTP_USER && process.env.SMTP_PASS) {
+        try {
+          const transporter = nodemailer.createTransport({
+            host: process.env.SMTP_HOST,
+            port: Number(process.env.SMTP_PORT || 587),
+            secure: process.env.SMTP_SECURE === 'true',
+            auth: {
+              user: process.env.SMTP_USER,
+              pass: process.env.SMTP_PASS,
+            },
+          });
+
+          await transporter.sendMail({
+            from: process.env.SMTP_FROM || `"ResiFaso" <${process.env.SMTP_USER}>`,
+            to: email,
+            subject: "ResiFaso - Code de réinitialisation de votre mot de passe",
+            html: `
+              <div style="font-family: sans-serif; max-width: 500px; margin: 0 auto; padding: 20px; border: 1px solid #e2e8f0; border-radius: 12px;">
+                <h2 style="color: #dc2626; margin-top: 0;">ResiFaso</h2>
+                <p>Bonjour,</p>
+                <p>Voici votre code de réinitialisation de mot de passe :</p>
+                <div style="background-color: #f8fafc; border: 1px dashed #cbd5e1; padding: 15px; border-radius: 8px; text-align: center; margin: 20px 0;">
+                  <span style="font-size: 28px; font-weight: bold; letter-spacing: 5px; color: #0f172a;">${token}</span>
+                </div>
+                <p style="font-size: 13px; color: #64748b;">Ce code est valable pendant 1 heure.</p>
+                <p style="font-size: 13px; color: #64748b;">Si vous n'avez pas demandé de réinitialisation, veuillez ignorer cet email.</p>
+              </div>
+            `
+          });
+          emailSent = true;
+          console.log(`[PASSWORD RESET] Email sent successfully to ${email}`);
+        } catch (mailErr) {
+          console.error(`[PASSWORD RESET] SMTP Error:`, mailErr);
+        }
+      }
       
-      // We also return the token directly in development / preview mode so that the user can test the reset without real SMTP configured!
       res.json({ 
         success: true, 
-        message: "Un code de réinitialisation a été généré.",
-        code: token, // This lets them easily test on the UI
+        message: emailSent ? "Un email avec votre code de réinitialisation a été envoyé." : "Un code de réinitialisation a été généré.",
+        code: token, // Returned for testing / preview UI ease
+        emailSent,
         email
       });
     } catch (err: any) {
