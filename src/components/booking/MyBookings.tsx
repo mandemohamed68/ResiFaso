@@ -1037,10 +1037,10 @@ export const MyBookings: React.FC<{ onContactHost: (ownerId: string, resId: stri
                     </div>
 
                     {/* Action Panel */}
-                    <div className="flex flex-wrap items-center gap-2 w-full lg:w-auto">
+                    <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 w-full lg:w-auto">
                       <button 
                         onClick={() => setSelectedBookingForDetail(booking)}
-                        className="flex-1 sm:flex-none justify-center px-3 sm:px-4 py-2.5 bg-red-50 border border-red-100 text-red-600 rounded-xl font-bold text-xs hover:bg-red-100 transition-colors flex items-center gap-1.5 cursor-pointer text-center whitespace-nowrap"
+                        className="w-full sm:w-auto justify-center px-3 sm:px-4 py-2.5 bg-red-50 border border-red-100 text-red-600 rounded-xl font-bold text-xs hover:bg-red-100 transition-colors flex items-center gap-1.5 cursor-pointer text-center"
                       >
                         <Clock size={14} className="text-red-600 shrink-0" />
                         <span>Détails & Suivi</span>
@@ -1048,7 +1048,7 @@ export const MyBookings: React.FC<{ onContactHost: (ownerId: string, resId: stri
 
                       <button 
                         onClick={() => onContactHost(booking.ownerId, booking.residenceId)}
-                        className="flex-1 sm:flex-none justify-center px-3 sm:px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl font-bold text-xs text-slate-700 hover:bg-slate-100 transition-colors flex items-center gap-2 cursor-pointer text-center whitespace-nowrap"
+                        className="w-full sm:w-auto justify-center px-3 sm:px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl font-bold text-xs text-slate-700 hover:bg-slate-100 transition-colors flex items-center gap-2 cursor-pointer text-center"
                       >
                         <MessageSquare size={14} className="text-red-600 shrink-0" />
                         <span>Discuter avec l'hôte</span>
@@ -1057,7 +1057,7 @@ export const MyBookings: React.FC<{ onContactHost: (ownerId: string, resId: stri
                       {booking.bookingStatus === 'completed' && (
                         <button 
                           onClick={() => setSelectedBookingForReview(booking)}
-                          className="flex-1 sm:flex-none justify-center px-3 sm:px-4 py-2.5 bg-yellow-50 border border-yellow-200 rounded-xl font-bold text-xs text-yellow-700 hover:bg-yellow-100 transition-colors flex items-center gap-2 cursor-pointer text-center whitespace-nowrap"
+                          className="w-full sm:w-auto justify-center px-3 sm:px-4 py-2.5 bg-yellow-50 border border-yellow-200 rounded-xl font-bold text-xs text-yellow-700 hover:bg-yellow-100 transition-colors flex items-center gap-2 cursor-pointer text-center"
                         >
                           <Star size={14} className="fill-yellow-500 text-yellow-500 shrink-0" />
                           <span>Laisser un avis</span>
@@ -1067,7 +1067,7 @@ export const MyBookings: React.FC<{ onContactHost: (ownerId: string, resId: stri
                       {booking.bookingStatus === 'confirmed' && booking.paymentStatus === 'pending' && (
                         <button 
                           onClick={() => setSelectedBookingForPayment(booking)}
-                          className="flex-1 sm:flex-none justify-center px-4 sm:px-5 py-2.5 bg-red-600 hover:bg-red-700 text-white rounded-xl font-bold text-xs shadow-md shadow-red-50 flex items-center gap-2 animate-pulse text-center whitespace-nowrap"
+                          className="w-full sm:w-auto justify-center px-4 sm:px-5 py-2.5 bg-red-600 hover:bg-red-700 text-white rounded-xl font-bold text-xs shadow-md shadow-red-50 flex items-center gap-2 animate-pulse text-center"
                         >
                           <CreditCard size={14} className="shrink-0" />
                           <span>Payer l'Avance</span>
@@ -1077,7 +1077,7 @@ export const MyBookings: React.FC<{ onContactHost: (ownerId: string, resId: stri
                       {booking.paymentStatus === 'advance_paid' && booking.bookingStatus === 'confirmed' && (
                         <button 
                           onClick={() => setSelectedBookingForPayment(booking)}
-                          className="flex-1 sm:flex-none justify-center px-4 sm:px-5 py-2.5 bg-green-600 hover:bg-green-700 text-white rounded-xl font-bold text-xs shadow-md shadow-green-50 flex items-center gap-2 text-center whitespace-nowrap"
+                          className="w-full sm:w-auto justify-center px-4 sm:px-5 py-2.5 bg-green-600 hover:bg-green-700 text-white rounded-xl font-bold text-xs shadow-md shadow-green-50 flex items-center gap-2 text-center"
                         >
                           <CreditCard size={14} className="shrink-0" />
                           <span>Solder le séjour</span>
@@ -1087,7 +1087,7 @@ export const MyBookings: React.FC<{ onContactHost: (ownerId: string, resId: stri
                       {(booking.paymentStatus === 'advance_paid' || booking.paymentStatus === 'fully_paid') && booking.bookingStatus !== 'cancelled' && (
                         <button 
                           onClick={() => setSelectedBookingForInvoice(booking)}
-                          className="flex-1 sm:flex-none justify-center px-4 sm:px-5 py-2.5 bg-slate-800 hover:bg-slate-900 text-white rounded-xl font-bold text-xs shadow-md flex items-center gap-2 text-center whitespace-nowrap"
+                          className="w-full sm:w-auto justify-center px-4 sm:px-5 py-2.5 bg-slate-800 hover:bg-slate-900 text-white rounded-xl font-bold text-xs shadow-md flex items-center gap-2 text-center"
                         >
                           <Download size={14} className="shrink-0" />
                           <span>Reçu</span>
@@ -1097,7 +1097,7 @@ export const MyBookings: React.FC<{ onContactHost: (ownerId: string, resId: stri
                       {(booking.bookingStatus === 'pending' || booking.bookingStatus === 'confirmed') && (
                         <button 
                           onClick={() => setSelectedBookingForCancel(booking)}
-                          className="flex-1 sm:flex-none justify-center px-3 sm:px-4 py-2.5 bg-red-50 hover:bg-red-100 border border-red-200 text-red-700 rounded-xl font-bold text-xs flex items-center gap-1.5 cursor-pointer transition-all text-center whitespace-nowrap"
+                          className="w-full sm:w-auto justify-center px-3 sm:px-4 py-2.5 bg-red-50 hover:bg-red-100 border border-red-200 text-red-700 rounded-xl font-bold text-xs flex items-center gap-1.5 cursor-pointer transition-all text-center"
                         >
                           <X size={14} className="text-red-650 shrink-0" />
                           <span>Annuler</span>

@@ -289,163 +289,308 @@ const BookingTable: React.FC<BookingTableProps> = ({
   }, [bookings]);
 
   return (
-    <div className="overflow-x-auto">
-      <table className="w-full text-left border-collapse">
-        <thead>
-          <tr className="border-b border-slate-50 text-[10px] font-black text-slate-400 uppercase tracking-widest bg-slate-50/40">
-            <th className="py-5 px-6">ID Voyage</th>
-            <th className="py-5 px-6">Logement</th>
-            <th className="py-5 px-6">Dates demandées</th>
-            <th className="py-5 px-6">Financier</th>
-            <th className="py-5 px-6">Statut</th>
-            {!isPast && <th className="py-5 px-6 text-center">Actions décisives</th>}
-          </tr>
-        </thead>
-        <tbody className="divide-y divide-slate-50 text-sm font-bold text-slate-700">
-          {bookings.slice((currentPage - 1) * 50, currentPage * 50).map(b => {
-             const res = residences.find(r => r.id === b.residenceId);
-             let verifStatus: Record<string, boolean> = {};
-             try {
-               if (b.verificationsStatus) {
-                 verifStatus = typeof b.verificationsStatus === 'string'
-                   ? JSON.parse(b.verificationsStatus)
-                   : b.verificationsStatus;
-               }
-             } catch (e) {
-               console.error(e);
+    <div className="w-full">
+      {/* Mobile list view - visible only on small screens */}
+      <div className="block md:hidden divide-y divide-slate-100">
+        {bookings.slice((currentPage - 1) * 50, currentPage * 50).map(b => {
+           const res = residences.find(r => r.id === b.residenceId);
+           let verifStatus: Record<string, boolean> = {};
+           try {
+             if (b.verificationsStatus) {
+               verifStatus = typeof b.verificationsStatus === 'string'
+                 ? JSON.parse(b.verificationsStatus)
+                 : b.verificationsStatus;
              }
-             const requiredIds = ['id_valid', 'age_check', 'name_match', 'contract_sign'];
-             const allVerified = requiredIds.every(id => !!verifStatus[id]);
+           } catch (e) {
+             console.error(e);
+           }
+           const requiredIds = ['id_valid', 'age_check', 'name_match', 'contract_sign'];
+           const allVerified = requiredIds.every(id => !!verifStatus[id]);
 
-             return (
-              <tr key={b.id}>
-                <td className="py-4 px-6">
-                  <span className="block font-black text-slate-900">ID: {b.id.slice(0, 8)}</span>
-                  <span className="text-[10px] text-slate-400 font-bold uppercase">Voyageur: {b.clientName || b.clientPhone || b.clientId.slice(0, 5)}</span>
-                  <div className="flex items-center gap-2 mt-1.5">
-                  <button
-                    onClick={() => setSelectedBookingForDetails(b)}
-                    className="flex items-center gap-1 bg-slate-50 hover:bg-red-50 hover:text-red-650 border border-slate-200 hover:border-red-100 rounded-lg text-[9px] font-black uppercase tracking-wider transition-all cursor-pointer w-fit p-1 px-1.5"
-                  >
-                    <Eye size={12} className="text-red-600" />
-                    Détails
-                  </button>
-                  <button
-                    onClick={() => setSelectedBookingForVerifications(b)}
-                    className={cn(
-                      "flex items-center gap-1 border rounded-lg text-[9px] font-black uppercase tracking-wider transition-all cursor-pointer w-fit p-1 px-1.5",
-                      allVerified 
-                        ? "bg-emerald-50 text-emerald-700 hover:bg-emerald-100 border-emerald-200" 
-                        : "bg-amber-50 text-amber-700 hover:bg-amber-100 border-amber-200"
-                    )}
-                  >
-                    {allVerified ? <ShieldCheck size={12} className="text-emerald-600" /> : <ShieldAlert size={12} />}
-                    Vérifications
-                  </button>
-                  </div>
-                </td>
-                <td className="py-4 px-6">
-                  <span className="block font-bold text-slate-800 text-xs truncate max-w-[150px]">{res?.title || "Logement Supprimé"}</span>
-                </td>
-                <td className="py-4 px-6 font-semibold">
-                  Du {formatDateFr(b.checkIn)} au {formatDateFr(b.checkOut)}
-                </td>
-                <td className="py-4 px-6">
-                  <span className="block font-black text-slate-950">{formatCurrency(b.totalPrice)} F CFA</span>
-                  <div className="flex flex-col">
-                    {b.paymentStatus === 'fully_paid' ? (
-                      <span className="text-[10px] font-black text-green-600 uppercase">Soldé (100%)</span>
-                    ) : b.paymentStatus === 'advance_paid' ? (
-                      <span className="text-[10px] font-black text-blue-600 uppercase">Acompte Payé: {formatCurrency(b.advancePaid)} F</span>
-                    ) : (
-                      <span className="text-[10px] font-black text-red-500 uppercase">Avance Due: {formatCurrency(b.advancePaid)} F</span>
-                    )}
-                  </div>
-                </td>
-                <td className="py-4 px-6">
-                  <div className="flex flex-col gap-1 items-start">
-                    {b.bookingStatus === 'pending' && <span className="px-2.5 py-1 bg-amber-50 text-amber-700 rounded-full text-[9px] font-black uppercase">En Attente</span>}
-                    {b.bookingStatus === 'confirmed' && <span className="px-2.5 py-1 bg-green-50 text-green-700 rounded-full text-[9px] font-black uppercase">Approuvé</span>}
-                    {b.bookingStatus === 'cancelled' && <span className="px-2.5 py-1 bg-red-50 text-red-700 rounded-full text-[9px] font-black uppercase">Décliné</span>}
-                    {b.bookingStatus === 'completed' && <span className="px-2.5 py-1 bg-slate-100 text-slate-500 rounded-full text-[9px] font-black uppercase">Terminé</span>}
-                    
-                    {b.stayStatus === 'ongoing' && (
-                      <span className="px-2 py-0.5 bg-blue-50 text-blue-700 rounded text-[8px] font-black uppercase tracking-wider animate-pulse border border-blue-100">➡️ Séjour en cours</span>
-                    )}
-                    {b.stayStatus === 'completed' && (
-                      <span className="px-2 py-0.5 bg-slate-100 text-slate-600 rounded text-[8px] font-black uppercase tracking-wider">✔️ Séjour achevé</span>
-                    )}
-                  </div>
-                </td>
-                {!isPast && (
+           return (
+             <div key={b.id} className="p-5 space-y-4">
+               {/* Top info and status */}
+               <div className="flex justify-between items-start">
+                 <div>
+                   <span className="block font-black text-slate-900 text-xs sm:text-sm">ID: {b.id.slice(0, 8)}</span>
+                   <span className="text-[10px] text-slate-400 font-bold uppercase block mt-0.5">Voyageur: {b.clientName || b.clientPhone || b.clientId.slice(0, 5)}</span>
+                 </div>
+                 <div className="flex flex-col gap-1 items-end">
+                   {b.bookingStatus === 'pending' && <span className="px-2 py-0.5 bg-amber-50 text-amber-700 rounded-full text-[9px] font-black uppercase">En Attente</span>}
+                   {b.bookingStatus === 'confirmed' && <span className="px-2 py-0.5 bg-green-50 text-green-700 rounded-full text-[9px] font-black uppercase">Approuvé</span>}
+                   {b.bookingStatus === 'cancelled' && <span className="px-2 py-0.5 bg-red-50 text-red-700 rounded-full text-[9px] font-black uppercase">Décliné</span>}
+                   {b.bookingStatus === 'completed' && <span className="px-2 py-0.5 bg-slate-100 text-slate-500 rounded-full text-[9px] font-black uppercase">Terminé</span>}
+                   {b.stayStatus === 'ongoing' && (
+                     <span className="px-1.5 py-0.5 bg-blue-50 text-blue-700 rounded text-[8px] font-black uppercase tracking-wider animate-pulse border border-blue-100">➡️ Séjour en cours</span>
+                   )}
+                   {b.stayStatus === 'completed' && (
+                     <span className="px-1.5 py-0.5 bg-slate-100 text-slate-600 rounded text-[8px] font-black uppercase tracking-wider">✔️ Séjour achevé</span>
+                   )}
+                 </div>
+               </div>
+
+               {/* Mid content block */}
+               <div className="grid grid-cols-2 gap-x-4 gap-y-3.5 text-xs bg-slate-50/50 p-3.5 rounded-2xl border border-slate-100/50">
+                 <div>
+                   <span className="block text-[8px] font-black text-slate-400 uppercase tracking-widest font-mono">Logement</span>
+                   <span className="font-bold text-slate-800 block truncate max-w-[130px]">{res?.title || "Logement Supprimé"}</span>
+                 </div>
+                 <div>
+                   <span className="block text-[8px] font-black text-slate-400 uppercase tracking-widest font-mono">Financier</span>
+                   <span className="block font-black text-slate-950">{formatCurrency(b.totalPrice)} F CFA</span>
+                   <span className="block text-[9px] text-slate-500 font-bold uppercase mt-0.5">
+                     {b.paymentStatus === 'fully_paid' ? 'Soldé (100%)' : b.paymentStatus === 'advance_paid' ? `Acompte: ${formatCurrency(b.advancePaid)} F` : `Avance due: ${formatCurrency(b.advancePaid)} F`}
+                   </span>
+                 </div>
+                 <div className="col-span-2">
+                   <span className="block text-[8px] font-black text-slate-400 uppercase tracking-widest font-mono">Dates de séjour</span>
+                   <span className="font-semibold text-slate-700">Du {formatDateFr(b.checkIn)} au {formatDateFr(b.checkOut)}</span>
+                 </div>
+               </div>
+
+               {/* Lower navigation buttons */}
+               <div className="flex gap-2">
+                 <button
+                   onClick={() => setSelectedBookingForDetails(b)}
+                   className="flex-1 justify-center items-center gap-1.5 bg-white hover:bg-red-50 hover:text-red-650 border border-slate-200 hover:border-red-100 rounded-xl text-[10px] font-black uppercase tracking-wider transition-all cursor-pointer py-2.5 flex"
+                 >
+                   <Eye size={12} className="text-red-600" />
+                   Détails
+                 </button>
+                 <button
+                   onClick={() => setSelectedBookingForVerifications(b)}
+                   className={cn(
+                     "flex-1 justify-center items-center gap-1.5 border rounded-xl text-[10px] font-black uppercase tracking-wider transition-all cursor-pointer py-2.5 flex",
+                     allVerified 
+                       ? "bg-emerald-50 text-emerald-700 hover:bg-emerald-100 border-emerald-200" 
+                       : "bg-amber-50 text-amber-700 hover:bg-amber-100 border-amber-200"
+                   )}
+                 >
+                   {allVerified ? <ShieldCheck size={12} className="text-emerald-600" /> : <ShieldAlert size={12} />}
+                   Vérifications
+                 </button>
+               </div>
+
+               {/* Decisive Actions */}
+               {!isPast && (
+                 <div className="pt-1">
+                   {b.bookingStatus === 'pending' ? (
+                     <div className="flex gap-2">
+                       <button
+                         onClick={() => handleApprove(b)}
+                         className="flex-1 py-2.5 bg-green-600 hover:bg-green-700 text-white hover:scale-[1.01] rounded-xl transition-all font-black text-xs uppercase flex items-center justify-center gap-1.5 shadow-sm shadow-green-100"
+                       >
+                         <Check size={14} />
+                         Accepter
+                       </button>
+                       <button
+                         onClick={() => handleDecline(b)}
+                         className="flex-1 py-2.5 bg-red-600 hover:bg-red-700 text-white hover:scale-[1.01] rounded-xl transition-all font-black text-xs uppercase flex items-center justify-center gap-1.5 shadow-sm shadow-red-100"
+                       >
+                         <X size={14} />
+                         Refuser
+                       </button>
+                     </div>
+                   ) : (
+                     <div className="space-y-2">
+                       {b.bookingStatus === 'confirmed' && b.paymentStatus !== 'fully_paid' && (
+                         <button
+                           onClick={() => handleMarkAsPaid(b)}
+                           disabled={!!isProcessingPayment}
+                           className="w-full py-2.5 bg-amber-500 hover:bg-amber-600 text-white rounded-xl text-xs font-black uppercase tracking-wider transition-all flex items-center justify-center gap-1.5 disabled:opacity-50 cursor-pointer shadow-sm shadow-amber-100"
+                         >
+                           <Wallet size={14} />
+                           {isProcessingPayment === b.id ? 'Traitement...' : 'Confirmer solde'}
+                         </button>
+                       )}
+
+                       {b.bookingStatus === 'confirmed' && (!b.stayStatus || b.stayStatus === 'pending') && (
+                         <button
+                           onClick={() => handleStartStay(b)}
+                           className="w-full py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-black uppercase tracking-wider transition-all flex items-center justify-center gap-1.5 cursor-pointer shadow-sm shadow-blue-100"
+                         >
+                           <ArrowRight size={14} className="text-white animate-pulse" />
+                           Débuter séjour
+                         </button>
+                       )}
+
+                       {b.stayStatus === 'ongoing' && (
+                         <button
+                           onClick={() => handleEndStay(b)}
+                           className="w-full py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-black uppercase tracking-wider transition-all flex items-center justify-center gap-1.5 cursor-pointer shadow-sm shadow-indigo-100"
+                         >
+                           <Check size={14} className="text-white" />
+                           Achever séjour
+                         </button>
+                       )}
+                     </div>
+                   )}
+                 </div>
+               )}
+             </div>
+           );
+        })}
+      </div>
+
+      {/* Desktop Table Layout - visible only on medium screens and up */}
+      <div className="hidden md:block overflow-x-auto">
+        <table className="w-full text-left border-collapse">
+          <thead>
+            <tr className="border-b border-slate-50 text-[10px] font-black text-slate-400 uppercase tracking-widest bg-slate-50/40">
+              <th className="py-5 px-6">ID Voyage</th>
+              <th className="py-5 px-6">Logement</th>
+              <th className="py-5 px-6">Dates demandées</th>
+              <th className="py-5 px-6">Financier</th>
+              <th className="py-5 px-6">Statut</th>
+              {!isPast && <th className="py-5 px-6 text-center">Actions décisives</th>}
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-slate-50 text-sm font-bold text-slate-700">
+            {bookings.slice((currentPage - 1) * 50, currentPage * 50).map(b => {
+               const res = residences.find(r => r.id === b.residenceId);
+               let verifStatus: Record<string, boolean> = {};
+               try {
+                 if (b.verificationsStatus) {
+                   verifStatus = typeof b.verificationsStatus === 'string'
+                     ? JSON.parse(b.verificationsStatus)
+                     : b.verificationsStatus;
+                 }
+               } catch (e) {
+                 console.error(e);
+               }
+               const requiredIds = ['id_valid', 'age_check', 'name_match', 'contract_sign'];
+               const allVerified = requiredIds.every(id => !!verifStatus[id]);
+
+               return (
+                <tr key={b.id}>
                   <td className="py-4 px-6">
-                    <div className="flex items-center justify-center gap-2">
-                    {b.bookingStatus === 'pending' ? (
-                      <>
-                        <button
-                          onClick={() => handleApprove(b)}
-                          className="p-2 bg-green-50 text-green-600 border border-green-100 hover:bg-green-100 rounded-xl transition-all"
-                          title="Accepter la demande"
-                        >
-                          <Check size={16} />
-                        </button>
-                        <button
-                          onClick={() => handleDecline(b)}
-                          className="p-2 bg-red-50 text-red-600 border border-red-100 hover:bg-red-100 rounded-xl transition-all"
-                          title="Refuser la demande"
-                        >
-                          <X size={16} />
-                        </button>
-                      </>
-                    ) : (
-                      <div className="flex flex-col gap-1 w-full items-center min-w-[130px]">
-                        {b.bookingStatus === 'confirmed' && b.paymentStatus !== 'fully_paid' && (
-                          <button
-                            onClick={() => handleMarkAsPaid(b)}
-                            disabled={!!isProcessingPayment}
-                            className="w-full px-2 py-1 bg-amber-50 text-amber-700 border border-amber-200 rounded-lg text-[9px] font-black uppercase tracking-wider hover:bg-amber-100 transition-all flex items-center justify-center gap-1 disabled:opacity-50 cursor-pointer"
-                          >
-                            <Wallet size={12} />
-                            {isProcessingPayment === b.id ? 'Traitement...' : 'Confirmer solde'}
-                          </button>
-                        )}
-
-                        {b.bookingStatus === 'confirmed' && (!b.stayStatus || b.stayStatus === 'pending') && (
-                          <button
-                            onClick={() => handleStartStay(b)}
-                            className="w-full px-2 py-1 bg-blue-50 text-blue-700 border border-blue-200 rounded-lg text-[9px] font-black uppercase tracking-wider hover:bg-blue-100 transition-all flex items-center justify-center gap-1 cursor-pointer"
-                          >
-                            <ArrowRight size={12} className="text-blue-600 animate-pulse" />
-                            Débuter séjour
-                          </button>
-                        )}
-
-                        {b.stayStatus === 'ongoing' && (
-                          <button
-                            onClick={() => handleEndStay(b)}
-                            className="w-full px-2 py-1 bg-indigo-50 text-indigo-700 border border-indigo-200 rounded-lg text-[9px] font-black uppercase tracking-wider hover:bg-indigo-100 transition-all flex items-center justify-center gap-1 cursor-pointer"
-                          >
-                            <Check size={12} className="text-indigo-600" />
-                            Achever séjour
-                          </button>
-                        )}
-
-                        {b.bookingStatus === 'completed' && (
-                          <span className="text-[10px] text-slate-400 font-extrabold uppercase">Terminé</span>
-                        )}
-                        {b.bookingStatus === 'cancelled' && (
-                          <span className="text-[10px] text-red-500 font-extrabold uppercase">Annulé</span>
-                        )}
-                      </div>
-                    )}
+                    <span className="block font-black text-slate-900">ID: {b.id.slice(0, 8)}</span>
+                    <span className="text-[10px] text-slate-400 font-bold uppercase">Voyageur: {b.clientName || b.clientPhone || b.clientId.slice(0, 5)}</span>
+                    <div className="flex items-center gap-2 mt-1.5">
+                    <button
+                      onClick={() => setSelectedBookingForDetails(b)}
+                      className="flex items-center gap-1 bg-slate-50 hover:bg-red-50 hover:text-red-650 border border-slate-200 hover:border-red-100 rounded-lg text-[9px] font-black uppercase tracking-wider transition-all cursor-pointer w-fit p-1 px-1.5"
+                    >
+                      <Eye size={12} className="text-red-600" />
+                      Détails
+                    </button>
+                    <button
+                      onClick={() => setSelectedBookingForVerifications(b)}
+                      className={cn(
+                        "flex items-center gap-1 border rounded-lg text-[9px] font-black uppercase tracking-wider transition-all cursor-pointer w-fit p-1 px-1.5",
+                        allVerified 
+                          ? "bg-emerald-50 text-emerald-700 hover:bg-emerald-100 border-emerald-200" 
+                          : "bg-amber-50 text-amber-700 hover:bg-amber-100 border-amber-200"
+                      )}
+                    >
+                      {allVerified ? <ShieldCheck size={12} className="text-emerald-600" /> : <ShieldAlert size={12} />}
+                      Vérifications
+                    </button>
                     </div>
                   </td>
-                )}
-              </tr>
-            );
-          })}
-        </tbody>
-      </table>
+                  <td className="py-4 px-6">
+                    <span className="block font-bold text-slate-800 text-xs truncate max-w-[150px]">{res?.title || "Logement Supprimé"}</span>
+                  </td>
+                  <td className="py-4 px-6 font-semibold">
+                    Du {formatDateFr(b.checkIn)} au {formatDateFr(b.checkOut)}
+                  </td>
+                  <td className="py-4 px-6">
+                    <span className="block font-black text-slate-950">{formatCurrency(b.totalPrice)} F CFA</span>
+                    <div className="flex flex-col">
+                      {b.paymentStatus === 'fully_paid' ? (
+                        <span className="text-[10px] font-black text-green-600 uppercase">Soldé (100%)</span>
+                      ) : b.paymentStatus === 'advance_paid' ? (
+                        <span className="text-[10px] font-black text-blue-600 uppercase">Acompte Payé: {formatCurrency(b.advancePaid)} F</span>
+                      ) : (
+                        <span className="text-[10px] font-black text-red-500 uppercase">Avance Due: {formatCurrency(b.advancePaid)} F</span>
+                      )}
+                    </div>
+                  </td>
+                  <td className="py-4 px-6">
+                    <div className="flex flex-col gap-1 items-start">
+                      {b.bookingStatus === 'pending' && <span className="px-2.5 py-1 bg-amber-50 text-amber-700 rounded-full text-[9px] font-black uppercase">En Attente</span>}
+                      {b.bookingStatus === 'confirmed' && <span className="px-2.5 py-1 bg-green-50 text-green-700 rounded-full text-[9px] font-black uppercase">Approuvé</span>}
+                      {b.bookingStatus === 'cancelled' && <span className="px-2.5 py-1 bg-red-50 text-red-700 rounded-full text-[9px] font-black uppercase">Décliné</span>}
+                      {b.bookingStatus === 'completed' && <span className="px-2.5 py-1 bg-slate-100 text-slate-500 rounded-full text-[9px] font-black uppercase">Terminé</span>}
+                      
+                      {b.stayStatus === 'ongoing' && (
+                        <span className="px-2 py-0.5 bg-blue-50 text-blue-700 rounded text-[8px] font-black uppercase tracking-wider animate-pulse border border-blue-100">➡️ Séjour en cours</span>
+                      )}
+                      {b.stayStatus === 'completed' && (
+                        <span className="px-2 py-0.5 bg-slate-100 text-slate-600 rounded text-[8px] font-black uppercase tracking-wider">✔️ Séjour achevé</span>
+                      )}
+                    </div>
+                  </td>
+                  {!isPast && (
+                    <td className="py-4 px-6">
+                      <div className="flex items-center justify-center gap-2">
+                      {b.bookingStatus === 'pending' ? (
+                        <>
+                          <button
+                            onClick={() => handleApprove(b)}
+                            className="p-2 bg-green-50 text-green-600 border border-green-100 hover:bg-green-100 rounded-xl transition-all"
+                            title="Accepter la demande"
+                          >
+                            <Check size={16} />
+                          </button>
+                          <button
+                            onClick={() => handleDecline(b)}
+                            className="p-2 bg-red-50 text-red-600 border border-red-100 hover:bg-red-100 rounded-xl transition-all"
+                            title="Refuser la demande"
+                          >
+                            <X size={16} />
+                          </button>
+                        </>
+                      ) : (
+                        <div className="flex flex-col gap-1 w-full items-center min-w-[130px]">
+                          {b.bookingStatus === 'confirmed' && b.paymentStatus !== 'fully_paid' && (
+                            <button
+                              onClick={() => handleMarkAsPaid(b)}
+                              disabled={!!isProcessingPayment}
+                              className="w-full px-2 py-1 bg-amber-50 text-amber-700 border border-amber-200 rounded-lg text-[9px] font-black uppercase tracking-wider hover:bg-amber-100 transition-all flex items-center justify-center gap-1 disabled:opacity-50 cursor-pointer"
+                            >
+                              <Wallet size={12} />
+                              {isProcessingPayment === b.id ? 'Traitement...' : 'Confirmer solde'}
+                            </button>
+                          )}
+
+                          {b.bookingStatus === 'confirmed' && (!b.stayStatus || b.stayStatus === 'pending') && (
+                            <button
+                              onClick={() => handleStartStay(b)}
+                              className="w-full px-2 py-1 bg-blue-50 text-blue-700 border border-blue-200 rounded-lg text-[9px] font-black uppercase tracking-wider hover:bg-blue-100 transition-all flex items-center justify-center gap-1 cursor-pointer"
+                            >
+                              <ArrowRight size={12} className="text-blue-600 animate-pulse" />
+                              Débuter séjour
+                            </button>
+                          )}
+
+                          {b.stayStatus === 'ongoing' && (
+                            <button
+                              onClick={() => handleEndStay(b)}
+                              className="w-full px-2 py-1 bg-indigo-50 text-indigo-700 border border-indigo-200 rounded-lg text-[9px] font-black uppercase tracking-wider hover:bg-indigo-100 transition-all flex items-center justify-center gap-1 cursor-pointer"
+                            >
+                              <Check size={12} className="text-indigo-600" />
+                              Achever séjour
+                            </button>
+                          )}
+
+                          {b.bookingStatus === 'completed' && (
+                            <span className="text-[10px] text-slate-400 font-extrabold uppercase">Terminé</span>
+                          )}
+                          {b.bookingStatus === 'cancelled' && (
+                            <span className="text-[10px] text-red-500 font-extrabold uppercase">Annulé</span>
+                          )}
+                        </div>
+                      )}
+                      </div>
+                    </td>
+                  )}
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
 
       {/* Pagination UI for Bookings */}
       {bookings.length > 50 && (
