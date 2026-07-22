@@ -1884,7 +1884,7 @@ async function startServer() {
         });
       }
 
-      const targetUrl = `${urls.publicBase.replace(/\/$/, '')}/invoice/`;
+      const targetUrl = urls.publicBase.replace(/\/$/, '') + '/invoice/';
       console.log(`[Sappay Init] Requesting: ${targetUrl} | Amount: ${amount}`);
       
       const response = await fetch(targetUrl, {
@@ -1945,7 +1945,7 @@ async function startServer() {
         });
       }
 
-      const targetUrl = `${urls.checkoutBase.replace(/\/$/, '')}/get-otp/`;
+      const targetUrl = urls.checkoutBase.replace(/\/$/, '') + '/get-otp/';
       console.log(`[Sappay OTP] Requesting: ${targetUrl} | Invoice: ${invoice_id}`);
       
       const response = await fetch(targetUrl, {
@@ -2006,7 +2006,7 @@ async function startServer() {
       };
       if (trans_id) payload.trans_id = trans_id;
 
-      const targetUrl = `${urls.checkoutBase.replace(/\/$/, '')}/perform/`;
+      const targetUrl = urls.checkoutBase.replace(/\/$/, '') + '/perform/';
       console.log(`[Sappay Perform] Requesting: ${targetUrl} | Invoice: ${invoice_id} | OTP: ${otp}`);
       
       const response = await fetch(targetUrl, {
