@@ -1192,11 +1192,15 @@ function AppContent() {
                             const isBooked = (selectedResidenceBookings.some((b: any) => {
                               const bCheckIn = (b.checkIn || b.check_in || '').split('T')[0];
                               const bCheckOut = (b.checkOut || b.check_out || '').split('T')[0];
-                              const bStatus = (b.bookingStatus || b.booking_status || '').toLowerCase();
+                              const bStatus = (b.bookingStatus || b.booking_status || b.status || '').toLowerCase();
                               // Considérer comme occupé si la réservation n'est pas annulée ou déclinée
-                              const isActive = bStatus !== 'cancelled' && bStatus !== 'declined' && bStatus !== 'annulé' && bStatus !== 'refusé';
+                              const isActive = !['cancelled', 'declined', 'annulee', 'annulé', 'refusee', 'refusé', 'expired', 'canceled'].includes(bStatus);
                               return isActive && dateStr >= bCheckIn && dateStr <= bCheckOut;
                             })) || (selectedResidence.occupiedDates?.some((d: any) => {
+                              const dStatus = (d.status || d.bookingStatus || d.booking_status || '').toLowerCase();
+                              if (['cancelled', 'declined', 'annulee', 'annulé', 'refusee', 'refusé', 'expired', 'canceled'].includes(dStatus)) {
+                                return false;
+                              }
                               const dFrom = (d.from || d.check_in || '').split('T')[0];
                               const dTo = (d.to || d.check_out || '').split('T')[0];
                               return dFrom && dTo && dateStr >= dFrom && dateStr <= dTo;
@@ -1222,7 +1226,12 @@ function AppContent() {
                         {(() => {
                           const activeBookings = selectedResidenceBookings.filter((b: any) => {
                             const bStatus = (b.bookingStatus || b.booking_status || b.status || '').toLowerCase();
-                            return bStatus !== 'cancelled' && bStatus !== 'declined' && bStatus !== 'annulé' && bStatus !== 'refusé';
+                            return !['cancelled', 'declined', 'annulee', 'annulé', 'refusee', 'refusé', 'expired', 'canceled'].includes(bStatus);
+                          });
+
+                          const activeOccupiedFromResidence = (selectedResidence.occupiedDates || []).filter((d: any) => {
+                            const dStatus = (d.status || d.bookingStatus || d.booking_status || '').toLowerCase();
+                            return !['cancelled', 'declined', 'annulee', 'annulé', 'refusee', 'refusé', 'expired', 'canceled'].includes(dStatus);
                           });
 
                           const occupiedList = [
@@ -1230,7 +1239,7 @@ function AppContent() {
                               from: (b.checkIn || b.check_in || '').split('T')[0],
                               to: (b.checkOut || b.check_out || '').split('T')[0]
                             })),
-                            ...(selectedResidence.occupiedDates || []).map((d: any) => ({
+                            ...activeOccupiedFromResidence.map((d: any) => ({
                               from: (d.from || d.check_in || '').split('T')[0],
                               to: (d.to || d.check_out || '').split('T')[0]
                             }))

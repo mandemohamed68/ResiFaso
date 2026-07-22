@@ -8,6 +8,18 @@ export const initDatabase = async () => {
   // Helper for safe column addition
   const safeAlter = async (table: string, column: string, type: string) => {
     try {
+      if (dbType === 'sqlite') {
+        const cols: any = await executeSql(`PRAGMA table_info(${table})`);
+        if (Array.isArray(cols)) {
+          const exists = cols.some((c: any) => String(c.name || c.Field || c.field || '').toLowerCase() === column.toLowerCase());
+          if (exists) return;
+        }
+      } else if (dbType === 'mariadb') {
+        try {
+          const cols: any = await executeSql(`SHOW COLUMNS FROM ${table} LIKE ?`, [column]);
+          if (Array.isArray(cols) && cols.length > 0) return;
+        } catch (e) {}
+      }
       await executeSql(`ALTER TABLE ${table} ADD COLUMN ${column} ${type}`);
     } catch (err: any) {
       // Silently ignore if column exists

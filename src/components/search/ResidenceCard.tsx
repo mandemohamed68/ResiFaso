@@ -150,6 +150,10 @@ export const ResidenceCard: React.FC<Props> = ({
               d.setDate(d.getDate() + i);
               const dateStr = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
               const isBooked = residence.occupiedDates?.some((occ: any) => {
+                const status = (occ.status || occ.bookingStatus || occ.booking_status || '').toLowerCase();
+                if (['cancelled', 'declined', 'annulee', 'annulé', 'refusee', 'refusé', 'expired', 'canceled'].includes(status)) {
+                  return false;
+                }
                 const dFrom = (occ.from || occ.check_in || '').split('T')[0];
                 const dTo = (occ.to || occ.check_out || '').split('T')[0];
                 return dFrom && dTo && dateStr >= dFrom && dateStr <= dTo;

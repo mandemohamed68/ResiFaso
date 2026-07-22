@@ -1,4 +1,11 @@
 {
+  "name": "ResiFaso",
+  "short_name": "ResiFaso",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#ef2b2d",
+  "description": "Plateforme de réservation de résidences",
   "icons": [
     {
       "src": "../icons/icon-48.webp",

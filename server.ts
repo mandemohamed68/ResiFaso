@@ -223,15 +223,27 @@ async function performSappayPayout(amount: number, phone: string, provider: stri
 async function startServer() {
   if (DB_TYPE !== 'firebase') {
     await initDatabase().catch(err => console.error("Init DB error:", err));
-    // Safe addition of has_accepted_terms if initDatabase missed it
+    // Safe addition of columns if initDatabase missed them
     try {
-      await executeSql("ALTER TABLE users ADD COLUMN has_accepted_terms BOOLEAN DEFAULT 0");
-    } catch (e) {}
-    try {
-      await executeSql("ALTER TABLE withdrawals ADD COLUMN transaction_id VARCHAR(255)");
-    } catch (e) {}
-    try {
-      await executeSql("ALTER TABLE withdrawals ADD COLUMN rejection_reason TEXT");
+      if (DB_TYPE === 'sqlite') {
+        const uCols: any = await executeSql("PRAGMA table_info(users)");
+        if (Array.isArray(uCols) && !uCols.some((c: any) => String(c.name || '').toLowerCase() === 'has_accepted_terms')) {
+          await executeSql("ALTER TABLE users ADD COLUMN has_accepted_terms BOOLEAN DEFAULT 0");
+        }
+        const wCols: any = await executeSql("PRAGMA table_info(withdrawals)");
+        if (Array.isArray(wCols)) {
+          if (!wCols.some((c: any) => String(c.name || '').toLowerCase() === 'transaction_id')) {
+            await executeSql("ALTER TABLE withdrawals ADD COLUMN transaction_id VARCHAR(255)");
+          }
+          if (!wCols.some((c: any) => String(c.name || '').toLowerCase() === 'rejection_reason')) {
+            await executeSql("ALTER TABLE withdrawals ADD COLUMN rejection_reason TEXT");
+          }
+        }
+      } else {
+        try { await executeSql("ALTER TABLE users ADD COLUMN has_accepted_terms BOOLEAN DEFAULT 0"); } catch (e) {}
+        try { await executeSql("ALTER TABLE withdrawals ADD COLUMN transaction_id VARCHAR(255)"); } catch (e) {}
+        try { await executeSql("ALTER TABLE withdrawals ADD COLUMN rejection_reason TEXT"); } catch (e) {}
+      }
     } catch (e) {}
     try {
       if (DB_TYPE === 'mariadb') {
@@ -467,7 +479,7 @@ async function startServer() {
         SELECT id, check_in, check_out, booking_status 
         FROM bookings 
         WHERE residence_id = ? 
-        AND booking_status NOT IN ('cancelled', 'declined')
+        AND LOWER(booking_status) NOT IN ('cancelled', 'declined', 'annulee', 'annulé', 'refusee', 'refusé', 'expired', 'canceled')
       `, [req.params.id]);
       res.json(bookings);
     } catch (err: any) {
@@ -498,7 +510,7 @@ async function startServer() {
       const overlaps = await executeSql(`
         SELECT id, check_in, check_out FROM bookings 
         WHERE residence_id = ? 
-        AND booking_status NOT IN ('cancelled', 'declined')
+        AND LOWER(booking_status) NOT IN ('cancelled', 'declined', 'annulee', 'annulé', 'refusee', 'refusé', 'expired', 'canceled')
         AND (check_in <= ? AND ? <= check_out)
       `, [residenceId, checkOut, checkIn]);
 

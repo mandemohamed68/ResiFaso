@@ -93,7 +93,7 @@ export const getAllResidences = async (ownerId?: string) => {
   const activeBookings = await executeSql(`
     SELECT residence_id, check_in, check_out 
     FROM bookings 
-    WHERE booking_status NOT IN ('cancelled', 'declined')
+    WHERE LOWER(booking_status) NOT IN ('cancelled', 'declined', 'annulee', 'annulé', 'refusee', 'refusé', 'expired', 'canceled')
   `);
 
   const bookingsMap: Record<string, any[]> = {};
@@ -185,7 +185,7 @@ export const getResidenceById = async (id: string) => {
   const bookings = await executeSql(`
     SELECT check_in, check_out 
     FROM bookings 
-    WHERE residence_id = ? AND booking_status NOT IN ('cancelled', 'declined')
+    WHERE residence_id = ? AND LOWER(booking_status) NOT IN ('cancelled', 'declined', 'annulee', 'annulé', 'refusee', 'refusé', 'expired', 'canceled')
   `, [id]);
   
   return {
@@ -258,7 +258,15 @@ export const getAllBookings = async (options: { clientId?: string, ownerId?: str
       b.stay_status as stayStatus, b.checked_in_at as checkedInAt, b.checked_out_at as checkedOutAt, 
       b.verifications_status as verificationsStatus,
       b.created_at as createdAt,
-      u.display_name as clientName
+      u.display_name as clientName,
+      u.phone_number as clientPhone,
+      u.email as clientEmail,
+      u.identity_document_front as clientIdentityDocumentFront,
+      u.identity_document_back as clientIdentityDocumentBack,
+      u.id_card_url as clientIdCardUrl,
+      u.id_number as clientIdNumber,
+      u.id_type as clientIdType,
+      u.id_expiry as clientIdExpiry
     FROM bookings b
     LEFT JOIN users u ON b.client_id = u.uid
   `;
@@ -325,7 +333,15 @@ export const getAllBookings = async (options: { clientId?: string, ownerId?: str
     checkedOutAt: row.checkedOutAt || row.checked_out_at || row.checkedoutat,
     verificationsStatus: row.verificationsStatus || row.verifications_status || row.verificationsstatus,
     createdAt: row.createdAt || row.created_at || row.createdat,
-    clientName: row.clientName || row.client_name || row.clientname
+    clientName: row.clientName || row.client_name || row.clientname,
+    clientPhone: row.clientPhone || row.client_phone || row.phone_number,
+    clientEmail: row.clientEmail || row.client_email || row.email,
+    clientIdentityDocumentFront: row.clientIdentityDocumentFront || row.client_identity_document_front || row.identity_document_front,
+    clientIdentityDocumentBack: row.clientIdentityDocumentBack || row.client_identity_document_back || row.identity_document_back,
+    clientIdCardUrl: row.clientIdCardUrl || row.client_id_card_url || row.id_card_url,
+    clientIdNumber: row.clientIdNumber || row.client_id_number || row.id_number,
+    clientIdType: row.clientIdType || row.client_id_type || row.id_type,
+    clientIdExpiry: row.clientIdExpiry || row.client_id_expiry || row.id_expiry
   }));
 };
 

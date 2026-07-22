@@ -5,6 +5,7 @@
 	"server": {
 		"androidScheme": "https",
 		"hostname": "resifaso.net",
+		"cleartext": true,
 		"allowNavigation": [
 			"resifaso.net",
 			"*.resifaso.net"

@@ -115,6 +115,10 @@ export const dbQuery = async (query: string, params: any[] = []): Promise<any> =
         console.error("SQLite database recovery failed:", recoveryErr);
       }
     }
+    const errMsg = String(err?.message || err || '');
+    if (errMsg.includes('duplicate column name') || errMsg.includes('already exists') || errMsg.includes('Duplicate column')) {
+      throw err;
+    }
     console.error("SQLite Query Error:", err);
     throw err;
   }
