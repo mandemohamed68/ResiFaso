@@ -65,8 +65,8 @@ async function getSappayCredentials() {
 
 async function getSappayBaseUrls() {
   return {
-    publicBase: SAPPAY_BASE_PUBLIC_PROD,
-    checkoutBase: SAPPAY_BASE_CHECKOUT_PROD
+    publicBase: (process.env.SAPPAY_BASE_PUBLIC || SAPPAY_BASE_PUBLIC_PROD).trim(),
+    checkoutBase: (process.env.SAPPAY_BASE_CHECKOUT || SAPPAY_BASE_CHECKOUT_PROD).trim()
   };
 }
 
@@ -1986,7 +1986,8 @@ async function startServer() {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          "Accept": "application/json"
+          "Accept": "application/json",
+          "Authorization": `Bearer ${token}`
         },
         body: JSON.stringify(payload)
       });
