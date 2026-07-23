@@ -1200,6 +1200,7 @@ export const MyBookings: React.FC<{ onContactHost: (ownerId: string, resId: stri
             amount={selectedBookingForPayment.paymentStatus === 'advance_paid' ? (selectedBookingForPayment.totalPrice - selectedBookingForPayment.advancePaid) : selectedBookingForPayment.advancePaid}
             residenceTitle={residencesMap[selectedBookingForPayment.residenceId]?.title || "Hébergement"}
             isTestMode={isTestMode}
+            bookingId={selectedBookingForPayment.id}
             onSuccess={async () => {
               try {
                 const isFinalPayment = selectedBookingForPayment.paymentStatus === 'advance_paid';

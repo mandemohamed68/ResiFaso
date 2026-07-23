@@ -13,6 +13,7 @@ interface Props {
   onSuccess: () => void;
   isTestMode?: boolean;
   utilitiesIncluded?: { water: boolean; electricity: boolean };
+  bookingId?: string;
 }
 
 type Step = 'provider' | 'phone' | 'otp' | 'success';
@@ -25,7 +26,7 @@ const PROCESSOR_IDS: Record<string, string> = {
   coris: "11702302492453862"
 };
 
-export const PaymentModal: React.FC<Props> = ({ isOpen, onClose, amount, residenceTitle, onSuccess, isTestMode, utilitiesIncluded }) => {
+export const PaymentModal: React.FC<Props> = ({ isOpen, onClose, amount, residenceTitle, onSuccess, isTestMode, utilitiesIncluded, bookingId }) => {
   const [step, setStep] = useState<Step>('provider');
   const [provider, setProvider] = useState<Provider | null>(null);
   const [phone, setPhone] = useState('');
@@ -82,7 +83,8 @@ export const PaymentModal: React.FC<Props> = ({ isOpen, onClose, amount, residen
         body: JSON.stringify({
           amount,
           note: `Validation acompte ${residenceTitle}`,
-          email: "client@resifaso.com"
+          email: "client@resifaso.com",
+          bookingId
         })
       });
       

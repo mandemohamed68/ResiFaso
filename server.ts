@@ -1855,10 +1855,14 @@ async function startServer() {
 
   // ---------- SAPPAY – INIT ----------
   app.post(["/api/payment/sappay/init", "/api/payments/sappay/init"], async (req, res) => {
-    const { amount, note, email } = req.body;
+    const { amount, note, email, bookingId } = req.body;
     try {
       const urls = await getSappayBaseUrls();
       const token = await getSappayToken();
+
+      const webhookUrl = bookingId 
+        ? `https://resifaso.net/api/payment/sappay/webhook?booking_id=${bookingId}`
+        : `https://resifaso.net/api/payment/sappay/webhook`;
 
       const payload = {
         type: "SIMPLE",
@@ -1867,7 +1871,11 @@ async function startServer() {
           country: 1
         },
         amount: parseFloat(amount).toFixed(2),
-        note: note || "Validation acompte Residence MEUBLE"
+        note: note || "Validation acompte Residence MEUBLE",
+        callback_url: webhookUrl,
+        webhook_url: webhookUrl,
+        redirect_url: webhookUrl,
+        return_url: webhookUrl
       };
 
       const targetUrl = urls.publicBase.replace(/\/$/, '') + '/invoice/';
@@ -2004,6 +2012,60 @@ async function startServer() {
   // ---------- SAPPAY – WEBHOOK / CALLBACK ----------
   app.all(["/api/payment/sappay/webhook", "/api/payment/sappay/callback", "/api/payments/sappay/webhook"], async (req, res) => {
     console.log("[Sappay Webhook] Notification reçue :", JSON.stringify(req.body || req.query));
+    
+    try {
+      const query = req.query || {};
+      const body = req.body || {};
+      
+      const bookingId = query.booking_id || body.booking_id || query.id || body.id || body.invoice_id || query.invoice_id;
+      
+      // Look for SUCCESS status indicators
+      const status = body.status || body.response?.status || query.status || (body.success === true ? 'SUCCESS' : null);
+      
+      if (bookingId) {
+        console.log(`[Sappay Webhook] Identifiant trouvé : ${bookingId}. Statut : ${status}`);
+        
+        // Let's see if this booking exists in the database
+        const bookings = await executeSql("SELECT * FROM bookings WHERE id = ? OR transaction_id = ?", [bookingId, bookingId]);
+        if (bookings && bookings.length > 0) {
+          const booking = bookings[0];
+          const actualBookingId = booking.id;
+          const oldPaymentStatus = booking.payment_status || booking.paymentStatus || '';
+          
+          if (oldPaymentStatus !== 'paid' && oldPaymentStatus !== 'fully_paid') {
+            const nextPaymentStatus = oldPaymentStatus === 'advance_paid' ? 'fully_paid' : 'advance_paid';
+            
+            await queries.updateBookingStatus(actualBookingId, { 
+              paymentStatus: nextPaymentStatus,
+              bookingStatus: 'confirmed'
+            });
+            
+            console.log(`[Sappay Webhook] Réservation ${actualBookingId} mise à jour avec succès : paymentStatus = ${nextPaymentStatus}, bookingStatus = confirmed`);
+            
+            // Create user notification
+            const notifId = 'not_' + Math.random().toString(36).substr(2, 9);
+            await executeSql(
+              "INSERT INTO notifications (id, user_id, title, message, type, reference_id) VALUES (?, ?, ?, ?, ?, ?)",
+              [notifId, booking.client_id || booking.clientId, "Paiement Confirmé ! ✅", `Votre paiement pour la réservation ${actualBookingId} a été validé avec succès par Sappay.`, "payment", actualBookingId]
+            );
+            
+            // Create owner notification
+            const ownerNotifId = 'not_' + Math.random().toString(36).substr(2, 9);
+            await executeSql(
+              "INSERT INTO notifications (id, user_id, title, message, type, reference_id) VALUES (?, ?, ?, ?, ?, ?)",
+              [ownerNotifId, booking.owner_id || booking.ownerId, "Nouveau Paiement Reçu 💰", `Un acompte/paiement a été reçu via Sappay pour la réservation ${actualBookingId}.`, "payment", actualBookingId]
+            );
+          } else {
+            console.log(`[Sappay Webhook] La réservation ${actualBookingId} est déjà marquée comme payée/soldée (${oldPaymentStatus}).`);
+          }
+        } else {
+          console.log(`[Sappay Webhook] Aucune réservation trouvée dans la base de données pour l'identifiant ${bookingId}.`);
+        }
+      }
+    } catch (err: any) {
+      console.error("[Sappay Webhook] Erreur lors du traitement :", err.message);
+    }
+    
     // Réponse 200 OK exigée par Sappay pour valider la réception du callback
     return res.status(200).json({ status: "SUCCESS", message: "Callback bien reçu" });
   });
