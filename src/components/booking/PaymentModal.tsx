@@ -115,13 +115,32 @@ export const PaymentModal: React.FC<Props> = ({ isOpen, onClose, amount, residen
       if (provider === 'orange') {
         setHelperMessage("Veuillez générer votre code de paiement Orange Money (Code 6 chiffres) en composant le *144*4*6# et saisissez-le ci-dessous.");
       } else if (provider === 'telecel') {
-        setHelperMessage("Veuillez générer votre code de paiement Telecel et saisissez-le ci-dessous.");
+        setHelperMessage("Veuillez générer votre code de paiement Telecel (Code 5 chiffres) et saisissez-le ci-dessous.");
       } else if (provider === 'moov') {
-        setHelperMessage("Veuillez saisir votre code de validation Moov Money reçu ou généré via le menu USSD de Moov.");
+        setHelperMessage("Veuillez saisir votre code de validation Moov Money (Code 6 chiffres) reçu ou généré via le menu USSD de Moov.");
       } else if (provider === 'coris') {
-        setHelperMessage("Veuillez saisir votre code de validation ou code OTP lié à votre compte Coris Money.");
+        setHelperMessage("Veuillez saisir votre code de validation ou code OTP lié à votre compte Coris Money (Code 5 chiffres).");
       }
       
+      // Request OTP via backend (will mock for pull operators and call Sappay for push operators)
+      const otpResp = await apiFetch('/api/payment/sappay/get-otp', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          invoice_id: currentInvoiceId,
+          payment_processor_id: PROCESSOR_IDS[provider || 'moov'],
+          customer_msisdn: cleanPhone,
+          access_token: currentToken
+        })
+      });
+
+      if (otpResp.ok) {
+        const otpData = await otpResp.json();
+        if (otpData.trans_id) {
+          setTransId(otpData.trans_id);
+        }
+      }
+
       setStep('otp');
     } catch (e: any) {
       setError(e.message || "Erreur de communication avec la passerelle Sappay.");
@@ -379,7 +398,7 @@ export const PaymentModal: React.FC<Props> = ({ isOpen, onClose, amount, residen
                   </div>
                   <h4 className="text-xl font-bold text-slate-900 mb-2">Vérification</h4>
                   <p className="text-sm text-slate-500">
-                    {helperMessage || (isTestMode ? `Un code de sécurité a été envoyé au ${getFormattedPhone()}. Entrez le code ${provider === 'telecel' ? '1234' : '123456'} pour tester.` : `Un code de sécurité a été envoyé au ${getFormattedPhone()}. Veuillez le saisir ci-dessous.`)}
+                    {helperMessage || (isTestMode ? `Un code de sécurité a été envoyé au ${getFormattedPhone()}. Entrez le code ${(provider === 'telecel' || provider === 'coris') ? '12345' : '123456'} pour tester.` : `Un code de sécurité a été envoyé au ${getFormattedPhone()}. Veuillez le saisir ci-dessous.`)}
                   </p>
                 </div>
 
@@ -391,8 +410,8 @@ export const PaymentModal: React.FC<Props> = ({ isOpen, onClose, amount, residen
 
                 <input 
                   type="text"
-                  placeholder={provider === 'telecel' ? '0000' : '000000'}
-                  maxLength={provider === 'telecel' ? 4 : 6}
+                  placeholder={(provider === 'telecel' || provider === 'coris') ? '00000' : '000000'}
+                  maxLength={(provider === 'telecel' || provider === 'coris') ? 5 : 6}
                   value={otp}
                   onChange={(e) => setOtp(e.target.value)}
                   className="w-full text-center tracking-[0.5em] py-4 bg-slate-50 border border-slate-200 rounded-2xl font-black text-2xl text-slate-900 focus:ring-2 focus:ring-red-600 outline-none transition-all"
@@ -404,7 +423,7 @@ export const PaymentModal: React.FC<Props> = ({ isOpen, onClose, amount, residen
                   </div>
                 ) : (
                   <button 
-                    disabled={otp.length < (provider === 'telecel' ? 4 : 6)}
+                    disabled={otp.length !== ((provider === 'telecel' || provider === 'coris') ? 5 : 6)}
                     onClick={handleVerify}
                     className="w-full bg-red-600 text-white py-4 rounded-2xl font-black text-lg hover:bg-red-700 transition-all disabled:opacity-50 flex items-center justify-center gap-2 cursor-pointer shadow-lg shadow-red-600/20"
                   >
