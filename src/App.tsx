@@ -98,14 +98,26 @@ function AppContent() {
   const [view, setView] = useState<'home' | 'search' | 'details' | 'admin' | 'bookings' | 'owner-dashboard' | 'profile' | 'messages' | 'favorites' | 'tos' | 'privacy' | 'faq' | 'contact' | 'guide' | 'reset-password'>('home');
   const [selectedResidence, setSelectedResidence] = useState<Residence | null>(null);
 
-  // URL parsing for views (like reset-password)
+  // URL parsing for views (like reset-password or booking success)
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const viewParam = params.get('view');
+    const paymentParam = params.get('payment');
+    const paymentStatusParam = params.get('payment_status');
+    
     if (viewParam === 'reset-password') {
       setView('reset-password');
+    } else if (paymentParam === 'success' || paymentStatusParam === 'success' || paymentStatusParam === 'SUCCESS') {
+      setView('bookings');
+      addToast('Votre paiement a été validé avec succès par Sappay ! ✅', 'success');
+      // Clean up parameters from the URL history
+      window.history.replaceState({}, document.title, window.location.pathname);
+    } else if (paymentParam === 'failed' || paymentStatusParam === 'failed' || paymentStatusParam === 'FAILED') {
+      setView('bookings');
+      addToast('Le paiement a échoué ou a été annulé.', 'error');
+      window.history.replaceState({}, document.title, window.location.pathname);
     }
-  }, []);
+  }, [addToast]);
   const [isPaymentOpen, setIsPaymentOpen] = useState(false);
   const [activeBookingForPayment, setActiveBookingForPayment] = useState<any>(null);
   const [isAuthOpen, setIsAuthOpen] = useState(false);
