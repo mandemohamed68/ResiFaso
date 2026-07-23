@@ -1,3 +1,4 @@
+import { CustomDatePicker } from "../common/CustomDatePicker";
 import { formatCurrency } from '../../utils/currency';
 import React, { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
@@ -158,22 +159,20 @@ const ResidenceHistoryModal: React.FC<ResidenceHistoryModalProps> = ({ residence
             <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-1">
               <Filter size={10} /> Date Début
             </label>
-            <input 
-              type="date" 
+            <CustomDatePicker 
               value={filter.start}
-              onChange={(e) => setFilter(prev => ({ ...prev, start: e.target.value }))}
-              className="bg-slate-50 border border-slate-200 rounded-xl px-4 py-2 text-sm font-bold text-slate-900 focus:ring-2 focus:ring-red-600 outline-none transition-all"
+              onChange={(val) => setFilter(prev => ({ ...prev, start: val }))}
+              className="bg-slate-50 border border-slate-200 rounded-xl px-4 py-2 text-sm font-bold text-slate-900 focus-within:ring-2 focus-within:ring-red-600 outline-none transition-all"
             />
           </div>
           <div className="flex flex-col gap-1">
             <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-1">
               <Filter size={10} /> Date Fin
             </label>
-            <input 
-              type="date" 
+            <CustomDatePicker 
               value={filter.end}
-              onChange={(e) => setFilter(prev => ({ ...prev, end: e.target.value }))}
-              className="bg-slate-50 border border-slate-200 rounded-xl px-4 py-2 text-sm font-bold text-slate-900 focus:ring-2 focus:ring-red-600 outline-none transition-all"
+              onChange={(val) => setFilter(prev => ({ ...prev, end: val }))}
+              className="bg-slate-50 border border-slate-200 rounded-xl px-4 py-2 text-sm font-bold text-slate-900 focus-within:ring-2 focus-within:ring-red-600 outline-none transition-all"
             />
           </div>
         </div>

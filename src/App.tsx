@@ -1,3 +1,4 @@
+import { CustomDatePicker } from "./components/common/CustomDatePicker";
 import { formatCurrency } from './utils/currency';
 import React, { useState, useEffect } from 'react';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
@@ -1276,19 +1277,17 @@ function AppContent() {
                       <div className="flex gap-4">
                         <div className="flex-1 p-3.5 rounded-2xl border-2 border-slate-50 bg-slate-50/50 focus-within:border-red-500 focus-within:bg-white transition-all">
                           <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1 px-1">Arrivée</label>
-                          <input 
-                            type="date" 
+                          <CustomDatePicker
                             value={checkIn}
-                            onChange={(e) => setCheckIn(e.target.value)}
+                            onChange={(val) => setCheckIn(val)}
                             className="bg-transparent border-none outline-none w-full font-bold text-slate-900 text-sm p-0 cursor-pointer"
                           />
                         </div>
                         <div className="flex-1 p-3.5 rounded-2xl border-2 border-slate-50 bg-slate-50/50 focus-within:border-red-500 focus-within:bg-white transition-all">
                           <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1 px-1">Départ</label>
-                          <input 
-                            type="date" 
+                          <CustomDatePicker
                             value={checkOut}
-                            onChange={(e) => setCheckOut(e.target.value)}
+                            onChange={(val) => setCheckOut(val)}
                             className="bg-transparent border-none outline-none w-full font-bold text-slate-900 text-sm p-0 cursor-pointer"
                           />
                         </div>

@@ -1,3 +1,4 @@
+import { CustomDatePicker } from "../common/CustomDatePicker";
 import { apiFetch } from "../../lib/api";
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
@@ -779,13 +780,12 @@ export const ProfileSettings: React.FC = () => {
                         </div>
                         <div>
                           <label className="block text-[10px] font-black text-slate-500 uppercase tracking-wider mb-1.5 font-bold">Date d'expiration</label>
-                          <input 
-                            type="date" 
+                          <CustomDatePicker 
                             id="identity-doc-expiry-input"
                             required
                             value={idExpiry}
-                            onChange={(e) => setIdExpiry(e.target.value)}
-                            className="w-full bg-white border border-slate-200 rounded-xl px-4 py-2.5 text-sm font-medium outline-none focus:ring-2 focus:ring-red-500"
+                            onChange={(val) => setIdExpiry(val)}
+                            className="w-full bg-white border border-slate-200 rounded-xl px-4 py-2.5 text-sm font-medium outline-none focus-within:ring-2 focus-within:ring-red-500"
                           />
                         </div>
                       </div>

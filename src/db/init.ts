@@ -370,20 +370,24 @@ export const initDatabase = async () => {
       ) ENGINE=InnoDB
     `);
 
-    // Withdrawals Table
-    await executeSql(`
-      CREATE TABLE IF NOT EXISTS withdrawals (
-        id VARCHAR(128) PRIMARY KEY,
-        owner_id VARCHAR(128),
-        amount DECIMAL(10, 2),
-        phone VARCHAR(50),
-        provider VARCHAR(50),
-        status VARCHAR(50) DEFAULT 'pending',
-        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-        approved_at VARCHAR(50),
-        FOREIGN KEY(owner_id) REFERENCES users(uid) ON DELETE SET NULL
-      ) ENGINE=InnoDB
-    `);
+      // Withdrawals Table
+      await executeSql(`
+        CREATE TABLE IF NOT EXISTS withdrawals (
+          id VARCHAR(128) PRIMARY KEY,
+          owner_id VARCHAR(128),
+          amount DECIMAL(10, 2),
+          phone VARCHAR(50),
+          provider VARCHAR(50),
+          status VARCHAR(50) DEFAULT 'pending',
+          created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+          approved_at VARCHAR(50),
+          transaction_id VARCHAR(255),
+          rejection_reason TEXT,
+          FOREIGN KEY(owner_id) REFERENCES users(uid) ON DELETE SET NULL
+        ) ENGINE=InnoDB
+      `);
+      await safeAlter('withdrawals', 'transaction_id', 'VARCHAR(255)');
+      await safeAlter('withdrawals', 'rejection_reason', 'TEXT');
 
     // Advertisements Table
     await executeSql(`
@@ -780,9 +784,13 @@ export const initDatabase = async () => {
         status TEXT DEFAULT 'pending',
         created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
         approved_at TEXT,
+        transaction_id TEXT,
+        rejection_reason TEXT,
         FOREIGN KEY(owner_id) REFERENCES users(uid)
       )
     `);
+    await safeAlter('withdrawals', 'transaction_id', 'TEXT');
+    await safeAlter('withdrawals', 'rejection_reason', 'TEXT');
 
     // Advertisements Table
     await executeSql(`
