@@ -84,7 +84,7 @@ export const getAllResidences = async (ownerId?: string) => {
       FROM bookings 
       WHERE residence_id IN (${placeHolders})
       AND LOWER(booking_status) NOT IN ('cancelled', 'declined', 'annulee', 'annulé', 'refusee', 'refusé', 'expired', 'canceled')
-      AND LOWER(payment_status) IN ('paid', 'advance_paid', 'partial_paid', 'partiel')
+      AND LOWER(payment_status) IN ('paid', 'advance_paid', 'partial_paid', 'partiel', 'fully_paid')
     `, ids)
   ]);
 
@@ -193,7 +193,7 @@ export const getResidenceById = async (id: string) => {
     FROM bookings 
     WHERE residence_id = ? 
     AND LOWER(booking_status) NOT IN ('cancelled', 'declined', 'annulee', 'annulé', 'refusee', 'refusé', 'expired', 'canceled')
-    AND LOWER(payment_status) IN ('paid', 'advance_paid', 'partial_paid', 'partiel')
+    AND LOWER(payment_status) IN ('paid', 'advance_paid', 'partial_paid', 'partiel', 'fully_paid')
   `, [id]);
   
   return {
