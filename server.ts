@@ -53,28 +53,21 @@ async function getSappayCredentials() {
       if (data?.sappayClientSecret) finalCreds.clientSecret = data.sappayClientSecret.trim();
       if (data?.sappayUsername) finalCreds.username = data.sappayUsername.trim();
       if (data?.sappayPassword) finalCreds.password = data.sappayPassword.trim();
-      if (data?.isTestMode !== undefined) finalCreds.isTestMode = data.isTestMode;
+      if (data?.isTestMode !== undefined) finalCreds.isTestMode = false;
     }
   } catch (e: any) {
     console.warn("Sappay: Impossible de lire les paramètres depuis la base, utilisation des valeurs .env.", e.message);
   }
 
+  finalCreds.isTestMode = false;
   return finalCreds;
 }
 
 async function getSappayBaseUrls() {
-  const creds = await getSappayCredentials();
-  if (creds.isTestMode) {
-    return {
-      publicBase: process.env.SAPPAY_BASE_PUBLIC || SAPPAY_BASE_PUBLIC_SANDBOX,
-      checkoutBase: process.env.SAPPAY_BASE_CHECKOUT || SAPPAY_BASE_CHECKOUT_SANDBOX
-    };
-  } else {
-    return {
-      publicBase: SAPPAY_BASE_PUBLIC_PROD,
-      checkoutBase: SAPPAY_BASE_CHECKOUT_PROD
-    };
-  }
+  return {
+    publicBase: SAPPAY_BASE_PUBLIC_PROD,
+    checkoutBase: SAPPAY_BASE_CHECKOUT_PROD
+  };
 }
 
 function normalizePhoneNumberSappay(phone: string): string {
@@ -1863,7 +1856,6 @@ async function startServer() {
   app.post(["/api/payment/sappay/init", "/api/payments/sappay/init"], async (req, res) => {
     const { amount, note, email } = req.body;
     try {
-      const credentials = await getSappayCredentials();
       const urls = await getSappayBaseUrls();
       const token = await getSappayToken();
 
@@ -1876,13 +1868,6 @@ async function startServer() {
         amount: parseFloat(amount).toFixed(2),
         note: note || "Validation acompte Residence MEUBLE"
       };
-
-      if (credentials.isTestMode) {
-        return res.json({
-          invoice_id: `mock_inv_${Date.now()}`,
-          access_token: token
-        });
-      }
 
       const targetUrl = urls.publicBase.replace(/\/$/, '') + '/invoice/';
       console.log(`[Sappay Init] Requesting: ${targetUrl} | Amount: ${amount}`);
@@ -1910,10 +1895,6 @@ async function startServer() {
       res.json({ invoice_id: invoiceId, access_token: token });
     } catch (error: any) {
       console.error("Erreur /api/payment/sappay/init :", error);
-      const credentials = await getSappayCredentials();
-      if (credentials.isTestMode) {
-        return res.json({ invoice_id: `mock_inv_${Date.now()}`, access_token: "mock" });
-      }
       res.status(500).json({ error: error.message });
     }
   });
@@ -1926,7 +1907,7 @@ async function startServer() {
     const PULL_OPERATORS = [PROCESSOR_ORANGE, PROCESSOR_TELECEL];
 
     if (PULL_OPERATORS.includes(payment_processor_id)) {
-      // Pas d'appel à Sappay, on renvoie une réponse factice pour que le frontend continue
+      // Pas d'appel à Sappay, on renvoie une réponse pour que le frontend continue
       return res.json({
         trans_id: `manual_otp_${Date.now()}`,
         message: "Veuillez générer votre code OTP via USSD et le saisir pour valider le paiement."
@@ -1935,15 +1916,8 @@ async function startServer() {
 
     // Pour Moov et Coris (PUSH-OTP), on appelle Sappay
     try {
-      const credentials = await getSappayCredentials();
       const urls = await getSappayBaseUrls();
-
-      if (credentials.isTestMode) {
-        return res.json({
-          trans_id: `mock_txn_${Date.now()}`,
-          message: "Mode test : OTP simulé (1234 ou 123456)"
-        });
-      }
+      const token = (access_token && access_token !== "mock") ? access_token : (await getSappayToken());
 
       const targetUrl = urls.checkoutBase.replace(/\/$/, '') + '/get-otp/';
       console.log(`[Sappay OTP] Requesting: ${targetUrl} | Invoice: ${invoice_id}`);
@@ -1953,7 +1927,7 @@ async function startServer() {
         headers: {
           "Content-Type": "application/json",
           "Accept": "application/json",
-          "Authorization": `Bearer ${access_token}`
+          "Authorization": `Bearer ${token}`
         },
         body: JSON.stringify({
           customer_msisdn: normalizePhoneNumberSappay(customer_msisdn),
@@ -1975,10 +1949,6 @@ async function startServer() {
       });
     } catch (error: any) {
       console.error("Erreur /api/payment/sappay/get-otp :", error);
-      const credentials = await getSappayCredentials();
-      if (credentials.isTestMode) {
-        return res.json({ trans_id: `mock_txn_${Date.now()}`, message: "OTP simulé (1234/123456)" });
-      }
       res.status(500).json({ error: error.message });
     }
   });
@@ -1987,20 +1957,11 @@ async function startServer() {
   app.post(["/api/payment/sappay/perform", "/api/payments/sappay/perform"], async (req, res) => {
     const { invoice_id, payment_processor_id, customer_msisdn, otp, trans_id, access_token } = req.body;
     try {
-      const credentials = await getSappayCredentials();
       const urls = await getSappayBaseUrls();
-      const isTestMode = credentials.isTestMode || req.body.isTestMode || false;
-
-      if (isTestMode) {
-        if (otp && (otp === "1234" || otp === "123456" || otp.length >= 4)) {
-          return res.json({ status: "SUCCESS", message: "Paiement test réussi." });
-        }
-        return res.status(400).json({ error: "OTP invalide (mode test)" });
-      }
+      const token = (access_token && access_token !== "mock") ? access_token : (await getSappayToken());
 
       const payload: any = {
         invoice_id,
-        invoice: invoice_id,
         payment_processor_id,
         customer_msisdn: normalizePhoneNumberSappay(customer_msisdn),
         otp: otp ? otp.toString() : ""
@@ -2015,7 +1976,7 @@ async function startServer() {
         headers: {
           "Content-Type": "application/json",
           "Accept": "application/json",
-          "Authorization": `Bearer ${access_token}`
+          "Authorization": `Bearer ${token}`
         },
         body: JSON.stringify(payload)
       });
