@@ -1986,8 +1986,7 @@ async function startServer() {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          "Accept": "application/json",
-          "Authorization": `Bearer ${token}`
+          "Accept": "application/json"
         },
         body: JSON.stringify(payload)
       });
