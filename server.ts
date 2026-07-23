@@ -1860,27 +1860,9 @@ async function startServer() {
       const urls = await getSappayBaseUrls();
       const token = await getSappayToken();
 
-      // Support dynamic redirection and fallback specifically to http://167.172.39.172:2000
-      let baseDomain = "http://167.172.39.172:2000";
-      const hostHeader = req.headers['x-forwarded-host'] || req.headers['host'];
-      const protoHeader = req.headers['x-forwarded-proto'] || req.protocol || "http";
-      
-      if (hostHeader) {
-        // Use the actual protocol and host of the incoming request
-        // But if the host is a known domain like resifaso.net, use https. Otherwise, use http.
-        const isSecure = hostHeader.includes('resifaso.net') && !hostHeader.includes('localhost');
-        const proto = isSecure ? 'https' : (protoHeader === 'https' ? 'https' : 'http');
-        baseDomain = `${proto}://${hostHeader}`;
-      }
-
       const webhookUrl = bookingId 
-        ? `${baseDomain}/api/payment/sappay/webhook?booking_id=${bookingId}`
-        : `${baseDomain}/api/payment/sappay/webhook`;
-
-      // Redirect URL back to the frontend bookings view with success parameters
-      const userRedirectUrl = bookingId
-        ? `${baseDomain}/?payment=success&booking_id=${bookingId}`
-        : `${baseDomain}/?payment=success`;
+        ? `https://resifaso.net/api/payment/sappay/webhook?booking_id=${bookingId}`
+        : `https://resifaso.net/api/payment/sappay/webhook`;
 
       const payload = {
         type: "SIMPLE",
@@ -1892,12 +1874,12 @@ async function startServer() {
         note: note || "Validation acompte Residence MEUBLE",
         callback_url: webhookUrl,
         webhook_url: webhookUrl,
-        redirect_url: userRedirectUrl,
-        return_url: userRedirectUrl
+        redirect_url: webhookUrl,
+        return_url: webhookUrl
       };
 
       const targetUrl = urls.publicBase.replace(/\/$/, '') + '/invoice/';
-      console.log(`[Sappay Init] Requesting: ${targetUrl} | Amount: ${amount} | BaseDomain: ${baseDomain}`);
+      console.log(`[Sappay Init] Requesting: ${targetUrl} | Amount: ${amount}`);
       
       const response = await fetch(targetUrl, {
         method: "POST",
