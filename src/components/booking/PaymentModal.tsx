@@ -111,59 +111,15 @@ export const PaymentModal: React.FC<Props> = ({ isOpen, onClose, amount, residen
       setInvoiceId(currentInvoiceId);
       setAccessToken(currentToken);
       
-      // 2. Demander le code OTP (Sappay Get OTP) - Requis pour Moov et Coris
-      const needsOtpGeneration = provider === 'moov' || provider === 'coris'; 
-      
-      if (needsOtpGeneration) {
-        const processorId = PROCESSOR_IDS[provider || 'moov'];
-        const otpResp = await apiFetch('/api/payment/sappay/get-otp', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            customer_msisdn: cleanPhone,
-            invoice_id: currentInvoiceId,
-            payment_processor_id: processorId,
-            access_token: currentToken
-          })
-        });
-        
-        let otpData: any = {};
-        const otpContentType = otpResp.headers.get("content-type");
-        if (otpContentType && otpContentType.includes("application/json")) {
-          otpData = await otpResp.json();
-        } else {
-          const text = await otpResp.text();
-          if (!otpResp.ok) {
-            const errMsg = text.includes('<html') ? `Erreur serveur (${otpResp.status})` : text;
-            throw new Error(`Demande OTP échouée: ${errMsg}`);
-          }
-          try { otpData = JSON.parse(text); } catch(e) { otpData = { error: text }; }
-        }
-        
-        if (!otpResp.ok) {
-          throw new Error(otpData.error || otpData.message || `Erreur de demande OTP (${otpResp.status})`);
-        }
-        
-        if (otpData.trans_id) {
-          setTransId(otpData.trans_id);
-        }
-        
-        if (otpData.message) {
-          setHelperMessage(otpData.message);
-        } else {
-          if (provider === 'moov') {
-            setHelperMessage("Un code OTP à 6 chiffres vous a été envoyé par SMS sur votre numéro Moov Money.");
-          } else if (provider === 'coris') {
-            setHelperMessage("Un code OTP vous a été envoyé par SMS sur votre numéro lié à Coris Money.");
-          }
-        }
-      } else {
-        // Orange / Telecel : L'utilisateur doit générer son code lui-même (ex: *144*4*6#)
-        if (provider === 'orange') {
-          setHelperMessage("Veuillez générer votre code de paiement Orange Money (Code 6 chiffres) en composant le *144*4*6# et saisissez-le ci-dessous.");
-        } else if (provider === 'telecel') {
-          setHelperMessage("Veuillez générer votre code de paiement Telecel et saisissez-le ci-dessous.");
-        }
+      // Let's set appropriate helper message for each provider
+      if (provider === 'orange') {
+        setHelperMessage("Veuillez générer votre code de paiement Orange Money (Code 6 chiffres) en composant le *144*4*6# et saisissez-le ci-dessous.");
+      } else if (provider === 'telecel') {
+        setHelperMessage("Veuillez générer votre code de paiement Telecel et saisissez-le ci-dessous.");
+      } else if (provider === 'moov') {
+        setHelperMessage("Veuillez saisir votre code de validation Moov Money reçu ou généré via le menu USSD de Moov.");
+      } else if (provider === 'coris') {
+        setHelperMessage("Veuillez saisir votre code de validation ou code OTP lié à votre compte Coris Money.");
       }
       
       setStep('otp');
@@ -189,7 +145,9 @@ export const PaymentModal: React.FC<Props> = ({ isOpen, onClose, amount, residen
           customer_msisdn: cleanPhone,
           otp: otp,
           trans_id: transId,
-          access_token: accessToken
+          access_token: accessToken,
+          amount: amount,
+          email: "client@resifaso.com"
         })
       });
       

@@ -1928,7 +1928,7 @@ async function startServer() {
       const urls = await getSappayBaseUrls();
       const token = (access_token && access_token !== "mock") ? access_token : (await getSappayToken());
 
-      const targetUrl = urls.checkoutBase.replace(/\/$/, '') + '/get-otp';
+      const targetUrl = urls.checkoutBase.replace(/\/$/, '') + '/get-otp/';
       console.log(`[Sappay OTP] Requesting: ${targetUrl} | Invoice: ${invoice_id}`);
       
       const response = await fetch(targetUrl, {
@@ -1964,7 +1964,7 @@ async function startServer() {
 
   // ---------- SAPPAY – PERFORM ----------
   app.post(["/api/payment/sappay/perform", "/api/payments/sappay/perform"], async (req, res) => {
-    const { invoice_id, payment_processor_id, customer_msisdn, otp, trans_id, access_token } = req.body;
+    const { invoice_id, payment_processor_id, customer_msisdn, otp, trans_id, access_token, amount, email } = req.body;
     try {
       const urls = await getSappayBaseUrls();
       const token = (access_token && access_token !== "mock") ? access_token : (await getSappayToken());
@@ -1973,11 +1973,13 @@ async function startServer() {
         invoice_id,
         payment_processor_id,
         customer_msisdn: normalizePhoneNumberSappay(customer_msisdn),
-        otp: otp ? otp.toString() : ""
+        otp: otp ? otp.toString() : "",
+        email: email || "client@resifaso.com",
+        amount: amount ? Math.round(parseFloat(amount)).toString() : undefined
       };
       if (trans_id) payload.trans_id = trans_id;
 
-      const targetUrl = urls.checkoutBase.replace(/\/$/, '') + '/perform';
+      const targetUrl = urls.checkoutBase.replace(/\/$/, '') + '/perform/';
       console.log(`[Sappay Perform] Requesting: ${targetUrl} | Invoice: ${invoice_id} | OTP: ${otp}`);
       
       const response = await fetch(targetUrl, {
