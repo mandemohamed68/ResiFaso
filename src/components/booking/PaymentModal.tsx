@@ -392,14 +392,33 @@ export const PaymentModal: React.FC<Props> = ({ isOpen, onClose, amount, residen
                 exit={{ opacity: 0, x: -20 }}
                 className="space-y-6"
               >
+                <div className="flex items-center gap-3 mb-2">
+                  <button onClick={() => setStep('phone')} className="text-slate-400 hover:text-slate-600 cursor-pointer"><ArrowRight size={20} className="rotate-180" /></button>
+                  <span className="font-bold text-slate-900 uppercase">Code de validation</span>
+                </div>
+
                 <div className="text-center">
-                  <div className="w-16 h-16 bg-red-50 text-red-600 rounded-full flex items-center justify-center mx-auto mb-4">
-                    <ShieldCheck size={32} />
+                  <div className="w-20 h-20 bg-white border border-slate-100 shadow-sm rounded-3xl flex items-center justify-center mx-auto mb-4 p-3">
+                    {provider === 'orange' && <img src="/orange.png" alt="Orange Money" className="w-full h-full object-contain rounded-xl" />}
+                    {provider === 'moov' && <img src="/moov-1.png" alt="Moov Money" className="w-full h-full object-contain rounded-xl" />}
+                    {provider === 'telecel' && <img src="/telecel.png" alt="Telecel Money" className="w-full h-full object-contain rounded-xl" />}
+                    {provider === 'coris' && <img src="/coris.png" alt="Coris Money" className="w-full h-full object-contain rounded-xl" />}
                   </div>
                   <h4 className="text-xl font-bold text-slate-900 mb-2">Vérification</h4>
-                  <p className="text-sm text-slate-500">
+                  <p className="text-sm text-slate-500 mb-4 px-2">
                     {helperMessage || (isTestMode ? `Un code de sécurité a été envoyé au ${getFormattedPhone()}. Entrez le code ${(provider === 'telecel' || provider === 'coris') ? '12345' : '123456'} pour tester.` : `Un code de sécurité a été envoyé au ${getFormattedPhone()}. Veuillez le saisir ci-dessous.`)}
                   </p>
+
+                  {provider === 'orange' && (
+                    <a href="tel:*144*4*6%23" className="inline-flex items-center justify-center gap-2 px-5 py-2.5 bg-orange-50 text-orange-600 rounded-xl text-sm font-bold hover:bg-orange-100 transition-colors border border-orange-100 shadow-sm cursor-pointer mb-2">
+                      <Phone size={16} /> Lancer *144*4*6#
+                    </a>
+                  )}
+                  {provider === 'moov' && (
+                    <a href="tel:*555%23" className="inline-flex items-center justify-center gap-2 px-5 py-2.5 bg-blue-50 text-blue-600 rounded-xl text-sm font-bold hover:bg-blue-100 transition-colors border border-blue-100 shadow-sm cursor-pointer mb-2">
+                      <Phone size={16} /> Lancer le menu Moov
+                    </a>
+                  )}
                 </div>
 
                 {error && (
@@ -413,8 +432,8 @@ export const PaymentModal: React.FC<Props> = ({ isOpen, onClose, amount, residen
                   placeholder={(provider === 'telecel' || provider === 'coris') ? '00000' : '000000'}
                   maxLength={(provider === 'telecel' || provider === 'coris') ? 5 : 6}
                   value={otp}
-                  onChange={(e) => setOtp(e.target.value)}
-                  className="w-full text-center tracking-[0.5em] py-4 bg-slate-50 border border-slate-200 rounded-2xl font-black text-2xl text-slate-900 focus:ring-2 focus:ring-red-600 outline-none transition-all"
+                  onChange={(e) => setOtp(e.target.value.replace(/\D/g, ''))}
+                  className="w-full text-center tracking-[0.75em] py-4 bg-slate-50 border border-slate-200 rounded-2xl font-black text-3xl text-slate-900 focus:ring-2 focus:ring-red-600 focus:bg-white outline-none transition-all"
                 />
 
                 {loading ? (
