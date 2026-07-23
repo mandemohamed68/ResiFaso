@@ -2001,6 +2001,13 @@ async function startServer() {
     }
   });
 
+  // ---------- SAPPAY – WEBHOOK / CALLBACK ----------
+  app.all(["/api/payment/sappay/webhook", "/api/payment/sappay/callback", "/api/payments/sappay/webhook"], async (req, res) => {
+    console.log("[Sappay Webhook] Notification reçue :", JSON.stringify(req.body || req.query));
+    // Réponse 200 OK exigée par Sappay pour valider la réception du callback
+    return res.status(200).json({ status: "SUCCESS", message: "Callback bien reçu" });
+  });
+
 
   // ---------- AVIS (REVIEWS) – version SQL ----------
   app.post("/api/submit-review", authenticateToken, async (req: AuthRequest, res) => {
