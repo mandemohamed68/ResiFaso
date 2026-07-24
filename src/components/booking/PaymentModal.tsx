@@ -318,18 +318,18 @@ export const PaymentModal: React.FC<Props> = ({ isOpen, onClose, amount, residen
       setInvoiceId(currentInvoiceId);
       setAccessToken(currentToken);
       
-      // Let's set appropriate helper message for each provider
+      // Let's set appropriate helper message and instructions for each provider
       if (provider === 'orange') {
-        setHelperMessage("Veuillez générer votre code de paiement Orange Money (Code 6 chiffres) en composant le *144*4*6# et saisissez-le ci-dessous.");
+        setHelperMessage("Composez le *144*4*6# sur votre téléphone pour générer votre code de paiement à 6 chiffres, puis saisissez-le ici.");
       } else if (provider === 'telecel') {
-        setHelperMessage("Veuillez générer votre code de paiement Telecel (Code 5 chiffres) et saisissez-le ci-dessous.");
+        setHelperMessage("Saisissez votre code de validation Telecel Money à 5 chiffres pour confirmer la transaction.");
       } else if (provider === 'moov') {
-        setHelperMessage("Veuillez saisir votre code de validation Moov Money (Code 6 chiffres) reçu ou généré via le menu USSD de Moov.");
+        setHelperMessage("Saisissez le code OTP à 6 chiffres que vous avez reçu par SMS ou via le menu Moov Money.");
       } else if (provider === 'coris') {
-        setHelperMessage("Veuillez saisir votre code de validation ou code OTP lié à votre compte Coris Money (Code 5 chiffres).");
+        setHelperMessage("Saisissez votre code de validation Coris Money à 5 chiffres pour finaliser votre réservation.");
       }
       
-      // Request OTP via backend (will mock for pull operators and call Sappay for push operators)
+      // Request OTP via backend (will handle PULL/PUSH operators correctly)
       const otpResp = await apiFetch('/api/payment/sappay/get-otp', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -627,39 +627,56 @@ export const PaymentModal: React.FC<Props> = ({ isOpen, onClose, amount, residen
                     {provider === 'telecel' && <img src="/telecel.png" alt="Telecel Money" className="w-full h-full object-contain rounded-xl" />}
                     {provider === 'coris' && <img src="/coris.png" alt="Coris Money" className="w-full h-full object-contain rounded-xl" />}
                   </div>
-                  <h4 className="text-xl font-bold text-slate-900 mb-2">Vérification</h4>
-                  <p className="text-sm text-slate-500 mb-4 px-2">
-                    {helperMessage || (isTestMode ? `Un code de sécurité a été envoyé au ${getFormattedPhone()}. Entrez le code ${(provider === 'telecel' || provider === 'coris') ? '12345' : '123456'} pour tester.` : `Un code de sécurité a été envoyé au ${getFormattedPhone()}. Veuillez le saisir ci-dessous.`)}
+                  <h4 className="text-xl font-bold text-slate-900 mb-2">Validation {provider === 'orange' ? 'Orange' : provider === 'moov' ? 'Moov' : provider === 'telecel' ? 'Telecel' : 'Coris'}</h4>
+                  <p className="text-sm text-slate-500 mb-4 px-2 leading-relaxed">
+                    {helperMessage || `Un code de sécurité est nécessaire pour valider le paiement sur le numéro ${getFormattedPhone()}.`}
                   </p>
 
                   {provider === 'orange' && (
-                    <a href="tel:*144*4*6%23" className="inline-flex items-center justify-center gap-2 px-5 py-2.5 bg-orange-50 text-orange-600 rounded-xl text-sm font-bold hover:bg-orange-100 transition-colors border border-orange-100 shadow-sm cursor-pointer mb-2">
-                      <Phone size={16} /> Lancer *144*4*6#
-                    </a>
+                    <div className="space-y-2 mb-4">
+                      <a href="tel:*144*4*6%23" className="w-full inline-flex items-center justify-center gap-2 px-5 py-3 bg-orange-500 text-white rounded-2xl text-sm font-black hover:bg-orange-600 transition-all shadow-lg shadow-orange-500/20 cursor-pointer">
+                        <Phone size={18} /> GÉNÉRER LE CODE (*144*4*6#)
+                      </a>
+                      <p className="text-[10px] text-slate-400 font-bold uppercase tracking-tight">Le code généré est valable 15 minutes</p>
+                    </div>
                   )}
                   {provider === 'moov' && (
-                    <a href="tel:*555%23" className="inline-flex items-center justify-center gap-2 px-5 py-2.5 bg-blue-50 text-blue-600 rounded-xl text-sm font-bold hover:bg-blue-100 transition-colors border border-blue-100 shadow-sm cursor-pointer mb-2">
-                      <Phone size={16} /> Lancer le menu Moov
-                    </a>
+                    <div className="space-y-2 mb-4">
+                      <a href="tel:*555%23" className="w-full inline-flex items-center justify-center gap-2 px-5 py-3 bg-blue-600 text-white rounded-2xl text-sm font-black hover:bg-blue-700 transition-all shadow-lg shadow-blue-600/20 cursor-pointer">
+                        <Phone size={18} /> MENU MOOV (*555#)
+                      </a>
+                    </div>
+                  )}
+                  {provider === 'telecel' && (
+                    <div className="space-y-2 mb-4">
+                      <a href="tel:*444%23" className="w-full inline-flex items-center justify-center gap-2 px-5 py-3 bg-red-500 text-white rounded-2xl text-sm font-black hover:bg-red-600 transition-all shadow-lg shadow-red-500/20 cursor-pointer">
+                        <Phone size={18} /> MENU TELECEL (*444#)
+                      </a>
+                    </div>
                   )}
                 </div>
 
                 {error && (
-                  <div className="p-4 bg-red-50 border border-red-100 rounded-2xl text-red-600 text-sm font-medium animate-in fade-in slide-in-from-top-1 text-center">
+                  <div className="p-4 bg-red-50 border border-red-100 rounded-2xl text-red-600 text-sm font-bold animate-in fade-in slide-in-from-top-1 text-center">
                     {error}
                   </div>
                 )}
 
-                <input 
-                  type="text"
-                  inputMode="numeric"
-                  autoComplete="one-time-code"
-                  placeholder={(provider === 'telecel' || provider === 'coris') ? '00000' : '000000'}
-                  maxLength={(provider === 'telecel' || provider === 'coris') ? 5 : 6}
-                  value={otp}
-                  onChange={(e) => setOtp(e.target.value.replace(/\D/g, ''))}
-                  className="w-full text-center tracking-[0.75em] py-4 bg-slate-50 border border-slate-200 rounded-2xl font-black text-3xl text-slate-900 focus:ring-2 focus:ring-red-600 focus:bg-white outline-none transition-all"
-                />
+                <div className="space-y-2">
+                  <label className="block text-center text-[10px] font-black text-slate-400 uppercase tracking-widest">
+                    Saisissez votre code ci-dessous
+                  </label>
+                  <input 
+                    type="text"
+                    inputMode="numeric"
+                    autoComplete="one-time-code"
+                    placeholder={(provider === 'telecel' || provider === 'coris') ? '00000' : '000000'}
+                    maxLength={(provider === 'telecel' || provider === 'coris') ? 5 : 6}
+                    value={otp}
+                    onChange={(e) => setOtp(e.target.value.replace(/\D/g, ''))}
+                    className="w-full text-center tracking-[0.5em] py-5 bg-slate-50 border-2 border-slate-100 rounded-3xl font-black text-4xl text-slate-900 focus:ring-4 focus:ring-red-100 focus:border-red-500 focus:bg-white outline-none transition-all"
+                  />
+                </div>
 
                 {loading ? (
                   <div className="w-full bg-slate-100 text-slate-400 py-4 rounded-2xl font-black text-lg flex items-center justify-center gap-2">
