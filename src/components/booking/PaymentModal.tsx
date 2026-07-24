@@ -122,10 +122,38 @@ const translateSappayErrorToFrench = (rawError: string, status?: number): string
   }
 
   if (lower.includes('success') || lower.includes('reçue') || lower.includes('effectuée')) {
-    return "La passerelle de paiement a renvoyé une réponse incohérente (succès affiché mais erreur détectée). Veuillez réessayer.";
+    return "Erreur technique : L'opérateur a rejeté la transaction malgré un signal positif de la passerelle. Veuillez vérifier votre numéro Coris/Orange.";
   }
 
   return `Erreur de la passerelle de paiement : ${rawError}`;
+};
+
+const getBestErrorMessage = (data: any): string => {
+  if (!data) return "Erreur de paiement inconnue.";
+  const response = data.response || {};
+  
+  // Define keywords that represent a real error
+  const errorKeywords = ["erronés", "incorrect", "failed", "error", "invalide", "invalid", "échec", "refusé", "declined", "wrong"];
+  
+  // List potential error sources in order of priority (Gateway message is often the most accurate)
+  const candidates = [
+    response.gateway_message,
+    response.message,
+    data.error?.message,
+    data.message,
+    data.details
+  ];
+
+  // Look for the first candidate that actually contains an error keyword
+  for (const cand of candidates) {
+    if (typeof cand === 'string' && cand.length > 0) {
+      const lower = cand.toLowerCase();
+      if (errorKeywords.some(kw => lower.includes(kw))) return cand;
+    }
+  }
+
+  // Fallback to first non-empty string
+  return candidates.find(c => typeof c === 'string' && c.length > 0) || "Échec de la transaction.";
 };
 
 const isActuallySuccess = (data: any): boolean => {
@@ -138,7 +166,16 @@ const isActuallySuccess = (data: any): boolean => {
     if (Number(response.gateway_status_code) < 0) return false;
   }
 
-  // 2. Check for error keywords in messages
+  // 2. Check for codeErr / errCode (found in some Sappay success/error logs)
+  // Success is usually "0" or 0
+  if (response.codeErr !== undefined && response.codeErr !== null) {
+    if (response.codeErr.toString() !== "0") return false;
+  }
+  if (response.errCode !== undefined && response.errCode !== null) {
+    if (response.errCode.toString() !== "0") return false;
+  }
+
+  // 3. Check for error keywords in messages
   const messages = [
     data.message,
     response.message,
@@ -154,7 +191,7 @@ const isActuallySuccess = (data: any): boolean => {
     if (errorKeywords.some(kw => l.includes(kw))) return false;
   }
 
-  // 3. Check for specific success indicators
+  // 4. Check for specific success indicators
   const hasTopSuccess = data.success === true || data.status === 1 || data.status === 200 || data.status === 'SUCCESS' || data.status === 'success';
   const hasResponseSuccess = response.status === 'SUCCESS' || response.status === 'success' || !response.status;
 
@@ -313,7 +350,7 @@ export const PaymentModal: React.FC<Props> = ({ isOpen, onClose, amount, residen
       const otpData = await otpResp.json();
       
       if (!isActuallySuccess(otpData)) {
-        const rawMsg = otpData.response?.message || otpData.message || otpData.response?.gateway_message || "Échec d'envoi OTP (Paramètres invalides).";
+        const rawMsg = getBestErrorMessage(otpData);
         throw new Error(translateSappayErrorToFrench(rawMsg, otpResp.status));
       }
 
@@ -380,7 +417,7 @@ export const PaymentModal: React.FC<Props> = ({ isOpen, onClose, amount, residen
           onClose();
         }, 3500);
       } else {
-        const rawMsg = data.response?.gateway_message || data.response?.message || data.message || data.error || data.details || "La transaction a été rejetée par l'opérateur.";
+        const rawMsg = getBestErrorMessage(data);
         setError(translateSappayErrorToFrench(rawMsg, resp.status));
       }
     } catch (e: any) {
