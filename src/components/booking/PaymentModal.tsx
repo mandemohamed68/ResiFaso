@@ -164,9 +164,9 @@ const isActuallySuccess = (data: any): boolean => {
 
   if (isExplicitSuccessCode) return true;
 
-  // 2. Check for negative gateway status code (Reliable indicator of failure)
+  // 2. Check for gateway status code (Reliable indicator of failure if not 0)
   if (response.gateway_status_code !== undefined && response.gateway_status_code !== null) {
-    if (Number(response.gateway_status_code) < 0) return false;
+    if (Number(response.gateway_status_code) !== 0) return false;
   }
 
   // 3. Check for non-zero error codes
@@ -415,6 +415,8 @@ export const PaymentModal: React.FC<Props> = ({ isOpen, onClose, amount, residen
         setTimeout(() => {
           onSuccess();
           onClose();
+          // Official production redirection after payment success
+          window.location.href = 'https://www.resifaso.net';
         }, 3500);
       } else {
         const rawMsg = getBestErrorMessage(data);
@@ -689,7 +691,8 @@ export const PaymentModal: React.FC<Props> = ({ isOpen, onClose, amount, residen
                   <CheckCircle size={48} />
                 </div>
                 <h4 className="text-2xl font-bold text-gray-900 mb-2">Paiement reçu !</h4>
-                <p className="text-gray-500 font-medium">Votre réservation est confirmée. Redirection en cours...</p>
+                <p className="text-gray-500 font-medium mb-1">Votre réservation est confirmée.</p>
+                <p className="text-slate-400 text-xs font-bold uppercase tracking-widest animate-pulse">Redirection vers resifaso.net...</p>
               </motion.div>
             )}
           </AnimatePresence>
