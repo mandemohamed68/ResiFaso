@@ -39,7 +39,7 @@ export function getApiUrl(): string {
     }
 
     // Default production backend server for mobile app (Android/iOS)
-    return 'https://resifaso.net';
+    return 'https://www.resifaso.net';
   }
 
   // 2. Standard Web Browser Mode

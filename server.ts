@@ -1944,8 +1944,8 @@ async function startServer() {
       const token = await getSappayToken();
 
       const webhookUrl = bookingId 
-        ? `https://resifaso.net/api/payment/sappay/webhook?booking_id=${bookingId}`
-        : `https://resifaso.net/api/payment/sappay/webhook`;
+        ? `https://www.resifaso.net/api/payment/sappay/webhook?booking_id=${bookingId}`
+        : `https://www.resifaso.net/api/payment/sappay/webhook`;
 
       const payload = {
         type: "SIMPLE",

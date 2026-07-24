@@ -240,12 +240,20 @@ export const PaymentModal: React.FC<Props> = ({ isOpen, onClose, amount, residen
         throw new Error(msg);
       }
       
-      const isSuccess = data.success === true || 
-                        data.status === 'SUCCESS' || 
-                        data.status === 'success' || 
-                        data.status === 200 ||
-                        data.response?.status === 'SUCCESS' || 
-                        data.response?.status === 'success';
+      const isSuccess = (
+        data.success === true || 
+        data.status === 'SUCCESS' || 
+        data.status === 'success' || 
+        data.response?.status === 'SUCCESS' || 
+        data.response?.status === 'success' ||
+        (data.status === 200 && data.success !== false)
+      ) && 
+      data.success !== false && 
+      data.status !== 'FAILED' && 
+      data.status !== 'failed' && 
+      data.response?.status !== 'FAILED' && 
+      data.response?.status !== 'failed' &&
+      !data.error;
 
       if (isSuccess) {
         setStep('success');
