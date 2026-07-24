@@ -63,11 +63,29 @@ export const useResidences = () => {
   return useQuery({
     queryKey: ['residences'],
     queryFn: async () => {
-      const response = await apiFetch('/api/residences');
-      if (!response.ok) throw new Error('Failed to fetch residences');
-      return response.json();
+      try {
+        const response = await apiFetch('/api/residences');
+        if (!response.ok) throw new Error('Failed to fetch residences');
+        const data = await response.json();
+        if (Array.isArray(data) && data.length > 0 && typeof window !== 'undefined') {
+          try {
+            localStorage.setItem('resifaso_cache_/api/residences', JSON.stringify(data));
+          } catch (e) {}
+        }
+        return data;
+      } catch (err) {
+        if (typeof window !== 'undefined') {
+          const cached = localStorage.getItem('resifaso_cache_/api/residences');
+          if (cached) {
+            try {
+              return JSON.parse(cached);
+            } catch (e) {}
+          }
+        }
+        throw err;
+      }
     },
-    staleTime: 1000 * 60 * 2, // 2 minutes
+    staleTime: 1000 * 60 * 5, // 5 minutes
   });
 };
 
@@ -75,9 +93,27 @@ export const usePartners = () => {
   return useQuery({
     queryKey: ['partners'],
     queryFn: async () => {
-      const response = await apiFetch('/api/partners');
-      if (!response.ok) throw new Error('Failed to fetch partners');
-      return response.json();
+      try {
+        const response = await apiFetch('/api/partners');
+        if (!response.ok) throw new Error('Failed to fetch partners');
+        const data = await response.json();
+        if (Array.isArray(data) && data.length > 0 && typeof window !== 'undefined') {
+          try {
+            localStorage.setItem('resifaso_cache_/api/partners', JSON.stringify(data));
+          } catch (e) {}
+        }
+        return data;
+      } catch (err) {
+        if (typeof window !== 'undefined') {
+          const cached = localStorage.getItem('resifaso_cache_/api/partners');
+          if (cached) {
+            try {
+              return JSON.parse(cached);
+            } catch (e) {}
+          }
+        }
+        throw err;
+      }
     },
     staleTime: 1000 * 60 * 5, // 5 minutes
   });

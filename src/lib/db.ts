@@ -15,8 +15,11 @@ const formatToMySQLDateTime = (date: Date): string => {
   return date.toISOString().slice(0, 19).replace('T', ' ');
 };
 
-// Helper for fetch using global apiFetch
+// Helper for fetch using global apiFetch with offline cache support
 const apiFetch = async (endpoint: string, options: any = {}) => {
+  const isGet = !options.method || options.method.toUpperCase() === 'GET';
+  const cacheKey = `resifaso_cache_${endpoint}`;
+
   try {
     const response = await globalApiFetch(endpoint, options);
     if (!response.ok) {
@@ -26,10 +29,27 @@ const apiFetch = async (endpoint: string, options: any = {}) => {
     }
     const contentType = response.headers?.get ? response.headers.get("content-type") : null;
     if (contentType && contentType.includes("application/json")) {
-      return response.json();
+      const data = await response.json();
+      if (isGet && data !== undefined && typeof window !== 'undefined') {
+        try {
+          localStorage.setItem(cacheKey, JSON.stringify(data));
+        } catch (e) {
+          // ignore quota limits
+        }
+      }
+      return data;
     }
     return {} as any;
   } catch (err: any) {
+    if (isGet && typeof window !== 'undefined') {
+      const cached = localStorage.getItem(cacheKey);
+      if (cached) {
+        try {
+          console.warn(`[Offline Mode] Returning cached data for ${endpoint}`);
+          return JSON.parse(cached);
+        } catch (e) {}
+      }
+    }
     console.error(`Fetch error at ${endpoint}:`, err);
     throw err;
   }

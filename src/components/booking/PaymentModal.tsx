@@ -1,5 +1,5 @@
 import { formatCurrency } from '../../utils/currency';
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { X, Phone, ShieldCheck, ArrowRight, Loader2, CheckCircle } from 'lucide-react';
 import { cn } from '../../lib/utils';
@@ -14,6 +14,8 @@ interface Props {
   isTestMode?: boolean;
   utilitiesIncluded?: { water: boolean; electricity: boolean };
   bookingId?: string;
+  isFinalPayment?: boolean;
+  paymentType?: 'advance' | 'full';
 }
 
 type Step = 'provider' | 'phone' | 'otp' | 'success';
@@ -26,7 +28,8 @@ const PROCESSOR_IDS: Record<string, string> = {
   coris: "11702302492453862"
 };
 
-export const PaymentModal: React.FC<Props> = ({ isOpen, onClose, amount, residenceTitle, onSuccess, isTestMode, utilitiesIncluded, bookingId }) => {
+export const PaymentModal: React.FC<Props> = ({ isOpen, onClose, amount, residenceTitle, onSuccess, isTestMode, utilitiesIncluded, bookingId, isFinalPayment, paymentType }) => {
+  const isFullPayment = paymentType === 'full' || isFinalPayment === true;
   const [step, setStep] = useState<Step>('provider');
   const [provider, setProvider] = useState<Provider | null>(null);
   const [phone, setPhone] = useState('');
@@ -38,6 +41,29 @@ export const PaymentModal: React.FC<Props> = ({ isOpen, onClose, amount, residen
   const [transId, setTransId] = useState('');
   const [helperMessage, setHelperMessage] = useState('');
   const [error, setError] = useState<string | null>(null);
+
+  // Auto-read SMS OTP on mobile browsers / WebViews (WebOTP API)
+  useEffect(() => {
+    if (step === 'otp' && typeof window !== 'undefined' && 'OTPCredential' in window) {
+      const ac = new AbortController();
+      navigator.credentials.get({
+        otp: { transport: ['sms'] },
+        signal: ac.signal
+      } as any)
+      .then((otpCredential: any) => {
+        if (otpCredential && otpCredential.code) {
+          const cleanCode = String(otpCredential.code).replace(/\D/g, '');
+          setOtp(cleanCode);
+        }
+      })
+      .catch(() => {
+        // Aborted or rejected by user/device
+      });
+      return () => {
+        ac.abort();
+      };
+    }
+  }, [step]);
 
   const getCleanBFNumber = (rawPhone: string): string => {
     let clean = rawPhone.replace(/\D/g, "");
@@ -82,7 +108,7 @@ export const PaymentModal: React.FC<Props> = ({ isOpen, onClose, amount, residen
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           amount,
-          note: `Validation acompte ${residenceTitle}`,
+          note: isFullPayment ? `Paiement du solde ${residenceTitle}` : `Validation acompte ${residenceTitle}`,
           email: "client@resifaso.com",
           bookingId
         })
@@ -269,7 +295,9 @@ export const PaymentModal: React.FC<Props> = ({ isOpen, onClose, amount, residen
           )}
           <div>
             <div className="flex items-center gap-2">
-              <h3 className="text-xl font-black text-slate-900">Paiement de l'acompte</h3>
+              <h3 className="text-xl font-black text-slate-900">
+                {isFullPayment ? "Paiement du solde" : "Paiement de l'acompte"}
+              </h3>
               {isTestMode && (
                 <span className="px-2 py-0.5 bg-red-600 text-white text-[8px] font-black uppercase rounded tracking-widest">Sandbox</span>
               )}
@@ -292,7 +320,9 @@ export const PaymentModal: React.FC<Props> = ({ isOpen, onClose, amount, residen
                 className="space-y-4"
               >
                 <div className="bg-red-50 p-4 rounded-2xl flex justify-between items-center mb-6 border border-orange-100">
-                  <span className="text-xs font-bold text-orange-800 uppercase tracking-tighter">Avance de validation</span>
+                  <span className="text-xs font-bold text-orange-800 uppercase tracking-tighter">
+                    {isFullPayment ? "Solde restant à régler" : "Avance de validation"}
+                  </span>
                   <span className="text-xl font-black text-orange-900 underline underline-offset-4">{formatCurrency(amount)} FCFA</span>
                 </div>
                 
@@ -348,11 +378,27 @@ export const PaymentModal: React.FC<Props> = ({ isOpen, onClose, amount, residen
                 initial={{ opacity: 0, x: 20 }}
                 animate={{ opacity: 1, x: 0 }}
                 exit={{ opacity: 0, x: -20 }}
-                className="space-y-6"
+                className="space-y-5"
               >
-                <div className="flex items-center gap-3 mb-2">
-                  <button onClick={() => setStep('provider')} className="text-slate-400 hover:text-slate-600 cursor-pointer"><ArrowRight size={20} className="rotate-180" /></button>
-                  <span className="font-bold text-slate-900">Numéro Burkina (+226)</span>
+                <div className="flex items-center justify-between gap-3 pb-3 border-b border-slate-100">
+                  <div className="flex items-center gap-2">
+                    <button onClick={() => setStep('provider')} className="text-slate-400 hover:text-slate-600 cursor-pointer p-1 rounded-lg hover:bg-slate-100 transition-colors">
+                      <ArrowRight size={20} className="rotate-180" />
+                    </button>
+                    <span className="font-bold text-slate-900 text-sm">Numéro Burkina (+226)</span>
+                  </div>
+                  {provider && (
+                    <div className="flex items-center gap-2 px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-2xl shadow-xs">
+                      <img 
+                        src={provider === 'orange' ? '/orange.png' : provider === 'moov' ? '/moov-1.png' : provider === 'telecel' ? '/telecel.png' : '/coris.png'} 
+                        alt={provider} 
+                        className="w-5 h-5 object-contain rounded-md"
+                      />
+                      <span className="text-xs font-black text-slate-800 uppercase tracking-tight">
+                        {provider === 'orange' ? 'Orange' : provider === 'moov' ? 'Moov' : provider === 'telecel' ? 'Telecel' : 'Coris'}
+                      </span>
+                    </div>
+                  )}
                 </div>
                 
                 {error && (
@@ -361,17 +407,22 @@ export const PaymentModal: React.FC<Props> = ({ isOpen, onClose, amount, residen
                   </div>
                 )}
 
-                <div className="relative">
-                  <div className="absolute inset-y-0 left-4 flex items-center text-slate-400">
-                    <Phone size={20} />
+                <div className="space-y-1.5">
+                  <label className="block text-xs font-bold text-slate-600 uppercase tracking-wider">
+                    Numéro de compte ({provider === 'orange' ? 'Orange Money' : provider === 'moov' ? 'Moov Money' : provider === 'telecel' ? 'Telecel Money' : 'Coris Money'})
+                  </label>
+                  <div className="relative">
+                    <div className="absolute inset-y-0 left-4 flex items-center text-slate-400">
+                      <Phone size={20} />
+                    </div>
+                    <input 
+                      type="tel"
+                      placeholder="Numéro de compte"
+                      value={getFormattedPhone()}
+                      onChange={handlePhoneChange}
+                      className="w-full pl-12 pr-4 py-4 bg-slate-50 border border-slate-200 rounded-2xl font-bold text-slate-900 focus:ring-2 focus:ring-red-600 outline-none transition-all"
+                    />
                   </div>
-                  <input 
-                    type="tel"
-                    placeholder="70 00 00 00"
-                    value={getFormattedPhone()}
-                    onChange={handlePhoneChange}
-                    className="w-full pl-12 pr-4 py-4 bg-slate-50 border border-slate-200 rounded-2xl font-bold text-slate-900 focus:ring-2 focus:ring-red-600 outline-none transition-all"
-                  />
                 </div>
 
                 <button 
@@ -429,6 +480,8 @@ export const PaymentModal: React.FC<Props> = ({ isOpen, onClose, amount, residen
 
                 <input 
                   type="text"
+                  inputMode="numeric"
+                  autoComplete="one-time-code"
                   placeholder={(provider === 'telecel' || provider === 'coris') ? '00000' : '000000'}
                   maxLength={(provider === 'telecel' || provider === 'coris') ? 5 : 6}
                   value={otp}
@@ -484,7 +537,9 @@ export const PaymentModal: React.FC<Props> = ({ isOpen, onClose, amount, residen
             <ShieldCheck size={12} /> Transaction sécurisée par cryptage SSL
           </p>
           <p className="text-[9px] text-slate-400 font-medium leading-tight">
-            🛡️ En payant cet acompte, vous acceptez les conditions d'annulation. La commission de service de la plateforme est non remboursable.
+            🛡️ {isFullPayment 
+              ? "En réglant ce solde, vous finalisez le paiement de votre séjour. La commission de service de la plateforme est non remboursable." 
+              : "En payant cet acompte, vous acceptez les conditions d'annulation. La commission de service de la plateforme est non remboursable."}
           </p>
         </div>
       </motion.div>

@@ -118,7 +118,7 @@ export const ResidenceCard: React.FC<Props> = ({
           <h3 className="font-extrabold text-slate-900 leading-tight group-hover:text-red-600 transition-colors uppercase text-[12px] tracking-tight flex-1">{residence.title}</h3>
           <div className="flex items-center gap-1 text-[11px] font-black text-slate-900 shrink-0">
             <Star size={12} className={cn("text-yellow-500", residence.rating ? "fill-yellow-500" : "fill-none")} />
-            <span>{residence.rating || "4.8"}</span>
+            <span>{residence.rating ? residence.rating : "Nouveau"}</span>
           </div>
         </div>
         

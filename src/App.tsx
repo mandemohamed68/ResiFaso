@@ -60,16 +60,42 @@ function AppContent() {
   const { data: resData, isLoading: resLoading } = useResidences();
   const { data: gsData } = useGlobalSettings();
 
-  const [residences, setResidences] = useState<Residence[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [residences, setResidences] = useState<Residence[]>(() => {
+    if (typeof window !== 'undefined') {
+      try {
+        const cached = localStorage.getItem('resifaso_cache_/api/residences');
+        if (cached) {
+          const parsed = JSON.parse(cached);
+          if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+        }
+      } catch (e) {}
+    }
+    return [];
+  });
+
+  const [loading, setLoading] = useState(() => {
+    if (residences.length > 0) return false;
+    return resLoading;
+  });
 
   useEffect(() => {
-    if (resData) setResidences(resData);
+    if (resData && Array.isArray(resData) && resData.length > 0) {
+      setResidences(resData);
+      try {
+        localStorage.setItem('resifaso_cache_/api/residences', JSON.stringify(resData));
+      } catch (e) {}
+    }
   }, [resData]);
 
   useEffect(() => {
-    setLoading(resLoading);
-  }, [resLoading]);
+    if (resData && resData.length > 0) {
+      setLoading(false);
+    } else if (residences.length > 0) {
+      setLoading(false);
+    } else {
+      setLoading(resLoading);
+    }
+  }, [resData, resLoading, residences.length]);
 
   useEffect(() => {
     if (gsData) {
@@ -653,9 +679,9 @@ function AppContent() {
       )}
 
       {!isOnline && (
-        <div className="bg-slate-900 text-white font-black text-center py-4.5 px-6 text-xs uppercase tracking-widest shadow-lg border-b border-slate-950 animate-in fade-in slide-in-from-top duration-500 z-50 relative font-sans flex items-center justify-center gap-2">
+        <div className="bg-slate-900 text-white font-black text-center py-2.5 px-6 text-xs uppercase tracking-widest shadow-lg border-b border-slate-950 animate-in fade-in slide-in-from-top duration-500 z-50 relative font-sans flex items-center justify-center gap-2">
           <span className="w-2.5 h-2.5 bg-red-500 rounded-full animate-ping shrink-0" />
-          <span>🔴 Mode Hors Ligne activé. L'application utilise la base de données locale (SQLite). Vos actions seront synchronisées dès le retour de la connexion.</span>
+          <span>🔴 Vous êtes en mode hors ligne</span>
         </div>
       )}
 
@@ -969,7 +995,7 @@ function AppContent() {
                     </span>
                     <div className="flex items-center gap-1 text-sm bg-white border border-slate-100 px-3 py-1 rounded-xl shadow-sm">
                       <Star size={16} className={cn("text-yellow-500", selectedResidence.rating ? "fill-yellow-500" : "")} />
-                      <span className="font-black">{selectedResidence.rating || "4.8"} <span className="text-slate-400 font-bold">({selectedResidence.reviewCount || 24} avis)</span></span>
+                      <span className="font-black">{selectedResidence.rating ? selectedResidence.rating : "Nouveau"} <span className="text-slate-400 font-bold">({selectedResidence.reviewCount || 0} avis)</span></span>
                     </div>
                     {!!selectedResidence.rooms && (
                       <div className="flex items-center gap-1 text-xs font-black text-slate-500 uppercase tracking-widest bg-slate-100 px-3 py-1 rounded-xl">
@@ -1687,6 +1713,8 @@ function AppContent() {
             setActiveBookingForPayment(null);
           }}
           amount={activeBookingForPayment.amount}
+          isFinalPayment={false}
+          paymentType="advance"
           residenceTitle={activeBookingForPayment.title}
           isTestMode={isTestMode}
           utilitiesIncluded={activeBookingForPayment ? residences.find(r => r.id === activeBookingForPayment.residenceId)?.utilitiesIncluded : undefined}

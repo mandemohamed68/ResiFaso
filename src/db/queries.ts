@@ -76,7 +76,7 @@ export const getAllResidences = async (ownerId?: string) => {
   const ids = rows.map(r => r.id);
   const placeHolders = ids.map(() => "?").join(",");
 
-  const [allAmenities, allImages, activeBookings] = await Promise.all([
+  const [allAmenities, allImages, activeBookings, allRatings] = await Promise.all([
     executeSql(`SELECT residence_id, amenity FROM residence_amenities WHERE residence_id IN (${placeHolders})`, ids),
     executeSql(`SELECT residence_id, image_url FROM residence_images WHERE residence_id IN (${placeHolders})`, ids),
     executeSql(`
@@ -85,6 +85,12 @@ export const getAllResidences = async (ownerId?: string) => {
       WHERE residence_id IN (${placeHolders})
       AND LOWER(booking_status) NOT IN ('cancelled', 'declined', 'annulee', 'annulé', 'refusee', 'refusé', 'expired', 'canceled')
       AND LOWER(payment_status) IN ('paid', 'advance_paid', 'partial_paid', 'partiel', 'fully_paid')
+    `, ids),
+    executeSql(`
+      SELECT residence_id, AVG(rating) as avgRating, COUNT(*) as reviewCount 
+      FROM reviews 
+      WHERE residence_id IN (${placeHolders})
+      GROUP BY residence_id
     `, ids)
   ]);
 
@@ -100,6 +106,15 @@ export const getAllResidences = async (ownerId?: string) => {
     const resId = i.residence_id || i.residenceId;
     if (!imagesMap[resId]) imagesMap[resId] = [];
     imagesMap[resId].push(i.image_url || i.imageUrl);
+  });
+
+  const ratingsMap: Record<string, { rating: number, count: number }> = {};
+  allRatings.forEach((r: any) => {
+    const resId = r.residence_id || r.residenceId;
+    ratingsMap[resId] = {
+      rating: parseFloat(parseFloat(r.avgRating).toFixed(1)),
+      count: parseInt(r.reviewCount)
+    };
   });
 
   const bookingsMap: Record<string, any[]> = {};
@@ -149,6 +164,8 @@ export const getAllResidences = async (ownerId?: string) => {
     rejectionReason: res.rejectionReason || res.rejection_reason || res.rejectionreason,
     ownerPhone: res.ownerPhone || res.owner_phone || res.ownerphone,
     createdAt: res.createdAt || res.created_at || res.createdat,
+    rating: ratingsMap[res.id]?.rating,
+    reviewCount: ratingsMap[res.id]?.count || 0,
     amenities: amenitiesMap[res.id] || [],
     images: imagesMap[res.id] || [],
     occupiedDates: bookingsMap[res.id] || [],
@@ -188,6 +205,11 @@ export const getResidenceById = async (id: string) => {
 
   const amenities = await executeSql("SELECT amenity FROM residence_amenities WHERE residence_id = ?", [id]);
   const images = await executeSql("SELECT image_url FROM residence_images WHERE residence_id = ?", [id]);
+  const ratings = await executeSql(`
+    SELECT AVG(rating) as avgRating, COUNT(*) as reviewCount 
+    FROM reviews 
+    WHERE residence_id = ?
+  `, [id]);
   const bookings = await executeSql(`
     SELECT check_in, check_out 
     FROM bookings 
@@ -223,6 +245,8 @@ export const getResidenceById = async (id: string) => {
     rejectionReason: row.rejectionReason || row.rejection_reason || row.rejectionreason,
     ownerPhone: row.ownerPhone || row.owner_phone || row.ownerphone,
     createdAt: row.createdAt || row.created_at || row.createdat,
+    rating: ratings[0]?.avgRating ? parseFloat(parseFloat(ratings[0].avgRating).toFixed(1)) : undefined,
+    reviewCount: ratings[0]?.reviewCount ? parseInt(ratings[0].reviewCount) : 0,
     amenities: amenities.map((a: any) => a.amenity),
     images: images.map((i: any) => i.image_url || i.imageUrl),
     occupiedDates: bookings

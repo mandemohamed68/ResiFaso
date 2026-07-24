@@ -1198,6 +1198,8 @@ export const MyBookings: React.FC<{ onContactHost: (ownerId: string, resId: stri
             isOpen={!!selectedBookingForPayment}
             onClose={() => setSelectedBookingForPayment(null)}
             amount={selectedBookingForPayment.paymentStatus === 'advance_paid' ? (selectedBookingForPayment.totalPrice - selectedBookingForPayment.advancePaid) : selectedBookingForPayment.advancePaid}
+            isFinalPayment={selectedBookingForPayment.paymentStatus === 'advance_paid'}
+            paymentType={selectedBookingForPayment.paymentStatus === 'advance_paid' ? 'full' : 'advance'}
             residenceTitle={residencesMap[selectedBookingForPayment.residenceId]?.title || "Hébergement"}
             isTestMode={isTestMode}
             bookingId={selectedBookingForPayment.id}
