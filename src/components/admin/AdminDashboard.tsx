@@ -3652,7 +3652,7 @@ export const AdminDashboard: React.FC<{ onBackToTraveler?: () => void }> = ({ on
           <div className="space-y-8 animate-in fade-in duration-500">
             <div>
               <h2 className="text-3xl font-black text-slate-900 tracking-tight leading-none mb-1">Analyses Financières</h2>
-              <p className="text-slate-500 font-medium text-sm">Suivi des montants d'avances payés et volume de commissions.</p>
+              <p className="text-slate-500 font-medium text-sm">Suivi des montants d'acomptes payés et volume de commissions.</p>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">

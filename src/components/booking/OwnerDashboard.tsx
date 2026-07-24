@@ -218,7 +218,7 @@ const ResidenceHistoryModal: React.FC<ResidenceHistoryModalProps> = ({ residence
                         "text-[10px] font-black uppercase",
                         b.paymentStatus === 'fully_paid' ? "text-green-600" : "text-amber-600"
                       )}>
-                        {b.paymentStatus === 'fully_paid' ? 'Soldé (100%)' : `Avance: ${formatCurrency(b.advancePaid)} F`}
+                        {b.paymentStatus === 'fully_paid' ? 'Soldé (100%)' : `Acompte: ${formatCurrency(b.advancePaid)} F`}
                       </span>
                     </div>
                   </div>
@@ -340,7 +340,7 @@ const BookingTable: React.FC<BookingTableProps> = ({
                    <span className="block text-[8px] font-black text-slate-400 uppercase tracking-widest font-mono">Financier</span>
                    <span className="block font-black text-slate-950">{formatCurrency(b.totalPrice)} F CFA</span>
                    <span className="block text-[9px] text-slate-500 font-bold uppercase mt-0.5">
-                     {b.paymentStatus === 'fully_paid' ? 'Soldé (100%)' : b.paymentStatus === 'advance_paid' ? `Acompte: ${formatCurrency(b.advancePaid)} F` : `Avance due: ${formatCurrency(b.advancePaid)} F`}
+                     {b.paymentStatus === 'fully_paid' ? 'Soldé (100%)' : b.paymentStatus === 'advance_paid' ? `Acompte: ${formatCurrency(b.advancePaid)} F` : `Acompte dû: ${formatCurrency(b.advancePaid)} F`}
                    </span>
                  </div>
                  <div className="col-span-2">
@@ -414,7 +414,7 @@ const BookingTable: React.FC<BookingTableProps> = ({
                                 className="w-full py-2 bg-amber-500 hover:bg-amber-600 text-white rounded-xl text-[10px] font-black uppercase tracking-wider transition-all flex items-center justify-center gap-1 disabled:opacity-50 cursor-pointer shadow-sm shadow-amber-100"
                               >
                                 <Wallet size={12} />
-                                {isProcessingPayment === b.id ? 'Traitement...' : b.advancePaid >= b.totalPrice ? `Confirmer solde (${formatCurrency(b.totalPrice)} F)` : `Tout solder (${formatCurrency(b.totalPrice)} F)`}
+                                {isProcessingPayment === b.id ? 'Traitement...' : b.advancePaid >= b.totalPrice ? `Confirmer totalité (${formatCurrency(b.totalPrice)} F)` : `Confirmer Paiement Total (${formatCurrency(b.totalPrice)} F)`}
                               </button>
                             )}
 
@@ -529,7 +529,7 @@ const BookingTable: React.FC<BookingTableProps> = ({
                       ) : b.paymentStatus === 'advance_paid' ? (
                         <span className="text-[10px] font-black text-blue-600 uppercase">Acompte Payé: {formatCurrency(b.advancePaid)} F</span>
                       ) : (
-                        <span className="text-[10px] font-black text-red-500 uppercase">Avance Due: {formatCurrency(b.advancePaid)} F</span>
+                        <span className="text-[10px] font-black text-red-500 uppercase">Acompte Dû: {formatCurrency(b.advancePaid)} F</span>
                       )}
                     </div>
                   </td>
@@ -590,7 +590,7 @@ const BookingTable: React.FC<BookingTableProps> = ({
                                   className="w-full px-2 py-1 bg-amber-50 text-amber-700 border border-amber-200 rounded-lg text-[9px] font-black uppercase tracking-wider hover:bg-amber-100 transition-all flex items-center justify-center gap-1 disabled:opacity-50 cursor-pointer"
                                 >
                                   <Wallet size={12} />
-                                  {isProcessingPayment === b.id ? 'Traitement...' : b.advancePaid >= b.totalPrice ? `Solder (${formatCurrency(b.totalPrice)} F)` : `Tout solder (${formatCurrency(b.totalPrice)} F)`}
+                                  {isProcessingPayment === b.id ? 'Traitement...' : b.advancePaid >= b.totalPrice ? `Confirmer totalité (${formatCurrency(b.totalPrice)} F)` : `Confirmer Paiement Total (${formatCurrency(b.totalPrice)} F)`}
                                 </button>
                               )}
 
@@ -601,7 +601,7 @@ const BookingTable: React.FC<BookingTableProps> = ({
                                   className="w-full px-2 py-1 bg-emerald-50 text-emerald-700 border border-emerald-200 rounded-lg text-[9px] font-black uppercase tracking-wider hover:bg-emerald-100 transition-all flex items-center justify-center gap-1 disabled:opacity-50 cursor-pointer"
                                 >
                                   <Wallet size={12} />
-                                  {isProcessingPayment === b.id ? 'Traitement...' : `Solder (${formatCurrency(b.totalPrice - b.advancePaid)} F)`}
+                                  {isProcessingPayment === b.id ? 'Traitement...' : `Confirmer solde (${formatCurrency(b.totalPrice - b.advancePaid)} F)`}
                                 </button>
                               )}
                             </div>
@@ -1639,7 +1639,7 @@ export const OwnerDashboard: React.FC<{ isTestMode?: boolean; onBackToTraveler?:
       await sendNotification({
         userId: booking.clientId,
         title: "Réservation Approuvée ! 🎉",
-        message: `Votre hôte a approuvé votre demande pour la résidence. Vous pouvez procéder au paiement de l'avance.`,
+        message: `Votre hôte a approuvé votre demande pour la résidence. Vous pouvez procéder au paiement de l'acompte.`,
         type: 'booking',
         referenceId: booking.id
       });
@@ -3273,7 +3273,7 @@ export const OwnerDashboard: React.FC<{ isTestMode?: boolean; onBackToTraveler?:
                       Cas A : Acompte seul payé
                     </span>
                     <p className="text-[11px] text-slate-500 font-medium leading-normal">
-                      Le voyageur a payé une avance de <strong className="font-extrabold text-slate-800">10 000 F</strong>. En annulant :
+                      Le voyageur a payé un acompte de <strong className="font-extrabold text-slate-800">10 000 F</strong>. En annulant :
                     </p>
                     <div className="text-[11px] font-bold text-slate-700 font-mono bg-slate-50 p-1.5 rounded text-center">
                       Refund: {formatCurrency(Math.max(0, 10000 - hostCancellationFee))} F CFA
@@ -3798,7 +3798,7 @@ export const OwnerDashboard: React.FC<{ isTestMode?: boolean; onBackToTraveler?:
                     </div>
 
                     <div>
-                      <label className="block text-xs font-black text-slate-400 uppercase tracking-wider mb-2">Pourcentage exigé en avance</label>
+                      <label className="block text-xs font-black text-slate-400 uppercase tracking-wider mb-2">Pourcentage d\'acompte exigé</label>
                       <div className="grid grid-cols-3 gap-3">
                         {[30, 50, 100].map(pct => (
                           <button
@@ -3811,7 +3811,7 @@ export const OwnerDashboard: React.FC<{ isTestMode?: boolean; onBackToTraveler?:
                                 : 'bg-slate-50 border-slate-100 text-slate-500'
                             }`}
                           >
-                            {pct}% {pct === 100 ? '(Séjour Complet)' : '(Avance standard)'}
+                            {pct}% {pct === 100 ? '(Séjour Complet)' : '(Acompte standard)'}
                           </button>
                         ))}
                       </div>

@@ -321,7 +321,7 @@ export const PaymentModal: React.FC<Props> = ({ isOpen, onClose, amount, residen
               >
                 <div className="bg-red-50 p-4 rounded-2xl flex justify-between items-center mb-6 border border-orange-100">
                   <span className="text-xs font-bold text-orange-800 uppercase tracking-tighter">
-                    {isFullPayment ? "Solde restant à régler" : "Avance de validation"}
+                    {isFullPayment ? "Solde restant à régler" : isFullPayment ? "Paiement total" : "Acompte de validation"}
                   </span>
                   <span className="text-xl font-black text-orange-900 underline underline-offset-4">{formatCurrency(amount)} FCFA</span>
                 </div>

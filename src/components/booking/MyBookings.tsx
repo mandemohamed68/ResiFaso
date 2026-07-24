@@ -838,7 +838,7 @@ export const MyBookings: React.FC<{ onContactHost: (ownerId: string, resId: stri
         } else if (pStatus === 'fully_paid') {
           return <span className="px-3 py-1 bg-blue-50 border border-blue-200 text-blue-700 rounded-full text-[10px] font-black uppercase tracking-wider">Séjour Validé (Entièrement Payé)</span>;
         } else {
-          return <span className="px-3 py-1 bg-amber-100 text-amber-800 rounded-full text-[10px] font-black uppercase tracking-wider">Approuvée, En Attente d'Avance</span>;
+          return <span className="px-3 py-1 bg-amber-100 text-amber-800 rounded-full text-[10px] font-black uppercase tracking-wider">Approuvée, En Attente de Paiement</span>;
         }
       case 'cancelled':
         return <span className="px-3 py-1 bg-red-50 border border-red-200 text-red-700 rounded-full text-[10px] font-black uppercase tracking-wider">Annulée</span>;
@@ -874,7 +874,7 @@ export const MyBookings: React.FC<{ onContactHost: (ownerId: string, resId: stri
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-10">
         <div>
           <h2 className="text-3xl font-black text-slate-900 tracking-tight leading-none mb-2">Mes Réservations</h2>
-          <p className="text-slate-500 text-sm font-medium">Consultez, payez vos avances et discutez en direct avec vos hôtes.</p>
+          <p className="text-slate-500 text-sm font-medium">Consultez, payez vos réservations et discutez en direct avec vos hôtes.</p>
         </div>
         <div className="flex items-center gap-3">
           <button 
@@ -1070,7 +1070,7 @@ export const MyBookings: React.FC<{ onContactHost: (ownerId: string, resId: stri
                           className="w-full sm:w-auto justify-center px-4 sm:px-5 py-2.5 bg-red-600 hover:bg-red-700 text-white rounded-xl font-bold text-xs shadow-md shadow-red-50 flex items-center gap-2 animate-pulse text-center"
                         >
                           <CreditCard size={14} className="shrink-0" />
-                          <span>Payer l'Avance</span>
+                          <span>{booking.advancePaid >= booking.totalPrice ? 'Payer la Totalité' : 'Payer l\'Acompte'}</span>
                         </button>
                       )}
 
@@ -1218,7 +1218,7 @@ export const MyBookings: React.FC<{ onContactHost: (ownerId: string, resId: stri
                   type: 'payment'
                 });
 
-                addToast(isFinalPayment ? 'Félicitations ! Votre séjour est entièrement payé.' : 'Paiement de l\'avance enregistré avec succès ! Votre réservation est validée.', "error");
+                addToast(isFinalPayment ? 'Félicitations ! Votre séjour est entièrement payé.' : 'Paiement de l\'acompte enregistré avec succès ! Votre réservation est validée.', "error");
                 setSelectedBookingForPayment(null);
               } catch (err) {
                 console.error(err);

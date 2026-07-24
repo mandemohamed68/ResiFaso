@@ -1488,10 +1488,10 @@ function AppContent() {
 
                     <div className="bg-orange-50 border border-orange-100 rounded-xl p-4 mb-6">
                       <div className="flex items-center justify-between mb-2">
-                        <span className="text-xs font-bold text-orange-800 uppercase tracking-tighter">Avance requise ({selectedResidence.advancePercentage || selectedResidence.advance_percentage || 100}%)</span>
+                        <span className="text-xs font-bold text-orange-800 uppercase tracking-tighter">Acompte requis ({selectedResidence.advancePercentage || selectedResidence.advance_percentage || 100}%)</span>
                         <span className="text-lg font-black text-orange-900 underline underline-offset-4">{formatFCFA(calculateAdvance(selectedResidence))}</span>
                       </div>
-                      <p className="text-[11px] text-orange-700 leading-tight italic">Cette avance sera payée via Mobile Money une fois que l'hôte aura approuvé vos dates.</p>
+                      <p className="text-[11px] text-orange-700 leading-tight italic">Cet acompte sera payé via Mobile Money une fois que l'hôte aura approuvé vos dates.</p>
                     </div>
 
                     <button 
