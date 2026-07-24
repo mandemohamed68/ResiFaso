@@ -281,6 +281,20 @@ async function startServer() {
   app.use(express.json({ limit: '50mb' }));
   app.use(express.urlencoded({ limit: '50mb', extended: true }));
 
+  // Normalize duplicate /api/api/, trailing slashes, or root /api requests
+  app.use((req, res, next) => {
+    if (req.url.startsWith('/api/api/')) {
+      req.url = req.url.replace(/^\/api\/api\//, '/api/');
+    }
+    if (req.path === '/api' || req.path === '/api/') {
+      return res.json({ status: 'ok', message: 'ResiFaso API is online', timestamp: new Date().toISOString() });
+    }
+    if (req.url.startsWith('/api/') && req.url.endsWith('/') && req.url.length > 5) {
+      req.url = req.url.slice(0, -1);
+    }
+    next();
+  });
+
   // ---------- AUTH ----------
   app.post("/api/auth/register", async (req, res) => {
     const { email, password, displayName, role: requestedRole, identity_document_front, identity_document_back } = req.body;

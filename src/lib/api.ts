@@ -5,6 +5,15 @@ export function getApiUrl(): string {
 
   const win = window as any;
 
+  const sanitizeUrl = (rawUrl: string): string => {
+    let url = rawUrl.trim().replace(/\/$/, '');
+    // Strip trailing /api if user or env provided it, as paths passed to apiFetch already include /api
+    if (url.endsWith('/api')) {
+      url = url.substring(0, url.length - 4);
+    }
+    return url.replace(/\/$/, '');
+  };
+
   // 1. Check if running inside Capacitor (Native Android or iOS App)
   const isCapacitorNative = typeof win.Capacitor !== 'undefined' && (
     win.Capacitor?.isNativePlatform?.() ||
@@ -21,12 +30,12 @@ export function getApiUrl(): string {
   if (isCapacitor) {
     const customUrl = localStorage.getItem('custom_server_url');
     if (customUrl && customUrl.trim()) {
-      return customUrl.trim().replace(/\/$/, '');
+      return sanitizeUrl(customUrl);
     }
 
     const envUrl = import.meta.env.VITE_API_URL || import.meta.env.VITE_APP_URL;
     if (envUrl && envUrl !== 'MY_APP_URL' && envUrl !== 'MY_API_URL' && envUrl.trim() !== '') {
-      return envUrl.trim().replace(/\/$/, '');
+      return sanitizeUrl(envUrl);
     }
 
     // Default production backend server for mobile app (Android/iOS)
@@ -40,7 +49,7 @@ export function getApiUrl(): string {
   if (hostname.includes('ais-dev') || hostname.includes('localhost') || hostname.includes('127.0.0.1') || hostname.includes('run.app')) {
     const customUrl = localStorage.getItem('custom_server_url');
     if (customUrl && customUrl.trim()) {
-      return customUrl.trim().replace(/\/$/, '');
+      return sanitizeUrl(customUrl);
     }
     return '';
   }
@@ -48,7 +57,7 @@ export function getApiUrl(): string {
   // Custom server URL if explicitly configured by user
   const customUrl = localStorage.getItem('custom_server_url');
   if (customUrl && customUrl.trim()) {
-    return customUrl.trim().replace(/\/$/, '');
+    return sanitizeUrl(customUrl);
   }
 
   // Production Web Deployment (same origin)
@@ -56,16 +65,23 @@ export function getApiUrl(): string {
 }
 
 export async function apiFetch(path: string, options: RequestInit = {}): Promise<Response> {
-  const baseUrl = getApiUrl();
+  let baseUrl = getApiUrl();
   const token = typeof window !== 'undefined' ? localStorage.getItem('auth_token') : null;
   
   // Ensure path starts with /
-  const cleanPath = path.startsWith('/') ? path : `/${path}`;
+  let cleanPath = path.startsWith('/') ? path : `/${path}`;
   
-  // Use absolute URL if path doesn't already have one and baseUrl exists
-  const fullUrl = (path.startsWith('http://') || path.startsWith('https://')) 
+  // Prevent duplicate /api/api/ if path starts with /api/ and baseUrl ends with /api
+  if (baseUrl.endsWith('/api') && cleanPath.startsWith('/api/')) {
+    baseUrl = baseUrl.substring(0, baseUrl.length - 4);
+  }
+
+  let fullUrl = (path.startsWith('http://') || path.startsWith('https://')) 
     ? path 
     : (baseUrl ? `${baseUrl}${cleanPath}` : cleanPath);
+
+  // Clean any accidental double slashes in URL path (e.g. https://domain.com//api/...)
+  fullUrl = fullUrl.replace(/([^:]\/)\/+/g, "$1");
 
   const isExternal = path.startsWith('http://') || path.startsWith('https://');
 
