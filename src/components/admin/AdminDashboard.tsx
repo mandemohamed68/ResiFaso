@@ -64,7 +64,7 @@ export const AVAILABLE_PERMISSIONS = [
 
 export const AdminDashboard: React.FC<{ onBackToTraveler?: () => void }> = ({ onBackToTraveler }) => {
   const { user } = useAuth();
-  const { lastRefresh } = useDataRefresh();
+  const { lastRefresh, refreshData } = useDataRefresh();
   const { addToast } = useToast();
   const queryClient = useQueryClient();
   const { data: adminData, isLoading: isAdminLoading } = useAdminData(user?.role);
@@ -371,6 +371,7 @@ export const AdminDashboard: React.FC<{ onBackToTraveler?: () => void }> = ({ on
   const reloadData = async () => {
     // reloadData is now handled by React Query invalidation
     queryClient.invalidateQueries({ queryKey: ['admin-data'] });
+    refreshData();
   };
 
   useEffect(() => {

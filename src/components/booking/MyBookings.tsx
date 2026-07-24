@@ -730,7 +730,7 @@ const SuiviReservationModal: React.FC<SuiviReservationModalProps> = ({ isOpen, o
 
 export const MyBookings: React.FC<{ onContactHost: (ownerId: string, resId: string) => void, isTestMode?: boolean }> = ({ onContactHost, isTestMode }) => {
   const { user } = useAuth();
-  const { lastRefresh } = useDataRefresh();
+  const { lastRefresh, refreshData } = useDataRefresh();
   const { addToast } = useToast();
 
   const [bookings, setBookings] = useState<Booking[]>([]);
@@ -1220,6 +1220,7 @@ export const MyBookings: React.FC<{ onContactHost: (ownerId: string, resId: stri
 
                 addToast(isFinalPayment ? 'Félicitations ! Votre séjour est entièrement payé.' : 'Paiement de l\'acompte enregistré avec succès ! Votre réservation est validée.', "error");
                 setSelectedBookingForPayment(null);
+                refreshData();
               } catch (err) {
                 console.error(err);
                 addToast('Erreur lors de la validation du paiement.', "error");
@@ -1238,6 +1239,7 @@ export const MyBookings: React.FC<{ onContactHost: (ownerId: string, resId: stri
             residence={residencesMap[selectedBookingForReview.residenceId]}
             onSuccess={() => {
               addToast("Merci pour votre avis !", "error");
+              refreshData();
             }}
           />
         )}
@@ -1253,6 +1255,7 @@ export const MyBookings: React.FC<{ onContactHost: (ownerId: string, resId: stri
             onSuccess={() => {
               addToast("Réservation annulée avec succès et demande de remboursement enregistrée !", "error");
               setSelectedBookingForCancel(null);
+              refreshData();
             }}
           />
         )}

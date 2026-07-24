@@ -1524,6 +1524,7 @@ export const OwnerDashboard: React.FC<{ isTestMode?: boolean; onBackToTraveler?:
     try {
       await updateResidence(resId, { availabilityStatus: newStatus });
       await fetchData();
+      refreshData();
     } catch (err) {
       console.error(err);
       addToast("Erreur lors de la mise à jour de la disponibilité.", "error");
@@ -1538,6 +1539,7 @@ export const OwnerDashboard: React.FC<{ isTestMode?: boolean; onBackToTraveler?:
       await updateResidence(res.id, { status: newStatus });
       triggerSuccess(newStatus === 'published' ? "Résidence activée !" : "Résidence désactivée.");
       await fetchData();
+      refreshData();
     } catch (err) {
       console.error(err);
       addToast("Erreur lors de la modification du statut.", "error");
@@ -1549,6 +1551,7 @@ export const OwnerDashboard: React.FC<{ isTestMode?: boolean; onBackToTraveler?:
       await updateResidence(res.id, { promoted: !res.promoted });
       triggerSuccess(res.promoted ? "Promotion désactivée." : "Résidence mise en avant avec succès !");
       await fetchData();
+      refreshData();
     } catch (err) {
       console.error(err);
       addToast("Erreur lors de la mise en avant.", "error");
@@ -1680,6 +1683,7 @@ export const OwnerDashboard: React.FC<{ isTestMode?: boolean; onBackToTraveler?:
       triggerSuccess("Réservation refusée avec succès et le voyageur a été notifié.");
       setBookingToDecline(null);
       await fetchData();
+      refreshData();
     } catch (err) {
       console.error(err);
       addToast("Erreur lors du traitement du refus.", "error");
@@ -1714,6 +1718,7 @@ export const OwnerDashboard: React.FC<{ isTestMode?: boolean; onBackToTraveler?:
       });
       triggerSuccess("L'acompte a été marqué comme payé avec succès !");
       await fetchData();
+      refreshData();
     } catch (err) {
       console.error(err);
       addToast("Erreur lors de la mise à jour de l'acompte.", "error");
@@ -1750,6 +1755,7 @@ export const OwnerDashboard: React.FC<{ isTestMode?: boolean; onBackToTraveler?:
       });
       triggerSuccess("Le solde a été marqué comme payé avec succès !");
       await fetchData();
+      refreshData();
     } catch (err) {
       console.error(err);
       addToast("Erreur lors de la mise à jour du paiement.", "error");
@@ -1786,6 +1792,7 @@ export const OwnerDashboard: React.FC<{ isTestMode?: boolean; onBackToTraveler?:
 
       triggerSuccess("Début de séjour enregistré avec succès !");
       await fetchData();
+      refreshData();
     } catch (err) {
       console.error(err);
       addToast("Erreur lors de l'enregistrement du check-in.", "error");
@@ -1821,6 +1828,7 @@ export const OwnerDashboard: React.FC<{ isTestMode?: boolean; onBackToTraveler?:
 
       triggerSuccess("Fin de séjour enregistrée avec succès !");
       await fetchData();
+      refreshData();
     } catch (err) {
       console.error(err);
       addToast("Erreur lors du check-out.", "error");
@@ -1891,6 +1899,7 @@ export const OwnerDashboard: React.FC<{ isTestMode?: boolean; onBackToTraveler?:
     try {
       await markNotificationAsRead(id);
       await fetchData();
+      refreshData();
     } catch (err) {
       console.error("Error marking notification as read:", err);
     }
@@ -1901,6 +1910,7 @@ export const OwnerDashboard: React.FC<{ isTestMode?: boolean; onBackToTraveler?:
     try {
       await markAllNotificationsAsRead(user.uid);
       await fetchData();
+      refreshData();
     } catch (err) {
       console.error("Error clearing all notifications:", err);
     }
@@ -1919,6 +1929,7 @@ export const OwnerDashboard: React.FC<{ isTestMode?: boolean; onBackToTraveler?:
         await refreshProfile();
       }
       await fetchData();
+      refreshData();
       triggerSuccess("Votre politique de remboursement personnalisée a été enregistrée avec succès ! Elle s'appliquera désormais à tous vos futurs séjours.");
     } catch (err) {
       console.error("Error saving policy: ", err);
@@ -2454,6 +2465,7 @@ export const OwnerDashboard: React.FC<{ isTestMode?: boolean; onBackToTraveler?:
                                   await deleteResidence(res.id);
                                   setConfirmDeleteId(null);
                                   await fetchData();
+      refreshData();
                                 }}
                                 className="px-2 py-1 bg-red-600 text-white hover:bg-red-700 rounded text-[10px] font-bold"
                               >

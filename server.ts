@@ -793,9 +793,9 @@ async function startServer() {
       }
 
       // D. Automatic Conflict Resolution after payment
-      const isPaying = (req.body.paymentStatus === 'paid' || req.body.paymentStatus === 'advance_paid' || 
-                        req.body.payment_status === 'paid' || req.body.payment_status === 'advance_paid') && 
-                       (bPaymentStatus !== 'paid' && bPaymentStatus !== 'advance_paid');
+      const isPaying = (req.body.paymentStatus === 'paid' || req.body.paymentStatus === 'fully_paid' || req.body.paymentStatus === 'advance_paid' || 
+                        req.body.payment_status === 'paid' || req.body.payment_status === 'fully_paid' || req.body.payment_status === 'advance_paid') && 
+                       (bPaymentStatus !== 'paid' && bPaymentStatus !== 'fully_paid' && bPaymentStatus !== 'advance_paid');
 
       if (isPaying) {
           const checkIn = oldBooking.check_in || oldBooking.checkIn;
@@ -835,7 +835,7 @@ async function startServer() {
       if (isCheckingIn) {
           const currentPaymentStatus = req.body.paymentStatus || req.body.payment_status || oldBooking.payment_status || oldBooking.paymentStatus;
           const statusStr = String(currentPaymentStatus || '').toLowerCase();
-          if (statusStr !== 'paid' && statusStr !== 'advance_paid') {
+          if (statusStr !== 'paid' && statusStr !== 'fully_paid' && statusStr !== 'advance_paid') {
               return res.status(400).json({ error: "Le séjour ne peut pas débuter tant que l'acompte n'est pas payé." });
           }
       }
