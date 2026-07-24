@@ -23,15 +23,6 @@ export const InvoiceModal: React.FC<InvoiceModalProps> = ({
 }) => {
   const { addToast } = useToast();
   const invoiceRef = useRef<HTMLDivElement>(null);
-
-  if (!booking) return null;
-
-  const totalPaid = booking.paymentStatus === 'fully_paid' 
-    ? Number(booking.totalPrice || 0) 
-    : (booking.paymentStatus === 'advance_paid' ? booking.advancePaid : 0);
-    
-  const remaining = Number(booking.totalPrice || 0) - totalPaid;
-
   const [logoBase64, setLogoBase64] = useState<string>('');
 
   useEffect(() => {
@@ -57,6 +48,14 @@ export const InvoiceModal: React.FC<InvoiceModalProps> = ({
       active = false;
     };
   }, []);
+
+  if (!booking) return null;
+
+  const totalPaid = booking.paymentStatus === 'fully_paid' 
+    ? Number(booking.totalPrice || 0) 
+    : (booking.paymentStatus === 'advance_paid' ? Number(booking.advancePaid || 0) : 0);
+    
+  const remaining = Number(booking.totalPrice || 0) - totalPaid;
 
   const handleDownloadPDF = () => {
     const doc = generateInvoice(booking, residence, clientName, logoBase64);
