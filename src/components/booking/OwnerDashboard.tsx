@@ -243,6 +243,7 @@ interface BookingTableProps {
   handleApprove: (b: Booking) => void;
   handleDecline: (b: Booking) => void;
   handleMarkAsPaid: (b: Booking) => void;
+  handleMarkAdvanceAsPaid: (b: Booking) => void;
   handleStartStay: (b: Booking) => void;
   handleEndStay: (b: Booking) => void;
   residences: Residence[];
@@ -256,6 +257,7 @@ const BookingTable: React.FC<BookingTableProps> = ({
   handleApprove, 
   handleDecline, 
   handleMarkAsPaid, 
+  handleMarkAdvanceAsPaid,
   handleStartStay,
   handleEndStay,
   residences, 
@@ -393,15 +395,41 @@ const BookingTable: React.FC<BookingTableProps> = ({
                    ) : (
                      <div className="space-y-2">
                        {b.bookingStatus === 'confirmed' && b.paymentStatus !== 'fully_paid' && (
-                         <button
-                           onClick={() => handleMarkAsPaid(b)}
-                           disabled={!!isProcessingPayment}
-                           className="w-full py-2.5 bg-amber-500 hover:bg-amber-600 text-white rounded-xl text-xs font-black uppercase tracking-wider transition-all flex items-center justify-center gap-1.5 disabled:opacity-50 cursor-pointer shadow-sm shadow-amber-100"
-                         >
-                           <Wallet size={14} />
-                           {isProcessingPayment === b.id ? 'Traitement...' : 'Confirmer solde'}
-                         </button>
-                       )}
+                          <div className="space-y-1.5 w-full">
+                            {b.paymentStatus === 'pending' && b.advancePaid > 0 && b.advancePaid < b.totalPrice && (
+                              <button
+                                onClick={() => handleMarkAdvanceAsPaid(b)}
+                                disabled={!!isProcessingPayment}
+                                className="w-full py-2 bg-orange-600 hover:bg-orange-700 text-white rounded-xl text-[10px] font-black uppercase tracking-wider transition-all flex items-center justify-center gap-1 disabled:opacity-50 cursor-pointer shadow-sm shadow-orange-100"
+                              >
+                                <Wallet size={12} />
+                                {isProcessingPayment === b.id ? 'Traitement...' : `Confirmer l'acompte (${formatCurrency(b.advancePaid)} F)`}
+                              </button>
+                            )}
+
+                            {b.paymentStatus === 'pending' && (
+                              <button
+                                onClick={() => handleMarkAsPaid(b)}
+                                disabled={!!isProcessingPayment}
+                                className="w-full py-2 bg-amber-500 hover:bg-amber-600 text-white rounded-xl text-[10px] font-black uppercase tracking-wider transition-all flex items-center justify-center gap-1 disabled:opacity-50 cursor-pointer shadow-sm shadow-amber-100"
+                              >
+                                <Wallet size={12} />
+                                {isProcessingPayment === b.id ? 'Traitement...' : b.advancePaid >= b.totalPrice ? `Confirmer solde (${formatCurrency(b.totalPrice)} F)` : `Tout solder (${formatCurrency(b.totalPrice)} F)`}
+                              </button>
+                            )}
+
+                            {b.paymentStatus === 'advance_paid' && (
+                              <button
+                                onClick={() => handleMarkAsPaid(b)}
+                                disabled={!!isProcessingPayment}
+                                className="w-full py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-[10px] font-black uppercase tracking-wider transition-all flex items-center justify-center gap-1 disabled:opacity-50 cursor-pointer shadow-sm shadow-emerald-100"
+                              >
+                                <Wallet size={12} />
+                                {isProcessingPayment === b.id ? 'Traitement...' : `Confirmer le solde (${formatCurrency(b.totalPrice - b.advancePaid)} F)`}
+                              </button>
+                            )}
+                          </div>
+                        )}
 
                        {b.bookingStatus === 'confirmed' && (!b.stayStatus || b.stayStatus === 'pending') && (
                          <button
@@ -543,14 +571,40 @@ const BookingTable: React.FC<BookingTableProps> = ({
                       ) : (
                         <div className="flex flex-col gap-1 w-full items-center min-w-[130px]">
                           {b.bookingStatus === 'confirmed' && b.paymentStatus !== 'fully_paid' && (
-                            <button
-                              onClick={() => handleMarkAsPaid(b)}
-                              disabled={!!isProcessingPayment}
-                              className="w-full px-2 py-1 bg-amber-50 text-amber-700 border border-amber-200 rounded-lg text-[9px] font-black uppercase tracking-wider hover:bg-amber-100 transition-all flex items-center justify-center gap-1 disabled:opacity-50 cursor-pointer"
-                            >
-                              <Wallet size={12} />
-                              {isProcessingPayment === b.id ? 'Traitement...' : 'Confirmer solde'}
-                            </button>
+                            <div className="flex flex-col gap-1 w-full items-center min-w-[140px]">
+                              {b.paymentStatus === 'pending' && b.advancePaid > 0 && b.advancePaid < b.totalPrice && (
+                                <button
+                                  onClick={() => handleMarkAdvanceAsPaid(b)}
+                                  disabled={!!isProcessingPayment}
+                                  className="w-full px-2 py-1 bg-orange-50 text-orange-700 border border-orange-200 rounded-lg text-[9px] font-black uppercase tracking-wider hover:bg-orange-100 transition-all flex items-center justify-center gap-1 disabled:opacity-50 cursor-pointer"
+                                >
+                                  <Wallet size={12} />
+                                  {isProcessingPayment === b.id ? 'Traitement...' : `Acompte (${formatCurrency(b.advancePaid)} F)`}
+                                </button>
+                              )}
+                              
+                              {b.paymentStatus === 'pending' && (
+                                <button
+                                  onClick={() => handleMarkAsPaid(b)}
+                                  disabled={!!isProcessingPayment}
+                                  className="w-full px-2 py-1 bg-amber-50 text-amber-700 border border-amber-200 rounded-lg text-[9px] font-black uppercase tracking-wider hover:bg-amber-100 transition-all flex items-center justify-center gap-1 disabled:opacity-50 cursor-pointer"
+                                >
+                                  <Wallet size={12} />
+                                  {isProcessingPayment === b.id ? 'Traitement...' : b.advancePaid >= b.totalPrice ? `Solder (${formatCurrency(b.totalPrice)} F)` : `Tout solder (${formatCurrency(b.totalPrice)} F)`}
+                                </button>
+                              )}
+
+                              {b.paymentStatus === 'advance_paid' && (
+                                <button
+                                  onClick={() => handleMarkAsPaid(b)}
+                                  disabled={!!isProcessingPayment}
+                                  className="w-full px-2 py-1 bg-emerald-50 text-emerald-700 border border-emerald-200 rounded-lg text-[9px] font-black uppercase tracking-wider hover:bg-emerald-100 transition-all flex items-center justify-center gap-1 disabled:opacity-50 cursor-pointer"
+                                >
+                                  <Wallet size={12} />
+                                  {isProcessingPayment === b.id ? 'Traitement...' : `Solder (${formatCurrency(b.totalPrice - b.advancePaid)} F)`}
+                                </button>
+                              )}
+                            </div>
                           )}
 
                           {b.bookingStatus === 'confirmed' && (!b.stayStatus || b.stayStatus === 'pending') && (
@@ -1634,8 +1688,44 @@ export const OwnerDashboard: React.FC<{ isTestMode?: boolean; onBackToTraveler?:
     }
   };
 
+  const handleMarkAdvanceAsPaid = async (booking: Booking) => {
+    const advance = booking.advancePaid || 0;
+    const confirmMsg = isTestMode 
+      ? `[MODE TEST] Confirmer la réception de l'acompte de ${formatCurrency(advance)} F CFA ?`
+      : `Confirmez-vous que le voyageur a payé l'acompte de ${formatCurrency(advance)} F CFA ?`;
+
+    if (!confirm(confirmMsg)) {
+      return;
+    }
+    
+    setIsProcessingPayment(booking.id);
+    try {
+      await updateBookingStatus(booking.id, {
+        paymentStatus: 'advance_paid',
+        bookingStatus: 'confirmed'
+      });
+      
+      await sendNotification({
+        userId: booking.clientId,
+        title: "Acompte Reçu ! 👍",
+        message: `Votre hôte a confirmé la réception de votre acompte de ${formatCurrency(advance)} F CFA. Votre réservation est maintenant confirmée.`,
+        type: 'booking',
+        referenceId: booking.id
+      });
+      triggerSuccess("L'acompte a été marqué comme payé avec succès !");
+      await fetchData();
+    } catch (err) {
+      console.error(err);
+      addToast("Erreur lors de la mise à jour de l'acompte.", "error");
+    } finally {
+      setIsProcessingPayment(null);
+    }
+  };
+
   const handleMarkAsPaid = async (booking: Booking) => {
-    const balance = booking.totalPrice - (booking.advancePaid || 0);
+    const balance = booking.paymentStatus === 'advance_paid'
+      ? booking.totalPrice - (booking.advancePaid || 0)
+      : booking.totalPrice;
     const confirmMsg = isTestMode 
       ? `[MODE TEST] Confirmer la réception du solde de ${formatCurrency(balance)} F CFA ?`
       : `Confirmez-vous que le voyageur a payé le solde restant de ${formatCurrency(balance)} F CFA ?`;
@@ -2527,6 +2617,7 @@ export const OwnerDashboard: React.FC<{ isTestMode?: boolean; onBackToTraveler?:
                         handleApprove={handleApproveBooking} 
                         handleDecline={handleDeclineBooking} 
                         handleMarkAsPaid={handleMarkAsPaid} 
+                        handleMarkAdvanceAsPaid={handleMarkAdvanceAsPaid}
                         handleStartStay={handleStartStay}
                         handleEndStay={handleEndStay}
                         residences={residences} 
@@ -2547,6 +2638,7 @@ export const OwnerDashboard: React.FC<{ isTestMode?: boolean; onBackToTraveler?:
                         handleApprove={handleApproveBooking} 
                         handleDecline={handleDeclineBooking} 
                         handleMarkAsPaid={handleMarkAsPaid} 
+                        handleMarkAdvanceAsPaid={handleMarkAdvanceAsPaid}
                         handleStartStay={handleStartStay}
                         handleEndStay={handleEndStay}
                         residences={residences} 
@@ -2567,6 +2659,7 @@ export const OwnerDashboard: React.FC<{ isTestMode?: boolean; onBackToTraveler?:
                         handleApprove={handleApproveBooking} 
                         handleDecline={handleDeclineBooking} 
                         handleMarkAsPaid={handleMarkAsPaid} 
+                        handleMarkAdvanceAsPaid={handleMarkAdvanceAsPaid}
                         handleStartStay={handleStartStay}
                         handleEndStay={handleEndStay}
                         residences={residences} 
@@ -2589,6 +2682,7 @@ export const OwnerDashboard: React.FC<{ isTestMode?: boolean; onBackToTraveler?:
                         handleApprove={handleApproveBooking} 
                         handleDecline={handleDeclineBooking} 
                         handleMarkAsPaid={handleMarkAsPaid} 
+                        handleMarkAdvanceAsPaid={handleMarkAdvanceAsPaid}
                         handleStartStay={handleStartStay}
                         handleEndStay={handleEndStay}
                         residences={residences} 
