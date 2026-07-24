@@ -110,13 +110,19 @@ const translateSappayErrorToFrench = (rawError: string, status?: number): string
     return "Ce numéro de téléphone n'est pas enregistré pour ce service de paiement mobile money chez cet opérateur.";
   }
 
+  // If the message is "Success" but we're in an error state, provide a better message
+  if (lower === 'success' || lower === 'transaction successfull' || lower === 'opération effectuée avec succès !') {
+    return "La transaction n'a pas pu être validée par l'opérateur. Veuillez vérifier vos informations.";
+  }
+
   // If there's an existing explicit French text in rawError, return it
   if (/^[a-zA-ZÀ-ÿ0-9\s'’.,!?-]+$/.test(rawError) && 
       rawError.length < 150 && 
       !lower.includes('error') && 
       !lower.includes('exception') && 
       !lower.includes('bad request') && 
-      !lower.includes('invalid')) {
+      !lower.includes('invalid') &&
+      !lower.includes('success')) {
     return rawError;
   }
 
@@ -156,15 +162,15 @@ const isActuallySuccess = (data: any): boolean => {
   
   const response = data.response || {};
   
-  // 1. Prioritize explicit success codes (0 is success)
-  const isExplicitSuccessCode = 
+  // 1. Prioritize explicit success codes (0 is success in Sappay/Operator world)
+  const hasZeroCode = 
     (response.codeErr !== undefined && response.codeErr !== null && response.codeErr.toString() === "0") ||
     (response.errCode !== undefined && response.errCode !== null && response.errCode.toString() === "0") ||
     (response.gateway_status_code !== undefined && response.gateway_status_code !== null && Number(response.gateway_status_code) === 0);
 
-  if (isExplicitSuccessCode) return true;
+  if (hasZeroCode) return true;
 
-  // 2. Check for gateway status code (Reliable indicator of failure if not 0)
+  // 2. Check for negative gateway status code (Reliable indicator of failure)
   if (response.gateway_status_code !== undefined && response.gateway_status_code !== null) {
     if (Number(response.gateway_status_code) !== 0) return false;
   }
@@ -173,7 +179,7 @@ const isActuallySuccess = (data: any): boolean => {
   if (response.codeErr !== undefined && response.codeErr !== null && response.codeErr.toString() !== "0") return false;
   if (response.errCode !== undefined && response.errCode !== null && response.errCode.toString() !== "0") return false;
 
-  // 4. Check for obvious error keywords in messages, but exclude success keywords
+  // 4. Check for error keywords in messages
   const messages = [
     data.message,
     response.message,
@@ -182,12 +188,12 @@ const isActuallySuccess = (data: any): boolean => {
     data.details
   ].filter(m => typeof m === 'string' && m.length > 0);
 
-  const errorKeywords = ["erronés", "incorrect", "failed", "error", "invalide", "invalid", "échec", "refusé", "declined", "wrong"];
+  const errorKeywords = ["erronés", "incorrect", "failed", "error", "invalide", "invalid", "échec", "refusé", "declined", "wrong", "insuffisant"];
   
   for (const msg of messages) {
     const l = msg.toLowerCase();
-    // If the message contains "succès" or "success", it's likely not an error even if it contains "erronés" (operator quirks)
-    if (l.includes("succès") || l.includes("success")) continue;
+    // If the message contains "succès" or "success", it's likely not an error even if it contains "erronés"
+    if (l.includes("succès") || l.includes("success") || l.includes("réussie") || l.includes("effectuée")) continue;
     if (errorKeywords.some(kw => l.includes(kw))) return false;
   }
 
