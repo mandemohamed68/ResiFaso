@@ -95,7 +95,16 @@ export async function apiFetch(path: string, options: RequestInit = {}): Promise
 
   // Set up abort timeout if no signal provided
   const controller = new AbortController();
-  const timeoutMs = (options.method && options.method.toUpperCase() !== 'GET') ? 15000 : 7000;
+  let timeoutMs = (options.method && options.method.toUpperCase() !== 'GET') ? 15000 : 7000;
+  
+  // Increase timeout for payment or Sappay operations to 180 seconds (3 minutes)
+  const customTimeout = (options as any).timeout;
+  if (customTimeout) {
+    timeoutMs = customTimeout;
+  } else if (path.includes('/payment') || path.includes('/sappay')) {
+    timeoutMs = 180000;
+  }
+
   const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
 
   try {

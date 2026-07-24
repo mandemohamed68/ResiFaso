@@ -6,6 +6,12 @@ import { Booking, Residence } from '../../types';
 import { generateInvoice } from '../../utils/invoice';
 import { useToast } from '../../contexts/ToastContext';
 
+const formatDateSafe = (dateStr?: string | null) => {
+  if (!dateStr) return '-';
+  const d = new Date(dateStr);
+  return isNaN(d.getTime()) ? '-' : d.toLocaleDateString('fr-FR');
+};
+
 interface InvoiceModalProps {
   isOpen: boolean;
   onClose: () => void;
@@ -27,7 +33,7 @@ export const InvoiceModal: React.FC<InvoiceModalProps> = ({
 
   useEffect(() => {
     let active = true;
-    const loadLogo = async () => {
+    const fetchFallback = async () => {
       try {
         const response = await fetch('/logoresifasoORG.png');
         if (!response.ok) throw new Error("Status " + response.status);
@@ -39,10 +45,39 @@ export const InvoiceModal: React.FC<InvoiceModalProps> = ({
           }
         };
         reader.readAsDataURL(blob);
-      } catch (error) {
-        console.error("Failed to load logo for PDF generation", error);
+      } catch (err) {
+        console.warn("Fallback fetch failed too", err);
       }
     };
+
+    const loadLogo = async () => {
+      try {
+        const img = new Image();
+        img.crossOrigin = 'anonymous';
+        img.onload = () => {
+          try {
+            const canvas = document.createElement('canvas');
+            canvas.width = img.width;
+            canvas.height = img.height;
+            const ctx = canvas.getContext('2d');
+            if (ctx && active) {
+              ctx.drawImage(img, 0, 0);
+              setLogoBase64(canvas.toDataURL('image/png'));
+            }
+          } catch (e) {
+            console.warn("Canvas logo conversion failed, trying fetch", e);
+            fetchFallback();
+          }
+        };
+        img.onerror = () => {
+          fetchFallback();
+        };
+        img.src = '/logoresifasoORG.png';
+      } catch (error) {
+        console.error("Failed to load logo", error);
+      }
+    };
+
     loadLogo();
     return () => {
       active = false;
@@ -199,18 +234,26 @@ export const InvoiceModal: React.FC<InvoiceModalProps> = ({
                           <td className="p-4">
                             <p className="font-extrabold text-slate-900">{residence?.title || 'Séjour en résidence'}</p>
                             <p className="text-slate-500 mt-0.5 text-[11px]">
-                              Du {booking.checkIn ? (new Date(booking.checkIn).getTime() ? new Date(booking.checkIn).toLocaleDateString('fr-FR') : '-') : '-'} au {booking.checkOut ? (new Date(booking.checkOut).getTime() ? new Date(booking.checkOut).toLocaleDateString('fr-FR') : '-') : '-'} ({booking.guests} voyageur(s))
+                              Du {formatDateSafe(booking.checkIn)} au {formatDateSafe(booking.checkOut)} ({booking.guests || 1} voyageur(s))
                             </p>
-                            {residence?.city && (
-                              <p className="text-slate-400 text-[10px] italic">{residence.city} {residence.neighborhood ? `- ${residence.neighborhood}` : ''}</p>
-                            )}
+                            {(() => {
+                              const rCity = residence?.city || residence?.address?.city;
+                              const rNeigh = residence?.neighborhood || residence?.address?.neighborhood;
+                              if (!rCity) return null;
+                              return (
+                                <p className="text-slate-400 text-[10px] italic">
+                                  {rCity} {rNeigh ? `- ${rNeigh}` : ''}
+                                </p>
+                              );
+                            })()}
                           </td>
                           <td className="p-4 text-center font-bold text-slate-900">
                             {(() => {
                               const checkInDate = new Date(booking.checkIn || Date.now());
                               const checkOutDate = new Date(booking.checkOut || Date.now());
                               const diffTime = Math.abs(checkOutDate.getTime() - checkInDate.getTime());
-                              return Math.ceil(diffTime / (1000 * 60 * 60 * 24)) || 1;
+                              const calculatedNights = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+                              return isNaN(calculatedNights) ? 1 : (calculatedNights || 1);
                             })()}
                           </td>
                           <td className="p-4 text-right font-bold text-slate-900">
@@ -218,7 +261,8 @@ export const InvoiceModal: React.FC<InvoiceModalProps> = ({
                               const checkInDate = new Date(booking.checkIn || Date.now());
                               const checkOutDate = new Date(booking.checkOut || Date.now());
                               const diffTime = Math.abs(checkOutDate.getTime() - checkInDate.getTime());
-                              const n = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) || 1;
+                              const calculatedNights = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+                              const n = isNaN(calculatedNights) ? 1 : (calculatedNights || 1);
                               return formatCurrency(Math.round(Number(booking.totalPrice || 0) / n));
                             })()}
                           </td>
