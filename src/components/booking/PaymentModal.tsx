@@ -111,11 +111,54 @@ const translateSappayErrorToFrench = (rawError: string, status?: number): string
   }
 
   // If there's an existing explicit French text in rawError, return it
-  if (/^[a-zA-ZÀ-ÿ0-9\s'’.,!?-]+$/.test(rawError) && rawError.length < 150 && !lower.includes('error') && !lower.includes('exception') && !lower.includes('bad request') && !lower.includes('invalid')) {
+  if (/^[a-zA-ZÀ-ÿ0-9\s'’.,!?-]+$/.test(rawError) && 
+      rawError.length < 150 && 
+      !lower.includes('error') && 
+      !lower.includes('exception') && 
+      !lower.includes('bad request') && 
+      !lower.includes('invalid') &&
+      !lower.includes('success')) {
     return rawError;
   }
 
+  if (lower.includes('success') || lower.includes('reçue') || lower.includes('effectuée')) {
+    return "La passerelle de paiement a renvoyé une réponse incohérente (succès affiché mais erreur détectée). Veuillez réessayer.";
+  }
+
   return `Erreur de la passerelle de paiement : ${rawError}`;
+};
+
+const isActuallySuccess = (data: any): boolean => {
+  if (!data) return false;
+  
+  const response = data.response || {};
+  
+  // 1. Check for negative gateway status code (The most reliable indicator)
+  if (response.gateway_status_code !== undefined && response.gateway_status_code !== null) {
+    if (Number(response.gateway_status_code) < 0) return false;
+  }
+
+  // 2. Check for error keywords in messages
+  const messages = [
+    data.message,
+    response.message,
+    response.gateway_message,
+    data.error?.message,
+    data.details
+  ].filter(m => typeof m === 'string' && m.length > 0);
+
+  const errorKeywords = ["erronés", "incorrect", "failed", "error", "invalide", "invalid", "échec", "refusé", "declined", "wrong"];
+  
+  for (const msg of messages) {
+    const l = msg.toLowerCase();
+    if (errorKeywords.some(kw => l.includes(kw))) return false;
+  }
+
+  // 3. Check for specific success indicators
+  const hasTopSuccess = data.success === true || data.status === 1 || data.status === 200 || data.status === 'SUCCESS' || data.status === 'success';
+  const hasResponseSuccess = response.status === 'SUCCESS' || response.status === 'success' || !response.status;
+
+  return hasTopSuccess && hasResponseSuccess;
 };
 
 export const PaymentModal: React.FC<Props> = ({ isOpen, onClose, amount, residenceTitle, onSuccess, isTestMode, utilitiesIncluded, bookingId, isFinalPayment, paymentType }) => {
@@ -269,13 +312,8 @@ export const PaymentModal: React.FC<Props> = ({ isOpen, onClose, amount, residen
 
       const otpData = await otpResp.json();
       
-      // Strict check for Success body with internal error message
-      const isOtpSuccess = otpData.success === true && 
-                           otpData.status === 1 && 
-                           !(otpData.response?.message && (otpData.response.message.toLowerCase().includes("erronés") || otpData.response.message.toLowerCase().includes("error")));
-
-      if (!isOtpSuccess) {
-        const rawMsg = otpData.response?.message || otpData.message || "Échec d'envoi OTP (Paramètres invalides).";
+      if (!isActuallySuccess(otpData)) {
+        const rawMsg = otpData.response?.message || otpData.message || otpData.response?.gateway_message || "Échec d'envoi OTP (Paramètres invalides).";
         throw new Error(translateSappayErrorToFrench(rawMsg, otpResp.status));
       }
 
@@ -335,33 +373,14 @@ export const PaymentModal: React.FC<Props> = ({ isOpen, onClose, amount, residen
         throw new Error(msg);
       }
       
-      const isSuccess = (
-        data.success === true || 
-        data.status === 'SUCCESS' || 
-        data.status === 'success' || 
-        data.response?.status === 'SUCCESS' || 
-        data.response?.status === 'success' ||
-        (data.status === 200 && data.success !== false)
-      ) && 
-      data.success !== false && 
-      data.status !== 'FAILED' && 
-      data.status !== 'failed' && 
-      data.response?.status !== 'FAILED' && 
-      data.response?.status !== 'failed' &&
-      // Strict check: if gateway_status_code is present and negative, it's a failure
-      !(data.response?.gateway_status_code < 0) &&
-      // Check for "Paramètres erronés" in gateway_message even if status is 200
-      !(data.response?.gateway_message && data.response.gateway_message.toLowerCase().includes("erronés")) &&
-      !data.error;
-
-      if (isSuccess) {
+      if (isActuallySuccess(data)) {
         setStep('success');
         setTimeout(() => {
           onSuccess();
           onClose();
         }, 3500);
       } else {
-        const rawMsg = data.response?.gateway_message || data.message || data.error || data.details || "La transaction a été rejetée par l'opérateur.";
+        const rawMsg = data.response?.gateway_message || data.response?.message || data.message || data.error || data.details || "La transaction a été rejetée par l'opérateur.";
         setError(translateSappayErrorToFrench(rawMsg, resp.status));
       }
     } catch (e: any) {
