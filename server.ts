@@ -1943,9 +1943,12 @@ async function startServer() {
       const urls = await getSappayBaseUrls();
       const token = await getSappayToken();
 
+      const host = req.get('host') || 'www.resifaso.net';
+      const isLocal = host.includes('localhost') || host.includes('127.0.5.1') || host.includes('::1') || host.includes('ais-dev') || host.includes('ais-pre');
+      const origin = isLocal ? 'https://www.resifaso.net' : `${req.protocol || 'https'}://${host}`;
       const webhookUrl = bookingId 
-        ? `https://www.resifaso.net/api/payment/sappay/webhook?booking_id=${bookingId}`
-        : `https://www.resifaso.net/api/payment/sappay/webhook`;
+        ? `${origin}/api/payment/sappay/webhook?booking_id=${bookingId}`
+        : `${origin}/api/payment/sappay/webhook`;
 
       const payload = {
         type: "SIMPLE",

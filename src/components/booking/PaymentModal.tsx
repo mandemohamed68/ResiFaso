@@ -28,6 +28,127 @@ const PROCESSOR_IDS: Record<string, string> = {
   coris: "11702302492453862"
 };
 
+const translateSappayErrorToFrench = (rawError: string, status?: number): string => {
+  if (!rawError) return "Une erreur inconnue est survenue lors du paiement.";
+  
+  const lower = rawError.toLowerCase();
+
+  // HTML or Server issues
+  if (lower.includes('<!doctype') || lower.includes('<html') || lower.includes('server error') || status === 500) {
+    return "Le serveur de paiement rencontre un problème technique temporaire. Veuillez réessayer dans quelques instants.";
+  }
+  
+  if (status === 404) {
+    return "Le service de paiement est actuellement injoignable. Veuillez contacter le support technique.";
+  }
+
+  // Authentication & API Keys
+  if (lower.includes("authentication") || lower.includes("credentials") || lower.includes("unauthorized") || lower.includes("token") || lower.includes("non autorisé")) {
+    return "Erreur de connexion sécurisée avec la passerelle de paiement (identifiants invalides). Veuillez contacter l'administrateur.";
+  }
+
+  // OTP Validation Errors
+  if (
+    lower.includes("invalid otp") || 
+    lower.includes("otp incorrect") || 
+    lower.includes("otp invalide") || 
+    lower.includes("code otp invalide") || 
+    lower.includes("code de validation incorrect") ||
+    lower.includes("wrong otp") ||
+    lower.includes("otp_incorrect")
+  ) {
+    return "Le code OTP saisi est incorrect. Veuillez vérifier le code de sécurité reçu par SMS et réessayer.";
+  }
+
+  // Insufficient Balance
+  if (
+    lower.includes("insufficient balance") || 
+    lower.includes("solde insuffisant") || 
+    lower.includes("not enough funds") || 
+    lower.includes("insufficient funds") ||
+    lower.includes("fonds insuffisants") ||
+    lower.includes("solde_insuffisant")
+  ) {
+    return "Paiement refusé : Solde insuffisant sur votre compte Mobile Money. Veuillez recharger votre compte et réessayer.";
+  }
+
+  // Expiration
+  if (
+    lower.includes("expired") || 
+    lower.includes("expiré") || 
+    lower.includes("timeout") || 
+    lower.includes("delai depasse") ||
+    lower.includes("délai dépassé")
+  ) {
+    return "La session de paiement a expiré ou le délai de validation est dépassé. Veuillez relancer la demande.";
+  }
+
+  // Cancelled by user
+  if (
+    lower.includes("cancelled") || 
+    lower.includes("annulé") || 
+    lower.includes("cancel") || 
+    lower.includes("refusé par l'utilisateur") ||
+    lower.includes("user rejected") ||
+    lower.includes("user_cancelled")
+  ) {
+    return "La transaction a été annulée ou refusée sur votre téléphone. Veuillez réessayer si vous souhaitez payer.";
+  }
+
+  // Limit/Amount Errors
+  if (
+    lower.includes("limit") || 
+    lower.includes("limite") || 
+    lower.includes("exceeded") || 
+    lower.includes("montant dépasse") ||
+    lower.includes("max amount")
+  ) {
+    return "La transaction dépasse les limites autorisées (montant ou nombre de transactions) de votre compte mobile money.";
+  }
+
+  // Phone number / Operator mismatch
+  if (
+    lower.includes("phone number") || 
+    lower.includes("msisdn") || 
+    lower.includes("numero") || 
+    lower.includes("numéro") ||
+    lower.includes("operator mismatch") ||
+    lower.includes("destinataire")
+  ) {
+    return "Le numéro de téléphone saisi est invalide ou ne correspond pas à l'opérateur sélectionné.";
+  }
+
+  // Account issues
+  if (
+    lower.includes("suspended") || 
+    lower.includes("blocked") || 
+    lower.includes("suspendu") || 
+    lower.includes("bloqué") ||
+    lower.includes("compte bloqué")
+  ) {
+    return "Votre compte Mobile Money est actuellement bloqué, restreint ou suspendu par votre opérateur.";
+  }
+
+  // System / Technical failures
+  if (
+    lower.includes("processor error") || 
+    lower.includes("erreur processeur") || 
+    lower.includes("internal error") || 
+    lower.includes("technical error") ||
+    lower.includes("operator error") ||
+    lower.includes("fail")
+  ) {
+    return "L'opérateur mobile rencontre des difficultés techniques temporaires pour traiter ce paiement. Veuillez réessayer.";
+  }
+
+  // If there's an existing explicit French text in rawError, return it
+  if (/^[a-zA-ZÀ-ÿ0-9\s'’.,!?-]+$/.test(rawError) && rawError.length < 150 && !lower.includes('error') && !lower.includes('exception')) {
+    return rawError;
+  }
+
+  return `Erreur de la passerelle de paiement : ${rawError}`;
+};
+
 export const PaymentModal: React.FC<Props> = ({ isOpen, onClose, amount, residenceTitle, onSuccess, isTestMode, utilitiesIncluded, bookingId, isFinalPayment, paymentType }) => {
   const isFullPayment = paymentType === 'full' || isFinalPayment === true;
   const [step, setStep] = useState<Step>('provider');
@@ -121,14 +242,15 @@ export const PaymentModal: React.FC<Props> = ({ isOpen, onClose, amount, residen
       } else {
         const text = await initResp.text();
         if (!initResp.ok) {
-          const errMsg = text.includes('<html') ? `Erreur serveur (${initResp.status})` : text;
-          throw new Error(`Initialisation échouée: ${errMsg}`);
+          const errMsg = text.includes('<html') ? `Erreur technique (${initResp.status})` : text;
+          throw new Error(translateSappayErrorToFrench(errMsg, initResp.status));
         }
         try { initData = JSON.parse(text); } catch(e) { initData = { error: text }; }
       }
       
       if (!initResp.ok) {
-        throw new Error(initData.error || initData.message || `Erreur d'initialisation (${initResp.status})`);
+        const errMsg = initData.error || initData.message || initData.details || `Erreur d'initialisation (${initResp.status})`;
+        throw new Error(translateSappayErrorToFrench(errMsg, initResp.status));
       }
       
       const currentInvoiceId = initData.invoice_id;
@@ -160,16 +282,26 @@ export const PaymentModal: React.FC<Props> = ({ isOpen, onClose, amount, residen
         })
       });
 
-      if (otpResp.ok) {
-        const otpData = await otpResp.json();
-        if (otpData.trans_id) {
-          setTransId(otpData.trans_id);
+      if (!otpResp.ok) {
+        let otpErrData: any = {};
+        try {
+          otpErrData = await otpResp.json();
+        } catch (e) {
+          const text = await otpResp.text();
+          otpErrData = { error: text };
         }
+        const errMsg = otpErrData.error || otpErrData.message || otpErrData.details || "Échec d'envoi OTP.";
+        throw new Error(translateSappayErrorToFrench(errMsg, otpResp.status));
+      }
+
+      const otpData = await otpResp.json();
+      if (otpData.trans_id) {
+        setTransId(otpData.trans_id);
       }
 
       setStep('otp');
     } catch (e: any) {
-      setError(e.message || "Erreur de communication avec la passerelle Sappay.");
+      setError(e.message || "Erreur de communication avec la passerelle de paiement Sappay.");
     } finally {
       setLoading(false);
     }
@@ -203,7 +335,7 @@ export const PaymentModal: React.FC<Props> = ({ isOpen, onClose, amount, residen
       } else {
         const text = await resp.text();
         if (!resp.ok) {
-          throw new Error(`Erreur serveur (${resp.status}). Veuillez vérifier la configuration de l'API.`);
+          throw new Error(translateSappayErrorToFrench(`Erreur serveur (${resp.status}).`, resp.status));
         }
         try {
           data = JSON.parse(text);
@@ -214,29 +346,8 @@ export const PaymentModal: React.FC<Props> = ({ isOpen, onClose, amount, residen
 
       if (!resp.ok) {
         // Humanize common Sappay errors from details or error fields
-        let msg = data.details || data.error || data.message || "Validation OTP échouée.";
-        
-        // If the message looks like HTML, it's likely a 404/500 from the server (not the API)
-        if (typeof msg === 'string' && (msg.includes('<!DOCTYPE') || msg.includes('<html'))) {
-          msg = `Erreur de communication avec le serveur (Code: ${resp.status}). Veuillez vérifier que le serveur est bien démarré et à jour.`;
-        } else if (resp.status === 404) {
-          // If it's a 404 but not HTML, it's likely a JSON error from Sappay (endpoint not found)
-          msg = `L'endpoint de paiement est introuvable (Sappay 404). Détails: ${msg}`;
-        }
-        
-        const lowerMsg = msg.toLowerCase();
-        if (lowerMsg.includes("invalid otp") || lowerMsg.includes("otp incorrect") || lowerMsg.includes("otp invalide")) {
-          msg = "Le code OTP saisi est incorrect. Veuillez vérifier le code reçu par SMS.";
-        } else if (lowerMsg.includes("insufficient balance") || lowerMsg.includes("solde insuffisant")) {
-          msg = "Solde insuffisant sur votre compte Mobile Money pour effectuer ce paiement.";
-        } else if (lowerMsg.includes("expired") || lowerMsg.includes("expiré")) {
-          msg = "La session de paiement a expiré. Veuillez recommencer l'opération.";
-        } else if (lowerMsg.includes("cancelled") || lowerMsg.includes("annulé")) {
-          msg = "La transaction a été annulée par l'utilisateur ou l'opérateur.";
-        } else if (lowerMsg.includes("processor error") || lowerMsg.includes("erreur processeur")) {
-          msg = "L'opérateur mobile rencontre des difficultés techniques. Veuillez réessayer plus tard.";
-        }
-        
+        const rawMsg = data.details || data.error || data.message || "Validation OTP échouée.";
+        const msg = translateSappayErrorToFrench(rawMsg, resp.status);
         throw new Error(msg);
       }
       
@@ -262,7 +373,8 @@ export const PaymentModal: React.FC<Props> = ({ isOpen, onClose, amount, residen
           onClose();
         }, 3500);
       } else {
-        setError(data.message || "La transaction a été rejetée par l'opérateur. Veuillez vérifier votre solde ou le code saisi.");
+        const rawMsg = data.message || data.error || data.details || "La transaction a été rejetée par l'opérateur.";
+        setError(translateSappayErrorToFrench(rawMsg, resp.status));
       }
     } catch (e: any) {
       setError(e.message || "Code OTP incorrect ou expiré. Veuillez réessayer.");
