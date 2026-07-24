@@ -3,30 +3,55 @@ export function getApiUrl(): string {
     return '';
   }
 
-  // If we are in AI Studio development mode, always use relative paths
-  const hostname = window.location.hostname;
-  if (hostname.includes('ais-dev') || hostname.includes('localhost') || hostname.includes('127.0.0.1') || hostname.includes('run.app')) {
-    return '';
-  }
+  const win = window as any;
 
-  const isCapacitor = window.location.protocol === 'capacitor:' ||
-                      window.location.origin.startsWith('ionic:') ||
-                      ((window as any).Capacitor?.getPlatform?.() === 'ios' || (window as any).Capacitor?.getPlatform?.() === 'android');
+  // 1. Check if running inside Capacitor (Native Android or iOS App)
+  const isCapacitorNative = typeof win.Capacitor !== 'undefined' && (
+    win.Capacitor?.isNativePlatform?.() ||
+    win.Capacitor?.getPlatform?.() === 'android' ||
+    win.Capacitor?.getPlatform?.() === 'ios'
+  );
+
+  const isCapacitorProtocol = window.location.protocol === 'capacitor:' ||
+                              window.location.protocol === 'file:' ||
+                              window.location.origin.startsWith('ionic:');
+
+  const isCapacitor = isCapacitorNative || isCapacitorProtocol;
 
   if (isCapacitor) {
-    let customUrl = localStorage.getItem('custom_server_url');
-    if (customUrl) return customUrl.trim().replace(/\/$/, '');
-    
-    const envUrl = import.meta.env.VITE_API_URL || import.meta.env.VITE_APP_URL;
-    if (envUrl && envUrl !== 'MY_APP_URL' && envUrl !== 'MY_API_URL') {
-      return envUrl.replace(/\/$/, '');
+    const customUrl = localStorage.getItem('custom_server_url');
+    if (customUrl && customUrl.trim()) {
+      return customUrl.trim().replace(/\/$/, '');
     }
-    
-    // Standard web browser -> use relative paths
+
+    const envUrl = import.meta.env.VITE_API_URL || import.meta.env.VITE_APP_URL;
+    if (envUrl && envUrl !== 'MY_APP_URL' && envUrl !== 'MY_API_URL' && envUrl.trim() !== '') {
+      return envUrl.trim().replace(/\/$/, '');
+    }
+
+    // Default production backend server for mobile app (Android/iOS)
+    return 'https://resifaso.net';
+  }
+
+  // 2. Standard Web Browser Mode
+  const hostname = window.location.hostname;
+
+  // If in AI Studio, Cloud Run preview, or localhost web dev, use relative paths to reach local server
+  if (hostname.includes('ais-dev') || hostname.includes('localhost') || hostname.includes('127.0.0.1') || hostname.includes('run.app')) {
+    const customUrl = localStorage.getItem('custom_server_url');
+    if (customUrl && customUrl.trim()) {
+      return customUrl.trim().replace(/\/$/, '');
+    }
     return '';
   }
 
-  // Standard web browser -> use relative paths
+  // Custom server URL if explicitly configured by user
+  const customUrl = localStorage.getItem('custom_server_url');
+  if (customUrl && customUrl.trim()) {
+    return customUrl.trim().replace(/\/$/, '');
+  }
+
+  // Production Web Deployment (same origin)
   return '';
 }
 
