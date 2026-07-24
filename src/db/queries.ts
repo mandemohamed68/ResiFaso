@@ -557,7 +557,7 @@ export const getAllContactMessages = async () => {
 // Conversations & Messages
 export const getAllConversations = async (uid: string, isAdmin: boolean = false) => {
   let sql = `
-    SELECT id, participants, related_id as relatedId, updated_at as updatedAt 
+    SELECT id, participants, related_id as relatedId, updated_at as updatedAt, last_message as lastMessage 
     FROM conversations 
   `;
   let params: any[] = [];
@@ -570,12 +570,34 @@ export const getAllConversations = async (uid: string, isAdmin: boolean = false)
   sql += " ORDER BY updated_at DESC";
   
   const conversations = await executeSql(sql, params);
+
+  // Fetch unread message counts per conversation for current user
+  let unreadMap = new Map<string, number>();
+  if (uid) {
+    try {
+      const unreadRows = await executeSql(
+        `SELECT conversation_id, COUNT(*) as count 
+         FROM messages 
+         WHERE (is_read = 0 OR is_read IS NULL) AND sender_id != ? 
+         GROUP BY conversation_id`,
+        [uid]
+      );
+      for (const r of unreadRows) {
+        const convId = r.conversation_id || r.conversationId;
+        if (convId) unreadMap.set(convId, Number(r.count || 0));
+      }
+    } catch (e) {
+      console.error("[getAllConversations] unread query error:", e);
+    }
+  }
   
   return conversations.map((c: any) => ({
     id: c.id,
     relatedId: c.relatedId || c.related_id,
     updatedAt: c.updatedAt || c.updated_at,
-    participants: typeof c.participants === 'string' ? c.participants.split(',') : c.participants
+    lastMessage: c.lastMessage || c.last_message,
+    participants: typeof c.participants === 'string' ? c.participants.split(',') : c.participants,
+    unreadCount: unreadMap.get(c.id) || 0
   }));
 };
 

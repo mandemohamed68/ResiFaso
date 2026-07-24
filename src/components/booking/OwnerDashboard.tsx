@@ -1333,6 +1333,14 @@ export const OwnerDashboard: React.FC<{ isTestMode?: boolean; onBackToTraveler?:
         .then(res => res.json())
         .then(data => {
           setMessages(data || []);
+          if (data && data.some((m: any) => (!m.isRead && !m.is_read) && m.senderId !== user?.uid)) {
+            apiFetch(`/api/conversations/${selectedConversationId}/read`, {
+              method: 'PUT',
+              headers: { 'Authorization': `Bearer ${localStorage.getItem('auth_token')}` }
+            }).then(() => {
+              setConversations(prev => prev.map(c => c.id === selectedConversationId ? { ...c, unreadCount: 0 } : c));
+            }).catch(() => {});
+          }
         })
         .catch(err => console.error("Error fetching messages:", err));
     };
@@ -2893,9 +2901,16 @@ export const OwnerDashboard: React.FC<{ isTestMode?: boolean; onBackToTraveler?:
                           <span className="font-bold text-slate-900 text-sm truncate pr-2">
                             {opponentName}
                           </span>
-                          <span className="text-[9px] text-slate-400 font-black uppercase whitespace-nowrap">
-                            {new Date(conv.updatedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                          </span>
+                          <div className="flex items-center gap-1">
+                            {!!conv.unreadCount && conv.unreadCount > 0 && (
+                              <span className="px-1.5 py-0.5 bg-red-600 text-white font-black text-[9px] rounded-full shrink-0 shadow-xs animate-bounce">
+                                {conv.unreadCount}
+                              </span>
+                            )}
+                            <span className="text-[9px] text-slate-400 font-black uppercase whitespace-nowrap">
+                              {new Date(conv.updatedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                            </span>
+                          </div>
                         </div>
                         <p className="text-[11px] text-slate-500 font-medium line-clamp-1 italic">
                           {conv.lastMessage || "Nouvelle conversation"}

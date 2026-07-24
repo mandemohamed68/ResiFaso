@@ -163,6 +163,7 @@ export interface Conversation {
   lastMessage?: string;
   updatedAt: string;
   relatedId?: string;
+  unreadCount?: number;
 }
 
 export interface Message {

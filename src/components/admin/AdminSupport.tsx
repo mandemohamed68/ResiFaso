@@ -80,6 +80,20 @@ export const AdminSupport: React.FC = () => {
     return users.find(u => u.uid === uid) || { displayName: 'Utilisateur Inconnu', email: uid };
   };
 
+  const handleSelectUser = async (uid: string) => {
+    setSelectedUserId(uid);
+    try {
+      await apiFetch('/api/support/messages/read', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ user_id: uid })
+      });
+      fetchMessages();
+    } catch (e) {
+      console.error(e);
+    }
+  };
+
   return (
     <div className="bg-white rounded-[32px] border border-slate-100 p-8 shadow-sm h-[calc(100vh-120px)] flex flex-col">
       <div className="mb-6 flex justify-between items-center shrink-0">
@@ -106,10 +120,14 @@ export const AdminSupport: React.FC = () => {
             {sortedUsers.map(uid => {
               const user = getUserDetails(uid);
               const lastMsg = conversations[uid][conversations[uid].length - 1];
+              const unreadCount = (conversations[uid] || []).filter(
+                m => (m.senderId || m.sender_id) !== 'admin' && !m.isRead && !m.is_read
+              ).length;
+
               return (
                 <button
                   key={uid}
-                  onClick={() => setSelectedUserId(uid)}
+                  onClick={() => handleSelectUser(uid)}
                   className={`w-full p-4 text-left border-b border-slate-50 hover:bg-slate-50 transition-colors ${
                     selectedUserId === uid ? 'bg-red-50 hover:bg-red-50' : ''
                   }`}
@@ -118,9 +136,16 @@ export const AdminSupport: React.FC = () => {
                     <span className={`font-bold text-sm ${selectedUserId === uid ? 'text-red-900' : 'text-slate-900'} truncate`}>
                       {user.displayName}
                     </span>
-                    <span className="text-[10px] text-slate-400 font-medium whitespace-nowrap ml-2">
-                      {safeDate(lastMsg.createdAt || lastMsg.created_at).toLocaleDateString([], { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
-                    </span>
+                    <div className="flex items-center gap-1.5 ml-2">
+                      {unreadCount > 0 && (
+                        <span className="px-1.5 py-0.5 bg-red-600 text-white font-black text-[9px] rounded-full shrink-0 animate-bounce">
+                          {unreadCount}
+                        </span>
+                      )}
+                      <span className="text-[10px] text-slate-400 font-medium whitespace-nowrap">
+                        {safeDate(lastMsg.createdAt || lastMsg.created_at).toLocaleDateString([], { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                      </span>
+                    </div>
                   </div>
                   <p className="text-xs text-slate-500 truncate">{lastMsg.message}</p>
                 </button>

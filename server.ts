@@ -885,6 +885,16 @@ async function startServer() {
     }
   });
 
+  app.put("/api/conversations/:id/read", authenticateToken, async (req: AuthRequest, res) => {
+    try {
+      const uid = req.user?.uid || '';
+      await executeSql("UPDATE messages SET is_read = 1 WHERE conversation_id = ? AND sender_id != ?", [req.params.id, uid]);
+      res.json({ success: true });
+    } catch (err: any) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
   // --- Users ---
   app.get("/api/users", authenticateToken, async (req, res) => {
     try {
@@ -1224,6 +1234,20 @@ async function startServer() {
         [id, userId, senderId, req.body.message]
       );
       res.json({ success: true, id });
+    } catch (err: any) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  app.put("/api/support/messages/read", authenticateToken, async (req: AuthRequest, res) => {
+    try {
+      const { user_id } = req.body || {};
+      if (req.user?.role === 'admin' && user_id) {
+        await executeSql("UPDATE support_chat_messages SET is_read = 1 WHERE user_id = ? AND sender_id != 'admin'", [user_id]);
+      } else {
+        await executeSql("UPDATE support_chat_messages SET is_read = 1 WHERE user_id = ? AND sender_id != ?", [req.user?.uid, req.user?.uid]);
+      }
+      res.json({ success: true });
     } catch (err: any) {
       res.status(500).json({ error: err.message });
     }

@@ -3683,8 +3683,8 @@ export const AdminDashboard: React.FC<{ onBackToTraveler?: () => void }> = ({ on
                   <span className="text-xl font-black text-slate-950 mt-1 block">
                     {bookings.length > 0 
                       ? (bookings.reduce((acc, b) => {
-                          const start = new Date(b.checkIn || b.check_in).getTime();
-                          const end = new Date(b.checkOut || b.check_out).getTime();
+                          const start = new Date(b.checkIn || (b as any).check_in).getTime();
+                          const end = new Date(b.checkOut || (b as any).check_out).getTime();
                           return acc + Math.max(1, Math.round((end - start) / (1000 * 60 * 60 * 24)));
                         }, 0) / bookings.length).toFixed(1)
                       : 0} Nuits

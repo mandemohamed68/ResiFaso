@@ -24,12 +24,17 @@ export const SupportChatWidget: React.FC = () => {
   }, []);
 
   useEffect(() => {
+    if (!user) return;
+    fetchMessages();
+    const interval = setInterval(fetchMessages, 5000);
+    return () => clearInterval(interval);
+  }, [user]);
+
+  useEffect(() => {
     if (isOpen && user) {
-      fetchMessages();
-      const interval = setInterval(fetchMessages, 5000);
-      return () => clearInterval(interval);
+      markRead();
     }
-  }, [isOpen, user]);
+  }, [isOpen, user, messages.length]);
 
   useEffect(() => {
     if (messages.length > 0) {
@@ -42,8 +47,20 @@ export const SupportChatWidget: React.FC = () => {
       const res = await apiFetch('/api/support/messages');
       if (res.ok) {
         const data = await res.json();
-        setMessages(data);
+        setMessages(data || []);
       }
+    } catch (e) {
+      console.error(e);
+    }
+  };
+
+  const markRead = async () => {
+    const hasUnread = messages.some(m => (m.senderId || m.sender_id) !== user?.uid && !m.isRead && !m.is_read);
+    if (!hasUnread) return;
+
+    try {
+      await apiFetch('/api/support/messages/read', { method: 'PUT' });
+      setMessages(prev => prev.map(m => ({ ...m, isRead: true, is_read: 1 })));
     } catch (e) {
       console.error(e);
     }
@@ -74,15 +91,28 @@ export const SupportChatWidget: React.FC = () => {
   const closeTime = settings.supportChatCloseTime || '20:00';
   const isChatOpen = currentTimeStr >= openTime && currentTimeStr <= closeTime;
 
+  const unreadCount = messages.filter(
+    m => (m.senderId || m.sender_id) !== user?.uid && !m.isRead && !m.is_read
+  ).length;
+
   return (
     <>
       <button
-        onClick={() => setIsOpen(true)}
-        className={`fixed bottom-24 md:bottom-6 right-6 p-4 rounded-full shadow-2xl transition-all hover:scale-105 active:scale-95 z-[60] ${
+        onClick={() => {
+          setIsOpen(true);
+          markRead();
+        }}
+        className={`fixed bottom-24 md:bottom-6 right-6 p-4 rounded-full shadow-2xl transition-all hover:scale-105 active:scale-95 z-[60] relative ${
           isOpen ? 'opacity-0 scale-0 pointer-events-none' : 'opacity-100 scale-100'
-        } ${isChatOpen ? 'bg-red-600 text-white' : 'bg-slate-400 text-white'}`}
+        } ${isChatOpen ? 'bg-red-600 text-white' : 'bg-slate-700 text-white'}`}
+        title="Support ResiFaso"
       >
         <MessageSquare size={24} />
+        {unreadCount > 0 && !isOpen && (
+          <span className="absolute -top-1.5 -right-1.5 min-w-[20px] h-5 px-1.5 bg-white text-red-600 border-2 border-red-600 text-[11px] font-black rounded-full flex items-center justify-center animate-bounce shadow-md">
+            {unreadCount}
+          </span>
+        )}
       </button>
 
       <AnimatePresence>
