@@ -748,12 +748,20 @@ const BookingTable: React.FC<BookingTableProps> = ({
                       </div>
                       <div>
                         <span className="text-slate-400 block pb-0.5 font-bold uppercase text-[9px]">Acompte Versé</span>
-                        <strong className="text-base font-mono font-black text-green-600">{formatCurrency(selectedBookingForDetails.advancePaid)} F CFA</strong>
+                        <strong className="text-base font-mono font-black text-green-600">
+                          {selectedBookingForDetails.paymentStatus === 'advance_paid' || selectedBookingForDetails.paymentStatus === 'fully_paid'
+                            ? `${formatCurrency(selectedBookingForDetails.advancePaid)} F CFA`
+                            : '0 F CFA (En attente)'}
+                        </strong>
                       </div>
                       <div>
                         <span className="text-slate-400 block pb-0.5 font-bold uppercase text-[9px]">Solde Restant</span>
                         <strong className="text-base font-mono font-black text-red-600">
-                          {formatCurrency((selectedBookingForDetails.totalPrice || 0) - (selectedBookingForDetails.advancePaid || 0))} F CFA
+                          {selectedBookingForDetails.paymentStatus === 'fully_paid'
+                            ? '0 F CFA'
+                            : selectedBookingForDetails.paymentStatus === 'advance_paid'
+                            ? `${formatCurrency((selectedBookingForDetails.totalPrice || 0) - (selectedBookingForDetails.advancePaid || 0))} F CFA`
+                            : `${formatCurrency(selectedBookingForDetails.totalPrice || 0)} F CFA`}
                         </strong>
                       </div>
                     </div>
@@ -1357,28 +1365,50 @@ export const OwnerDashboard: React.FC<{ isTestMode?: boolean; onBackToTraveler?:
   const activeOpponentName = activeOpponentProfile?.displayName || activeOpponentProfile?.email || 'Voyageur';
   const activeOpponentInitials = activeOpponentName.split(' ').map((n: string) => n[0]).join('').slice(0, 2).toUpperCase();
 
-  // Group bookings by time
-  const now = new Date();
-  now.setHours(0, 0, 0, 0);
+  // Group bookings by time in local timezone
+  const localToday = new Date();
+  const localYear = localToday.getFullYear();
+  const localMonth = String(localToday.getMonth() + 1).padStart(2, '0');
+  const localDay = String(localToday.getDate()).padStart(2, '0');
+  const localTodayStr = `${localYear}-${localMonth}-${localDay}`;
 
   // Extract and segregate pending bookings for immediate approval
   const pendingBookings = bookings.filter(b => b.bookingStatus === 'pending');
   const nonPendingBookings = bookings.filter(b => b.bookingStatus !== 'pending');
 
-  const pastBookings = nonPendingBookings.filter(b => new Date(b.checkOut) < now);
-  const presentBookings = nonPendingBookings.filter(b => {
-    const start = new Date(b.checkIn);
-    const end = new Date(b.checkOut);
-    return start <= now && end >= now;
+  const pastBookings = nonPendingBookings.filter(b => {
+    const endStr = String(b.checkOut).split('T')[0];
+    return endStr < localTodayStr;
   });
-  const futureBookings = nonPendingBookings.filter(b => new Date(b.checkIn) > now);
+  
+  const presentBookings = nonPendingBookings.filter(b => {
+    const startStr = String(b.checkIn).split('T')[0];
+    const endStr = String(b.checkOut).split('T')[0];
+    return startStr <= localTodayStr && endStr >= localTodayStr;
+  });
+  
+  const futureBookings = nonPendingBookings.filter(b => {
+    const startStr = String(b.checkIn).split('T')[0];
+    return startStr > localTodayStr;
+  });
 
-  // Check if a residence is currently occupied
+  // Check if a residence is currently occupied (confirmed active stay or stayStatus is ongoing)
   const isResidenceOccupied = (resId: string) => {
-    return presentBookings.some(b => 
+    return bookings.some(b => 
       b.residenceId === resId && 
-      b.bookingStatus === 'confirmed' && 
-      (b.paymentStatus === 'paid' || b.paymentStatus === 'advance_paid' || b.paymentStatus === 'fully_paid')
+      b.bookingStatus !== 'cancelled' && 
+      b.bookingStatus !== 'declined' &&
+      (
+        b.stayStatus === 'ongoing' ||
+        (
+          b.bookingStatus === 'confirmed' &&
+          (() => {
+            const startStr = String(b.checkIn).split('T')[0];
+            const endStr = String(b.checkOut).split('T')[0];
+            return startStr <= localTodayStr && endStr >= localTodayStr;
+          })()
+        )
+      )
     );
   };
 

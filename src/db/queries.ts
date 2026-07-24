@@ -84,7 +84,11 @@ export const getAllResidences = async (ownerId?: string) => {
       FROM bookings 
       WHERE residence_id IN (${placeHolders})
       AND LOWER(booking_status) NOT IN ('cancelled', 'declined', 'annulee', 'annulé', 'refusee', 'refusé', 'expired', 'canceled')
-      AND LOWER(payment_status) IN ('paid', 'advance_paid', 'partial_paid', 'partiel', 'fully_paid')
+      AND (
+        LOWER(payment_status) IN ('paid', 'advance_paid', 'partial_paid', 'partiel', 'fully_paid')
+        OR LOWER(booking_status) IN ('confirmed', 'approved', 'approuve', 'approuvée')
+        OR LOWER(stay_status) = 'ongoing'
+      )
     `, ids),
     executeSql(`
       SELECT residence_id, AVG(rating) as avgRating, COUNT(*) as reviewCount 
@@ -215,7 +219,11 @@ export const getResidenceById = async (id: string) => {
     FROM bookings 
     WHERE residence_id = ? 
     AND LOWER(booking_status) NOT IN ('cancelled', 'declined', 'annulee', 'annulé', 'refusee', 'refusé', 'expired', 'canceled')
-    AND LOWER(payment_status) IN ('paid', 'advance_paid', 'partial_paid', 'partiel', 'fully_paid')
+    AND (
+      LOWER(payment_status) IN ('paid', 'advance_paid', 'partial_paid', 'partiel', 'fully_paid')
+      OR LOWER(booking_status) IN ('confirmed', 'approved', 'approuve', 'approuvée')
+      OR LOWER(stay_status) = 'ongoing'
+    )
   `, [id]);
   
   return {

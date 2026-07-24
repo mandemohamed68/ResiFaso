@@ -3596,7 +3596,24 @@ export const AdminDashboard: React.FC<{ onBackToTraveler?: () => void }> = ({ on
                         <div className="space-y-1 text-xs font-sans">
                           <span className="block text-[10px] font-black text-slate-400 uppercase tracking-widest border-b pb-1 mb-2">💰 Structure Financière</span>
                           <div><span className="text-slate-400">Total :</span> <strong className="text-slate-900">{formatFCFA(book.totalPrice)} F CFA</strong></div>
-                          <div><span className="text-slate-400">Acompte Versé :</span> <strong className="text-green-600">{formatFCFA(book.advancePaid)} F CFA</strong></div>
+                          <div>
+                            <span className="text-slate-400">Acompte Versé :</span>{' '}
+                            <strong className="text-green-600">
+                              {book.paymentStatus === 'advance_paid' || book.paymentStatus === 'fully_paid'
+                                ? `${formatFCFA(book.advancePaid)} F CFA`
+                                : '0 F CFA (En attente)'}
+                            </strong>
+                          </div>
+                          <div>
+                            <span className="text-slate-400">Solde Restant :</span>{' '}
+                            <strong className="text-red-600">
+                              {book.paymentStatus === 'fully_paid'
+                                ? '0 F CFA'
+                                : book.paymentStatus === 'advance_paid'
+                                ? `${formatFCFA((book.totalPrice || 0) - (book.advancePaid || 0))} F CFA`
+                                : `${formatFCFA(book.totalPrice || 0)} F CFA`}
+                            </strong>
+                          </div>
                           <div><span className="text-slate-400">Statut Réservation :</span> <strong className="text-slate-900 uppercase">{book.bookingStatus}</strong></div>
                           <div><span className="text-slate-400">Statut Paiement :</span> <strong className="text-slate-900 uppercase">{book.paymentStatus}</strong></div>
                         </div>
