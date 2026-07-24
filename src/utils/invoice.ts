@@ -2,6 +2,12 @@ import { jsPDF } from 'jspdf';
 import { Booking, Residence } from '../types';
 import { formatCurrency } from './currency';
 
+const formatDateSafe = (dateStr?: string | null) => {
+  if (!dateStr) return '-';
+  const d = new Date(dateStr);
+  return isNaN(d.getTime()) ? '-' : d.toLocaleDateString('fr-FR');
+};
+
 export const generateInvoice = (booking: Booking, residence?: Residence | null, clientName?: string, logoBase64?: string) => {
   const doc = new jsPDF();
   
@@ -37,7 +43,7 @@ export const generateInvoice = (booking: Booking, residence?: Residence | null, 
   doc.setFont("helvetica", "normal");
   doc.setFontSize(9);
   doc.setTextColor(100, 100, 100);
-  doc.text(`Référence : ${booking.id.toUpperCase()}`, 115, 29);
+  doc.text(`Référence : ${String(booking.id || '').toUpperCase()}`, 115, 29);
   doc.text(`Date d'émission : ${new Date().toLocaleDateString('fr-FR')}`, 115, 35);
   
   // Separator
@@ -78,9 +84,9 @@ export const generateInvoice = (booking: Booking, residence?: Residence | null, 
   doc.setFont("helvetica", "normal");
   doc.setFontSize(10);
   doc.setTextColor(71, 85, 105); // slate-600
-  doc.text(`Arrivée : ${new Date(booking.checkIn).toLocaleDateString('fr-FR')}`, 20, 100);
-  doc.text(`Départ : ${new Date(booking.checkOut).toLocaleDateString('fr-FR')}`, 20, 106);
-  doc.text(`Voyageurs : ${booking.guests}`, 20, 112);
+  doc.text(`Arrivée : ${formatDateSafe(booking.checkIn)}`, 20, 100);
+  doc.text(`Départ : ${formatDateSafe(booking.checkOut)}`, 20, 106);
+  doc.text(`Voyageurs : ${booking.guests || 1}`, 20, 112);
   
   // Financial details
   doc.line(20, 120, 190, 120);
@@ -90,17 +96,20 @@ export const generateInvoice = (booking: Booking, residence?: Residence | null, 
   doc.setTextColor(15, 23, 42); // slate-900
   doc.text("Détails Financiers :", 20, 130);
   
+  const totalPrice = Number(booking.totalPrice) || 0;
+  const advancePaid = Number(booking.advancePaid) || 0;
+
   doc.setFont("helvetica", "bold");
   doc.setFontSize(11);
   doc.text("Montant Total :", 20, 140);
-  doc.text(`${formatCurrency(booking.totalPrice)} F CFA`, 150, 140);
+  doc.text(`${formatCurrency(totalPrice)} F CFA`, 150, 140);
   
   doc.text("Total Payé (Acompte + Solde) :", 20, 148);
   let totalPaid = 0;
   if(booking.paymentStatus === 'fully_paid') {
-      totalPaid = booking.totalPrice;
+      totalPaid = totalPrice;
   } else if (booking.paymentStatus === 'advance_paid') {
-      totalPaid = booking.advancePaid;
+      totalPaid = advancePaid;
   }
   doc.text(`${formatCurrency(totalPaid)} F CFA`, 150, 148);
   
@@ -108,7 +117,7 @@ export const generateInvoice = (booking: Booking, residence?: Residence | null, 
   doc.setFontSize(11);
   doc.setTextColor(220, 38, 38);
   doc.text("Reste à payer :", 20, 156);
-  const remaining = booking.totalPrice - totalPaid;
+  const remaining = Math.max(0, totalPrice - totalPaid);
   doc.text(`${formatCurrency(remaining)} F CFA`, 150, 156);
   
   // Footer text

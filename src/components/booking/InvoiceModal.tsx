@@ -27,10 +27,10 @@ export const InvoiceModal: React.FC<InvoiceModalProps> = ({
   if (!booking) return null;
 
   const totalPaid = booking.paymentStatus === 'fully_paid' 
-    ? booking.totalPrice 
+    ? Number(booking.totalPrice || 0) 
     : (booking.paymentStatus === 'advance_paid' ? booking.advancePaid : 0);
     
-  const remaining = booking.totalPrice - totalPaid;
+  const remaining = Number(booking.totalPrice || 0) - totalPaid;
 
   const [logoBase64, setLogoBase64] = useState<string>('');
 
@@ -153,7 +153,7 @@ export const InvoiceModal: React.FC<InvoiceModalProps> = ({
                     }`}>
                       {booking.paymentStatus === 'fully_paid' ? 'Facture Soldée' : 'Acompte Payé'}
                     </span>
-                    <p className="text-xs text-slate-500 font-medium">Facture N° <span className="font-mono font-bold text-slate-900">{booking.id.slice(0, 10).toUpperCase()}</span></p>
+                    <p className="text-xs text-slate-500 font-medium">Facture N° <span className="font-mono font-bold text-slate-900">{String(booking.id || '').slice(0, 10).toUpperCase()}</span></p>
                     <p className="text-xs text-slate-500 mt-1 font-medium">Date d'émission : <span className="font-bold text-slate-950">{new Date().toLocaleDateString('fr-FR')}</span></p>
                   </div>
                 </div>
@@ -200,7 +200,7 @@ export const InvoiceModal: React.FC<InvoiceModalProps> = ({
                           <td className="p-4">
                             <p className="font-extrabold text-slate-900">{residence?.title || 'Séjour en résidence'}</p>
                             <p className="text-slate-500 mt-0.5 text-[11px]">
-                              Du {new Date(booking.checkIn).toLocaleDateString('fr-FR')} au {new Date(booking.checkOut).toLocaleDateString('fr-FR')} ({booking.guests} voyageur(s))
+                              Du {booking.checkIn ? (new Date(booking.checkIn).getTime() ? new Date(booking.checkIn).toLocaleDateString('fr-FR') : '-') : '-'} au {booking.checkOut ? (new Date(booking.checkOut).getTime() ? new Date(booking.checkOut).toLocaleDateString('fr-FR') : '-') : '-'} ({booking.guests} voyageur(s))
                             </p>
                             {residence?.city && (
                               <p className="text-slate-400 text-[10px] italic">{residence.city} {residence.neighborhood ? `- ${residence.neighborhood}` : ''}</p>
@@ -208,22 +208,22 @@ export const InvoiceModal: React.FC<InvoiceModalProps> = ({
                           </td>
                           <td className="p-4 text-center font-bold text-slate-900">
                             {(() => {
-                              const checkInDate = new Date(booking.checkIn);
-                              const checkOutDate = new Date(booking.checkOut);
+                              const checkInDate = new Date(booking.checkIn || Date.now());
+                              const checkOutDate = new Date(booking.checkOut || Date.now());
                               const diffTime = Math.abs(checkOutDate.getTime() - checkInDate.getTime());
                               return Math.ceil(diffTime / (1000 * 60 * 60 * 24)) || 1;
                             })()}
                           </td>
                           <td className="p-4 text-right font-bold text-slate-900">
                             {(() => {
-                              const checkInDate = new Date(booking.checkIn);
-                              const checkOutDate = new Date(booking.checkOut);
+                              const checkInDate = new Date(booking.checkIn || Date.now());
+                              const checkOutDate = new Date(booking.checkOut || Date.now());
                               const diffTime = Math.abs(checkOutDate.getTime() - checkInDate.getTime());
                               const n = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) || 1;
-                              return formatCurrency(Math.round(booking.totalPrice / n));
+                              return formatCurrency(Math.round(Number(booking.totalPrice || 0) / n));
                             })()}
                           </td>
-                          <td className="p-4 text-right font-black text-slate-900">{formatCurrency(booking.totalPrice)}</td>
+                          <td className="p-4 text-right font-black text-slate-900">{formatCurrency(Number(booking.totalPrice || 0))}</td>
                         </tr>
                       </tbody>
                     </table>
@@ -235,7 +235,7 @@ export const InvoiceModal: React.FC<InvoiceModalProps> = ({
                   <div className="w-full sm:w-1/2 space-y-3.5">
                     <div className="flex justify-between items-center text-slate-600">
                       <span className="font-bold">Total Brut</span>
-                      <span className="font-bold text-slate-950">{formatCurrency(booking.totalPrice)} F CFA</span>
+                      <span className="font-bold text-slate-950">{formatCurrency(Number(booking.totalPrice || 0))} F CFA</span>
                     </div>
                     <div className="flex justify-between items-center text-slate-600 border-b border-slate-100 pb-3">
                       <span className="font-bold">Acompte Payé en Ligne</span>
