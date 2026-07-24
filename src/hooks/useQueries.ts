@@ -12,7 +12,8 @@ import {
   getAllWithdrawals,
   getAllFaqs,
   getContactSettings,
-  getAllContactMessages
+  getAllContactMessages,
+  getMobileAppSettings
 } from '../lib/db';
 import { apiFetch } from '../lib/api';
 
@@ -72,20 +73,34 @@ export const useResidences = () => {
             localStorage.setItem('resifaso_cache_/api/residences', JSON.stringify(data));
           } catch (e) {}
         }
-        return data;
+        return Array.isArray(data) ? data : [];
       } catch (err) {
         if (typeof window !== 'undefined') {
           const cached = localStorage.getItem('resifaso_cache_/api/residences');
           if (cached) {
             try {
-              return JSON.parse(cached);
+              const parsed = JSON.parse(cached);
+              if (Array.isArray(parsed) && parsed.length > 0) return parsed;
             } catch (e) {}
           }
         }
-        throw err;
+        return [];
       }
     },
+    initialData: () => {
+      if (typeof window !== 'undefined') {
+        try {
+          const cached = localStorage.getItem('resifaso_cache_/api/residences');
+          if (cached) {
+            const parsed = JSON.parse(cached);
+            if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+          }
+        } catch (e) {}
+      }
+      return undefined;
+    },
     staleTime: 1000 * 60 * 5, // 5 minutes
+    gcTime: 1000 * 60 * 60 * 24, // 24 hours
   });
 };
 
@@ -102,20 +117,34 @@ export const usePartners = () => {
             localStorage.setItem('resifaso_cache_/api/partners', JSON.stringify(data));
           } catch (e) {}
         }
-        return data;
+        return Array.isArray(data) ? data : [];
       } catch (err) {
         if (typeof window !== 'undefined') {
           const cached = localStorage.getItem('resifaso_cache_/api/partners');
           if (cached) {
             try {
-              return JSON.parse(cached);
+              const parsed = JSON.parse(cached);
+              if (Array.isArray(parsed) && parsed.length > 0) return parsed;
             } catch (e) {}
           }
         }
-        throw err;
+        return [];
       }
     },
+    initialData: () => {
+      if (typeof window !== 'undefined') {
+        try {
+          const cached = localStorage.getItem('resifaso_cache_/api/partners');
+          if (cached) {
+            const parsed = JSON.parse(cached);
+            if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+          }
+        } catch (e) {}
+      }
+      return undefined;
+    },
     staleTime: 1000 * 60 * 5, // 5 minutes
+    gcTime: 1000 * 60 * 60 * 24, // 24 hours
   });
 };
 
@@ -135,7 +164,8 @@ export const useAdminData = (role: string | undefined) => {
         contactSettingsData,
         messageList,
         verifTypeList,
-        partnerList
+        partnerList,
+        mobileAppSettingsData
       ] = await Promise.all([
         getAllResidences().catch(() => []),
         getAllUsers().catch(() => []),
@@ -148,7 +178,8 @@ export const useAdminData = (role: string | undefined) => {
         getContactSettings().catch(() => ({})),
         getAllContactMessages().catch(() => []),
         apiFetch('/api/admin/verification-types').then(r => r.ok ? r.json() : []).catch(() => []),
-        apiFetch('/api/partners').then(r => r.ok ? r.json() : []).catch(() => [])
+        apiFetch('/api/partners').then(r => r.ok ? r.json() : []).catch(() => []),
+        getMobileAppSettings().catch(() => ({}))
       ]);
       return {
         residences: resList,
@@ -162,7 +193,8 @@ export const useAdminData = (role: string | undefined) => {
         contactSettings: contactSettingsData,
         messages: messageList,
         verificationTypes: verifTypeList,
-        partners: partnerList
+        partners: partnerList,
+        mobileAppSettings: mobileAppSettingsData
       };
     },
     enabled: role === 'admin',

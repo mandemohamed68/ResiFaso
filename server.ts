@@ -1289,6 +1289,50 @@ async function startServer() {
     }
   });
 
+  // --- Mobile App Version & APK Public Endpoint ---
+  app.get("/api/app-version", async (req, res) => {
+    try {
+      const settings = await queries.getSettings('mobile_app');
+      res.json({
+        androidMinVersion: settings.androidMinVersion || '1.0.0',
+        androidLatestVersion: settings.androidLatestVersion || '1.0.0',
+        androidApkUrl: settings.androidApkUrl || 'https://www.resifaso.net/downloads/resifaso.apk',
+        iosMinVersion: settings.iosMinVersion || '1.0.0',
+        iosLatestVersion: settings.iosLatestVersion || '1.0.0',
+        iosAppStoreUrl: settings.iosAppStoreUrl || 'https://apps.apple.com/app/resifaso',
+        forceUpdate: !!settings.forceUpdate,
+        updateMessage: settings.updateMessage || "Une nouvelle version de l'application ResiFaso est disponible. Veuillez mettre à jour votre application.",
+        mobileMaintenance: !!settings.mobileMaintenance,
+        mobileMaintenanceMessage: settings.mobileMaintenanceMessage || "L'application mobile est actuellement en maintenance programmée. Merci de repasser plus tard.",
+        packageName: settings.packageName || "com.resifaso.app",
+        updatedAt: settings.updatedAt || new Date().toISOString()
+      });
+    } catch (err: any) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  app.post("/api/admin/upload-apk", authenticateToken, async (req: AuthRequest, res) => {
+    try {
+      if (req.user?.role !== 'admin') {
+        return res.status(403).json({ error: "Réservé aux administrateurs" });
+      }
+      const { apkUrl, version, notes } = req.body;
+      const currentSettings = await queries.getSettings('mobile_app');
+      const updated = {
+        ...currentSettings,
+        androidApkUrl: apkUrl || currentSettings.androidApkUrl || 'https://www.resifaso.net/downloads/resifaso.apk',
+        androidLatestVersion: version || currentSettings.androidLatestVersion || '1.0.0',
+        releaseNotes: notes || currentSettings.releaseNotes || 'Nouvelle version publiée',
+        updatedAt: new Date().toISOString()
+      };
+      await queries.saveSettings('mobile_app', updated);
+      res.json({ success: true, settings: updated });
+    } catch (err: any) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
   // --- Ads ---
   app.get("/api/promotions", async (req, res) => {
     try {

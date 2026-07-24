@@ -73,7 +73,7 @@ function AppContent() {
     return [];
   });
 
-  const [loading, setLoading] = useState(() => {
+  const [loading, setLoading] = useState<boolean>(() => {
     if (residences.length > 0) return false;
     return resLoading;
   });

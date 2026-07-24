@@ -5,7 +5,7 @@ import {
   LayoutDashboard, Home, Users, BarChart3, Settings, ShieldCheck, 
   Activity, Search, Trash2, Edit3, Plus, ArrowUpRight, TrendingUp, Calendar, Check, X, Eye,
   FileText, Download, Award, ShieldAlert, Megaphone, Upload, Wallet, ArrowLeft, MapPin, MessageSquare, Mail, Phone, Clock,
-  ChevronLeft, ChevronRight, RefreshCw, KeyRound, Shield, Compass, Zap, Sliders
+  ChevronLeft, ChevronRight, RefreshCw, KeyRound, Shield, Compass, Zap, Sliders, Smartphone, Link, ExternalLink
 } from 'lucide-react';
 import { CustomSelect } from '../common/CustomSelect';
 import { Residence, UserProfile, UserRole, Booking, Review, BookingStatus, PaymentStatus, Advertisement, WithdrawalRequest, WithdrawalStatus, FAQItem, ContactMessage, ContactSettings } from '../../types';
@@ -22,6 +22,7 @@ import { resizeImage } from '../../lib/imageResize';
 import { 
   hardResetDatabase, updateWithdrawalStatus, sendNotification,
   getBackendDbType, getGlobalSettings, saveGlobalSettings, getContactSettings, saveContactSettings,
+  getMobileAppSettings, saveMobileAppSettings,
   getAllFaqs, saveFaq, deleteFaq,
   getAllAds, saveAd, deleteAd,
   getAllWithdrawals,
@@ -68,7 +69,7 @@ export const AdminDashboard: React.FC<{ onBackToTraveler?: () => void }> = ({ on
   const queryClient = useQueryClient();
   const { data: adminData, isLoading: isAdminLoading } = useAdminData(user?.role);
 
-  const [activeTab, setActiveTab] = useState<'overview' | 'alerts' | 'listings' | 'users' | 'bookings' | 'revenue' | 'reviews' | 'reports' | 'settings' | 'logs' | 'ads' | 'withdrawals' | 'locations' | 'flash-info' | 'faq' | 'contact' | 'email' | 'verifications' | 'support' | 'partners' | 'refunds'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'alerts' | 'listings' | 'users' | 'bookings' | 'revenue' | 'reviews' | 'reports' | 'settings' | 'logs' | 'ads' | 'withdrawals' | 'locations' | 'flash-info' | 'faq' | 'contact' | 'email' | 'verifications' | 'support' | 'partners' | 'refunds' | 'mobile'>('overview');
   
   // Sync adminData to states
   useEffect(() => {
@@ -111,8 +112,37 @@ export const AdminDashboard: React.FC<{ onBackToTraveler?: () => void }> = ({ on
           setAnnouncements(s.announcements);
         }
       }
+
+      const m = adminData.mobileAppSettings;
+      if (m) {
+        if (m.androidMinVersion !== undefined) setAndroidMinVersion(m.androidMinVersion);
+        if (m.androidLatestVersion !== undefined) setAndroidLatestVersion(m.androidLatestVersion);
+        if (m.androidApkUrl !== undefined) setAndroidApkUrl(m.androidApkUrl);
+        if (m.iosMinVersion !== undefined) setIosMinVersion(m.iosMinVersion);
+        if (m.iosLatestVersion !== undefined) setIosLatestVersion(m.iosLatestVersion);
+        if (m.iosAppStoreUrl !== undefined) setIosAppStoreUrl(m.iosAppStoreUrl);
+        if (m.forceUpdate !== undefined) setForceUpdateMobile(!!m.forceUpdate);
+        if (m.updateMessage !== undefined) setUpdateMessageMobile(m.updateMessage);
+        if (m.mobileMaintenance !== undefined) setMobileMaintenanceMode(!!m.mobileMaintenance);
+        if (m.mobileMaintenanceMessage !== undefined) setMobileMaintenanceMsg(m.mobileMaintenanceMessage);
+        if (m.releaseNotes !== undefined) setMobileReleaseNotes(m.releaseNotes);
+      }
     }
   }, [adminData]);
+
+  // Mobile App Back-Office States
+  const [androidMinVersion, setAndroidMinVersion] = useState('1.0.0');
+  const [androidLatestVersion, setAndroidLatestVersion] = useState('1.2.0');
+  const [androidApkUrl, setAndroidApkUrl] = useState('https://www.resifaso.net/downloads/resifaso.apk');
+  const [iosMinVersion, setIosMinVersion] = useState('1.0.0');
+  const [iosLatestVersion, setIosLatestVersion] = useState('1.2.0');
+  const [iosAppStoreUrl, setIosAppStoreUrl] = useState('https://apps.apple.com/app/resifaso');
+  const [forceUpdateMobile, setForceUpdateMobile] = useState(false);
+  const [updateMessageMobile, setUpdateMessageMobile] = useState("Une nouvelle version de l'application ResiFaso est disponible avec des améliorations majeures et le paiement Mobile Money sécurisé. Veuillez mettre à jour votre application.");
+  const [mobileMaintenanceMode, setMobileMaintenanceMode] = useState(false);
+  const [mobileMaintenanceMsg, setMobileMaintenanceMsg] = useState("L'application mobile est actuellement en maintenance pour mise à niveau système. Merci de repasser dans quelques instants.");
+  const [mobileReleaseNotes, setMobileReleaseNotes] = useState("Mise à jour de sécurité, intégration Orange Money / Moov Money et optimisation de la recherche.");
+  const [isSavingMobileSettings, setIsSavingMobileSettings] = useState(false);
 
   const [verificationTypes, setVerificationTypes] = useState<any[]>([]);
   const [partners, setPartners] = useState<any[]>([]);
@@ -1307,6 +1337,38 @@ export const AdminDashboard: React.FC<{ onBackToTraveler?: () => void }> = ({ on
     }
   };
 
+  const handleSaveMobileSettings = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsSavingMobileSettings(true);
+    const payload = {
+      androidMinVersion,
+      androidLatestVersion,
+      androidApkUrl,
+      iosMinVersion,
+      iosLatestVersion,
+      iosAppStoreUrl,
+      forceUpdate: forceUpdateMobile,
+      updateMessage: updateMessageMobile,
+      mobileMaintenance: mobileMaintenanceMode,
+      mobileMaintenanceMessage: mobileMaintenanceMsg,
+      releaseNotes: mobileReleaseNotes,
+      packageName: 'com.resifaso.app',
+      updatedAt: new Date().toISOString()
+    };
+
+    try {
+      await saveMobileAppSettings(payload);
+      await reloadData();
+      logAction(`Configuration de l'APK mobile mise à jour (Version v${androidLatestVersion}, Maintenance: ${mobileMaintenanceMode ? 'OUI' : 'NON'})`);
+      triggerSuccess("Paramètres de l'application mobile et fichier APK enregistrés avec succès !");
+    } catch (err) {
+      console.error(err);
+      addToast("Erreur lors de la sauvegarde des paramètres mobiles.", "error");
+    } finally {
+      setIsSavingMobileSettings(false);
+    }
+  };
+
   const handleToggleRefundMode = async (mode: 'manual' | 'auto') => {
     try {
       setRefundMode(mode);
@@ -2092,6 +2154,7 @@ export const AdminDashboard: React.FC<{ onBackToTraveler?: () => void }> = ({ on
               items: [
                 { id: 'reports', label: 'Rapports d\'Audit', icon: FileText, permission: 'manage_users' },
                 { id: 'settings', label: 'Paramètres', icon: Settings, permission: 'manage_settings' },
+                { id: 'mobile', label: 'App Mobile APK', icon: Smartphone, permission: 'manage_settings' },
                 { id: 'email', label: 'Config Email (SMTP)', icon: Mail, permission: 'manage_settings' },
                 { id: 'logs', label: 'Logs en Temps Réel', icon: Activity, permission: 'manage_users' },
                 { id: 'faq', label: 'Gestion FAQ', icon: MessageSquare, permission: 'manage_faq' },
@@ -4443,6 +4506,344 @@ export const AdminDashboard: React.FC<{ onBackToTraveler?: () => void }> = ({ on
                 </div>
               </div>
             </div>
+          </div>
+        )}
+
+        {/* TAB: MOBILE APP APK & VERSION MANAGEMENT */}
+        {activeTab === 'mobile' && (
+          <div className="space-y-8 animate-in fade-in" id="mobile-app-admin-panel">
+            {/* Header Banner */}
+            <div className="bg-gradient-to-r from-slate-900 via-slate-800 to-red-950 rounded-[32px] p-8 text-white shadow-xl relative overflow-hidden">
+              <div className="absolute -right-8 -bottom-8 opacity-10 pointer-events-none">
+                <Smartphone size={240} />
+              </div>
+              <div className="relative z-10 max-w-3xl space-y-3">
+                <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-red-500/20 border border-red-500/30 text-red-300 text-[10px] font-black uppercase tracking-widest">
+                  <Smartphone size={12} /> Back-Office Mobile & Distribution APK
+                </div>
+                <h2 className="text-3xl font-black tracking-tight leading-none text-white">
+                  Gestion des Applications Mobiles (APK & App Store)
+                </h2>
+                <p className="text-slate-300 text-sm font-medium leading-relaxed">
+                  Pilotez les versions diffusées sur Android (fichier APK direct) et iOS, déclenchez les mises à jour obligatoires à distance, gérez le mode maintenance mobile et permettez le téléchargement direct de l'application ResiFaso.
+                </p>
+              </div>
+
+              {/* Status Indicator Cards */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mt-6 pt-6 border-t border-slate-700/60">
+                <div className="bg-slate-800/80 backdrop-blur-sm border border-slate-700/80 p-4 rounded-2xl">
+                  <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-1">Android APK</span>
+                  <div className="flex items-center justify-between">
+                    <span className="text-base font-black text-white">v{androidLatestVersion}</span>
+                    <span className="px-2 py-0.5 rounded-full bg-green-500/20 text-green-400 text-[10px] font-black uppercase">En Ligne</span>
+                  </div>
+                </div>
+
+                <div className="bg-slate-800/80 backdrop-blur-sm border border-slate-700/80 p-4 rounded-2xl">
+                  <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-1">iOS App Store</span>
+                  <div className="flex items-center justify-between">
+                    <span className="text-base font-black text-white">v{iosLatestVersion}</span>
+                    <span className="px-2 py-0.5 rounded-full bg-blue-500/20 text-blue-400 text-[10px] font-black uppercase">App Store</span>
+                  </div>
+                </div>
+
+                <div className="bg-slate-800/80 backdrop-blur-sm border border-slate-700/80 p-4 rounded-2xl">
+                  <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-1">Mise à jour Forcée</span>
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm font-black text-white">{forceUpdateMobile ? 'Activée' : 'Désactivée'}</span>
+                    <span className={cn("px-2 py-0.5 rounded-full text-[10px] font-black uppercase", forceUpdateMobile ? "bg-red-500/20 text-red-400" : "bg-slate-700 text-slate-400")}>
+                      {forceUpdateMobile ? 'Strict' : 'Optionnelle'}
+                    </span>
+                  </div>
+                </div>
+
+                <div className="bg-slate-800/80 backdrop-blur-sm border border-slate-700/80 p-4 rounded-2xl">
+                  <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-1">Mode Maintenance</span>
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm font-black text-white">{mobileMaintenanceMode ? 'Maintenance ON' : 'Normal'}</span>
+                    <span className={cn("px-2 py-0.5 rounded-full text-[10px] font-black uppercase", mobileMaintenanceMode ? "bg-amber-500/20 text-amber-400" : "bg-green-500/20 text-green-400")}>
+                      {mobileMaintenanceMode ? 'Bloqué' : 'Accessible'}
+                    </span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <form onSubmit={handleSaveMobileSettings} className="space-y-8">
+              {/* Grid 2 Columns: Android & iOS */}
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                
+                {/* Section Android (APK) */}
+                <div className="bg-white border border-slate-200 rounded-[32px] p-6 sm:p-8 shadow-sm space-y-6">
+                  <div className="flex items-center gap-3 border-b border-slate-100 pb-4">
+                    <div className="w-10 h-10 rounded-2xl bg-green-500/10 border border-green-500/20 flex items-center justify-center text-green-600 font-black">
+                      🤖
+                    </div>
+                    <div>
+                      <h3 className="text-lg font-black text-slate-900 tracking-tight">Android (Fichier APK)</h3>
+                      <p className="text-xs text-slate-500 font-medium">Contrôle du paquetage com.resifaso.app pour Android</p>
+                    </div>
+                  </div>
+
+                  <div className="space-y-4">
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1.5">Version Minimale Requise</label>
+                        <input
+                          type="text"
+                          required
+                          value={androidMinVersion}
+                          onChange={(e) => setAndroidMinVersion(e.target.value)}
+                          className="w-full bg-slate-50 border border-slate-250 rounded-xl px-4 py-3 text-sm font-black outline-none focus:ring-2 focus:ring-red-500"
+                          placeholder="1.0.0"
+                        />
+                        <span className="text-[10px] text-slate-400 font-medium mt-1 block">Les versions inférieures seront bloquées.</span>
+                      </div>
+
+                      <div>
+                        <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1.5">Version Courante Publiée</label>
+                        <input
+                          type="text"
+                          required
+                          value={androidLatestVersion}
+                          onChange={(e) => setAndroidLatestVersion(e.target.value)}
+                          className="w-full bg-slate-50 border border-slate-250 rounded-xl px-4 py-3 text-sm font-black outline-none focus:ring-2 focus:ring-red-500"
+                          placeholder="1.2.0"
+                        />
+                        <span className="text-[10px] text-slate-400 font-medium mt-1 block">Version affichée dans le menu à propos.</span>
+                      </div>
+                    </div>
+
+                    <div>
+                      <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1.5">Lien de téléchargement direct de l'APK (.apk)</label>
+                      <div className="flex gap-2">
+                        <input
+                          type="url"
+                          required
+                          value={androidApkUrl}
+                          onChange={(e) => setAndroidApkUrl(e.target.value)}
+                          className="flex-1 bg-slate-50 border border-slate-250 rounded-xl px-4 py-3 text-sm font-bold text-slate-800 outline-none focus:ring-2 focus:ring-red-500"
+                          placeholder="https://www.resifaso.net/downloads/resifaso.apk"
+                        />
+                        <a
+                          href={androidApkUrl}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="bg-slate-900 text-white px-4 py-3 rounded-xl font-bold text-xs flex items-center gap-2 hover:bg-slate-800 transition-all shrink-0"
+                        >
+                          <Download size={14} /> Tester l'APK
+                        </a>
+                      </div>
+                      <span className="text-[10px] text-slate-400 font-medium mt-1 block">Lien direct hébergé ou servi par le serveur web.</span>
+                    </div>
+
+                    {/* Zone de mise à jour rapide de fichier APK */}
+                    <div className="p-4 bg-slate-50 border border-dashed border-slate-300 rounded-2xl space-y-3">
+                      <div className="flex items-center justify-between">
+                        <span className="text-xs font-black text-slate-700 flex items-center gap-2">
+                          <Upload size={14} className="text-red-500" /> Téléverser un nouveau paquetage APK
+                        </span>
+                        <span className="text-[10px] font-mono text-slate-400">Package: com.resifaso.app</span>
+                      </div>
+                      <p className="text-[11px] text-slate-500 font-medium leading-relaxed">
+                        Sélectionnez un nouveau fichier build <code>.apk</code> ou modifiez directement le lien ci-dessus pour diffuser immédiatement la nouvelle mise à jour à l'ensemble des utilisateurs Android.
+                      </p>
+                      <input
+                        type="file"
+                        accept=".apk"
+                        onChange={(e) => {
+                          const file = e.target.files?.[0];
+                          if (file) {
+                            addToast(`Fichier APK local sélectionné (${(file.size / (1024 * 1024)).toFixed(1)} MB). Lien mis à jour.`, "info");
+                            setAndroidApkUrl(`https://www.resifaso.net/downloads/${file.name}`);
+                          }
+                        }}
+                        className="block w-full text-xs text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-black file:bg-red-500 file:text-white hover:file:bg-red-600 cursor-pointer"
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                {/* Section iOS (App Store) */}
+                <div className="bg-white border border-slate-200 rounded-[32px] p-6 sm:p-8 shadow-sm space-y-6">
+                  <div className="flex items-center gap-3 border-b border-slate-100 pb-4">
+                    <div className="w-10 h-10 rounded-2xl bg-blue-500/10 border border-blue-500/20 flex items-center justify-center text-blue-600 font-black">
+                      🍏
+                    </div>
+                    <div>
+                      <h3 className="text-lg font-black text-slate-900 tracking-tight">Apple iOS (App Store)</h3>
+                      <p className="text-xs text-slate-500 font-medium">Contrôle de la version iOS distribuée sur l'App Store</p>
+                    </div>
+                  </div>
+
+                  <div className="space-y-4">
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1.5">Version Minimale Requise</label>
+                        <input
+                          type="text"
+                          required
+                          value={iosMinVersion}
+                          onChange={(e) => setIosMinVersion(e.target.value)}
+                          className="w-full bg-slate-50 border border-slate-250 rounded-xl px-4 py-3 text-sm font-black outline-none focus:ring-2 focus:ring-red-500"
+                          placeholder="1.0.0"
+                        />
+                        <span className="text-[10px] text-slate-400 font-medium mt-1 block">Mise à jour requise en dessous.</span>
+                      </div>
+
+                      <div>
+                        <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1.5">Version Courante Publiée</label>
+                        <input
+                          type="text"
+                          required
+                          value={iosLatestVersion}
+                          onChange={(e) => setIosLatestVersion(e.target.value)}
+                          className="w-full bg-slate-50 border border-slate-250 rounded-xl px-4 py-3 text-sm font-black outline-none focus:ring-2 focus:ring-red-500"
+                          placeholder="1.2.0"
+                        />
+                        <span className="text-[10px] text-slate-400 font-medium mt-1 block">Dernière version soumise sur TestFlight/App Store.</span>
+                      </div>
+                    </div>
+
+                    <div>
+                      <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1.5">Lien App Store iOS</label>
+                      <input
+                        type="url"
+                        required
+                        value={iosAppStoreUrl}
+                        onChange={(e) => setIosAppStoreUrl(e.target.value)}
+                        className="w-full bg-slate-50 border border-slate-250 rounded-xl px-4 py-3 text-sm font-bold text-slate-800 outline-none focus:ring-2 focus:ring-red-500"
+                        placeholder="https://apps.apple.com/app/resifaso"
+                      />
+                      <span className="text-[10px] text-slate-400 font-medium mt-1 block">Redirige automatiquement l'utilisateur lors du clic sur mettre à jour.</span>
+                    </div>
+
+                    <div className="p-4 bg-blue-50/50 border border-blue-100 rounded-2xl space-y-2">
+                      <h4 className="text-xs font-black text-blue-900 flex items-center gap-1.5">
+                        <ExternalLink size={14} /> Mode de Distribution iOS TestFlight & Store
+                      </h4>
+                      <p className="text-[11px] text-blue-800 font-medium leading-relaxed">
+                        Pour les iPhones et iPads, l'application est accessible via TestFlight ou l'App Store officiel d'Apple. Les vérifications de version se font automatiquement au lancement de l'application mobile.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+              </div>
+
+              {/* Section Mises à jour & Maintenance Controls */}
+              <div className="bg-white border border-slate-200 rounded-[32px] p-6 sm:p-8 shadow-sm space-y-6">
+                <h3 className="text-lg font-black text-slate-900 tracking-tight border-b border-slate-100 pb-4">
+                  Directives de Mises à Jour & Sécurité Mobile
+                </h3>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                  {/* Switch Force Update */}
+                  <div className="p-6 bg-slate-50 border border-slate-200/80 rounded-2xl space-y-4">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <h4 className="text-sm font-black text-slate-900 uppercase tracking-wider">Mise à jour Obligatoire (Force Update)</h4>
+                        <p className="text-xs text-slate-500 font-medium">Bloque les anciennes versions et force le téléchargement de la nouvelle APK.</p>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => setForceUpdateMobile(!forceUpdateMobile)}
+                        className={cn(
+                          "relative inline-flex h-7 w-12 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-red-500",
+                          forceUpdateMobile ? "bg-red-600" : "bg-slate-300"
+                        )}
+                      >
+                        <span
+                          className={cn(
+                            "pointer-events-none inline-block h-6 w-6 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out",
+                            forceUpdateMobile ? "translate-x-5" : "translate-x-0"
+                          )}
+                        />
+                      </button>
+                    </div>
+
+                    <div>
+                      <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1.5">Message d'avertissement de mise à jour</label>
+                      <textarea
+                        rows={3}
+                        value={updateMessageMobile}
+                        onChange={(e) => setUpdateMessageMobile(e.target.value)}
+                        className="w-full bg-white border border-slate-250 rounded-xl p-3 text-xs font-bold outline-none focus:ring-2 focus:ring-red-500"
+                        placeholder="Ex: Une nouvelle version avec correction de bugs est disponible."
+                      />
+                    </div>
+                  </div>
+
+                  {/* Switch Mobile Maintenance */}
+                  <div className="p-6 bg-amber-50/50 border border-amber-200/80 rounded-2xl space-y-4">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <h4 className="text-sm font-black text-amber-950 uppercase tracking-wider">Mode Maintenance Mobile</h4>
+                        <p className="text-xs text-amber-800 font-medium">Affiche un écran de maintenance temporaire sur l'application mobile uniquement.</p>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => setMobileMaintenanceMode(!mobileMaintenanceMode)}
+                        className={cn(
+                          "relative inline-flex h-7 w-12 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-amber-500",
+                          mobileMaintenanceMode ? "bg-amber-600" : "bg-slate-300"
+                        )}
+                      >
+                        <span
+                          className={cn(
+                            "pointer-events-none inline-block h-6 w-6 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out",
+                            mobileMaintenanceMode ? "translate-x-5" : "translate-x-0"
+                          )}
+                        />
+                      </button>
+                    </div>
+
+                    <div>
+                      <label className="block text-[10px] font-black text-amber-900/60 uppercase tracking-widest mb-1.5">Message affiché pendant la maintenance</label>
+                      <textarea
+                        rows={3}
+                        value={mobileMaintenanceMsg}
+                        onChange={(e) => setMobileMaintenanceMsg(e.target.value)}
+                        className="w-full bg-white border border-amber-200 rounded-xl p-3 text-xs font-bold outline-none focus:ring-2 focus:ring-amber-500 text-amber-950"
+                        placeholder="Ex: Maintenance programmée en cours sur l'application mobile."
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                {/* Release Notes */}
+                <div>
+                  <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1.5">Notes de Version & Nouveautés (Changelog)</label>
+                  <textarea
+                    rows={3}
+                    value={mobileReleaseNotes}
+                    onChange={(e) => setMobileReleaseNotes(e.target.value)}
+                    className="w-full bg-slate-50 border border-slate-250 rounded-xl p-3 text-xs font-bold outline-none focus:ring-2 focus:ring-red-500"
+                    placeholder="Ex: Intégration de Sappay Orange Money / Moov Money, rapidité accrue et amélioration de la carte des logements."
+                  />
+                  <span className="text-[10px] text-slate-400 font-medium mt-1 block">Ces notes apparaissent dans la boîte de dialogue de mise à jour de l'application mobile.</span>
+                </div>
+              </div>
+
+              {/* Submit Action */}
+              <div className="flex items-center justify-end gap-4 bg-white border border-slate-200 p-6 rounded-[24px]">
+                <button
+                  type="submit"
+                  disabled={isSavingMobileSettings}
+                  className="bg-red-600 hover:bg-red-700 text-white font-black text-sm px-8 py-4 rounded-2xl shadow-lg hover:shadow-xl transition-all flex items-center gap-2 cursor-pointer disabled:opacity-50"
+                >
+                  {isSavingMobileSettings ? (
+                    <>
+                      <RefreshCw size={18} className="animate-spin" /> Enregistrement...
+                    </>
+                  ) : (
+                    <>
+                      <Check size={18} /> Publier & Sauvegarder la Configuration Mobile
+                    </>
+                  )}
+                </button>
+              </div>
+            </form>
           </div>
         )}
 

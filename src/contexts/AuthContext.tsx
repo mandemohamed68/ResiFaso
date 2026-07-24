@@ -17,13 +17,34 @@ interface AuthContextType {
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [user, setUser] = useState<any | null>(null);
-  const [profile, setProfile] = useState<UserProfile | null>(null);
+  const [user, setUser] = useState<any | null>(() => {
+    if (typeof window !== 'undefined') {
+      try {
+        const cached = localStorage.getItem('resifaso_cached_user');
+        if (cached) return JSON.parse(cached);
+      } catch (e) {}
+    }
+    return null;
+  });
+
+  const [profile, setProfile] = useState<UserProfile | null>(() => {
+    if (typeof window !== 'undefined') {
+      try {
+        const cached = localStorage.getItem('resifaso_cached_user');
+        if (cached) return JSON.parse(cached);
+      } catch (e) {}
+    }
+    return null;
+  });
+
   const [loading, setLoading] = useState(true);
 
   const fetchProfile = async () => {
     const token = localStorage.getItem('auth_token');
     if (!token) {
+      setUser(null);
+      setProfile(null);
+      localStorage.removeItem('resifaso_cached_user');
       setLoading(false);
       return;
     }
@@ -35,9 +56,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         const data = await response.json();
         setUser(data);
         setProfile(data);
+        try {
+          localStorage.setItem('resifaso_cached_user', JSON.stringify(data));
+        } catch (e) {}
       } else if (response.status === 401 || response.status === 403) {
         // Only log out on authentication errors
         localStorage.removeItem('auth_token');
+        localStorage.removeItem('resifaso_cached_user');
         setUser(null);
         setProfile(null);
       }
@@ -90,6 +115,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     if (response.ok) {
       const data = await response.json();
       localStorage.setItem('auth_token', data.token);
+      localStorage.setItem('resifaso_cached_user', JSON.stringify(data.user));
       setUser(data.user);
       setProfile(data.user);
     } else {
@@ -107,6 +133,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     if (response.ok) {
       const data = await response.json();
       localStorage.setItem('auth_token', data.token);
+      localStorage.setItem('resifaso_cached_user', JSON.stringify(data.user));
       setUser(data.user);
       setProfile(data.user);
     } else {
@@ -117,6 +144,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const logOut = async () => {
     localStorage.removeItem('auth_token');
+    localStorage.removeItem('resifaso_cached_user');
     setUser(null);
     setProfile(null);
   };

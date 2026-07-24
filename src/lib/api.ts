@@ -93,14 +93,22 @@ export async function apiFetch(path: string, options: RequestInit = {}): Promise
     headers.set('Content-Type', 'application/json');
   }
 
+  // Set up abort timeout if no signal provided
+  const controller = new AbortController();
+  const timeoutMs = (options.method && options.method.toUpperCase() !== 'GET') ? 15000 : 7000;
+  const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+
   try {
     console.log(`[apiFetch] Fetching: ${fullUrl}`);
     const res = await fetch(fullUrl, {
       ...options,
-      headers
+      headers,
+      signal: options.signal || controller.signal
     });
+    clearTimeout(timeoutId);
     return res;
   } catch (err) {
+    clearTimeout(timeoutId);
     console.error(`[apiFetch] Network error for ${fullUrl}:`, err);
     throw err;
   }

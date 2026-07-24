@@ -268,6 +268,17 @@ export async function saveContactSettings(settings: any): Promise<void> {
   });
 }
 
+export async function getMobileAppSettings(): Promise<any> {
+  return apiFetch('/api/settings/mobile_app').catch(() => ({}));
+}
+
+export async function saveMobileAppSettings(settings: any): Promise<void> {
+  await apiFetch('/api/settings/mobile_app', {
+    method: 'POST',
+    body: JSON.stringify(settings)
+  });
+}
+
 // ==========================================
 // FAQS
 // ==========================================
