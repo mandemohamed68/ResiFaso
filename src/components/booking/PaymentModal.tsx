@@ -116,13 +116,8 @@ const translateSappayErrorToFrench = (rawError: string, status?: number): string
       !lower.includes('error') && 
       !lower.includes('exception') && 
       !lower.includes('bad request') && 
-      !lower.includes('invalid') &&
-      !lower.includes('success')) {
+      !lower.includes('invalid')) {
     return rawError;
-  }
-
-  if (lower.includes('success') || lower.includes('reçue') || lower.includes('effectuée')) {
-    return "Erreur technique : L'opérateur a rejeté la transaction malgré un signal positif de la passerelle. Veuillez vérifier votre numéro Coris/Orange.";
   }
 
   return `Erreur de la passerelle de paiement : ${rawError}`;
@@ -161,21 +156,24 @@ const isActuallySuccess = (data: any): boolean => {
   
   const response = data.response || {};
   
-  // 1. Check for negative gateway status code (The most reliable indicator)
+  // 1. Prioritize explicit success codes (0 is success)
+  const isExplicitSuccessCode = 
+    (response.codeErr !== undefined && response.codeErr !== null && response.codeErr.toString() === "0") ||
+    (response.errCode !== undefined && response.errCode !== null && response.errCode.toString() === "0") ||
+    (response.gateway_status_code !== undefined && response.gateway_status_code !== null && Number(response.gateway_status_code) === 0);
+
+  if (isExplicitSuccessCode) return true;
+
+  // 2. Check for negative gateway status code (Reliable indicator of failure)
   if (response.gateway_status_code !== undefined && response.gateway_status_code !== null) {
     if (Number(response.gateway_status_code) < 0) return false;
   }
 
-  // 2. Check for codeErr / errCode (found in some Sappay success/error logs)
-  // Success is usually "0" or 0
-  if (response.codeErr !== undefined && response.codeErr !== null) {
-    if (response.codeErr.toString() !== "0") return false;
-  }
-  if (response.errCode !== undefined && response.errCode !== null) {
-    if (response.errCode.toString() !== "0") return false;
-  }
+  // 3. Check for non-zero error codes
+  if (response.codeErr !== undefined && response.codeErr !== null && response.codeErr.toString() !== "0") return false;
+  if (response.errCode !== undefined && response.errCode !== null && response.errCode.toString() !== "0") return false;
 
-  // 3. Check for error keywords in messages
+  // 4. Check for obvious error keywords in messages, but exclude success keywords
   const messages = [
     data.message,
     response.message,
@@ -188,10 +186,12 @@ const isActuallySuccess = (data: any): boolean => {
   
   for (const msg of messages) {
     const l = msg.toLowerCase();
+    // If the message contains "succès" or "success", it's likely not an error even if it contains "erronés" (operator quirks)
+    if (l.includes("succès") || l.includes("success")) continue;
     if (errorKeywords.some(kw => l.includes(kw))) return false;
   }
 
-  // 4. Check for specific success indicators
+  // 5. General success indicators
   const hasTopSuccess = data.success === true || data.status === 1 || data.status === 200 || data.status === 'SUCCESS' || data.status === 'success';
   const hasResponseSuccess = response.status === 'SUCCESS' || response.status === 'success' || !response.status;
 
