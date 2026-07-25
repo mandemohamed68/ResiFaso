@@ -2087,6 +2087,7 @@ async function startServer() {
       });
 
       const data = await response.json();
+      console.log(`[Sappay OTP Response] Invoice: ${invoice_id} | HTTP: ${response.status} | Payload:`, JSON.stringify(data));
       
       if (!response.ok) {
         console.error(`[Sappay OTP] Error ${response.status}:`, data);
