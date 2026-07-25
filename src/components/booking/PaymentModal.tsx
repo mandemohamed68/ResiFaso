@@ -329,41 +329,33 @@ export const PaymentModal: React.FC<Props> = ({ isOpen, onClose, amount, residen
         setHelperMessage("Saisissez votre code de validation Coris Money à 5 chiffres pour finaliser votre réservation.");
       }
       
-      // Request OTP via backend (will handle PULL/PUSH operators correctly)
-      const otpResp = await apiFetch('/api/payment/sappay/get-otp', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          invoice_id: currentInvoiceId,
-          payment_processor_id: PROCESSOR_IDS[provider || 'moov'],
-          customer_msisdn: cleanPhone,
-          access_token: currentToken
-        })
-      });
+      // Request OTP via backend without blocking navigation to OTP entry screen
+      try {
+        const otpResp = await apiFetch('/api/payment/sappay/get-otp', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            invoice_id: currentInvoiceId,
+            payment_processor_id: PROCESSOR_IDS[provider || 'moov'],
+            customer_msisdn: cleanPhone,
+            access_token: currentToken
+          })
+        });
 
-      if (!otpResp.ok) {
-        let otpErrData: any = {};
-        try {
-          otpErrData = await otpResp.json();
-        } catch (e) {
-          const text = await otpResp.text();
-          otpErrData = { error: text };
+        if (otpResp.ok) {
+          const otpData = await otpResp.json();
+          if (otpData.trans_id || otpData.response?.transactionId) {
+            setTransId(otpData.trans_id || otpData.response?.transactionId);
+          }
+          if (otpData.message && typeof otpData.message === 'string' && otpData.message.length > 5 && !otpData.message.toLowerCase().includes('success')) {
+            setHelperMessage(otpData.message);
+          }
         }
-        const errMsg = otpErrData.error || otpErrData.message || otpErrData.details || "Échec d'envoi OTP.";
-        throw new Error(translateSappayErrorToFrench(errMsg, otpResp.status));
+      } catch (otpErr) {
+        console.warn("Soft warning on get-otp:", otpErr);
       }
 
-      const otpData = await otpResp.json();
-      
-      if (!isActuallySuccess(otpData)) {
-        const rawMsg = getBestErrorMessage(otpData);
-        throw new Error(translateSappayErrorToFrench(rawMsg, otpResp.status));
-      }
-
-      if (otpData.trans_id || otpData.response?.transactionId) {
-        setTransId(otpData.trans_id || otpData.response?.transactionId);
-      }
-
+      // Always proceed to OTP input screen once invoice is created
       setStep('otp');
     } catch (e: any) {
       setError(e.message || "Erreur de communication avec la passerelle de paiement Sappay.");

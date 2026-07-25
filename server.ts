@@ -72,11 +72,11 @@ async function getSappayBaseUrls() {
 
 function normalizePhoneNumberSappay(phone: string): string {
   let clean = phone.replace(/\s/g, '').replace(/[^0-9+]/g, '');
-  if (clean.startsWith('+226')) clean = clean.slice(4);
-  else if (clean.startsWith('00226')) clean = clean.slice(5);
+  if (clean.startsWith('+')) clean = clean.slice(1);
+  if (clean.startsWith('00226')) clean = clean.slice(5);
   else if (clean.startsWith('226') && clean.length > 8) clean = clean.slice(3);
   if (clean.length > 8) clean = clean.slice(-8);
-  return clean;
+  return clean.length === 8 ? `226${clean}` : clean;
 }
 
 function findInvoiceId(responseData: any): string | null {
