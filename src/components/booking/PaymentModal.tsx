@@ -349,44 +349,46 @@ export const PaymentModal: React.FC<Props> = ({ isOpen, onClose, amount, residen
       setInvoiceId(currentInvoiceId);
       setAccessToken(currentToken);
       
-      // Let's set appropriate helper message and instructions for each provider
+      // Instructions et messages par opérateur
       if (provider === 'orange') {
-        setHelperMessage("Composez le *144*4*6# sur votre téléphone pour générer votre code de paiement à 6 chiffres, puis saisissez-le ici.");
+        setHelperMessage("Composez le *144*4*6# sur votre téléphone pour générer votre code OTP à 6 chiffres, puis saisissez-le ci-dessous.");
       } else if (provider === 'telecel') {
-        setHelperMessage("Saisissez votre code de validation Telecel Money à 5 chiffres pour confirmer la transaction.");
+        setHelperMessage("Composez le *8080*4*4# sur votre téléphone pour générer votre code de validation à 5 chiffres, puis saisissez-le ci-dessous.");
       } else if (provider === 'moov') {
-        setHelperMessage("Saisissez le code OTP à 6 chiffres que vous avez reçu par SMS ou via le menu Moov Money.");
+        setHelperMessage("Saisissez le code OTP à 6 chiffres que vous avez reçu par SMS ou via le menu Moov Money (*555#).");
       } else if (provider === 'coris') {
-        setHelperMessage("Saisissez votre code de validation Coris Money à 5 chiffres pour finaliser votre réservation.");
+        setHelperMessage("Générez votre code OTP depuis votre application Coris Money (ou vérifiez vos SMS) puis saisissez votre code à 5 chiffres ci-dessous.");
       }
       
-      // Request OTP via backend without blocking navigation to OTP entry screen
-      try {
-        const otpResp = await apiFetch('/api/payment/sappay/get-otp', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            invoice_id: currentInvoiceId,
-            payment_processor_id: PROCESSOR_IDS[provider || 'moov'],
-            customer_msisdn: cleanPhone,
-            access_token: currentToken
-          })
-        });
+      // Appel à get-otp uniquement pour Moov Money (seul opérateur qui supporte le déclenchement SMS OTP)
+      if (provider === 'moov') {
+        try {
+          const otpResp = await apiFetch('/api/payment/sappay/get-otp', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              invoice_id: currentInvoiceId,
+              payment_processor_id: PROCESSOR_IDS['moov'],
+              customer_msisdn: cleanPhone,
+              access_token: currentToken
+            })
+          });
 
-        if (otpResp.ok) {
-          const otpData = await otpResp.json();
-          if (otpData.trans_id || otpData.response?.transactionId) {
-            setTransId(otpData.trans_id || otpData.response?.transactionId);
+          if (otpResp.ok) {
+            const otpData = await otpResp.json();
+            if (otpData.trans_id || otpData.response?.transactionId) {
+              setTransId(otpData.trans_id || otpData.response?.transactionId);
+            }
+            if (otpData.message && typeof otpData.message === 'string' && otpData.message.length > 5 && !otpData.message.toLowerCase().includes('success')) {
+              setHelperMessage(otpData.message);
+            }
           }
-          if (otpData.message && typeof otpData.message === 'string' && otpData.message.length > 5 && !otpData.message.toLowerCase().includes('success')) {
-            setHelperMessage(otpData.message);
-          }
+        } catch (otpErr) {
+          console.warn("Avertissement sur get-otp Moov:", otpErr);
         }
-      } catch (otpErr) {
-        console.warn("Soft warning on get-otp:", otpErr);
       }
 
-      // Always proceed to OTP input screen once invoice is created
+      // Passer immédiatement à l'écran de saisie OTP une fois la facture créée
       setStep('otp');
     } catch (e: any) {
       setError(e.message || "Erreur de communication avec la passerelle de paiement Sappay.");
@@ -461,7 +463,7 @@ export const PaymentModal: React.FC<Props> = ({ isOpen, onClose, amount, residen
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center p-3 sm:p-4 overflow-hidden">
+    <div className="fixed inset-0 z-[100] flex items-center justify-center p-2 sm:p-4 overflow-y-auto">
       <motion.div 
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
@@ -471,10 +473,10 @@ export const PaymentModal: React.FC<Props> = ({ isOpen, onClose, amount, residen
       />
       
       <motion.div 
-        initial={{ opacity: 0, scale: 0.9, y: 20 }}
+        initial={{ opacity: 0, scale: 0.95, y: 10 }}
         animate={{ opacity: 1, scale: 1, y: 0 }}
-        exit={{ opacity: 0, scale: 0.9, y: 20 }}
-        className="relative w-full max-w-md my-auto bg-white rounded-3xl shadow-2xl overflow-hidden flex flex-col max-h-[92vh] sm:max-h-[90vh]"
+        exit={{ opacity: 0, scale: 0.95, y: 10 }}
+        className="relative w-full max-w-md my-auto bg-white rounded-2xl sm:rounded-3xl shadow-2xl overflow-hidden flex flex-col max-h-[92vh] sm:max-h-[88vh]"
       >
         <div className="flex h-1 bg-slate-100 shrink-0">
           <div className={cn(
@@ -484,27 +486,27 @@ export const PaymentModal: React.FC<Props> = ({ isOpen, onClose, amount, residen
         </div>
 
         {/* Header */}
-        <div className="p-4 sm:p-6 border-b border-slate-100 flex items-center justify-between relative overflow-hidden shrink-0">
+        <div className="px-4 py-3 sm:px-6 sm:py-4 border-b border-slate-100 flex items-center justify-between relative overflow-hidden shrink-0">
           {isTestMode && (
             <div className="absolute top-0 left-0 right-0 h-1 bg-red-600 animate-pulse" />
           )}
           <div>
             <div className="flex items-center gap-2">
-              <h3 className="text-lg sm:text-xl font-black text-slate-900">
+              <h3 className="text-base sm:text-lg font-black text-slate-900">
                 {isFullPayment ? "Paiement du solde" : "Paiement de l'acompte"}
               </h3>
               {isTestMode && (
                 <span className="px-2 py-0.5 bg-red-600 text-white text-[8px] font-black uppercase rounded tracking-widest">Sandbox</span>
               )}
             </div>
-            <p className="text-xs sm:text-sm text-slate-500 font-medium truncate max-w-[240px] sm:max-w-xs">{residenceTitle}</p>
+            <p className="text-xs text-slate-500 font-medium truncate max-w-[220px] sm:max-w-xs">{residenceTitle}</p>
           </div>
-          <button onClick={onClose} className="p-2 hover:bg-slate-100 rounded-full transition-colors text-slate-400 shrink-0">
-            <X size={20} />
+          <button onClick={onClose} className="p-1.5 hover:bg-slate-100 rounded-full transition-colors text-slate-400 shrink-0">
+            <X size={18} />
           </button>
         </div>
 
-        <div className="p-4 sm:p-6 overflow-y-auto flex-1">
+        <div className="p-3.5 sm:p-5 overflow-y-auto flex-1 min-h-0">
           <AnimatePresence mode="wait">
             {step === 'provider' && (
               <motion.div 
@@ -623,9 +625,9 @@ export const PaymentModal: React.FC<Props> = ({ isOpen, onClose, amount, residen
                 <button 
                   disabled={getCleanBFNumber(phone).length < 8 || loading}
                   onClick={handleInitiate}
-                  className="w-full bg-red-600 text-white py-4 rounded-2xl font-black text-lg hover:bg-red-700 transition-all disabled:opacity-50 flex items-center justify-center gap-2 shadow-lg shadow-red-600/20 cursor-pointer"
+                  className="w-full bg-red-600 text-white py-3.5 rounded-2xl font-black text-base sm:text-lg hover:bg-red-700 transition-all disabled:opacity-50 flex items-center justify-center gap-2 shadow-lg shadow-red-600/20 cursor-pointer"
                 >
-                  {loading ? <Loader2 className="animate-spin" /> : (provider === 'orange' || provider === 'telecel' ? 'VALIDER ET SAISIR LE CODE' : 'RECEVOIR LE CODE OTP')}
+                  {loading ? <Loader2 className="animate-spin" /> : (provider === 'orange' || provider === 'telecel' || provider === 'coris' ? 'VALIDER ET SAISIR LE CODE' : 'RECEVOIR LE CODE OTP')}
                 </button>
               </motion.div>
             )}
@@ -636,56 +638,56 @@ export const PaymentModal: React.FC<Props> = ({ isOpen, onClose, amount, residen
                 initial={{ opacity: 0, x: 20 }}
                 animate={{ opacity: 1, x: 0 }}
                 exit={{ opacity: 0, x: -20 }}
-                className="space-y-6"
+                className="space-y-3.5 sm:space-y-4"
               >
-                <div className="flex items-center gap-3 mb-2">
-                  <button onClick={() => setStep('phone')} className="text-slate-400 hover:text-slate-600 cursor-pointer"><ArrowRight size={20} className="rotate-180" /></button>
-                  <span className="font-bold text-slate-900 uppercase">Code de validation</span>
+                <div className="flex items-center gap-3">
+                  <button onClick={() => setStep('phone')} className="text-slate-400 hover:text-slate-600 cursor-pointer p-1 rounded-lg hover:bg-slate-100"><ArrowRight size={18} className="rotate-180" /></button>
+                  <span className="font-bold text-slate-900 text-xs sm:text-sm uppercase tracking-wider">Code de validation</span>
                 </div>
 
                 <div className="text-center">
-                  <div className="w-20 h-20 bg-white border border-slate-100 shadow-sm rounded-3xl flex items-center justify-center mx-auto mb-4 p-3">
-                    {provider === 'orange' && <img src="/orange.png" alt="Orange Money" className="w-full h-full object-contain rounded-xl" />}
-                    {provider === 'moov' && <img src="/moov-1.png" alt="Moov Money" className="w-full h-full object-contain rounded-xl" />}
-                    {provider === 'telecel' && <img src="/telecel.png" alt="Telecel Money" className="w-full h-full object-contain rounded-xl" />}
-                    {provider === 'coris' && <img src="/coris.png" alt="Coris Money" className="w-full h-full object-contain rounded-xl" />}
+                  <div className="w-14 h-14 sm:w-16 sm:h-16 bg-white border border-slate-100 shadow-sm rounded-2xl flex items-center justify-center mx-auto mb-2 p-2">
+                    {provider === 'orange' && <img src="/orange.png" alt="Orange Money" className="w-full h-full object-contain rounded-lg" />}
+                    {provider === 'moov' && <img src="/moov-1.png" alt="Moov Money" className="w-full h-full object-contain rounded-lg" />}
+                    {provider === 'telecel' && <img src="/telecel.png" alt="Telecel Money" className="w-full h-full object-contain rounded-lg" />}
+                    {provider === 'coris' && <img src="/coris.png" alt="Coris Money" className="w-full h-full object-contain rounded-lg" />}
                   </div>
-                  <h4 className="text-xl font-bold text-slate-900 mb-2">Validation {provider === 'orange' ? 'Orange' : provider === 'moov' ? 'Moov' : provider === 'telecel' ? 'Telecel' : 'Coris'}</h4>
-                  <p className="text-sm text-slate-500 mb-4 px-2 leading-relaxed">
+                  <h4 className="text-base sm:text-lg font-bold text-slate-900 mb-1">Validation {provider === 'orange' ? 'Orange' : provider === 'moov' ? 'Moov' : provider === 'telecel' ? 'Telecel' : 'Coris'}</h4>
+                  <p className="text-xs sm:text-sm text-slate-500 mb-3 px-1 leading-normal">
                     {helperMessage || `Un code de sécurité est nécessaire pour valider le paiement sur le numéro ${getFormattedPhone()}.`}
                   </p>
 
                   {provider === 'orange' && (
-                    <div className="space-y-2 mb-4">
-                      <a href="tel:*144*4*6%23" className="w-full inline-flex items-center justify-center gap-2 px-5 py-3 bg-orange-500 text-white rounded-2xl text-sm font-black hover:bg-orange-600 transition-all shadow-lg shadow-orange-500/20 cursor-pointer">
-                        <Phone size={18} /> GÉNÉRER LE CODE (*144*4*6#)
+                    <div className="space-y-1 mb-2">
+                      <a href="tel:*144*4*6%23" className="w-full inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-orange-500 text-white rounded-xl text-xs sm:text-sm font-black hover:bg-orange-600 transition-all shadow-md cursor-pointer">
+                        <Phone size={16} /> GÉNÉRER LE CODE (*144*4*6#)
                       </a>
                       <p className="text-[10px] text-slate-400 font-bold uppercase tracking-tight">Le code généré est valable 15 minutes</p>
                     </div>
                   )}
                   {provider === 'moov' && (
-                    <div className="space-y-2 mb-4">
-                      <a href="tel:*555%23" className="w-full inline-flex items-center justify-center gap-2 px-5 py-3 bg-blue-600 text-white rounded-2xl text-sm font-black hover:bg-blue-700 transition-all shadow-lg shadow-blue-600/20 cursor-pointer">
-                        <Phone size={18} /> MENU MOOV (*555#)
+                    <div className="space-y-1 mb-2">
+                      <a href="tel:*555%23" className="w-full inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-blue-600 text-white rounded-xl text-xs sm:text-sm font-black hover:bg-blue-700 transition-all shadow-md cursor-pointer">
+                        <Phone size={16} /> MENU MOOV (*555#)
                       </a>
                     </div>
                   )}
                   {provider === 'telecel' && (
-                    <div className="space-y-2 mb-4">
-                      <a href="tel:*444%23" className="w-full inline-flex items-center justify-center gap-2 px-5 py-3 bg-red-500 text-white rounded-2xl text-sm font-black hover:bg-red-600 transition-all shadow-lg shadow-red-500/20 cursor-pointer">
-                        <Phone size={18} /> MENU TELECEL (*444#)
+                    <div className="space-y-1 mb-2">
+                      <a href="tel:*8080*4*4%23" className="w-full inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-red-500 text-white rounded-xl text-xs sm:text-sm font-black hover:bg-red-600 transition-all shadow-md cursor-pointer">
+                        <Phone size={16} /> CODE TELECEL (*8080*4*4#)
                       </a>
                     </div>
                   )}
                 </div>
 
                 {error && (
-                  <div className="p-4 bg-red-50 border border-red-100 rounded-2xl text-red-600 text-sm font-bold animate-in fade-in slide-in-from-top-1 text-center">
+                  <div className="p-2.5 sm:p-3 bg-red-50 border border-red-100 rounded-xl text-red-600 text-xs font-bold text-center leading-snug">
                     {error}
                   </div>
                 )}
 
-                <div className="space-y-2">
+                <div className="space-y-1">
                   <label className="block text-center text-[10px] font-black text-slate-400 uppercase tracking-widest">
                     Saisissez votre code ci-dessous
                   </label>
@@ -697,19 +699,19 @@ export const PaymentModal: React.FC<Props> = ({ isOpen, onClose, amount, residen
                     maxLength={(provider === 'telecel' || provider === 'coris') ? 5 : 6}
                     value={otp}
                     onChange={(e) => setOtp(e.target.value.replace(/\D/g, ''))}
-                    className="w-full text-center tracking-[0.5em] py-5 bg-slate-50 border-2 border-slate-100 rounded-3xl font-black text-4xl text-slate-900 focus:ring-4 focus:ring-red-100 focus:border-red-500 focus:bg-white outline-none transition-all"
+                    className="w-full text-center tracking-[0.4em] sm:tracking-[0.5em] py-3 sm:py-3.5 bg-slate-50 border-2 border-slate-100 rounded-2xl font-black text-2xl sm:text-3xl text-slate-900 focus:ring-2 focus:ring-red-100 focus:border-red-500 focus:bg-white outline-none transition-all"
                   />
                 </div>
 
                 {loading ? (
-                  <div className="w-full bg-slate-100 text-slate-400 py-4 rounded-2xl font-black text-lg flex items-center justify-center gap-2">
-                    <Loader2 className="animate-spin" /> TRAITEMENT EN COURS...
+                  <div className="w-full bg-slate-100 text-slate-400 py-3 sm:py-3.5 rounded-2xl font-black text-sm sm:text-base flex items-center justify-center gap-2">
+                    <Loader2 className="animate-spin" size={18} /> TRAITEMENT EN COURS...
                   </div>
                 ) : (
                   <button 
                     disabled={otp.length !== ((provider === 'telecel' || provider === 'coris') ? 5 : 6)}
                     onClick={handleVerify}
-                    className="w-full bg-red-600 text-white py-4 rounded-2xl font-black text-lg hover:bg-red-700 transition-all disabled:opacity-50 flex items-center justify-center gap-2 cursor-pointer shadow-lg shadow-red-600/20"
+                    className="w-full bg-red-600 text-white py-3 sm:py-3.5 rounded-2xl font-black text-sm sm:text-base hover:bg-red-700 transition-all disabled:opacity-50 flex items-center justify-center gap-2 cursor-pointer shadow-md shadow-red-600/20"
                   >
                     CONFIRMER LE PAIEMENT
                   </button>
@@ -718,7 +720,7 @@ export const PaymentModal: React.FC<Props> = ({ isOpen, onClose, amount, residen
                 {error && !loading && (
                   <button 
                     onClick={() => { setError(null); handleInitiate(); }}
-                    className="w-full text-slate-400 text-sm font-bold hover:text-red-600 transition-colors py-2 cursor-pointer"
+                    className="w-full text-slate-400 text-xs sm:text-sm font-bold hover:text-red-600 transition-colors py-1 cursor-pointer text-center"
                   >
                     RÉESSAYER L'ENVOI DU CODE
                   </button>
