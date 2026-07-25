@@ -367,7 +367,10 @@ export const PaymentModal: React.FC<Props> = ({ isOpen, onClose, amount, residen
       // Appel à get-otp pour Telecel Money, Moov Money et Coris Money (déclenchement ou envoi de SMS OTP)
       if (provider === 'telecel' || provider === 'moov' || provider === 'coris') {
         try {
-          const otpResp = await apiFetch('/api/payment/sappay/get-otp', {
+          // Attente de 500ms pour s'assurer que Sappay a enregistré la facture en BDD
+          await new Promise(res => setTimeout(res, 500));
+
+          let otpResp = await apiFetch('/api/payment/sappay/get-otp', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
@@ -378,6 +381,22 @@ export const PaymentModal: React.FC<Props> = ({ isOpen, onClose, amount, residen
             })
           });
 
+          // Si le premier essai échoue, réessayer une seconde fois après 1 seconde
+          if (!otpResp.ok) {
+            console.warn(`[Get-OTP ${provider}] Premier essai non OK, tentative de réessai...`);
+            await new Promise(res => setTimeout(res, 1000));
+            otpResp = await apiFetch('/api/payment/sappay/get-otp', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                invoice_id: currentInvoiceId,
+                payment_processor_id: PROCESSOR_IDS[provider],
+                customer_msisdn: cleanPhone,
+                access_token: currentToken
+              })
+            });
+          }
+
           if (otpResp.ok) {
             const otpData = await otpResp.json();
             if (otpData.trans_id || otpData.response?.transactionId) {
@@ -386,6 +405,9 @@ export const PaymentModal: React.FC<Props> = ({ isOpen, onClose, amount, residen
             if (otpData.message && typeof otpData.message === 'string' && otpData.message.length > 5 && !otpData.message.toLowerCase().includes('success')) {
               setHelperMessage(otpData.message);
             }
+          } else {
+            const errData = await otpResp.json().catch(() => ({}));
+            console.warn(`[Get-OTP ${provider}] Échec:`, errData);
           }
         } catch (otpErr) {
           console.warn(`Avertissement sur get-otp ${provider}:`, otpErr);
@@ -667,7 +689,7 @@ export const PaymentModal: React.FC<Props> = ({ isOpen, onClose, amount, residen
                   onClick={handleInitiate}
                   className="w-full bg-red-600 text-white py-3.5 rounded-2xl font-black text-base sm:text-lg hover:bg-red-700 transition-all disabled:opacity-50 flex items-center justify-center gap-2 shadow-lg shadow-red-600/20 cursor-pointer"
                 >
-                  {loading ? <Loader2 className="animate-spin" /> : (provider === 'orange' || provider === 'telecel' || provider === 'coris' ? 'VALIDER ET SAISIR LE CODE' : 'RECEVOIR LE CODE OTP')}
+                  {loading ? <Loader2 className="animate-spin" /> : 'VALIDER ET SAISIR LE CODE'}
                 </button>
               </motion.div>
             )}
