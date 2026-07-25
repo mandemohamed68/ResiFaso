@@ -2004,6 +2004,8 @@ async function startServer() {
     if (PULL_OPERATORS.includes(payment_processor_id)) {
       // Pas d'appel à Sappay, on renvoie une réponse pour que le frontend continue
       return res.json({
+        success: true,
+        status: 1,
         trans_id: `manual_otp_${Date.now()}`,
         message: "Veuillez générer votre code OTP via USSD et le saisir pour valider le paiement."
       });
@@ -2031,17 +2033,18 @@ async function startServer() {
         })
       });
 
+      const data = await response.json();
+      
       if (!response.ok) {
-        const text = await response.text();
-        console.error(`[Sappay OTP] Error ${response.status}:`, text);
-        throw new Error(`Erreur Sappay get-otp (${response.status}): ${text}`);
+        console.error(`[Sappay OTP] Error ${response.status}:`, data);
+        return res.status(response.status).json(data);
       }
 
-      const data = await response.json();
-      res.json({
-        trans_id: data.trans_id || data.transaction_id || `txn_${Date.now()}`,
-        message: data.message || "OTP envoyé par SMS."
-      });
+      // Ensure success flag for frontend
+      if (data.success === undefined) data.success = true;
+      if (data.status === undefined) data.status = 1;
+      
+      res.json(data);
     } catch (error: any) {
       console.error("Erreur /api/payment/sappay/get-otp :", error);
       res.status(500).json({ error: error.message });

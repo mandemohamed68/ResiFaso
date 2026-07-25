@@ -193,13 +193,13 @@ const isActuallySuccess = (data: any): boolean => {
   for (const msg of messages) {
     const l = msg.toLowerCase();
     // If the message contains "succès" or "success", it's likely not an error even if it contains "erronés"
-    if (l.includes("succès") || l.includes("success") || l.includes("réussie") || l.includes("effectuée")) continue;
+    if (l.includes("succès") || l.includes("success") || l.includes("réussie") || l.includes("effectu") || l.includes("envoyé")) continue;
     if (errorKeywords.some(kw => l.includes(kw))) return false;
   }
 
   // 5. General success indicators
-  const hasTopSuccess = data.success === true || data.status === 1 || data.status === 200 || data.status === 'SUCCESS' || data.status === 'success';
-  const hasResponseSuccess = response.status === 'SUCCESS' || response.status === 'success' || !response.status;
+  const hasTopSuccess = data.success === true || data.status === 1 || data.status === 200 || data.status === 'SUCCESS' || data.status === 'success' || !!data.trans_id;
+  const hasResponseSuccess = response.status === 'SUCCESS' || response.status === 'success' || !response.status || response.codeErr === "0";
 
   return hasTopSuccess && hasResponseSuccess;
 };
