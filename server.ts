@@ -76,7 +76,7 @@ function normalizePhoneNumberSappay(phone: string): string {
   if (clean.startsWith('00226')) clean = clean.slice(5);
   else if (clean.startsWith('226') && clean.length > 8) clean = clean.slice(3);
   if (clean.length > 8) clean = clean.slice(-8);
-  return clean.length === 8 ? `226${clean}` : clean;
+  return clean;
 }
 
 function findInvoiceId(responseData: any): string | null {
