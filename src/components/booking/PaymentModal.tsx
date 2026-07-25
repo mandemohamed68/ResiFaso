@@ -248,6 +248,8 @@ export const PaymentModal: React.FC<Props> = ({ isOpen, onClose, amount, residen
   const [transId, setTransId] = useState('');
   const [helperMessage, setHelperMessage] = useState('');
   const [error, setError] = useState<string | null>(null);
+  const [resendLoading, setResendLoading] = useState(false);
+  const [resendSuccess, setResendSuccess] = useState<string | null>(null);
 
   // Auto-read SMS OTP on mobile browsers / WebViews (WebOTP API)
   useEffect(() => {
@@ -353,22 +355,22 @@ export const PaymentModal: React.FC<Props> = ({ isOpen, onClose, amount, residen
       if (provider === 'orange') {
         setHelperMessage("Composez le *144*4*6# sur votre téléphone pour générer votre code OTP à 6 chiffres, puis saisissez-le ci-dessous.");
       } else if (provider === 'telecel') {
-        setHelperMessage("Composez le *8080*4*4# sur votre téléphone pour générer votre code de validation à 5 chiffres, puis saisissez-le ci-dessous.");
+        setHelperMessage("Composez le *808*4*4# sur votre téléphone pour générer votre code de validation à 5 chiffres, puis saisissez-le ci-dessous.");
       } else if (provider === 'moov') {
         setHelperMessage("Saisissez le code OTP à 6 chiffres que vous avez reçu par SMS ou via le menu Moov Money (*555#).");
       } else if (provider === 'coris') {
         setHelperMessage("Générez votre code OTP depuis votre application Coris Money (ou vérifiez vos SMS) puis saisissez votre code à 5 chiffres ci-dessous.");
       }
       
-      // Appel à get-otp uniquement pour Moov Money (seul opérateur qui supporte le déclenchement SMS OTP)
-      if (provider === 'moov') {
+      // Appel à get-otp pour Moov Money et Coris Money (déclenchement ou envoi de SMS OTP)
+      if (provider === 'moov' || provider === 'coris') {
         try {
           const otpResp = await apiFetch('/api/payment/sappay/get-otp', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
               invoice_id: currentInvoiceId,
-              payment_processor_id: PROCESSOR_IDS['moov'],
+              payment_processor_id: PROCESSOR_IDS[provider],
               customer_msisdn: cleanPhone,
               access_token: currentToken
             })
@@ -384,7 +386,7 @@ export const PaymentModal: React.FC<Props> = ({ isOpen, onClose, amount, residen
             }
           }
         } catch (otpErr) {
-          console.warn("Avertissement sur get-otp Moov:", otpErr);
+          console.warn(`Avertissement sur get-otp ${provider}:`, otpErr);
         }
       }
 
@@ -394,6 +396,42 @@ export const PaymentModal: React.FC<Props> = ({ isOpen, onClose, amount, residen
       setError(e.message || "Erreur de communication avec la passerelle de paiement Sappay.");
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleResendOtp = async () => {
+    if (!invoiceId || !provider) return;
+    setResendLoading(true);
+    setResendSuccess(null);
+    setError(null);
+    const cleanPhone = getCleanBFNumber(phone);
+    try {
+      const otpResp = await apiFetch('/api/payment/sappay/get-otp', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          invoice_id: invoiceId,
+          payment_processor_id: PROCESSOR_IDS[provider],
+          customer_msisdn: cleanPhone,
+          access_token: accessToken
+        })
+      });
+
+      if (otpResp.ok) {
+        const otpData = await otpResp.json();
+        if (otpData.trans_id || otpData.response?.transactionId) {
+          setTransId(otpData.trans_id || otpData.response?.transactionId);
+        }
+        setResendSuccess("Une nouvelle demande de code OTP a été envoyée. Veuillez vérifier vos SMS.");
+        setTimeout(() => setResendSuccess(null), 6000);
+      } else {
+        const errData = await otpResp.json();
+        setError(translateSappayErrorToFrench(errData.error || errData.message || "Impossible de renvoyer le code OTP."));
+      }
+    } catch (err: any) {
+      setError(err.message || "Erreur lors du renvoi du code OTP.");
+    } finally {
+      setResendLoading(false);
     }
   };
 
@@ -674,8 +712,8 @@ export const PaymentModal: React.FC<Props> = ({ isOpen, onClose, amount, residen
                   )}
                   {provider === 'telecel' && (
                     <div className="space-y-1 mb-2">
-                      <a href="tel:*8080*4*4%23" className="w-full inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-red-500 text-white rounded-xl text-xs sm:text-sm font-black hover:bg-red-600 transition-all shadow-md cursor-pointer">
-                        <Phone size={16} /> CODE TELECEL (*8080*4*4#)
+                      <a href="tel:*808*4*4%23" className="w-full inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-red-500 text-white rounded-xl text-xs sm:text-sm font-black hover:bg-red-600 transition-all shadow-md cursor-pointer">
+                        <Phone size={16} /> CODE TELECEL (*808*4*4#)
                       </a>
                     </div>
                   )}
@@ -715,6 +753,28 @@ export const PaymentModal: React.FC<Props> = ({ isOpen, onClose, amount, residen
                   >
                     CONFIRMER LE PAIEMENT
                   </button>
+                )}
+
+                {(provider === 'moov' || provider === 'coris') && !loading && (
+                  <div className="text-center pt-1 space-y-1">
+                    <button 
+                      type="button"
+                      disabled={resendLoading}
+                      onClick={handleResendOtp}
+                      className="inline-flex items-center justify-center gap-1.5 text-xs font-bold text-red-600 hover:text-red-700 hover:underline transition-colors py-1 px-3 bg-red-50 hover:bg-red-100 rounded-xl cursor-pointer disabled:opacity-50"
+                    >
+                      {resendLoading ? (
+                        <><Loader2 className="animate-spin" size={14} /> Demande de code en cours...</>
+                      ) : (
+                        <>Renvoyer le code OTP (SMS)</>
+                      )}
+                    </button>
+                    {resendSuccess && (
+                      <p className="text-xs font-bold text-emerald-600 text-center animate-in fade-in">
+                        {resendSuccess}
+                      </p>
+                    )}
+                  </div>
                 )}
 
                 {error && !loading && (

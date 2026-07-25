@@ -2009,7 +2009,7 @@ async function startServer() {
           email: email || "client@resifaso.com",
           country: 1
         },
-        amount: parseFloat(amount).toFixed(2),
+        amount: Math.round(parseFloat(amount)).toString(),
         note: note || "Validation acompte Residence MEUBLE",
         callback_url: webhookUrl,
         webhook_url: webhookUrl,
@@ -2051,8 +2051,8 @@ async function startServer() {
   app.post(["/api/payment/sappay/get-otp", "/api/payments/sappay/get-otp"], paymentLimiter, async (req, res) => {
     const { customer_msisdn, invoice_id, payment_processor_id, access_token } = req.body;
 
-    // Opérateurs PULL-OTP / OTP externe (l'OTP est généré par le client via USSD ou dans son appli)
-    const PULL_OPERATORS = [PROCESSOR_ORANGE, PROCESSOR_TELECEL, PROCESSOR_CORIS];
+    // Opérateurs PULL-OTP (l'OTP est généré manuellement par l'utilisateur via USSD sur son téléphone)
+    const PULL_OPERATORS = [PROCESSOR_ORANGE, PROCESSOR_TELECEL];
 
     if (PULL_OPERATORS.includes(payment_processor_id)) {
       // Pas d'appel à Sappay, on renvoie une réponse pour que le frontend continue
