@@ -1,9 +1,10 @@
 import { formatCurrency } from '../../utils/currency';
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { X, Phone, ShieldCheck, ArrowRight, Loader2, CheckCircle } from 'lucide-react';
+import { X, Phone, ShieldCheck, ArrowRight, Loader2, CheckCircle, RefreshCw } from 'lucide-react';
 import { cn } from '../../lib/utils';
 import { apiFetch } from '../../lib/api';
+import { useAuth } from '../../contexts/AuthContext';
 
 interface Props {
   isOpen: boolean;
@@ -236,6 +237,7 @@ const isActuallySuccess = (data: any): boolean => {
 };
 
 export const PaymentModal: React.FC<Props> = ({ isOpen, onClose, amount, residenceTitle, onSuccess, isTestMode, utilitiesIncluded, bookingId, isFinalPayment, paymentType }) => {
+  const { user } = useAuth();
   const isFullPayment = paymentType === 'full' || isFinalPayment === true;
   const [step, setStep] = useState<Step>('provider');
   const [provider, setProvider] = useState<Provider | null>(null);
@@ -322,7 +324,7 @@ export const PaymentModal: React.FC<Props> = ({ isOpen, onClose, amount, residen
         body: JSON.stringify({
           amount,
           note: isFullPayment ? `Paiement du solde ${residenceTitle}` : `Validation acompte ${residenceTitle}`,
-          email: "client@resifaso.com",
+          email: user?.email || "client@resifaso.com",
           bookingId
         })
       });
@@ -355,15 +357,15 @@ export const PaymentModal: React.FC<Props> = ({ isOpen, onClose, amount, residen
       if (provider === 'orange') {
         setHelperMessage("Composez le *144*4*6# sur votre téléphone pour générer votre code OTP à 6 chiffres, puis saisissez-le ci-dessous.");
       } else if (provider === 'telecel') {
-        setHelperMessage("Composez le *808*4*4# sur votre téléphone pour générer votre code de validation à 5 chiffres, puis saisissez-le ci-dessous.");
+        setHelperMessage("Vous recevrez votre code par SMS. Vous pouvez également composer le *808*4*4# sur votre téléphone, puis saisir votre code à 5 chiffres ci-dessous.");
       } else if (provider === 'moov') {
         setHelperMessage("Saisissez le code OTP à 6 chiffres que vous avez reçu par SMS ou via le menu Moov Money (*555#).");
       } else if (provider === 'coris') {
         setHelperMessage("Générez votre code OTP depuis votre application Coris Money (ou vérifiez vos SMS) puis saisissez votre code à 5 chiffres ci-dessous.");
       }
       
-      // Appel à get-otp pour Moov Money et Coris Money (déclenchement ou envoi de SMS OTP)
-      if (provider === 'moov' || provider === 'coris') {
+      // Appel à get-otp pour Telecel Money, Moov Money et Coris Money (déclenchement ou envoi de SMS OTP)
+      if (provider === 'telecel' || provider === 'moov' || provider === 'coris') {
         try {
           const otpResp = await apiFetch('/api/payment/sappay/get-otp', {
             method: 'POST',
@@ -755,18 +757,18 @@ export const PaymentModal: React.FC<Props> = ({ isOpen, onClose, amount, residen
                   </button>
                 )}
 
-                {(provider === 'moov' || provider === 'coris') && !loading && (
-                  <div className="text-center pt-1 space-y-1">
+                {(provider === 'telecel' || provider === 'moov' || provider === 'coris') && !loading && (
+                  <div className="text-center pt-2 space-y-1.5">
                     <button 
                       type="button"
                       disabled={resendLoading}
                       onClick={handleResendOtp}
-                      className="inline-flex items-center justify-center gap-1.5 text-xs font-bold text-red-600 hover:text-red-700 hover:underline transition-colors py-1 px-3 bg-red-50 hover:bg-red-100 rounded-xl cursor-pointer disabled:opacity-50"
+                      className="w-full inline-flex items-center justify-center gap-2 text-xs font-bold text-slate-700 hover:text-red-600 transition-colors py-2 px-3 bg-slate-100 hover:bg-slate-200/80 rounded-xl cursor-pointer disabled:opacity-50 border border-slate-200"
                     >
                       {resendLoading ? (
                         <><Loader2 className="animate-spin" size={14} /> Demande de code en cours...</>
                       ) : (
-                        <>Renvoyer le code OTP (SMS)</>
+                        <><RefreshCw size={14} className="text-slate-500" /> Vous n'avez pas reçu le SMS ? Renvoyer le code OTP</>
                       )}
                     </button>
                     {resendSuccess && (

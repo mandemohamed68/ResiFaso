@@ -2051,8 +2051,8 @@ async function startServer() {
   app.post(["/api/payment/sappay/get-otp", "/api/payments/sappay/get-otp"], paymentLimiter, async (req, res) => {
     const { customer_msisdn, invoice_id, payment_processor_id, access_token } = req.body;
 
-    // Opérateurs PULL-OTP (l'OTP est généré manuellement par l'utilisateur via USSD sur son téléphone)
-    const PULL_OPERATORS = [PROCESSOR_ORANGE, PROCESSOR_TELECEL];
+    // Opérateurs PULL-OTP (Seul Orange nécessite une génération manuelle via *144*4*6#)
+    const PULL_OPERATORS = [PROCESSOR_ORANGE];
 
     if (PULL_OPERATORS.includes(payment_processor_id)) {
       // Pas d'appel à Sappay, on renvoie une réponse pour que le frontend continue
