@@ -29,6 +29,7 @@
     "@tanstack/react-query": "^5.101.2",
     "@types/bcrypt": "^6.0.0",
     "@types/react-datepicker": "^6.2.0",
+    "@types/uuid": "^11.0.0",
     "@vitejs/plugin-react": "^5.0.4",
     "bcrypt": "^6.0.0",
     "clsx": "^2.1.1",
@@ -36,8 +37,10 @@
     "date-fns": "^4.4.0",
     "dotenv": "^17.4.2",
     "express": "^4.22.2",
+    "express-rate-limit": "^8.6.0",
     "firebase-admin": "^14.2.0",
     "glob": "^13.0.6",
+    "helmet": "^8.3.0",
     "html-to-image": "^1.11.13",
     "html2canvas": "^1.4.1",
     "jsdom": "^29.1.1",
@@ -57,6 +60,7 @@
     "sqlite": "^5.1.1",
     "sqlite3": "^6.0.1",
     "tailwind-merge": "^3.6.0",
+    "uuid": "^14.0.1",
     "vite": "^6.2.3"
   },
   "devDependencies": {

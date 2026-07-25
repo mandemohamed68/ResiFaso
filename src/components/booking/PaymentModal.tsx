@@ -31,7 +31,7 @@ const PROCESSOR_IDS: Record<string, string> = {
 const translateSappayErrorToFrench = (rawError: string, status?: number): string => {
   if (!rawError) return "Une erreur inconnue est survenue lors du paiement.";
   
-  const lower = rawError.toLowerCase();
+  const lower = rawError.toLowerCase().trim();
 
   // HTML or Server issues
   if (lower.includes('<!doctype') || lower.includes('<html') || lower.includes('server error') || status === 500) {
@@ -52,12 +52,15 @@ const translateSappayErrorToFrench = (rawError: string, status?: number): string
     lower.includes("invalid otp") || 
     lower.includes("wrong otp") || 
     lower.includes("otp incorrect") || 
+    lower.includes("incorrect otp") ||
     lower.includes("otp invalide") || 
     lower.includes("code otp invalide") || 
     lower.includes("code de validation incorrect") ||
-    lower.includes("otp_incorrect")
+    lower.includes("otp_incorrect") ||
+    lower.includes("bad otp") ||
+    lower.includes("otp failed")
   ) {
-    return "Le code OTP saisi est incorrect ou a expiré. Veuillez vérifier le SMS reçu et réessayer.";
+    return "Le code OTP saisi est incorrect ou a expiré. Veuillez vérifier le code reçu et réessayer.";
   }
 
   // Insufficient Balance
@@ -68,7 +71,8 @@ const translateSappayErrorToFrench = (rawError: string, status?: number): string
     lower.includes("not enough funds") || 
     lower.includes("insufficient funds") ||
     lower.includes("fonds insuffisants") ||
-    lower.includes("solde_insuffisant")
+    lower.includes("solde_insuffisant") ||
+    lower.includes("balance low")
   ) {
     return "Votre solde est insuffisant pour effectuer cette transaction. Veuillez recharger votre compte de paiement mobile money et réessayer.";
   }
@@ -91,23 +95,39 @@ const translateSappayErrorToFrench = (rawError: string, status?: number): string
     return "Le délai d'attente de validation de l'opérateur a expiré. Veuillez réessayer.";
   }
 
-  // Declined / Refused
+  // Declined / Refused / Cancelled
   if (
     lower.includes("declined") || 
     lower.includes("refused") ||
     lower.includes("refusé") ||
-    lower.includes("annulé") 
+    lower.includes("annulé") ||
+    lower.includes("cancelled") ||
+    lower.includes("canceled")
   ) {
-    return "La transaction a été déclinée ou refusée par l'opérateur mobile money.";
+    return "La transaction a été déclinée ou annulée par l'opérateur mobile money.";
   }
 
   // Not Registered
   if (
     lower.includes("not registered") || 
     lower.includes("unregistered") || 
-    lower.includes("numéro non enregistré")
+    lower.includes("numéro non enregistré") ||
+    lower.includes("invalid msisdn") ||
+    lower.includes("invalid phone")
   ) {
     return "Ce numéro de téléphone n'est pas enregistré pour ce service de paiement mobile money chez cet opérateur.";
+  }
+
+  // Transaction Failed / Generic Failed
+  if (
+    lower === "transaction failed" || 
+    lower === "failed" || 
+    lower.includes("transaction_failed") ||
+    lower.includes("transaction failed") ||
+    lower.includes("payment failed") ||
+    lower.includes("échec de la transaction")
+  ) {
+    return "Échec de la transaction. Le code OTP saisi est incorrect ou la transaction a été rejetée par l'opérateur.";
   }
 
   // If the message is "Success" but we're in an error state, provide a better message
@@ -115,9 +135,10 @@ const translateSappayErrorToFrench = (rawError: string, status?: number): string
     return "La transaction n'a pas pu être validée par l'opérateur. Veuillez vérifier vos informations.";
   }
 
-  // If there's an existing explicit French text in rawError, return it
+  // If there's an existing clean French text without English technical keywords, return it
   if (/^[a-zA-ZÀ-ÿ0-9\s'’.,!?-]+$/.test(rawError) && 
       rawError.length < 150 && 
+      !lower.includes('failed') &&
       !lower.includes('error') && 
       !lower.includes('exception') && 
       !lower.includes('bad request') && 
@@ -126,7 +147,7 @@ const translateSappayErrorToFrench = (rawError: string, status?: number): string
     return rawError;
   }
 
-  return `Erreur de la passerelle de paiement : ${rawError}`;
+  return `Échec du paiement : ${rawError}`;
 };
 
 const getBestErrorMessage = (data: any): string => {
@@ -134,12 +155,14 @@ const getBestErrorMessage = (data: any): string => {
   const response = data.response || {};
   
   // Define keywords that represent a real error
-  const errorKeywords = ["erronés", "incorrect", "failed", "error", "invalide", "invalid", "échec", "refusé", "declined", "wrong"];
+  const errorKeywords = ["erronés", "incorrect", "failed", "error", "invalide", "invalid", "échec", "refusé", "declined", "wrong", "insuffisant", "cancel", "annul"];
   
   // List potential error sources in order of priority (Gateway message is often the most accurate)
   const candidates = [
     response.gateway_message,
+    data.gateway_message,
     response.message,
+    response.errMessage,
     data.error?.message,
     data.message,
     data.details
@@ -147,14 +170,22 @@ const getBestErrorMessage = (data: any): string => {
 
   // Look for the first candidate that actually contains an error keyword
   for (const cand of candidates) {
-    if (typeof cand === 'string' && cand.length > 0) {
+    if (typeof cand === 'string' && cand.trim().length > 0) {
       const lower = cand.toLowerCase();
+      if (lower.includes("success") || lower.includes("succès") || lower.includes("réussi") || lower.includes("effectu") || lower.includes("envoyé")) continue;
       if (errorKeywords.some(kw => lower.includes(kw))) return cand;
     }
   }
 
-  // Fallback to first non-empty string
-  return candidates.find(c => typeof c === 'string' && c.length > 0) || "Échec de la transaction.";
+  // Fallback to first non-empty string that is not a success string
+  for (const cand of candidates) {
+    if (typeof cand === 'string' && cand.trim().length > 0) {
+      const lower = cand.toLowerCase();
+      if (!lower.includes("success") && !lower.includes("succès") && !lower.includes("réussi") && !lower.includes("effectu") && !lower.includes("envoyé")) return cand;
+    }
+  }
+
+  return "Échec de la transaction.";
 };
 
 const isActuallySuccess = (data: any): boolean => {

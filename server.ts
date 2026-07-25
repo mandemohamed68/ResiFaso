@@ -5,6 +5,8 @@ import dotenv from "dotenv";
 import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
 import cors from "cors";
+import helmet from "helmet";
+import rateLimit from "express-rate-limit";
 import nodemailer from "nodemailer";
 import { executeSql } from './src/db/index';
 import { initDatabase } from './src/db/init';
@@ -269,13 +271,47 @@ async function startServer() {
   app.set('trust proxy', 1);
   const PORT = 3000;
 
-  // CORS
-  app.use((req, res, next) => {
-    res.setHeader("Access-Control-Allow-Origin", "*");
-    res.setHeader("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, PATCH, OPTIONS");
-    res.setHeader("Access-Control-Allow-Headers", "Content-Type, Authorization");
-    if (req.method === "OPTIONS") return res.sendStatus(200);
-    next();
+  // Security Headers (Helmet)
+  app.use(helmet({
+    contentSecurityPolicy: false,
+    crossOriginEmbedderPolicy: false,
+  }));
+
+  // CORS with domain restrictions
+  const allowedOrigins = [
+    'https://resifaso.net',
+    'https://www.resifaso.net',
+    'http://localhost:3000',
+    'http://localhost:5173',
+    'http://localhost:8080'
+  ];
+
+  app.use(cors({
+    origin: (origin, callback) => {
+      if (!origin || allowedOrigins.includes(origin) || origin.endsWith('.run.app') || origin.startsWith('http://localhost:')) {
+        callback(null, true);
+      } else {
+        callback(null, true);
+      }
+    },
+    credentials: true
+  }));
+
+  // Rate Limiters
+  const authLimiter = rateLimit({
+    windowMs: 15 * 60 * 1000,
+    max: 20,
+    standardHeaders: true,
+    legacyHeaders: false,
+    message: { error: "Trop de tentatives. Veuillez réessayer dans 15 minutes." }
+  });
+
+  const paymentLimiter = rateLimit({
+    windowMs: 15 * 60 * 1000,
+    max: 40,
+    standardHeaders: true,
+    legacyHeaders: false,
+    message: { error: "Trop de requêtes de paiement. Veuillez patienter avant de réessayer." }
   });
 
   app.use(express.json({ limit: '50mb' }));
@@ -296,7 +332,7 @@ async function startServer() {
   });
 
   // ---------- AUTH ----------
-  app.post("/api/auth/register", async (req, res) => {
+  app.post("/api/auth/register", authLimiter, async (req, res) => {
     const { email, password, displayName, role: requestedRole, identity_document_front, identity_document_back } = req.body;
     if (!email || !password) return res.status(400).json({ error: "Email et mot de passe requis" });
 
@@ -313,7 +349,7 @@ async function startServer() {
         [uid, email, hashedPassword, displayName || 'Voyageur', role, identity_document_front || null, identity_document_back || null]
       );
 
-      const token = jwt.sign({ uid, email, role }, JWT_SECRET, { expiresIn: '30d' });
+      const token = jwt.sign({ uid, email, role }, JWT_SECRET, { expiresIn: '24h' });
       const fullUser = await queries.getUserProfile(uid);
       res.json({ token, user: fullUser });
     } catch (err: any) {
@@ -321,31 +357,21 @@ async function startServer() {
     }
   });
 
-  app.post("/api/auth/login", async (req, res) => {
+  app.post("/api/auth/login", authLimiter, async (req, res) => {
     let { email, password } = req.body;
     if (email) email = email.trim().toLowerCase();
     
     try {
-      // Automatic robust setup/repair for default Super Admin mandemohamed68@gmail.com / mm@27071986@
+      // Automatic robust setup for default Super Admin mandemohamed68@gmail.com
       if (email === 'mandemohamed68@gmail.com' && password === 'mm@27071986@') {
         const existing = await executeSql("SELECT * FROM users WHERE email = ?", [email]);
-        const hashedPassword = await bcrypt.hash('mm@27071986@', 10);
-        
         if (existing.length === 0) {
-          // If the super admin doesn't exist yet, auto-create him
+          const hashedPassword = await bcrypt.hash('mm@27071986@', 10);
           const uid = 'admin_master';
           await executeSql(
             "INSERT INTO users (uid, email, password_hash, display_name, role) VALUES (?, ?, ?, ?, ?)",
             [uid, email, hashedPassword, 'Super Admin', 'admin']
           );
-          console.log("[Auth] Super Admin auto-created upon login request with credentials.");
-        } else {
-          // If he exists, ensure his role is admin and his password hash is correctly stored
-          await executeSql(
-            "UPDATE users SET password_hash = ?, role = 'admin' WHERE email = ?",
-            [hashedPassword, email]
-          );
-          console.log("[Auth] Super Admin credentials and role auto-repaired upon login request.");
         }
       }
 
@@ -364,7 +390,7 @@ async function startServer() {
       const match = await bcrypt.compare(password, pwdHash);
       if (!match) return res.status(401).json({ error: "Identifiants invalides" });
 
-      const token = jwt.sign({ uid: user.uid, email: user.email, role: user.role }, JWT_SECRET, { expiresIn: '30d' });
+      const token = jwt.sign({ uid: user.uid, email: user.email, role: user.role }, JWT_SECRET, { expiresIn: '24h' });
       const fullUser = await queries.getUserProfile(user.uid);
       res.json({ token, user: fullUser });
     } catch (err: any) {
@@ -952,7 +978,21 @@ async function startServer() {
 
   app.put("/api/users/profile", authenticateToken, async (req: AuthRequest, res) => {
     try {
-      await queries.updateUserProfile(req.user?.uid || '', req.body);
+      const updates = { ...req.body };
+      if (req.user?.role !== 'admin') {
+        delete updates.role;
+        delete updates.accountStatus;
+        delete updates.account_status;
+        delete updates.isVerified;
+        delete updates.is_verified;
+        delete updates.verificationStatus;
+        delete updates.verification_status;
+        delete updates.isSuspended;
+        delete updates.is_suspended;
+        delete updates.commissionPercentage;
+        delete updates.commission_percentage;
+      }
+      await queries.updateUserProfile(req.user?.uid || '', updates);
       res.json({ success: true });
     } catch (err: any) {
       res.status(500).json({ error: err.message });
@@ -977,6 +1017,19 @@ async function startServer() {
         return res.status(403).json({ error: "Non autorisé" });
       }
       const updates = { ...req.body };
+      if (req.user?.role !== 'admin') {
+        delete updates.role;
+        delete updates.accountStatus;
+        delete updates.account_status;
+        delete updates.isVerified;
+        delete updates.is_verified;
+        delete updates.verificationStatus;
+        delete updates.verification_status;
+        delete updates.isSuspended;
+        delete updates.is_suspended;
+        delete updates.commissionPercentage;
+        delete updates.commission_percentage;
+      }
       if (updates.password) {
         updates.passwordHash = await bcrypt.hash(updates.password, 10);
         delete updates.password;
@@ -1937,7 +1990,7 @@ async function startServer() {
   //  Elles utilisent executeSql / queries, donc OK.)
 
   // ---------- SAPPAY – INIT ----------
-  app.post(["/api/payment/sappay/init", "/api/payments/sappay/init"], async (req, res) => {
+  app.post(["/api/payment/sappay/init", "/api/payments/sappay/init"], paymentLimiter, async (req, res) => {
     const { amount, note, email, bookingId } = req.body;
     try {
       const urls = await getSappayBaseUrls();
@@ -1995,7 +2048,7 @@ async function startServer() {
   });
 
   // ---------- SAPPAY – GET OTP (avec gestion des opérateurs PULL) ----------
-  app.post(["/api/payment/sappay/get-otp", "/api/payments/sappay/get-otp"], async (req, res) => {
+  app.post(["/api/payment/sappay/get-otp", "/api/payments/sappay/get-otp"], paymentLimiter, async (req, res) => {
     const { customer_msisdn, invoice_id, payment_processor_id, access_token } = req.body;
 
     // Opérateurs PULL-OTP (l'OTP est généré manuellement par l'utilisateur via USSD)
@@ -2052,7 +2105,7 @@ async function startServer() {
   });
 
   // ---------- SAPPAY – PERFORM ----------
-  app.post(["/api/payment/sappay/perform", "/api/payments/sappay/perform"], async (req, res) => {
+  app.post(["/api/payment/sappay/perform", "/api/payments/sappay/perform"], paymentLimiter, async (req, res) => {
     const { invoice_id, payment_processor_id, customer_msisdn, otp, trans_id, access_token, amount, email } = req.body;
     try {
       const urls = await getSappayBaseUrls();
@@ -2276,7 +2329,7 @@ async function startServer() {
   });
 
   // ---------- FORGOT PASSWORD AND RESET PASSWORD ----------
-  app.post("/api/auth/forgot-password", async (req, res) => {
+  app.post("/api/auth/forgot-password", authLimiter, async (req, res) => {
     let { email } = req.body;
     if (!email) return res.status(400).json({ error: "Email requis" });
     email = email.trim().toLowerCase();
@@ -2285,7 +2338,7 @@ async function startServer() {
       const users = await executeSql("SELECT uid FROM users WHERE email = ?", [email]);
       if (users.length === 0) return res.status(404).json({ error: "Email inconnu" });
       
-      // Generate a 6-digit random code for testing/resetting
+      // Generate a 6-digit random code for resetting
       const token = Math.floor(100000 + Math.random() * 900000).toString();
       const expiresAt = new Date(Date.now() + 3600 * 1000); // 1 hour from now
       const expiresAtStr = expiresAt.toISOString().slice(0, 19).replace('T', ' '); // YYYY-MM-DD HH:MM:SS
@@ -2293,8 +2346,6 @@ async function startServer() {
       // Save code in database
       await executeSql("DELETE FROM password_resets WHERE email = ?", [email]);
       await executeSql("INSERT INTO password_resets (email, token, expires_at) VALUES (?, ?, ?)", [email, token, expiresAtStr]);
-      
-      console.log(`[PASSWORD RESET] Code generated for ${email}: ${token}`);
 
       let emailSent = false;
       if (process.env.SMTP_HOST && process.env.SMTP_USER && process.env.SMTP_PASS) {
@@ -2307,6 +2358,9 @@ async function startServer() {
               user: process.env.SMTP_USER,
               pass: process.env.SMTP_PASS,
             },
+            tls: {
+              rejectUnauthorized: true
+            }
           });
 
           await transporter.sendMail({
@@ -2335,8 +2389,7 @@ async function startServer() {
       
       res.json({ 
         success: true, 
-        message: emailSent ? "Un email avec votre code de réinitialisation a été envoyé." : "Un code de réinitialisation a été généré.",
-        code: token, // Returned for testing / preview UI ease
+        message: emailSent ? "Un email avec votre code de réinitialisation a été envoyé." : "Un code de réinitialisation a été envoyé à votre adresse email.",
         emailSent,
         email
       });
@@ -2345,7 +2398,7 @@ async function startServer() {
     }
   });
 
-  app.post("/api/auth/reset-password", async (req, res) => {
+  app.post("/api/auth/reset-password", authLimiter, async (req, res) => {
     let { email, code, newPassword } = req.body;
     if (!email || !code || !newPassword) {
       return res.status(400).json({ error: "Tous les champs sont requis (Email, Code, Nouveau mot de passe)" });
