@@ -461,7 +461,7 @@ export const PaymentModal: React.FC<Props> = ({ isOpen, onClose, amount, residen
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+    <div className="fixed inset-0 z-[100] flex items-center justify-center p-3 sm:p-4 overflow-hidden">
       <motion.div 
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
@@ -474,9 +474,9 @@ export const PaymentModal: React.FC<Props> = ({ isOpen, onClose, amount, residen
         initial={{ opacity: 0, scale: 0.9, y: 20 }}
         animate={{ opacity: 1, scale: 1, y: 0 }}
         exit={{ opacity: 0, scale: 0.9, y: 20 }}
-        className="relative w-full max-w-md bg-white rounded-3xl shadow-2xl overflow-hidden"
+        className="relative w-full max-w-md my-auto bg-white rounded-3xl shadow-2xl overflow-hidden flex flex-col max-h-[92vh] sm:max-h-[90vh]"
       >
-        <div className="flex h-1 bg-slate-100">
+        <div className="flex h-1 bg-slate-100 shrink-0">
           <div className={cn(
             "h-full bg-red-600 transition-all duration-500",
             step === 'provider' ? "w-1/4" : step === 'phone' ? "w-2/4" : step === 'otp' ? "w-3/4" : "w-full"
@@ -484,27 +484,27 @@ export const PaymentModal: React.FC<Props> = ({ isOpen, onClose, amount, residen
         </div>
 
         {/* Header */}
-        <div className="p-6 border-b border-slate-100 flex items-center justify-between relative overflow-hidden">
+        <div className="p-4 sm:p-6 border-b border-slate-100 flex items-center justify-between relative overflow-hidden shrink-0">
           {isTestMode && (
             <div className="absolute top-0 left-0 right-0 h-1 bg-red-600 animate-pulse" />
           )}
           <div>
             <div className="flex items-center gap-2">
-              <h3 className="text-xl font-black text-slate-900">
+              <h3 className="text-lg sm:text-xl font-black text-slate-900">
                 {isFullPayment ? "Paiement du solde" : "Paiement de l'acompte"}
               </h3>
               {isTestMode && (
                 <span className="px-2 py-0.5 bg-red-600 text-white text-[8px] font-black uppercase rounded tracking-widest">Sandbox</span>
               )}
             </div>
-            <p className="text-sm text-slate-500 font-medium">{residenceTitle}</p>
+            <p className="text-xs sm:text-sm text-slate-500 font-medium truncate max-w-[240px] sm:max-w-xs">{residenceTitle}</p>
           </div>
-          <button onClick={onClose} className="p-2 hover:bg-slate-100 rounded-full transition-colors text-slate-400">
+          <button onClick={onClose} className="p-2 hover:bg-slate-100 rounded-full transition-colors text-slate-400 shrink-0">
             <X size={20} />
           </button>
         </div>
 
-        <div className="p-6">
+        <div className="p-4 sm:p-6 overflow-y-auto flex-1">
           <AnimatePresence mode="wait">
             {step === 'provider' && (
               <motion.div 
@@ -745,7 +745,7 @@ export const PaymentModal: React.FC<Props> = ({ isOpen, onClose, amount, residen
         </div>
 
         {/* Footer info */}
-        <div className="p-4 bg-gray-50 border-t border-gray-100 text-center space-y-1">
+        <div className="p-3 sm:p-4 bg-gray-50 border-t border-gray-100 text-center space-y-1 shrink-0">
           <p className="text-[10px] text-gray-400 font-bold uppercase tracking-widest flex items-center justify-center gap-2">
             <ShieldCheck size={12} /> Transaction sécurisée par cryptage SSL
           </p>
