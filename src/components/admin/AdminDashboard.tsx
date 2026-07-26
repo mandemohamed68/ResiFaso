@@ -3608,10 +3608,10 @@ export const AdminDashboard: React.FC<{ onBackToTraveler?: () => void }> = ({ on
                           <div>
                             <span className="text-slate-400">Solde Restant :</span>{' '}
                             <strong className="text-red-600">
-                              {book.paymentStatus === 'fully_paid' || book.advancePaid >= book.totalPrice || ((book.totalPrice || 0) - (book.advancePaid || 0)) <= 0
+                              {book.paymentStatus === 'fully_paid' || (book.paymentStatus === 'advance_paid' && book.advancePaid >= book.totalPrice)
                                 ? '0 F CFA'
                                 : book.paymentStatus === 'advance_paid'
-                                ? `${formatFCFA((book.totalPrice || 0) - (book.advancePaid || 0))} F CFA`
+                                ? `${formatFCFA(Math.max(0, (book.totalPrice || 0) - (book.advancePaid || 0)))} F CFA`
                                 : `${formatFCFA(book.totalPrice || 0)} F CFA`}
                             </strong>
                           </div>

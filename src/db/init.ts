@@ -354,6 +354,13 @@ export const initDatabase = async () => {
       }
     } catch (err: any) {}
 
+    try {
+      await executeSql("ALTER TABLE bookings MODIFY COLUMN cancelled_by VARCHAR(100) NULL");
+      console.log("Migration MariaDB: Colonne cancelled_by de bookings modifiée en VARCHAR(100).");
+    } catch (err: any) {
+      console.warn("Avertissement migration MariaDB bookings.cancelled_by:", err.message);
+    }
+
     // Reviews Table
     await executeSql(`
       CREATE TABLE IF NOT EXISTS reviews (

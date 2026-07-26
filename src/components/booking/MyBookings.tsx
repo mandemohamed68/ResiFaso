@@ -847,7 +847,7 @@ export const MyBookings: React.FC<{ onContactHost: (ownerId: string, resId: stri
       case 'pending':
         return <span className="px-3 py-1 bg-amber-50 border border-amber-200 text-amber-700 rounded-full text-[10px] font-black uppercase tracking-wider">En Attente d'Approbation</span>;
       case 'confirmed':
-        const isFullyPaidObj = pStatus === 'fully_paid' || (bookingObj && bookingObj.advancePaid >= bookingObj.totalPrice) || (bookingObj && (bookingObj.totalPrice - bookingObj.advancePaid) <= 0);
+        const isFullyPaidObj = pStatus === 'fully_paid' || (pStatus === 'advance_paid' && bookingObj && bookingObj.advancePaid >= bookingObj.totalPrice);
         if (isFullyPaidObj) {
           return <span className="px-3 py-1 bg-blue-50 border border-blue-200 text-blue-700 rounded-full text-[10px] font-black uppercase tracking-wider">Séjour Validé (Entièrement Payé)</span>;
         } else if (pStatus === 'advance_paid') {
@@ -857,7 +857,7 @@ export const MyBookings: React.FC<{ onContactHost: (ownerId: string, resId: stri
           }
           return <span className="px-3 py-1 bg-red-50 border border-red-200 text-red-700 rounded-full text-[10px] font-black uppercase tracking-wider">Paiement partiel – Solde restant : {formatCurrency(rest)} F CFA</span>;
         } else {
-          return <span className="px-3 py-1 bg-amber-100 text-amber-800 rounded-full text-[10px] font-black uppercase tracking-wider">Approuvée, En Attente de Paiement</span>;
+          return <span className="px-3 py-1 bg-amber-100 border border-amber-300 text-amber-900 rounded-full text-[10px] font-black uppercase tracking-wider">Approuvée, En Attente de Paiement</span>;
         }
       case 'cancelled':
         return <span className="px-3 py-1 bg-red-50 border border-red-200 text-red-700 rounded-full text-[10px] font-black uppercase tracking-wider">Annulée</span>;
@@ -1048,9 +1048,11 @@ export const MyBookings: React.FC<{ onContactHost: (ownerId: string, resId: stri
                       <div className="border-l border-slate-100 pl-4">
                         <span className="block text-[8px] font-black text-slate-400 uppercase tracking-widest font-mono">Reste à Payer</span>
                         <span className="text-sm font-black text-red-600 tracking-tight">
-                          {booking.paymentStatus === 'fully_paid' || booking.advancePaid >= booking.totalPrice || (booking.totalPrice - booking.advancePaid) <= 0
+                          {booking.paymentStatus === 'fully_paid' || (booking.paymentStatus === 'advance_paid' && booking.advancePaid >= booking.totalPrice)
                             ? '0 F CFA' 
-                            : `${formatCurrency(booking.totalPrice - (booking.paymentStatus === 'advance_paid' ? booking.advancePaid : 0))} F CFA`}
+                            : booking.paymentStatus === 'advance_paid'
+                            ? `${formatCurrency(Math.max(0, booking.totalPrice - booking.advancePaid))} F CFA`
+                            : `${formatCurrency(booking.totalPrice)} F CFA`}
                         </span>
                       </div>
                     </div>

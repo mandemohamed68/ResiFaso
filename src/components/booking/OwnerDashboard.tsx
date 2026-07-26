@@ -216,9 +216,9 @@ const ResidenceHistoryModal: React.FC<ResidenceHistoryModalProps> = ({ residence
                       <span className="block text-[10px] text-slate-400 font-black uppercase tracking-widest">Status Paiement</span>
                       <span className={cn(
                         "text-[10px] font-black uppercase",
-                        b.paymentStatus === 'fully_paid' || b.advancePaid >= b.totalPrice || (b.totalPrice - b.advancePaid) <= 0 ? "text-green-600" : "text-amber-600"
+                        b.paymentStatus === 'fully_paid' || (b.paymentStatus === 'advance_paid' && b.advancePaid >= b.totalPrice) ? "text-green-600" : "text-amber-600"
                       )}>
-                        {b.paymentStatus === 'fully_paid' || b.advancePaid >= b.totalPrice || (b.totalPrice - b.advancePaid) <= 0 ? 'Soldé (100%)' : `Acompte: ${formatCurrency(b.advancePaid)} F`}
+                        {b.paymentStatus === 'fully_paid' || (b.paymentStatus === 'advance_paid' && b.advancePaid >= b.totalPrice) ? 'Soldé (100%)' : b.paymentStatus === 'advance_paid' ? `Acompte: ${formatCurrency(b.advancePaid)} F` : `En attente (${formatCurrency(b.advancePaid)} F)`}
                       </span>
                     </div>
                   </div>
@@ -524,12 +524,12 @@ const BookingTable: React.FC<BookingTableProps> = ({
                   <td className="py-4 px-6">
                     <span className="block font-black text-slate-950">{formatCurrency(b.totalPrice)} F CFA</span>
                     <div className="flex flex-col">
-                      {b.paymentStatus === 'fully_paid' || b.advancePaid >= b.totalPrice || (b.totalPrice - b.advancePaid) <= 0 ? (
+                      {b.paymentStatus === 'fully_paid' || (b.paymentStatus === 'advance_paid' && b.advancePaid >= b.totalPrice) ? (
                         <span className="text-[10px] font-black text-green-600 uppercase">Soldé (100%)</span>
                       ) : b.paymentStatus === 'advance_paid' ? (
                         <span className="text-[10px] font-black text-blue-600 uppercase">Acompte Payé: {formatCurrency(b.advancePaid)} F</span>
                       ) : (
-                        <span className="text-[10px] font-black text-red-500 uppercase">Acompte Dû: {formatCurrency(b.advancePaid)} F</span>
+                        <span className="text-[10px] font-black text-amber-600 uppercase">Acompte Dû: {formatCurrency(b.advancePaid)} F</span>
                       )}
                     </div>
                   </td>
@@ -811,10 +811,10 @@ const BookingTable: React.FC<BookingTableProps> = ({
                       <div>
                         <span className="text-slate-400 block pb-0.5 font-bold uppercase text-[9px]">Solde Restant</span>
                         <strong className="text-base font-mono font-black text-red-600">
-                          {selectedBookingForDetails.paymentStatus === 'fully_paid' || selectedBookingForDetails.advancePaid >= selectedBookingForDetails.totalPrice || ((selectedBookingForDetails.totalPrice || 0) - (selectedBookingForDetails.advancePaid || 0)) <= 0
+                          {selectedBookingForDetails.paymentStatus === 'fully_paid' || (selectedBookingForDetails.paymentStatus === 'advance_paid' && selectedBookingForDetails.advancePaid >= selectedBookingForDetails.totalPrice)
                             ? '0 F CFA'
                             : selectedBookingForDetails.paymentStatus === 'advance_paid'
-                            ? `${formatCurrency((selectedBookingForDetails.totalPrice || 0) - (selectedBookingForDetails.advancePaid || 0))} F CFA`
+                            ? `${formatCurrency(Math.max(0, (selectedBookingForDetails.totalPrice || 0) - (selectedBookingForDetails.advancePaid || 0)))} F CFA`
                             : `${formatCurrency(selectedBookingForDetails.totalPrice || 0)} F CFA`}
                         </strong>
                       </div>
