@@ -540,6 +540,18 @@ async function startServer() {
         return res.status(400).json({ error: "Données de réservation incomplètes" });
       }
 
+      const todayStr = new Date().toISOString().split('T')[0];
+      const checkInStr = String(checkIn).split('T')[0];
+      const checkOutStr = String(checkOut).split('T')[0];
+
+      if (checkInStr < todayStr) {
+        return res.status(400).json({ error: "Impossible de réserver pour une date passée. La date d'arrivée doit être aujourd'hui ou ultérieure." });
+      }
+
+      if (checkOutStr <= checkInStr) {
+        return res.status(400).json({ error: "La date de départ doit être supérieure à la date d'arrivée." });
+      }
+
       // Check for overlapping bookings
       // An overlap occurs if: (new_check_in <= existing_check_out) AND (existing_check_in <= new_check_out)
       // Only paid bookings (at least deposit) block the dates.

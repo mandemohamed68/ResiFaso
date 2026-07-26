@@ -828,6 +828,21 @@ export const MyBookings: React.FC<{ onContactHost: (ownerId: string, resId: stri
   };
 
   const getStatusBadge = (bStatus: string, pStatus: string, bookingObj?: any) => {
+    const todayStr = new Date().toISOString().split('T')[0];
+    const checkInStr = bookingObj?.checkIn ? String(bookingObj.checkIn).split('T')[0] : '';
+    const checkOutStr = bookingObj?.checkOut ? String(bookingObj.checkOut).split('T')[0] : '';
+
+    const isCheckInPast = checkInStr ? checkInStr < todayStr : false;
+    const isCheckOutPast = checkOutStr ? checkOutStr < todayStr : false;
+
+    if (bStatus === 'pending' && (isCheckInPast || isCheckOutPast)) {
+      return <span className="px-3 py-1 bg-slate-100 border border-slate-200 text-slate-500 rounded-full text-[10px] font-black uppercase tracking-wider">Demande Expirée (Date Passée)</span>;
+    }
+
+    if (bStatus === 'completed' || (isCheckOutPast && (bStatus === 'confirmed' || pStatus === 'fully_paid' || pStatus === 'advance_paid'))) {
+      return <span className="px-3 py-1 bg-slate-100 border border-slate-200 text-slate-600 rounded-full text-[10px] font-black uppercase tracking-wider">Séjour Terminé</span>;
+    }
+
     switch (bStatus) {
       case 'pending':
         return <span className="px-3 py-1 bg-amber-50 border border-amber-200 text-amber-700 rounded-full text-[10px] font-black uppercase tracking-wider">En Attente d'Approbation</span>;
@@ -847,7 +862,7 @@ export const MyBookings: React.FC<{ onContactHost: (ownerId: string, resId: stri
       case 'cancelled':
         return <span className="px-3 py-1 bg-red-50 border border-red-200 text-red-700 rounded-full text-[10px] font-black uppercase tracking-wider">Annulée</span>;
       case 'completed':
-        return <span className="px-3 py-1 bg-slate-100 text-slate-600 rounded-full text-[10px] font-black uppercase tracking-wider">Terminée</span>;
+        return <span className="px-3 py-1 bg-slate-100 border border-slate-200 text-slate-600 rounded-full text-[10px] font-black uppercase tracking-wider">Séjour Terminé</span>;
       default:
         return null;
     }

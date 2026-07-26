@@ -1149,9 +1149,25 @@ export const OwnerDashboard: React.FC<{ isTestMode?: boolean; onBackToTraveler?:
         const checkInD = new Date(b.checkIn);
         const checkOutD = new Date(b.checkOut);
         
-        // Auto Check-in (if confirmed, fully paid or advance paid, and today >= checkIn)
+        // Auto Expire Pending Bookings whose checkIn or checkOut date is in the past
+        if (b.bookingStatus === 'pending') {
+          if (today > checkInD || today >= checkOutD) {
+            try {
+              await updateBookingStatus(b.id, {
+                bookingStatus: 'cancelled',
+                cancelledBy: 'system',
+                cancellationReason: 'Demande expirée (la date d\'arrivée est passée sans approbation)'
+              });
+            } catch (err) {
+              console.error("Auto-expire pending booking error:", err);
+            }
+            continue;
+          }
+        }
+        
+        // Auto Check-in (if confirmed, fully paid or advance paid, and today >= checkIn and today < checkOut)
         if (b.bookingStatus === 'confirmed' && (!b.stayStatus || b.stayStatus === 'pending')) {
-          if (today >= checkInD) {
+          if (today >= checkInD && today < checkOutD) {
             try {
               const res = residences.find(r => r.id === b.residenceId);
               await updateBookingStatus(b.id, {
@@ -1171,8 +1187,8 @@ export const OwnerDashboard: React.FC<{ isTestMode?: boolean; onBackToTraveler?:
           }
         }
         
-        // Auto Check-out (if ongoing, and today >= checkOut)
-        if (b.stayStatus === 'ongoing') {
+        // Auto Check-out / Completion (if ongoing OR confirmed and today >= checkOut)
+        if (b.stayStatus === 'ongoing' || (b.bookingStatus === 'confirmed' && today >= checkOutD)) {
           if (today >= checkOutD) {
             try {
               const res = residences.find(r => r.id === b.residenceId);
@@ -1426,13 +1442,28 @@ export const OwnerDashboard: React.FC<{ isTestMode?: boolean; onBackToTraveler?:
   const localDay = String(localToday.getDate()).padStart(2, '0');
   const localTodayStr = `${localYear}-${localMonth}-${localDay}`;
 
-  // Extract and segregate pending bookings for immediate approval
-  const pendingBookings = bookings.filter(b => b.bookingStatus === 'pending');
-  const nonPendingBookings = bookings.filter(b => b.bookingStatus !== 'pending');
+  // Extract and segregate pending bookings for immediate approval (only present/future dates)
+  const pendingBookings = bookings.filter(b => {
+    if (b.bookingStatus !== 'pending') return false;
+    const startStr = String(b.checkIn).split('T')[0];
+    return startStr >= localTodayStr;
+  });
+
+  const nonPendingBookings = bookings.filter(b => {
+    if (b.bookingStatus === 'pending') {
+      const startStr = String(b.checkIn).split('T')[0];
+      return startStr < localTodayStr;
+    }
+    return true;
+  });
 
   const pastBookings = nonPendingBookings.filter(b => {
+    if (b.bookingStatus === 'pending') {
+      const startStr = String(b.checkIn).split('T')[0];
+      return startStr < localTodayStr;
+    }
     const endStr = String(b.checkOut).split('T')[0];
-    return endStr < localTodayStr;
+    return endStr < localTodayStr || b.bookingStatus === 'completed' || b.stayStatus === 'completed';
   });
   
   const presentBookings = nonPendingBookings.filter(b => {

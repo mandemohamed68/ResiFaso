@@ -299,6 +299,20 @@ function AppContent() {
       setSelectedResidenceBookings([]);
       return;
     }
+
+    const today = new Date();
+    const todayStr = today.toISOString().split('T')[0];
+    const tomorrow = new Date(today);
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    const tomorrowStr = tomorrow.toISOString().split('T')[0];
+
+    if (!checkIn || checkIn < todayStr) {
+      setCheckIn(todayStr);
+    }
+    if (!checkOut || checkOut <= (checkIn && checkIn >= todayStr ? checkIn : todayStr)) {
+      setCheckOut(tomorrowStr);
+    }
+
     const fetchSelectedBookings = async () => {
       try {
         const response = await apiFetch(`/api/residences/${selectedResidence.id}/bookings`);
@@ -524,6 +538,20 @@ function AppContent() {
 
       const dStart = new Date(checkIn);
       const dEnd = new Date(checkOut);
+
+      const todayStr = new Date().toISOString().split('T')[0];
+      if (!checkIn || !checkOut) {
+        addToast("Veuillez sélectionner vos dates d'arrivée et de départ.", "error");
+        return;
+      }
+      if (checkIn < todayStr) {
+        addToast("Impossible de réserver pour une date passée. La date d'arrivée doit être aujourd'hui ou ultérieure.", "error");
+        return;
+      }
+      if (checkOut <= checkIn) {
+        addToast("La date de départ doit être supérieure à la date d'arrivée.", "error");
+        return;
+      }
 
       const conflicts = confirmedBookings.filter((b: any) => {
         const bStart = new Date(b.checkIn);
@@ -1306,6 +1334,7 @@ function AppContent() {
                           <CustomDatePicker
                             value={checkIn}
                             onChange={(val) => setCheckIn(val)}
+                            minDate={new Date()}
                             className="bg-transparent border-none outline-none w-full font-bold text-slate-900 text-sm p-0 cursor-pointer"
                           />
                         </div>
@@ -1314,6 +1343,7 @@ function AppContent() {
                           <CustomDatePicker
                             value={checkOut}
                             onChange={(val) => setCheckOut(val)}
+                            minDate={checkIn ? new Date(checkIn) : new Date()}
                             className="bg-transparent border-none outline-none w-full font-bold text-slate-900 text-sm p-0 cursor-pointer"
                           />
                         </div>
