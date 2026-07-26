@@ -1694,9 +1694,7 @@ export const OwnerDashboard: React.FC<{ isTestMode?: boolean; onBackToTraveler?:
 
   const handleMarkAdvanceAsPaid = async (booking: Booking) => {
     const advance = booking.advancePaid || 0;
-    const confirmMsg = isTestMode 
-      ? `[MODE TEST] Confirmer la réception de l'acompte de ${formatCurrency(advance)} F CFA ?`
-      : `Confirmez-vous que le voyageur a payé l'acompte de ${formatCurrency(advance)} F CFA ?`;
+    const confirmMsg = `Confirmez-vous que le voyageur a payé l'acompte de ${formatCurrency(advance)} F CFA ?`;
 
     if (!confirm(confirmMsg)) {
       return;
@@ -1731,9 +1729,7 @@ export const OwnerDashboard: React.FC<{ isTestMode?: boolean; onBackToTraveler?:
     const balance = booking.paymentStatus === 'advance_paid'
       ? booking.totalPrice - (booking.advancePaid || 0)
       : booking.totalPrice;
-    const confirmMsg = isTestMode 
-      ? `[MODE TEST] Confirmer la réception du solde de ${formatCurrency(balance)} F CFA ?`
-      : `Confirmez-vous que le voyageur a payé le solde restant de ${formatCurrency(balance)} F CFA ?`;
+    const confirmMsg = `Confirmez-vous que le voyageur a payé le solde restant de ${formatCurrency(balance)} F CFA ?`;
 
     if (!confirm(confirmMsg)) {
       return;

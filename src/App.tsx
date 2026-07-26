@@ -100,7 +100,7 @@ function AppContent() {
   useEffect(() => {
     if (gsData) {
       const gs = gsData as any;
-      if (gs.isTestMode !== undefined) setIsTestMode(gs.isTestMode);
+      if (gs.isTestMode !== undefined) setIsTestMode(false);
       if (gs.commissionRate !== undefined) setCommissionRate(gs.commissionRate);
       if (gs.enablePhoneCalls !== undefined) setEnablePhoneCalls(gs.enablePhoneCalls);
       if (gs.enableWhatsApp !== undefined) setEnableWhatsApp(gs.enableWhatsApp);

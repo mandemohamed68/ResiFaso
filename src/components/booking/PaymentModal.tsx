@@ -453,6 +453,8 @@ export const PaymentModal: React.FC<Props> = ({ isOpen, onClose, amount, residen
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           invoice_id: invoiceId,
+          booking_id: bookingId,
+          is_final_payment: isFinalPayment,
           payment_processor_id: processorId,
           customer_msisdn: cleanPhone,
           otp: otp,
@@ -488,12 +490,14 @@ export const PaymentModal: React.FC<Props> = ({ isOpen, onClose, amount, residen
       
       if (isActuallySuccess(data)) {
         setStep('success');
+        try {
+          await onSuccess();
+        } catch (err) {
+          console.error("Erreur mise à jour statut réservation:", err);
+        }
         setTimeout(() => {
-          onSuccess();
           onClose();
-          // Official production redirection after payment success
-          window.location.href = 'https://www.resifaso.net';
-        }, 3500);
+        }, 3000);
       } else {
         const rawMsg = getBestErrorMessage(data);
         setError(translateSappayErrorToFrench(rawMsg, resp.status));
@@ -532,17 +536,11 @@ export const PaymentModal: React.FC<Props> = ({ isOpen, onClose, amount, residen
 
         {/* Header */}
         <div className="px-4 py-3 sm:px-6 sm:py-4 border-b border-slate-100 flex items-center justify-between relative overflow-hidden shrink-0">
-          {isTestMode && (
-            <div className="absolute top-0 left-0 right-0 h-1 bg-red-600 animate-pulse" />
-          )}
           <div>
             <div className="flex items-center gap-2">
               <h3 className="text-base sm:text-lg font-black text-slate-900">
                 {isFullPayment ? "Paiement du solde" : "Paiement de l'acompte"}
               </h3>
-              {isTestMode && (
-                <span className="px-2 py-0.5 bg-red-600 text-white text-[8px] font-black uppercase rounded tracking-widest">Sandbox</span>
-              )}
             </div>
             <p className="text-xs text-slate-500 font-medium truncate max-w-[220px] sm:max-w-xs">{residenceTitle}</p>
           </div>

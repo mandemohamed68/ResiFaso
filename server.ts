@@ -2147,6 +2147,30 @@ async function startServer() {
       }
 
       const data = JSON.parse(responseText);
+
+      // Server-side automatic database status update if payment is successful
+      const bId = req.body.booking_id || req.body.bookingId;
+      const isSuccess = data.success === true || data.status === 200 || data.status === 1 || data.response?.status === 'SUCCESS' || data.response?.status === 'success';
+
+      if (bId && isSuccess) {
+        try {
+          const isFinal = req.body.is_final_payment || req.body.isFinalPayment;
+          const bookings = await executeSql("SELECT * FROM bookings WHERE id = ?", [bId]);
+          if (bookings && bookings.length > 0) {
+            const booking = bookings[0];
+            const oldPaymentStatus = booking.payment_status || booking.paymentStatus || '';
+            const nextPaymentStatus = isFinal || oldPaymentStatus === 'advance_paid' ? 'fully_paid' : 'advance_paid';
+            await queries.updateBookingStatus(bId, {
+              paymentStatus: nextPaymentStatus,
+              bookingStatus: 'confirmed'
+            });
+            console.log(`[Sappay Perform Server Auto-Update] Réservation ${bId} mise à jour: paymentStatus = ${nextPaymentStatus}, bookingStatus = confirmed`);
+          }
+        } catch (dbErr) {
+          console.error(`[Sappay Perform Auto-Update Error]:`, dbErr);
+        }
+      }
+
       res.status(response.status).json(data);
     } catch (error: any) {
       console.error("Erreur /api/payment/sappay/perform :", error);

@@ -91,7 +91,7 @@ export const AdminDashboard: React.FC<{ onBackToTraveler?: () => void }> = ({ on
         if (s.platformName !== undefined) setPlatformName(s.platformName);
         if (s.footerContent !== undefined) setFooterContent(s.footerContent);
         if (s.commissionRate !== undefined) setCommissionRate(s.commissionRate);
-        if (s.isTestMode !== undefined) setIsGlobalTestMode(s.isTestMode);
+        if (s.isTestMode !== undefined) setIsGlobalTestMode(false);
         if (s.enablePhoneCalls !== undefined) setEnablePhoneCalls(s.enablePhoneCalls);
         if (s.enableWhatsApp !== undefined) setEnableWhatsApp(s.enableWhatsApp);
         if (s.minReservationAmountEnabled !== undefined) setMinReservationAmountEnabled(s.minReservationAmountEnabled);
@@ -5177,47 +5177,23 @@ export const AdminDashboard: React.FC<{ onBackToTraveler?: () => void }> = ({ on
                 </div>
               </div>
 
-              {/* INTERRUPTEUR MODE TEST GLOBAL */}
-              <div className={cn(
-                "p-6 rounded-2xl border shadow-sm flex items-center justify-between transition-all",
-                isGlobalTestMode ? "bg-red-50 border-red-100" : "bg-emerald-50 border-emerald-100"
-              )}>
+              {/* STATUT MODE PRODUCTION GLOBAL */}
+              <div className="p-6 rounded-2xl border border-emerald-100 bg-emerald-50 shadow-sm flex items-center justify-between">
                 <div className="pr-4">
                   <div className="flex items-center gap-2 mb-1">
-                    <h4 className={cn(
-                      "text-sm font-black uppercase tracking-wider",
-                      isGlobalTestMode ? "text-red-800" : "text-emerald-800"
-                    )}>
-                      {isGlobalTestMode ? "Mode Test / Sandbox" : "Mode Production (LIVE)"}
+                    <h4 className="text-sm font-black uppercase tracking-wider text-emerald-800">
+                      Mode Production (LIVE)
                     </h4>
-                    {!isGlobalTestMode && (
-                      <span className="bg-emerald-500 text-white text-[8px] font-black uppercase px-2 py-0.5 rounded animate-pulse">Actif</span>
-                    )}
+                    <span className="bg-emerald-500 text-white text-[8px] font-black uppercase px-2 py-0.5 rounded animate-pulse">Actif</span>
                   </div>
-                  <p className={cn(
-                    "text-xs font-medium leading-normal",
-                    isGlobalTestMode ? "text-red-600/70" : "text-emerald-600/70"
-                  )}>
-                    {isGlobalTestMode 
-                      ? "L'application utilise actuellement les serveurs Sandbox de Sappay. Les paiements réels ne sont pas traités."
-                      : "L'application est connectée aux serveurs de PRODUCTION de Sappay. Les transactions sont réelles et définitives."}
+                  <p className="text-xs font-medium leading-normal text-emerald-700">
+                    L'application est connectée directement aux serveurs de PRODUCTION de SapPay. Toutes les transactions sont réelles, sécurisées et traitées en direct.
                   </p>
                 </div>
-                <button
-                  type="button"
-                  onClick={() => setIsGlobalTestMode(!isGlobalTestMode)}
-                  className={cn(
-                    "relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2",
-                    isGlobalTestMode ? "bg-red-600 focus:ring-red-500" : "bg-emerald-500 focus:ring-emerald-500"
-                  )}
-                >
-                  <span
-                    className={cn(
-                      "pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out",
-                      isGlobalTestMode ? "translate-x-5" : "translate-x-0"
-                    )}
-                  />
-                </button>
+                <div className="flex items-center gap-1.5 px-3 py-1.5 bg-emerald-600 text-white text-xs font-extrabold rounded-lg shadow-sm shrink-0">
+                  <CheckCircle2 size={16} />
+                  <span>En Production</span>
+                </div>
               </div>
 
               {/* INTERRUPTEUR CONTACT DIRECT TÉLÉPHONE */}
