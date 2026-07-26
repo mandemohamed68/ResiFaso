@@ -360,57 +360,37 @@ export const PaymentModal: React.FC<Props> = ({ isOpen, onClose, amount, residen
         setHelperMessage("Générez votre code OTP depuis votre application Coris Money (ou vérifiez vos SMS) puis saisissez votre code à 5 chiffres ci-dessous.");
       }
       
-      // Appel à get-otp pour Telecel Money, Moov Money et Coris Money (déclenchement ou envoi de SMS OTP)
+      // Appel à get-otp pour Telecel Money, Moov Money et Coris Money (déclenchement de l'envoi de l'OTP)
       if (provider === 'telecel' || provider === 'moov' || provider === 'coris') {
         try {
-          let otpSuccess = false;
-          let attempt = 0;
-          const maxAttempts = 3;
+          // Courte attente de 400ms pour s'assurer que Sappay a enregistré la facture
+          await new Promise(res => setTimeout(res, 400));
 
-          while (attempt < maxAttempts && !otpSuccess) {
-            attempt++;
-            const delay = attempt === 1 ? 1000 : 1500;
-            await new Promise(res => setTimeout(res, delay));
+          const otpResp = await apiFetch('/api/payment/sappay/get-otp', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              invoice_id: currentInvoiceId,
+              payment_processor_id: PROCESSOR_IDS[provider],
+              customer_msisdn: cleanPhone,
+              access_token: currentToken
+            })
+          });
 
-            try {
-              const otpResp = await apiFetch('/api/payment/sappay/get-otp', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                  invoice_id: currentInvoiceId,
-                  payment_processor_id: PROCESSOR_IDS[provider],
-                  customer_msisdn: cleanPhone,
-                  access_token: currentToken
-                })
-              });
+          if (otpResp.ok) {
+            const otpData = await otpResp.json();
+            console.log(`[Get-OTP ${provider}] Réponse Sappay:`, otpData);
 
-              if (otpResp.ok) {
-                const otpData = await otpResp.json();
-                console.log(`[Get-OTP ${provider}] Tentative ${attempt}/${maxAttempts} réponse:`, otpData);
+            const tid = otpData.trans_id || otpData.response?.trans_id || otpData.response?.transactionId;
+            if (tid) setTransId(tid);
 
-                // Vérifier si Sappay a réellement réussi l'envoi
-                const isRealSuccess = otpData.success !== false && otpData.status !== 0 && !otpData.error;
-
-                if (isRealSuccess) {
-                  otpSuccess = true;
-                  if (otpData.trans_id || otpData.response?.transactionId) {
-                    setTransId(otpData.trans_id || otpData.response?.transactionId);
-                  }
-                  if (otpData.message && typeof otpData.message === 'string' && otpData.message.length > 5 && !otpData.message.toLowerCase().includes('success')) {
-                    setHelperMessage(otpData.message);
-                  }
-                  console.log(`[Get-OTP ${provider}] Code OTP demandé avec succès à la tentative ${attempt}`);
-                  break;
-                } else {
-                  console.warn(`[Get-OTP ${provider}] Tentative ${attempt} : Sappay a répondu sans succès, réessai dans 1.5s...`, otpData);
-                }
-              } else {
-                const errData = await otpResp.json().catch(() => ({}));
-                console.warn(`[Get-OTP ${provider}] Tentative ${attempt} HTTP ${otpResp.status}:`, errData);
-              }
-            } catch (retryErr) {
-              console.warn(`[Get-OTP ${provider}] Erreur réseau tentative ${attempt}:`, retryErr);
+            const msg = otpData.message || otpData.response?.message;
+            if (typeof msg === 'string' && msg.trim().length > 0 && !msg.toLowerCase().includes('success') && !msg.toLowerCase().includes('double')) {
+              setHelperMessage(msg);
             }
+          } else {
+            const errData = await otpResp.json().catch(() => ({}));
+            console.warn(`[Get-OTP ${provider}] HTTP ${otpResp.status}:`, errData);
           }
         } catch (otpErr) {
           console.warn(`Avertissement sur get-otp ${provider}:`, otpErr);
