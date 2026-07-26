@@ -216,9 +216,9 @@ const ResidenceHistoryModal: React.FC<ResidenceHistoryModalProps> = ({ residence
                       <span className="block text-[10px] text-slate-400 font-black uppercase tracking-widest">Status Paiement</span>
                       <span className={cn(
                         "text-[10px] font-black uppercase",
-                        b.paymentStatus === 'fully_paid' ? "text-green-600" : "text-amber-600"
+                        b.paymentStatus === 'fully_paid' || b.advancePaid >= b.totalPrice || (b.totalPrice - b.advancePaid) <= 0 ? "text-green-600" : "text-amber-600"
                       )}>
-                        {b.paymentStatus === 'fully_paid' ? 'Soldé (100%)' : `Acompte: ${formatCurrency(b.advancePaid)} F`}
+                        {b.paymentStatus === 'fully_paid' || b.advancePaid >= b.totalPrice || (b.totalPrice - b.advancePaid) <= 0 ? 'Soldé (100%)' : `Acompte: ${formatCurrency(b.advancePaid)} F`}
                       </span>
                     </div>
                   </div>
@@ -418,7 +418,7 @@ const BookingTable: React.FC<BookingTableProps> = ({
                               </button>
                             )}
 
-                            {b.paymentStatus === 'advance_paid' && (
+                            {b.paymentStatus === 'advance_paid' && (b.totalPrice - b.advancePaid) > 0 && (
                               <button
                                 onClick={() => handleMarkAsPaid(b)}
                                 disabled={!!isProcessingPayment}
@@ -524,7 +524,7 @@ const BookingTable: React.FC<BookingTableProps> = ({
                   <td className="py-4 px-6">
                     <span className="block font-black text-slate-950">{formatCurrency(b.totalPrice)} F CFA</span>
                     <div className="flex flex-col">
-                      {b.paymentStatus === 'fully_paid' ? (
+                      {b.paymentStatus === 'fully_paid' || b.advancePaid >= b.totalPrice || (b.totalPrice - b.advancePaid) <= 0 ? (
                         <span className="text-[10px] font-black text-green-600 uppercase">Soldé (100%)</span>
                       ) : b.paymentStatus === 'advance_paid' ? (
                         <span className="text-[10px] font-black text-blue-600 uppercase">Acompte Payé: {formatCurrency(b.advancePaid)} F</span>
@@ -594,7 +594,7 @@ const BookingTable: React.FC<BookingTableProps> = ({
                                 </button>
                               )}
 
-                              {b.paymentStatus === 'advance_paid' && (
+                              {b.paymentStatus === 'advance_paid' && (b.totalPrice - b.advancePaid) > 0 && (
                                 <button
                                   onClick={() => handleMarkAsPaid(b)}
                                   disabled={!!isProcessingPayment}
@@ -811,7 +811,7 @@ const BookingTable: React.FC<BookingTableProps> = ({
                       <div>
                         <span className="text-slate-400 block pb-0.5 font-bold uppercase text-[9px]">Solde Restant</span>
                         <strong className="text-base font-mono font-black text-red-600">
-                          {selectedBookingForDetails.paymentStatus === 'fully_paid'
+                          {selectedBookingForDetails.paymentStatus === 'fully_paid' || selectedBookingForDetails.advancePaid >= selectedBookingForDetails.totalPrice || ((selectedBookingForDetails.totalPrice || 0) - (selectedBookingForDetails.advancePaid || 0)) <= 0
                             ? '0 F CFA'
                             : selectedBookingForDetails.paymentStatus === 'advance_paid'
                             ? `${formatCurrency((selectedBookingForDetails.totalPrice || 0) - (selectedBookingForDetails.advancePaid || 0))} F CFA`
@@ -1694,7 +1694,10 @@ export const OwnerDashboard: React.FC<{ isTestMode?: boolean; onBackToTraveler?:
 
   const handleMarkAdvanceAsPaid = async (booking: Booking) => {
     const advance = booking.advancePaid || 0;
-    const confirmMsg = `Confirmez-vous que le voyageur a payé l'acompte de ${formatCurrency(advance)} F CFA ?`;
+    const isFullyPaid = advance >= booking.totalPrice || (booking.totalPrice - advance) <= 0;
+    const confirmMsg = isFullyPaid 
+      ? `Confirmez-vous que le voyageur a payé la totalité de ${formatCurrency(booking.totalPrice)} F CFA ?`
+      : `Confirmez-vous que le voyageur a payé l'acompte de ${formatCurrency(advance)} F CFA ?`;
 
     if (!confirm(confirmMsg)) {
       return;
@@ -1703,18 +1706,20 @@ export const OwnerDashboard: React.FC<{ isTestMode?: boolean; onBackToTraveler?:
     setIsProcessingPayment(booking.id);
     try {
       await updateBookingStatus(booking.id, {
-        paymentStatus: 'advance_paid',
+        paymentStatus: isFullyPaid ? 'fully_paid' : 'advance_paid',
         bookingStatus: 'confirmed'
       });
       
       await sendNotification({
         userId: booking.clientId,
-        title: "Acompte Reçu ! 👍",
-        message: `Votre hôte a confirmé la réception de votre acompte de ${formatCurrency(advance)} F CFA. Votre réservation est maintenant confirmée.`,
+        title: isFullyPaid ? "Séjour Soldé ! ✅" : "Acompte Reçu ! 👍",
+        message: isFullyPaid
+          ? `Votre hôte a confirmé la réception de la totalité de votre séjour (${formatCurrency(booking.totalPrice)} F CFA). Votre réservation est entièrement réglée.`
+          : `Votre hôte a confirmé la réception de votre acompte de ${formatCurrency(advance)} F CFA. Votre réservation est maintenant confirmée.`,
         type: 'booking',
         referenceId: booking.id
       });
-      triggerSuccess("L'acompte a été marqué comme payé avec succès !");
+      triggerSuccess(isFullyPaid ? "Le séjour a été marqué comme entièrement payé !" : "L'acompte a été marqué comme payé avec succès !");
       await fetchData();
       refreshData();
     } catch (err) {

@@ -1713,8 +1713,8 @@ function AppContent() {
             setActiveBookingForPayment(null);
           }}
           amount={activeBookingForPayment.amount}
-          isFinalPayment={false}
-          paymentType="advance"
+          isFinalPayment={activeBookingForPayment.amount >= (activeBookingForPayment.totalPrice || activeBookingForPayment.amount)}
+          paymentType={activeBookingForPayment.amount >= (activeBookingForPayment.totalPrice || activeBookingForPayment.amount) ? 'full' : 'advance'}
           residenceTitle={activeBookingForPayment.title}
           isTestMode={isTestMode}
           utilitiesIncluded={activeBookingForPayment ? residences.find(r => r.id === activeBookingForPayment.residenceId)?.utilitiesIncluded : undefined}
@@ -1722,10 +1722,16 @@ function AppContent() {
           onSuccess={async () => {
             if (activeBookingForPayment?.id) {
               try {
+                const isFullyPaid = activeBookingForPayment.amount >= (activeBookingForPayment.totalPrice || activeBookingForPayment.amount);
                 await updateBookingStatus(activeBookingForPayment.id, {
-                  paymentStatus: 'advance_paid'
+                  paymentStatus: isFullyPaid ? 'fully_paid' : 'advance_paid'
                 });
-                addToast("Paiement de l'acompte réussi ! Votre réservation est maintenant confirmée.", 'success');
+                addToast(
+                  isFullyPaid 
+                    ? "Paiement intégral réussi ! Votre séjour est entièrement réglé et confirmé."
+                    : "Paiement de l'acompte réussi ! Votre réservation est maintenant confirmée.", 
+                  'success'
+                );
               } catch (err) {
                 console.error("Failed to update booking status after payment:", err);
               }

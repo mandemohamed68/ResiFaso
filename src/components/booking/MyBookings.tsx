@@ -832,11 +832,15 @@ export const MyBookings: React.FC<{ onContactHost: (ownerId: string, resId: stri
       case 'pending':
         return <span className="px-3 py-1 bg-amber-50 border border-amber-200 text-amber-700 rounded-full text-[10px] font-black uppercase tracking-wider">En Attente d'Approbation</span>;
       case 'confirmed':
-        if (pStatus === 'advance_paid') {
-          const rest = bookingObj ? (bookingObj.totalPrice - bookingObj.advancePaid) : 0;
-          return <span className="px-3 py-1 bg-red-50 border border-red-200 text-red-700 rounded-full text-[10px] font-black uppercase tracking-wider">Paiement partiel – Solde restant : {formatCurrency(rest > 0 ? rest : 0)} F CFA</span>;
-        } else if (pStatus === 'fully_paid') {
+        const isFullyPaidObj = pStatus === 'fully_paid' || (bookingObj && bookingObj.advancePaid >= bookingObj.totalPrice) || (bookingObj && (bookingObj.totalPrice - bookingObj.advancePaid) <= 0);
+        if (isFullyPaidObj) {
           return <span className="px-3 py-1 bg-blue-50 border border-blue-200 text-blue-700 rounded-full text-[10px] font-black uppercase tracking-wider">Séjour Validé (Entièrement Payé)</span>;
+        } else if (pStatus === 'advance_paid') {
+          const rest = bookingObj ? (bookingObj.totalPrice - bookingObj.advancePaid) : 0;
+          if (rest <= 0) {
+            return <span className="px-3 py-1 bg-blue-50 border border-blue-200 text-blue-700 rounded-full text-[10px] font-black uppercase tracking-wider">Séjour Validé (Entièrement Payé)</span>;
+          }
+          return <span className="px-3 py-1 bg-red-50 border border-red-200 text-red-700 rounded-full text-[10px] font-black uppercase tracking-wider">Paiement partiel – Solde restant : {formatCurrency(rest)} F CFA</span>;
         } else {
           return <span className="px-3 py-1 bg-amber-100 text-amber-800 rounded-full text-[10px] font-black uppercase tracking-wider">Approuvée, En Attente de Paiement</span>;
         }
@@ -1028,8 +1032,8 @@ export const MyBookings: React.FC<{ onContactHost: (ownerId: string, resId: stri
                       </div>
                       <div className="border-l border-slate-100 pl-4">
                         <span className="block text-[8px] font-black text-slate-400 uppercase tracking-widest font-mono">Reste à Payer</span>
-                        <span className="text-sm font-black text-red-650 text-red-650 text-red-600 tracking-tight">
-                          {booking.paymentStatus === 'fully_paid' 
+                        <span className="text-sm font-black text-red-600 tracking-tight">
+                          {booking.paymentStatus === 'fully_paid' || booking.advancePaid >= booking.totalPrice || (booking.totalPrice - booking.advancePaid) <= 0
                             ? '0 F CFA' 
                             : `${formatCurrency(booking.totalPrice - (booking.paymentStatus === 'advance_paid' ? booking.advancePaid : 0))} F CFA`}
                         </span>
@@ -1074,7 +1078,7 @@ export const MyBookings: React.FC<{ onContactHost: (ownerId: string, resId: stri
                         </button>
                       )}
 
-                      {booking.paymentStatus === 'advance_paid' && booking.bookingStatus === 'confirmed' && (
+                      {booking.paymentStatus === 'advance_paid' && booking.bookingStatus === 'confirmed' && (booking.totalPrice - booking.advancePaid) > 0 && (
                         <button 
                           onClick={() => setSelectedBookingForPayment(booking)}
                           className="w-full sm:w-auto justify-center px-4 sm:px-5 py-2.5 bg-green-600 hover:bg-green-700 text-white rounded-xl font-bold text-xs shadow-md shadow-green-50 flex items-center gap-2 text-center"
@@ -1198,14 +1202,14 @@ export const MyBookings: React.FC<{ onContactHost: (ownerId: string, resId: stri
             isOpen={!!selectedBookingForPayment}
             onClose={() => setSelectedBookingForPayment(null)}
             amount={selectedBookingForPayment.paymentStatus === 'advance_paid' ? (selectedBookingForPayment.totalPrice - selectedBookingForPayment.advancePaid) : selectedBookingForPayment.advancePaid}
-            isFinalPayment={selectedBookingForPayment.paymentStatus === 'advance_paid'}
-            paymentType={selectedBookingForPayment.paymentStatus === 'advance_paid' ? 'full' : 'advance'}
+            isFinalPayment={selectedBookingForPayment.paymentStatus === 'advance_paid' || selectedBookingForPayment.advancePaid >= selectedBookingForPayment.totalPrice}
+            paymentType={selectedBookingForPayment.paymentStatus === 'advance_paid' || selectedBookingForPayment.advancePaid >= selectedBookingForPayment.totalPrice ? 'full' : 'advance'}
             residenceTitle={residencesMap[selectedBookingForPayment.residenceId]?.title || "Hébergement"}
             isTestMode={isTestMode}
             bookingId={selectedBookingForPayment.id}
             onSuccess={async () => {
               try {
-                const isFinalPayment = selectedBookingForPayment.paymentStatus === 'advance_paid';
+                const isFinalPayment = selectedBookingForPayment.paymentStatus === 'advance_paid' || selectedBookingForPayment.advancePaid >= selectedBookingForPayment.totalPrice;
                 
                 await updateBookingStatus(selectedBookingForPayment.id, {
                   paymentStatus: isFinalPayment ? 'fully_paid' : 'advance_paid'

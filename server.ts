@@ -2159,7 +2159,10 @@ async function startServer() {
           if (bookings && bookings.length > 0) {
             const booking = bookings[0];
             const oldPaymentStatus = booking.payment_status || booking.paymentStatus || '';
-            const nextPaymentStatus = isFinal || oldPaymentStatus === 'advance_paid' ? 'fully_paid' : 'advance_paid';
+            const totalPrice = Number(booking.total_price || booking.totalPrice || 0);
+            const advancePaid = Number(booking.advance_paid || booking.advancePaid || 0);
+            const isFullyPaid = isFinal || oldPaymentStatus === 'advance_paid' || (totalPrice > 0 && advancePaid >= totalPrice);
+            const nextPaymentStatus = isFullyPaid ? 'fully_paid' : 'advance_paid';
             await queries.updateBookingStatus(bId, {
               paymentStatus: nextPaymentStatus,
               bookingStatus: 'confirmed'
@@ -2202,7 +2205,10 @@ async function startServer() {
           const oldPaymentStatus = booking.payment_status || booking.paymentStatus || '';
           
           if (oldPaymentStatus !== 'paid' && oldPaymentStatus !== 'fully_paid') {
-            const nextPaymentStatus = oldPaymentStatus === 'advance_paid' ? 'fully_paid' : 'advance_paid';
+            const totalPrice = Number(booking.total_price || booking.totalPrice || 0);
+            const advancePaid = Number(booking.advance_paid || booking.advancePaid || 0);
+            const isFullyPaid = oldPaymentStatus === 'advance_paid' || (totalPrice > 0 && advancePaid >= totalPrice);
+            const nextPaymentStatus = isFullyPaid ? 'fully_paid' : 'advance_paid';
             
             await queries.updateBookingStatus(actualBookingId, { 
               paymentStatus: nextPaymentStatus,
