@@ -124,7 +124,7 @@ export interface Booking {
   transactionId?: string;
   createdAt: string;
   // Cancellation details
-  cancelledBy?: 'client' | 'owner' | 'admin';
+  cancelledBy?: 'client' | 'owner' | 'admin' | 'system';
   cancellationReason?: string;
   cancelledAt?: string;
   refundStatus?: 'none' | 'pending' | 'refunded' | 'rejected' | 'failed';

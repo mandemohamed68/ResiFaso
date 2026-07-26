@@ -425,6 +425,8 @@ export const AdminDashboard: React.FC<{ onBackToTraveler?: () => void }> = ({ on
   const handleApproveWithdrawalReq = async (item: WithdrawalRequest) => {
     try {
       await updateWithdrawalStatus(item.id, 'approved', new Date().toISOString());
+      // Update local state instantly for real-time UI refresh!
+      setWithdrawals(prev => prev.map(w => w.id === item.id ? { ...w, status: 'approved', approvedAt: new Date().toISOString() } : w));
       await reloadData();
       logAction(`Retrait approuvé pour l'hôte ${item.ownerName} (${item.amount} F CFA) via ${item.provider.toUpperCase()}.`);
       
@@ -446,6 +448,8 @@ export const AdminDashboard: React.FC<{ onBackToTraveler?: () => void }> = ({ on
     if (reason === null) return;
     try {
       await updateWithdrawalStatus(item.id, 'rejected');
+      // Update local state instantly for real-time UI refresh!
+      setWithdrawals(prev => prev.map(w => w.id === item.id ? { ...w, status: 'rejected' } : w));
       await reloadData();
       logAction(`Retrait rejeté pour l'hôte ${item.ownerName} (${item.amount} F CFA). Motif: ${reason}`);
       
@@ -1484,6 +1488,13 @@ export const AdminDashboard: React.FC<{ onBackToTraveler?: () => void }> = ({ on
       
       triggerSuccess("Forçage du statut appliqué et hôte notifié.");
       logAction(`Forçage statut retrait #${forceUpdateWithdrawal.id} à ${forceStatus}`);
+      setWithdrawals(prev => prev.map(w => w.id === forceUpdateWithdrawal.id ? { 
+        ...w, 
+        status: forceStatus, 
+        transactionId: forceStatus === 'approved' ? (forceTxId || null) : null,
+        rejectionReason: (forceStatus === 'rejected' || forceStatus === 'failed') ? (forceRejection || null) : null,
+        approvedAt: forceStatus === 'approved' ? new Date().toISOString() : null
+      } : w));
       setForceUpdateWithdrawal(null);
       await reloadData();
     } catch (err: any) {
@@ -4059,7 +4070,7 @@ export const AdminDashboard: React.FC<{ onBackToTraveler?: () => void }> = ({ on
                               </div>
                             </td>
                             <td className="py-4 px-6 text-xs text-slate-500 font-medium">
-                              {new Date(withd.createdAt).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' })}
+                              {formatDateFr(withd.createdAt)}
                             </td>
                             <td className="py-4 px-6">
                               <div className="space-y-1">
@@ -4100,6 +4111,8 @@ export const AdminDashboard: React.FC<{ onBackToTraveler?: () => void }> = ({ on
                                       onClick={async () => {
                                         if (confirm(`Voulez-vous valider MANUELLEMENT (Règlement Hors-Plateforme) le retrait de ${withd.amount} F pour ${owner?.displayName || 'cet hôte'} ?`)) {
                                           await updateWithdrawalStatus(withd.id, 'approved', new Date().toISOString());
+                                          // Update local state instantly for immediate UI refresh!
+                                          setWithdrawals(prev => prev.map(w => w.id === withd.id ? { ...w, status: 'approved', approvedAt: new Date().toISOString() } : w));
                                           await reloadData();
                                           triggerSuccess("Retrait marqué comme payé manuellement.");
                                           logAction(`Validation manuelle retrait #${withd.id} de ${withd.amount} F`);
@@ -4116,6 +4129,8 @@ export const AdminDashboard: React.FC<{ onBackToTraveler?: () => void }> = ({ on
                                         if (confirm(`Voulez-vous déclencher un virement automatique de ${withd.amount} F CFA via SapPay vers le numéro ${withd.phone} (${withd.provider.toUpperCase()}) ?`)) {
                                           try {
                                             await apiFetch(`/api/withdrawals/${withd.id}/payout`, { method: 'POST' });
+                                            // Update local state instantly for immediate UI refresh!
+                                            setWithdrawals(prev => prev.map(w => w.id === withd.id ? { ...w, status: 'approved', approvedAt: new Date().toISOString() } : w));
                                             await reloadData();
                                             triggerSuccess("Virement automatique SapPay exécuté avec succès !");
                                             logAction(`Virement automatique SapPay exécuté pour retrait #${withd.id}`);
@@ -4135,6 +4150,8 @@ export const AdminDashboard: React.FC<{ onBackToTraveler?: () => void }> = ({ on
                                       onClick={async () => {
                                         if (confirm("Voulez-vous rejeter cette demande de retrait ?")) {
                                           await updateWithdrawalStatus(withd.id, 'rejected');
+                                          // Update local state instantly for immediate UI refresh!
+                                          setWithdrawals(prev => prev.map(w => w.id === withd.id ? { ...w, status: 'rejected' } : w));
                                           await reloadData();
                                           triggerSuccess("Retrait rejeté.");
                                           logAction(`REJET retrait #${withd.id}`);
@@ -5191,7 +5208,7 @@ export const AdminDashboard: React.FC<{ onBackToTraveler?: () => void }> = ({ on
                   </p>
                 </div>
                 <div className="flex items-center gap-1.5 px-3 py-1.5 bg-emerald-600 text-white text-xs font-extrabold rounded-lg shadow-sm shrink-0">
-                  <CheckCircle2 size={16} />
+                  <Check size={16} className="stroke-[3]" />
                   <span>En Production</span>
                 </div>
               </div>
@@ -5673,13 +5690,13 @@ export const AdminDashboard: React.FC<{ onBackToTraveler?: () => void }> = ({ on
                               {ad.startAt && (
                                 <p className="text-[10px] font-bold text-slate-600 flex justify-between">
                                   <span>Début :</span>
-                                  <span>{new Date(ad.startAt).toLocaleString('fr-FR')}</span>
+                                  <span>{formatDateTimeFr(ad.startAt)}</span>
                                 </p>
                               )}
                               {ad.endAt && (
                                 <p className="text-[10px] font-bold text-slate-600 flex justify-between">
                                   <span>Fin :</span>
-                                  <span>{new Date(ad.endAt).toLocaleString('fr-FR')}</span>
+                                  <span>{formatDateTimeFr(ad.endAt)}</span>
                                 </p>
                               )}
                               {/* Status Check badges */}
@@ -5705,7 +5722,7 @@ export const AdminDashboard: React.FC<{ onBackToTraveler?: () => void }> = ({ on
                           )}
 
                           <div className="text-[9px] text-slate-400 font-extrabold uppercase mt-4 tracking-widest">
-                            Créée le {new Date(ad.createdAt).toLocaleString('fr-FR')}
+                            Créée le {formatDateTimeFr(ad.createdAt)}
                           </div>
                         </div>
                       </div>
@@ -6745,7 +6762,7 @@ export const AdminDashboard: React.FC<{ onBackToTraveler?: () => void }> = ({ on
                         <div className="space-y-1 min-w-0 flex-1">
                           <div className="flex items-center gap-2 flex-wrap">
                             <span className="font-black text-slate-800 text-xs truncate max-w-[150px]">{msg.name}</span>
-                            <span className="text-[10px] text-slate-400 font-medium">{new Date(msg.createdAt).toLocaleDateString()}</span>
+                            <span className="text-[10px] text-slate-400 font-medium">{formatDateFr(msg.createdAt)}</span>
                             
                             {msg.status === 'unread' && (
                               <span className="bg-red-100 text-red-600 text-[9px] font-black uppercase tracking-wider px-2 py-0.5 rounded">
@@ -6819,7 +6836,7 @@ export const AdminDashboard: React.FC<{ onBackToTraveler?: () => void }> = ({ on
                 </div>
                 <div>
                   <h4 className="text-[9px] font-black text-slate-400 uppercase tracking-wider">Date d'envoi</h4>
-                  <p className="font-bold text-slate-900 text-xs">{new Date(selectedContactMessage.createdAt).toLocaleString()}</p>
+                  <p className="font-bold text-slate-900 text-xs">{formatDateTimeFr(selectedContactMessage.createdAt)}</p>
                 </div>
                 <div>
                   <h4 className="text-[9px] font-black text-slate-400 uppercase tracking-wider">Statut</h4>
@@ -6876,7 +6893,7 @@ export const AdminDashboard: React.FC<{ onBackToTraveler?: () => void }> = ({ on
 
                 <div className="flex justify-between items-center">
                   <p className="text-[10px] text-slate-400 font-medium">
-                    {selectedContactMessage.repliedAt && `Enregistré le ${new Date(selectedContactMessage.repliedAt).toLocaleDateString()}`}
+                    {selectedContactMessage.repliedAt && `Enregistré le ${formatDateFr(selectedContactMessage.repliedAt)}`}
                   </p>
                   <button
                     type="submit"
@@ -7391,7 +7408,7 @@ export const AdminDashboard: React.FC<{ onBackToTraveler?: () => void }> = ({ on
                 </span>
                 <h3 className="text-2xl font-black text-slate-900 leading-tight mt-1">{selectedUserForDetail.displayName || "Sans Nom"}</h3>
                 <p className="text-xs text-slate-500 font-semibold">
-                  Rôle : <span className="uppercase text-slate-800">{selectedUserForDetail.role}</span> &bull; Membre depuis {selectedUserForDetail.createdAt ? new Date(selectedUserForDetail.createdAt).toLocaleDateString('fr-FR') : 'Date inconnue'}
+                  Rôle : <span className="uppercase text-slate-800">{selectedUserForDetail.role}</span> &bull; Membre depuis {selectedUserForDetail.createdAt ? formatDateFr(selectedUserForDetail.createdAt) : 'Date inconnue'}
                 </p>
               </div>
             </div>
@@ -7448,13 +7465,25 @@ export const AdminDashboard: React.FC<{ onBackToTraveler?: () => void }> = ({ on
                       </div>
                       <div className="bg-slate-50 p-4 rounded-2xl border border-slate-100">
                         <span className="block text-[9px] text-slate-400 font-black uppercase tracking-widest mb-1">Date d'expiration</span>
-                        <span className={cn(
-                          "text-xs font-bold",
-                          selectedUserForDetail.idExpiry && new Date(selectedUserForDetail.idExpiry) < new Date() ? "text-red-600" : "text-slate-900"
-                        )}>
-                          {selectedUserForDetail.idExpiry ? new Date(selectedUserForDetail.idExpiry).toLocaleDateString('fr-FR') : 'Non spécifiée'}
-                          {selectedUserForDetail.idExpiry && new Date(selectedUserForDetail.idExpiry) < new Date() && " (EXPIRÉ)"}
-                        </span>
+                        {(() => {
+                          const isIdExpired = selectedUserForDetail.idExpiry ? (() => {
+                            try {
+                              const expDate = new Date(selectedUserForDetail.idExpiry);
+                              return !isNaN(expDate.getTime()) && expDate < new Date();
+                            } catch (e) {
+                              return false;
+                            }
+                          })() : false;
+                          return (
+                            <span className={cn(
+                              "text-xs font-bold",
+                              isIdExpired ? "text-red-600" : "text-slate-900"
+                            )}>
+                              {selectedUserForDetail.idExpiry ? formatDateFr(selectedUserForDetail.idExpiry) : 'Non spécifiée'}
+                              {isIdExpired && " (EXPIRÉ)"}
+                            </span>
+                          );
+                        })()}
                       </div>
                       <div className="bg-slate-50 p-4 rounded-2xl border border-slate-100">
                         <span className="block text-[9px] text-slate-400 font-black uppercase tracking-widest mb-1">Statut Vérification</span>
