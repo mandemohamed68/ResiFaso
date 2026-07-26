@@ -145,7 +145,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onNavigat
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+    <div className="fixed inset-0 z-50 flex items-start justify-center p-3 sm:p-6 pt-4 sm:pt-8 pb-10 overflow-y-auto">
       {/* Backdrop */}
       <motion.div 
         initial={{ opacity: 0 }}
@@ -160,7 +160,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onNavigat
         initial={{ opacity: 0, scale: 0.95, y: 20 }}
         animate={{ opacity: 1, scale: 1, y: 0 }}
         exit={{ opacity: 0, scale: 0.95, y: 20 }}
-        className="relative w-full max-w-md bg-white rounded-3xl border border-slate-100 shadow-2xl p-8 overflow-y-auto z-10 max-h-[90vh]"
+        className="relative w-full max-w-md my-auto sm:my-0 bg-white rounded-3xl border border-slate-100 shadow-2xl p-8 overflow-y-auto z-10 max-h-[88vh]"
       >
         {/* Close Button */}
         <button 

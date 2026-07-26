@@ -111,7 +111,7 @@ export const InvoiceModal: React.FC<InvoiceModalProps> = ({
   return (
     <AnimatePresence>
       {isOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 overflow-y-auto print:p-0 print:block">
+        <div className="fixed inset-0 z-50 flex items-start justify-center p-3 sm:p-6 pt-4 sm:pt-8 pb-10 overflow-y-auto print:p-0 print:block">
           <motion.div 
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
@@ -124,7 +124,7 @@ export const InvoiceModal: React.FC<InvoiceModalProps> = ({
             initial={{ opacity: 0, scale: 0.95, y: 20 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.95, y: 20 }}
-            className="relative w-full max-w-2xl bg-white rounded-3xl shadow-2xl overflow-hidden print:shadow-none print:w-full print:max-w-none print:rounded-none"
+            className="relative w-full max-w-2xl my-auto sm:my-0 bg-white rounded-3xl shadow-2xl overflow-hidden print:shadow-none print:w-full print:max-w-none print:rounded-none max-h-[88vh] flex flex-col"
           >
             {/* Header actions (hidden in print) */}
             <div className="flex items-center justify-between p-4 border-b border-slate-100 bg-slate-50 print:hidden hidden sm:flex">

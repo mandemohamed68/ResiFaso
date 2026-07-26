@@ -61,7 +61,7 @@ const ReviewModal: React.FC<ReviewModalProps> = ({ isOpen, onClose, booking, res
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-[120] flex items-center justify-center p-4">
+    <div className="fixed inset-0 z-[120] flex items-start justify-center p-3 sm:p-6 pt-4 sm:pt-8 pb-10 overflow-y-auto">
       <motion.div 
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
@@ -73,7 +73,7 @@ const ReviewModal: React.FC<ReviewModalProps> = ({ isOpen, onClose, booking, res
         initial={{ opacity: 0, scale: 0.95, y: 20 }}
         animate={{ opacity: 1, scale: 1, y: 0 }}
         exit={{ opacity: 0, scale: 0.95, y: 20 }}
-        className="relative w-full max-w-md bg-white rounded-3xl shadow-2xl overflow-hidden"
+        className="relative w-full max-w-md my-auto sm:my-0 bg-white rounded-3xl shadow-2xl overflow-hidden"
       >
         <div className="p-6 border-b border-slate-50 flex items-center justify-between">
           <h3 className="text-xl font-black text-slate-900 uppercase tracking-tight">Donnez votre avis</h3>
@@ -288,7 +288,7 @@ const CancellationModal: React.FC<CancellationModalProps> = ({ isOpen, onClose, 
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-[120] flex items-center justify-center p-4">
+    <div className="fixed inset-0 z-[120] flex items-start justify-center p-3 sm:p-6 pt-4 sm:pt-8 pb-10 overflow-y-auto">
       <motion.div 
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
@@ -300,7 +300,7 @@ const CancellationModal: React.FC<CancellationModalProps> = ({ isOpen, onClose, 
         initial={{ opacity: 0, scale: 0.95, y: 20 }}
         animate={{ opacity: 1, scale: 1, y: 0 }}
         exit={{ opacity: 0, scale: 0.95, y: 20 }}
-        className="relative w-full max-w-lg bg-white rounded-3xl shadow-2xl overflow-hidden"
+        className="relative w-full max-w-lg my-auto sm:my-0 bg-white rounded-3xl shadow-2xl overflow-hidden"
       >
         <div className="p-6 border-b border-slate-150 flex items-center justify-between">
           <div>
@@ -532,12 +532,12 @@ const SuiviReservationModal: React.FC<SuiviReservationModalProps> = ({ isOpen, o
     : (booking.paymentStatus === 'advance_paid' ? (booking.totalPrice - booking.advancePaid) : booking.totalPrice);
 
   return (
-    <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[9999] flex items-center justify-center p-4 overflow-y-auto">
+    <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[9999] flex items-start justify-center p-3 sm:p-6 pt-4 sm:pt-8 pb-10 overflow-y-auto">
       <motion.div 
         initial={{ opacity: 0, scale: 0.95 }}
         animate={{ opacity: 1, scale: 1 }}
         exit={{ opacity: 0, scale: 0.95 }}
-        className="bg-white rounded-[32px] w-full max-w-2xl overflow-hidden shadow-2xl border border-slate-100 flex flex-col max-h-[90vh]"
+        className="bg-white rounded-[32px] w-full max-w-2xl overflow-hidden shadow-2xl border border-slate-100 flex flex-col max-h-[88vh] my-auto sm:my-0"
       >
         {/* Header */}
         <div className="px-8 py-6 bg-slate-900 text-white flex justify-between items-center shrink-0">

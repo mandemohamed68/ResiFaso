@@ -724,9 +724,9 @@ const BookingTable: React.FC<BookingTableProps> = ({
       {selectedBookingForDetails && (() => {
         const currentRes = residences.find(r => r.id === selectedBookingForDetails.residenceId);
         return (
-          <div className="fixed inset-0 z-[150] flex items-center justify-center p-4">
+          <div className="fixed inset-0 z-[150] flex items-start justify-center p-3 sm:p-6 pt-4 sm:pt-8 pb-10 overflow-y-auto">
             <div className="absolute inset-0 bg-black/60 backdrop-blur-sm animate-fade-in" onClick={() => setSelectedBookingForDetails(null)} />
-            <div className="relative w-full max-w-2xl bg-white rounded-3xl shadow-2xl overflow-hidden animate-in fade-in zoom-in duration-200 text-slate-800 font-sans">
+            <div className="relative w-full max-w-2xl my-auto sm:my-0 bg-white rounded-3xl shadow-2xl overflow-hidden animate-in fade-in zoom-in duration-200 text-slate-800 font-sans max-h-[88vh] flex flex-col">
               
               {/* Header */}
               <div className="p-6 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
@@ -953,9 +953,9 @@ const BookingTable: React.FC<BookingTableProps> = ({
 
       {/* Focused Verification Modal */}
       {selectedBookingForVerifications && (
-        <div className="fixed inset-0 z-[160] flex items-center justify-center p-4">
+        <div className="fixed inset-0 z-[160] flex items-start justify-center p-3 sm:p-6 pt-4 sm:pt-8 pb-10 overflow-y-auto">
           <div className="absolute inset-0 bg-black/60 backdrop-blur-sm animate-fade-in" onClick={() => setSelectedBookingForVerifications(null)} />
-          <div className="relative w-full max-w-lg bg-white rounded-3xl shadow-2xl overflow-hidden animate-in fade-in zoom-in duration-200 text-slate-800 font-sans">
+          <div className="relative w-full max-w-lg my-auto sm:my-0 bg-white rounded-3xl shadow-2xl overflow-hidden animate-in fade-in zoom-in duration-200 text-slate-800 font-sans max-h-[88vh] flex flex-col">
             
             {/* Header */}
             <div className="p-6 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
@@ -3395,14 +3395,14 @@ export const OwnerDashboard: React.FC<{ isTestMode?: boolean; onBackToTraveler?:
       {/* Multistage Form modal overlay */}
       <AnimatePresence>
         {isAddOpen && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div className="fixed inset-0 z-50 flex items-start justify-center p-3 sm:p-6 pt-4 sm:pt-8 pb-10 overflow-y-auto">
             <div className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm" onClick={handleCloseAddModal} />
             
             <motion.div
               initial={{ opacity: 0, scale: 0.95, y: 20 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.95, y: 20 }}
-              className="relative w-full max-w-2xl bg-white rounded-3xl border border-slate-100 shadow-2xl p-8 max-h-[90vh] overflow-y-auto z-10"
+              className="relative w-full max-w-2xl my-auto sm:my-0 bg-white rounded-3xl border border-slate-100 shadow-2xl p-8 max-h-[88vh] overflow-y-auto z-10"
             >
               <button 
                 onClick={handleCloseAddModal}
@@ -3947,13 +3947,13 @@ export const OwnerDashboard: React.FC<{ isTestMode?: boolean; onBackToTraveler?:
 
       <AnimatePresence>
         {bookingToDecline && (
-          <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+          <div className="fixed inset-0 z-[100] flex items-start justify-center p-3 sm:p-6 pt-4 sm:pt-8 pb-10 overflow-y-auto">
             <div className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm" onClick={() => setBookingToDecline(null)} />
             <motion.div
               initial={{ opacity: 0, scale: 0.95, y: 10 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.95, y: 10 }}
-              className="bg-white rounded-3xl w-full max-w-lg overflow-hidden relative shadow-2xl flex flex-col max-h-[90vh]"
+              className="bg-white rounded-3xl w-full max-w-lg my-auto sm:my-0 overflow-hidden relative shadow-2xl flex flex-col max-h-[88vh]"
             >
               <div className="p-4 border-b border-slate-100 flex items-center justify-between sticky top-0 bg-white z-10">
                 <h3 className="font-black text-slate-900 truncate">Décliner la réservation</h3>

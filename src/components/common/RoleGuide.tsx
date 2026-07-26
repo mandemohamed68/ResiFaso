@@ -144,7 +144,7 @@ export const RoleGuide: React.FC<RoleGuideProps> = ({ role, isOpen, onClose }) =
 
   return (
     <AnimatePresence>
-      <div className="fixed inset-0 z-[150] flex items-center justify-center p-0 md:p-4">
+      <div className="fixed inset-0 z-[150] flex items-start justify-center p-0 sm:p-4 pt-0 sm:pt-8 pb-0 sm:pb-10 overflow-y-auto">
         {/* Backdrop */}
         <motion.div 
           initial={{ opacity: 0 }}
@@ -159,7 +159,7 @@ export const RoleGuide: React.FC<RoleGuideProps> = ({ role, isOpen, onClose }) =
           initial={{ opacity: 0, scale: 0.95, y: 30 }}
           animate={{ opacity: 1, scale: 1, y: 0 }}
           exit={{ opacity: 0, scale: 0.95, y: 30 }}
-          className="relative w-full h-full md:h-auto md:max-w-4xl bg-white md:rounded-[32px] shadow-2xl overflow-y-auto md:overflow-hidden flex flex-col md:flex-row md:max-h-[90vh]"
+          className="relative w-full h-full md:h-auto md:max-w-4xl bg-white md:rounded-[32px] shadow-2xl overflow-y-auto md:overflow-hidden flex flex-col md:flex-row md:max-h-[88vh] my-auto sm:my-0"
         >
           {/* Left Sidebar - Navigation steps */}
           <div className="w-full md:w-80 bg-slate-50 border-b md:border-b-0 md:border-r border-slate-100 p-6 flex flex-col justify-between shrink-0">

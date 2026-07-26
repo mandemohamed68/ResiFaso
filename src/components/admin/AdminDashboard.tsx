@@ -3565,9 +3565,9 @@ export const AdminDashboard: React.FC<{ onBackToTraveler?: () => void }> = ({ on
             {selectedAdminBookingDetails && (() => {
               const book = selectedAdminBookingDetails;
               return (
-                <div className="fixed inset-0 z-[200] flex items-center justify-center p-4">
+                <div className="fixed inset-0 z-[200] flex items-start justify-center p-3 sm:p-6 pt-4 sm:pt-8 pb-10 overflow-y-auto">
                   <div className="absolute inset-0 bg-black/60 backdrop-blur-sm animate-fade-in" onClick={() => setSelectedAdminBookingDetails(null)} />
-                  <div className="relative w-full max-w-2xl bg-white rounded-3xl shadow-2xl overflow-hidden animate-in fade-in zoom-in duration-200 text-slate-800 font-sans">
+                  <div className="relative w-full max-w-2xl my-auto sm:my-0 bg-white rounded-3xl shadow-2xl overflow-hidden animate-in fade-in zoom-in duration-200 text-slate-800 font-sans max-h-[88vh] flex flex-col">
                     {/* Header */}
                     <div className="p-6 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
                       <div>
@@ -3867,8 +3867,8 @@ export const AdminDashboard: React.FC<{ onBackToTraveler?: () => void }> = ({ on
 
             {/* Modal de Correction / Forçage Manuel (Anomalies) */}
             {forceUpdateWithdrawal && (
-              <div className="fixed inset-0 bg-slate-950/70 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-                <div className="bg-white rounded-[32px] border border-slate-100 max-w-lg w-full overflow-hidden shadow-2xl animate-in zoom-in-95 duration-200">
+              <div className="fixed inset-0 bg-slate-950/70 backdrop-blur-sm flex items-start justify-center z-50 p-3 sm:p-6 pt-4 sm:pt-8 pb-10 overflow-y-auto">
+                <div className="bg-white rounded-[32px] border border-slate-100 max-w-lg w-full my-auto sm:my-0 overflow-hidden shadow-2xl animate-in zoom-in-95 duration-200">
                   <div className="bg-slate-950 p-6 text-white flex justify-between items-center">
                     <div>
                       <h3 className="text-lg font-black flex items-center gap-2">
@@ -6785,8 +6785,8 @@ export const AdminDashboard: React.FC<{ onBackToTraveler?: () => void }> = ({ on
 
       {/* CONTACT MESSAGE DETAIL MODAL */}
       {selectedContactMessage && (
-        <div className="fixed inset-0 bg-slate-900/80 backdrop-blur-sm flex items-center justify-center p-4 z-[9999] animate-in fade-in duration-250 overflow-y-auto">
-          <div className="bg-white rounded-[32px] w-full max-w-2xl overflow-hidden p-6 sm:p-8 border border-slate-100 shadow-2xl relative my-8 animate-in zoom-in-95 duration-200">
+        <div className="fixed inset-0 bg-slate-900/80 backdrop-blur-sm flex items-start justify-center p-3 sm:p-6 pt-4 sm:pt-8 pb-10 z-[9999] animate-in fade-in duration-250 overflow-y-auto">
+          <div className="bg-white rounded-[32px] w-full max-w-2xl overflow-hidden p-6 sm:p-8 border border-slate-100 shadow-2xl relative my-auto sm:my-0 animate-in zoom-in-95 duration-200">
             
             {/* Close button */}
             <button
@@ -6894,8 +6894,8 @@ export const AdminDashboard: React.FC<{ onBackToTraveler?: () => void }> = ({ on
 
       {/* FAQ EDIT MODAL */}
       {(activeTab === 'faq' && (editingFaq !== null || editFaqQuestion !== '')) && (
-        <div className="fixed inset-0 bg-slate-900/80 backdrop-blur-sm flex items-center justify-center p-4 z-[9999] animate-in fade-in duration-200 overflow-y-auto">
-          <div className="bg-white rounded-[32px] w-full max-w-2xl overflow-hidden p-8 border border-slate-100 shadow-2xl relative my-8 animate-in zoom-in-95 duration-200">
+        <div className="fixed inset-0 bg-slate-900/80 backdrop-blur-sm flex items-start justify-center p-3 sm:p-6 pt-4 sm:pt-8 pb-10 z-[9999] animate-in fade-in duration-200 overflow-y-auto">
+          <div className="bg-white rounded-[32px] w-full max-w-2xl overflow-hidden p-8 border border-slate-100 shadow-2xl relative my-auto sm:my-0 animate-in zoom-in-95 duration-200">
             <button
               onClick={() => { setEditingFaq(null); setEditFaqQuestion(''); setEditFaqAnswer(''); }}
               className="absolute top-6 right-6 p-2 rounded-full hover:bg-slate-50 text-slate-400 hover:text-slate-600 transition"
@@ -6992,8 +6992,8 @@ export const AdminDashboard: React.FC<{ onBackToTraveler?: () => void }> = ({ on
 
       {/* RESIDENCE EDIT MODAL FOR ADMIN */}
       {editingRes && (
-        <div className="fixed inset-0 bg-slate-900/80 backdrop-blur-sm flex items-center justify-center p-4 z-[9999] animate-in fade-in duration-200 overflow-y-auto">
-          <div className="bg-white rounded-[32px] w-full max-w-2xl overflow-hidden p-8 border border-slate-100 shadow-2xl relative my-8 animate-in zoom-in-95 duration-200">
+        <div className="fixed inset-0 bg-slate-900/80 backdrop-blur-sm flex items-start justify-center p-3 sm:p-6 pt-4 sm:pt-8 pb-10 z-[9999] animate-in fade-in duration-200 overflow-y-auto">
+          <div className="bg-white rounded-[32px] w-full max-w-2xl overflow-hidden p-8 border border-slate-100 shadow-2xl relative my-auto sm:my-0 animate-in zoom-in-95 duration-200">
             <button
               onClick={() => setEditingRes(null)}
               className="absolute top-6 right-6 p-2 rounded-full hover:bg-slate-50 text-slate-400 hover:text-slate-600 transition"
@@ -7087,8 +7087,8 @@ export const AdminDashboard: React.FC<{ onBackToTraveler?: () => void }> = ({ on
 
       {/* REAL-TIME OVERLAY FOR HARD RESET MODAL */}
       {showResetModal && (
-        <div className="fixed inset-0 bg-slate-900/80 backdrop-blur-sm flex items-center justify-center p-4 z-[9999] animate-in fade-in duration-200">
-          <div className="bg-white rounded-[32px] w-full max-w-md overflow-hidden p-8 border border-slate-100 shadow-2xl relative animate-in zoom-in-95 duration-200">
+        <div className="fixed inset-0 bg-slate-900/80 backdrop-blur-sm flex items-start justify-center p-3 sm:p-6 pt-4 sm:pt-8 pb-10 z-[9999] animate-in fade-in duration-200 overflow-y-auto">
+          <div className="bg-white rounded-[32px] w-full max-w-md overflow-hidden p-8 border border-slate-100 shadow-2xl relative my-auto sm:my-0 animate-in zoom-in-95 duration-200">
             <button
               onClick={() => setShowResetModal(false)}
               className="absolute top-6 right-6 p-2 rounded-full hover:bg-slate-50 text-slate-400 hover:text-slate-600 transition"
@@ -7187,8 +7187,8 @@ export const AdminDashboard: React.FC<{ onBackToTraveler?: () => void }> = ({ on
 
       {/* DETAILED VIEW MODAL FOR ADMIN MODERATION */}
       {selectedResForDetail && (
-        <div className="fixed inset-0 bg-slate-900/80 backdrop-blur-sm flex items-center justify-center p-4 z-[9999] animate-in fade-in duration-200 overflow-y-auto">
-          <div className="bg-white rounded-[32px] w-full max-w-3xl overflow-hidden p-8 border border-slate-100 shadow-2xl relative my-8 animate-in zoom-in-95 duration-200 max-h-[90vh] overflow-y-auto">
+        <div className="fixed inset-0 bg-slate-900/80 backdrop-blur-sm flex items-start justify-center p-3 sm:p-6 pt-4 sm:pt-8 pb-10 z-[9999] animate-in fade-in duration-200 overflow-y-auto">
+          <div className="bg-white rounded-[32px] w-full max-w-3xl overflow-hidden p-8 border border-slate-100 shadow-2xl relative my-auto sm:my-0 animate-in zoom-in-95 duration-200 max-h-[88vh] overflow-y-auto">
             <button
               onClick={() => setSelectedResForDetail(null)}
               className="absolute top-6 right-6 p-2 rounded-full hover:bg-slate-50 text-slate-400 hover:text-slate-600 transition"
@@ -7368,8 +7368,8 @@ export const AdminDashboard: React.FC<{ onBackToTraveler?: () => void }> = ({ on
 
       {/* USER DETAIL MODAL */}
       {selectedUserForDetail && (
-        <div className="fixed inset-0 bg-slate-900/80 backdrop-blur-sm flex items-center justify-center p-4 z-[9999] animate-in fade-in duration-200 overflow-y-auto">
-          <div className="bg-white rounded-[32px] w-full max-w-2xl overflow-hidden p-8 border border-slate-100 shadow-2xl relative my-8 animate-in zoom-in-95 duration-200 max-h-[90vh] overflow-y-auto">
+        <div className="fixed inset-0 bg-slate-900/80 backdrop-blur-sm flex items-start justify-center p-3 sm:p-6 pt-4 sm:pt-8 pb-10 z-[9999] animate-in fade-in duration-200 overflow-y-auto">
+          <div className="bg-white rounded-[32px] w-full max-w-2xl overflow-hidden p-8 border border-slate-100 shadow-2xl relative my-auto sm:my-0 animate-in zoom-in-95 duration-200 max-h-[88vh] overflow-y-auto">
             <button
               onClick={() => setSelectedUserForDetail(null)}
               className="absolute top-6 right-6 p-2 rounded-full hover:bg-slate-50 text-slate-400 hover:text-slate-600 transition"
