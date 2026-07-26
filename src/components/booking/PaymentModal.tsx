@@ -158,35 +158,32 @@ const getBestErrorMessage = (data: any): string => {
   // Define keywords that represent a real error
   const errorKeywords = ["erronés", "incorrect", "failed", "error", "invalide", "invalid", "échec", "refusé", "declined", "wrong", "insuffisant", "cancel", "annul"];
   
-  // List potential error sources in order of priority (Gateway message is often the most accurate)
   const candidates = [
+    data.error?.message,
+    data.details,
     response.gateway_message,
     data.gateway_message,
     response.message,
     response.errMessage,
-    data.error?.message,
-    data.message,
-    data.details
+    data.message
   ];
 
-  // Look for the first candidate that actually contains an error keyword
   for (const cand of candidates) {
     if (typeof cand === 'string' && cand.trim().length > 0) {
       const lower = cand.toLowerCase();
-      if (lower.includes("success") || lower.includes("succès") || lower.includes("réussi") || lower.includes("effectu") || lower.includes("envoyé")) continue;
+      if (lower.includes("success") || lower.includes("succès") || lower.includes("réussi") || lower.includes("effectu")) continue;
       if (errorKeywords.some(kw => lower.includes(kw))) return cand;
     }
   }
 
-  // Fallback to first non-empty string that is not a success string
   for (const cand of candidates) {
     if (typeof cand === 'string' && cand.trim().length > 0) {
       const lower = cand.toLowerCase();
-      if (!lower.includes("success") && !lower.includes("succès") && !lower.includes("réussi") && !lower.includes("effectu") && !lower.includes("envoyé")) return cand;
+      if (!lower.includes("success") && !lower.includes("succès") && !lower.includes("réussi") && !lower.includes("effectu")) return cand;
     }
   }
 
-  return "Échec de la transaction.";
+  return "Échec de la transaction. Le code OTP saisi est incorrect ou la transaction a été rejetée par l'opérateur.";
 };
 
 const isActuallySuccess = (data: any): boolean => {
@@ -194,46 +191,45 @@ const isActuallySuccess = (data: any): boolean => {
   
   const response = data.response || {};
   
-  // 1. Prioritize explicit success codes (0 is success in Sappay/Operator world)
-  const hasZeroCode = 
-    (response.codeErr !== undefined && response.codeErr !== null && response.codeErr.toString() === "0") ||
-    (response.errCode !== undefined && response.errCode !== null && response.errCode.toString() === "0") ||
-    (response.gateway_status_code !== undefined && response.gateway_status_code !== null && Number(response.gateway_status_code) === 0);
+  // 1. Explicit top-level or response success indicators
+  const isTopSuccess = data.success === true || data.status === 1 || data.status === 200 || data.status === 'SUCCESS' || data.status === 'success';
+  const isRespSuccess = response.status === 'SUCCESS' || response.status === 'success' || response.status === 200;
 
-  if (hasZeroCode) return true;
-
-  // 2. Check for negative gateway status code (Reliable indicator of failure)
-  if (response.gateway_status_code !== undefined && response.gateway_status_code !== null) {
-    if (Number(response.gateway_status_code) !== 0) return false;
+  // 2. Check for explicit non-zero error code (like codeErr: 1 or errCode: -1)
+  const codeErr = response.codeErr !== undefined && response.codeErr !== null ? response.codeErr.toString().trim() : null;
+  const errCode = response.errCode !== undefined && response.errCode !== null ? response.errCode.toString().trim() : null;
+  if ((codeErr !== null && codeErr !== "0") || (errCode !== null && errCode !== "0")) {
+    return false;
   }
 
-  // 3. Check for non-zero error codes
-  if (response.codeErr !== undefined && response.codeErr !== null && response.codeErr.toString() !== "0") return false;
-  if (response.errCode !== undefined && response.errCode !== null && response.errCode.toString() !== "0") return false;
+  // 3. Check gateway_status_code (0 and 200 are valid success codes in Sappay)
+  if (response.gateway_status_code !== undefined && response.gateway_status_code !== null) {
+    const gwStr = response.gateway_status_code.toString().trim();
+    if (gwStr !== "0" && gwStr !== "200") {
+      // If gateway status code is something like -1 or 400 or 500, check if top level claims success
+      if (!isTopSuccess && !isRespSuccess) return false;
+    }
+  }
 
-  // 4. Check for error keywords in messages
-  const messages = [
+  // 4. Check for blocking error keywords in text messages
+  const allMessages = [
     data.message,
     response.message,
     response.gateway_message,
     data.error?.message,
     data.details
-  ].filter(m => typeof m === 'string' && m.length > 0);
+  ].filter(m => typeof m === 'string' && m.trim().length > 0).join(' ').toLowerCase();
 
-  const errorKeywords = ["erronés", "incorrect", "failed", "error", "invalide", "invalid", "échec", "refusé", "declined", "wrong", "insuffisant"];
-  
-  for (const msg of messages) {
-    const l = msg.toLowerCase();
-    // If the message contains "succès" or "success", it's likely not an error even if it contains "erronés"
-    if (l.includes("succès") || l.includes("success") || l.includes("réussie") || l.includes("effectu") || l.includes("envoyé")) continue;
-    if (errorKeywords.some(kw => l.includes(kw))) return false;
+  const hasSuccessText = allMessages.includes("success") || allMessages.includes("succès") || allMessages.includes("effectu") || allMessages.includes("réussi") || allMessages.includes("completed");
+  const errorKeywords = ["incorrect", "invalid", "invalide", "failed", "refusé", "declined", "insuffisant", "expiré", "expired"];
+  const hasErrorText = errorKeywords.some(kw => allMessages.includes(kw));
+
+  if (hasErrorText && !hasSuccessText) {
+    return false;
   }
 
-  // 5. General success indicators
-  const hasTopSuccess = data.success === true || data.status === 1 || data.status === 200 || data.status === 'SUCCESS' || data.status === 'success' || !!data.trans_id;
-  const hasResponseSuccess = response.status === 'SUCCESS' || response.status === 'success' || !response.status || response.codeErr === "0";
-
-  return hasTopSuccess && hasResponseSuccess;
+  // 5. Final decision: If we have success status or success text or success flags
+  return isTopSuccess || isRespSuccess || hasSuccessText || data.success === true;
 };
 
 export const PaymentModal: React.FC<Props> = ({ isOpen, onClose, amount, residenceTitle, onSuccess, isTestMode, utilitiesIncluded, bookingId, isFinalPayment, paymentType }) => {
