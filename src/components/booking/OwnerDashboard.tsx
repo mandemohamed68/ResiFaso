@@ -86,12 +86,17 @@ const MapContainerAny = MapContainer as any;
 const TileLayerAny = TileLayer as any;
 
 function LocationMarker({ position, onChange }: { position: { lat: number, lng: number }, onChange: (pos: { lat: number, lng: number }) => void }) {
-  useMapEvents({
+  const map = useMapEvents({
     click(e) {
       onChange(e.latlng);
-      // Optional: reverse geocoding logic could fetch address here
     },
   });
+
+  useEffect(() => {
+    if (position) {
+      map.setView([position.lat, position.lng], map.getZoom());
+    }
+  }, [position, map]);
 
   return position ? (
     <Marker position={[position.lat, position.lng]} />
@@ -3772,9 +3777,28 @@ export const OwnerDashboard: React.FC<{ isTestMode?: boolean; onBackToTraveler?:
                             type="button"
                             onClick={() => {
                               if (navigator.geolocation) {
-                                navigator.geolocation.getCurrentPosition((pos) => {
-                                  handleLocationPick({ lat: pos.coords.latitude, lng: pos.coords.longitude });
-                                });
+                                addToast("Recherche de votre position...", "info");
+                                navigator.geolocation.getCurrentPosition(
+                                  (pos) => {
+                                    handleLocationPick({ lat: pos.coords.latitude, lng: pos.coords.longitude });
+                                    addToast("Position détectée avec succès !", "success");
+                                  },
+                                  (err) => {
+                                    console.error("Geolocation error:", err);
+                                    let errorMsg = "Impossible d'obtenir votre position géographique.";
+                                    if (err.code === 1) {
+                                      errorMsg = "Accès à la géolocalisation refusé. Veuillez l'activer dans votre navigateur.";
+                                    } else if (err.code === 2) {
+                                      errorMsg = "Position géographique non disponible.";
+                                    } else if (err.code === 3) {
+                                      errorMsg = "Temps d'attente expiré pour la géolocalisation.";
+                                    }
+                                    addToast(errorMsg, "error");
+                                  },
+                                  { enableHighAccuracy: true, timeout: 8000 }
+                                );
+                              } else {
+                                addToast("Votre navigateur ne supporte pas la géolocalisation.", "error");
                               }
                             }}
                             className="text-[10px] bg-slate-900 text-white px-2 py-1 rounded-lg font-black uppercase tracking-wider hover:bg-red-600 transition-colors"
@@ -3787,8 +3811,8 @@ export const OwnerDashboard: React.FC<{ isTestMode?: boolean; onBackToTraveler?:
                       <div className="h-[250px] rounded-2xl overflow-hidden border border-slate-100 shadow-inner z-0 relative">
                         <MapContainerAny center={[coordinates.lat, coordinates.lng]} zoom={13} style={{ height: '100%', width: '100%' }}>
                           <TileLayerAny
-                            attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-                            url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+                            attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>'
+                            url="https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png"
                           />
                           <LocationMarker position={coordinates} onChange={handleLocationPick} />
                         </MapContainerAny>

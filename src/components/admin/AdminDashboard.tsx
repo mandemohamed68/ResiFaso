@@ -792,8 +792,12 @@ export const AdminDashboard: React.FC<{ onBackToTraveler?: () => void }> = ({ on
       return;
     }
     try {
+      setUsers(prev => prev.map(u => u.uid === uid ? { ...u, role: targetRole } : u));
+      if (selectedUserForDetail && selectedUserForDetail.uid === uid) {
+        setSelectedUserForDetail(prev => prev ? { ...prev, role: targetRole } : null);
+      }
       await updateUserProfile(uid, { role: targetRole });
-                await reloadData();
+      await reloadData();
       logAction(`Promu utilisateur ${email} du rôle ${currentRole} à ${targetRole}`);
       triggerSuccess(`Rôle de ${email} mis à jour avec succès vers : ${targetRole}`);
     } catch (err) {
