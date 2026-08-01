@@ -48,6 +48,12 @@ export interface Residence {
   description: string;
   type: ResidenceType;
   pricePerNight: number;
+  ownerNetPricePerNight?: number;
+  demarcheurFeePerNight?: number;
+  isManagedByDemarcheur?: boolean;
+  commissionPayer?: 'owner' | 'demarcheur' | 'shared';
+  demarcheurName?: string;
+  demarcheurPhone?: string;
   advancePercentage: number;
   cleaningFee: number;
   serviceFee: number;
@@ -145,6 +151,10 @@ export interface Booking {
   clientPhone?: string;
   clientName?: string;
   verificationsStatus?: string; // JSON string
+  clientServiceFee?: number;
+  ownerNetEarnings?: number;
+  demarcheurEarnings?: number;
+  platformCommission?: number;
 }
 
 export interface Review {

@@ -28,6 +28,15 @@ const apiFetch = async (endpoint: string, options: any = {}) => {
       throw new Error(errorData.error || `API Error: ${response.status} ${response.statusText}`);
     }
     const contentType = response.headers?.get ? response.headers.get("content-type") : null;
+    if (!isGet && typeof window !== 'undefined') {
+      try {
+        Object.keys(localStorage).forEach(key => {
+          if (key.startsWith('resifaso_cache_')) {
+            localStorage.removeItem(key);
+          }
+        });
+      } catch (e) {}
+    }
     if (contentType && contentType.includes("application/json")) {
       const data = await response.json();
       if (isGet && data !== undefined && typeof window !== 'undefined') {

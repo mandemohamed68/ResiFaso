@@ -101,6 +101,8 @@ export const AdminDashboard: React.FC<{ onBackToTraveler?: () => void }> = ({ on
         if (s.supportChatOpenTime !== undefined) setSupportChatOpenTime(s.supportChatOpenTime);
         if (s.supportChatCloseTime !== undefined) setSupportChatCloseTime(s.supportChatCloseTime);
         if (s.maxBookingsWithoutId !== undefined) setMaxBookingsWithoutId(Number(s.maxBookingsWithoutId));
+        if (s.clientServiceFeeEnabled !== undefined) setClientServiceFeeEnabled(s.clientServiceFeeEnabled);
+        if (s.clientServiceFeePercentage !== undefined) setClientServiceFeePercentage(Number(s.clientServiceFeePercentage));
         if (s.sappayClientId !== undefined) setSappayClientId(s.sappayClientId);
         if (s.sappayClientSecret !== undefined) setSappayClientSecret(s.sappayClientSecret);
         if (s.sappayUsername !== undefined) setSappayUsername(s.sappayUsername);
@@ -263,6 +265,8 @@ export const AdminDashboard: React.FC<{ onBackToTraveler?: () => void }> = ({ on
   const [supportChatOpenTime, setSupportChatOpenTime] = useState('08:00');
   const [supportChatCloseTime, setSupportChatCloseTime] = useState('20:00');
   const [maxBookingsWithoutId, setMaxBookingsWithoutId] = useState(3);
+  const [clientServiceFeeEnabled, setClientServiceFeeEnabled] = useState(false);
+  const [clientServiceFeePercentage, setClientServiceFeePercentage] = useState(5);
   
   // Status Editing for Booking
   const [editingBookingId, setEditingBookingId] = useState<string | null>(null);
@@ -1317,6 +1321,8 @@ export const AdminDashboard: React.FC<{ onBackToTraveler?: () => void }> = ({ on
       supportChatOpenTime: supportChatOpenTime,
       supportChatCloseTime: supportChatCloseTime,
       maxBookingsWithoutId: maxBookingsWithoutId,
+      clientServiceFeeEnabled: clientServiceFeeEnabled,
+      clientServiceFeePercentage: clientServiceFeePercentage,
       refundMode: refundMode,
       withdrawalMode: withdrawalMode,
       announcement: {
@@ -2637,7 +2643,7 @@ export const AdminDashboard: React.FC<{ onBackToTraveler?: () => void }> = ({ on
                               <div className="flex items-center justify-center gap-2">
                                 <button
                                   onClick={() => handleForceDeleteResidence(res.id, res.title)}
-                                  className="bg-red-650 text-white px-3 py-1.5 rounded-lg text-xs font-bold transition-colors select-none cursor-pointer"
+                                  className="bg-red-600 hover:bg-red-700 text-white px-3 py-1.5 rounded-lg text-xs font-bold transition-colors select-none cursor-pointer"
                                 >
                                   Confirmer
                                 </button>
@@ -5108,6 +5114,62 @@ export const AdminDashboard: React.FC<{ onBackToTraveler?: () => void }> = ({ on
               </div>
 
               <div className="border-t border-slate-250 pt-6 space-y-4">
+                <h3 className="text-sm font-black text-slate-800 uppercase tracking-wider">Frais de service Client (Future option)</h3>
+                
+                <div className="flex items-center gap-3 bg-white border border-slate-250 p-4 rounded-xl">
+                  <input
+                    type="checkbox"
+                    id="clientServiceFeeEnabled"
+                    checked={clientServiceFeeEnabled}
+                    onChange={(e) => setClientServiceFeeEnabled(e.target.checked)}
+                    className="w-5 h-5 text-red-600 rounded focus:ring-red-500 border-slate-300"
+                  />
+                  <div>
+                    <label htmlFor="clientServiceFeeEnabled" className="block text-sm font-black text-slate-900 cursor-pointer">Activer les frais de service</label>
+                    <span className="text-[10px] text-slate-500 font-medium">Appliquer un pourcentage supplémentaire au client.</span>
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-black text-slate-500 uppercase tracking-widest mb-1.5 font-bold">Pourcentage frais service (%)</label>
+                  <input 
+                    type="number" 
+                    value={clientServiceFeePercentage} 
+                    onChange={(e) => setClientServiceFeePercentage(Number(e.target.value))}
+                    className="w-full bg-white border border-slate-250 rounded-xl px-4 py-3 text-sm font-black outline-none focus:ring-2 focus:ring-red-500" 
+                  />
+                </div>
+              </div>
+
+              <div className="border-t border-slate-250 pt-6 space-y-4">
+                <h3 className="text-sm font-black text-slate-800 uppercase tracking-wider">Frais de service Client (Future option)</h3>
+                
+                <div className="flex items-center gap-3 bg-white border border-slate-250 p-4 rounded-xl">
+                  <input
+                    type="checkbox"
+                    id="clientServiceFeeEnabled"
+                    checked={clientServiceFeeEnabled}
+                    onChange={(e) => setClientServiceFeeEnabled(e.target.checked)}
+                    className="w-5 h-5 text-red-600 rounded focus:ring-red-500 border-slate-300"
+                  />
+                  <div>
+                    <label htmlFor="clientServiceFeeEnabled" className="block text-sm font-black text-slate-900 cursor-pointer">Activer les frais de service</label>
+                    <span className="text-[10px] text-slate-500 font-medium">Appliquer un pourcentage supplémentaire au client.</span>
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-black text-slate-500 uppercase tracking-widest mb-1.5 font-bold">Pourcentage frais service (%)</label>
+                  <input 
+                    type="number" 
+                    value={clientServiceFeePercentage} 
+                    onChange={(e) => setClientServiceFeePercentage(Number(e.target.value))}
+                    className="w-full bg-white border border-slate-250 rounded-xl px-4 py-3 text-sm font-black outline-none focus:ring-2 focus:ring-red-500" 
+                  />
+                </div>
+              </div>
+
+              <div className="border-t border-slate-250 pt-6 space-y-4">
                 <h3 className="text-sm font-black text-slate-800 uppercase tracking-wider">Support Client (Chat en ligne)</h3>
                 
                 <div className="flex items-center gap-3 bg-white border border-slate-250 p-4 rounded-xl">
@@ -7350,7 +7412,7 @@ export const AdminDashboard: React.FC<{ onBackToTraveler?: () => void }> = ({ on
                       setSelectedResForDetail(null);
                       await handleApproveResidence(resToApprove.id, resToApprove.title);
                     }}
-                    className="flex-1 bg-green-650 hover:bg-green-700 text-white font-black py-4 rounded-2xl text-sm uppercase flex items-center justify-center gap-1.5 shadow-lg shadow-green-600/15 cursor-pointer"
+                    className="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white font-black py-4 rounded-2xl text-sm uppercase flex items-center justify-center gap-1.5 shadow-lg shadow-emerald-600/20 cursor-pointer transition-colors"
                   >
                     <Check size={16} /> Approuver & Mettre en Ligne
                   </button>

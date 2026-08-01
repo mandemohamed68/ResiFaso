@@ -1,6 +1,6 @@
 import { CustomDatePicker } from "../common/CustomDatePicker";
 import { formatCurrency } from '../../utils/currency';
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
 import { useToast } from '../../contexts/ToastContext';
 import { useDataRefresh } from '../../contexts/DataRefreshContext';
@@ -794,10 +794,10 @@ const BookingTable: React.FC<BookingTableProps> = ({
 
                   {/* Sec 3: Finance structural audit */}
                   <div className="space-y-3 md:col-span-2 bg-slate-50 p-4 rounded-2xl border border-slate-100">
-                    <span className="block text-[10px] font-black text-slate-400 uppercase tracking-widest border-b pb-1 mb-2">💰 Structure Financière</span>
+                    <span className="block text-[10px] font-black text-slate-400 uppercase tracking-widest border-b pb-1 mb-2">💰 Structure Financière & Répartition des Gains</span>
                     <div className="grid grid-cols-2 md:grid-cols-3 gap-4 text-xs font-sans">
                       <div>
-                        <span className="text-slate-400 block pb-0.5 font-bold uppercase text-[9px]">Tarif Total</span>
+                        <span className="text-slate-400 block pb-0.5 font-bold uppercase text-[9px]">Tarif Total Location</span>
                         <strong className="text-base font-mono font-black text-slate-950">{formatCurrency(selectedBookingForDetails.totalPrice)} F CFA</strong>
                       </div>
                       <div>
@@ -819,6 +819,30 @@ const BookingTable: React.FC<BookingTableProps> = ({
                         </strong>
                       </div>
                     </div>
+
+                    {/* Net Earnings & Demarcheur Earnings Breakdown */}
+                    {(selectedBookingForDetails.ownerNetEarnings !== undefined || selectedBookingForDetails.demarcheurEarnings !== undefined) && (
+                      <div className="mt-2 pt-2 border-t border-slate-200/60 grid grid-cols-1 sm:grid-cols-3 gap-3 bg-white p-3 rounded-xl border border-slate-200/80">
+                        <div>
+                          <span className="text-slate-500 block text-[10px] font-bold uppercase">Commission Plateforme (10%)</span>
+                          <span className="text-xs font-black text-red-600">
+                            -{formatCurrency(selectedBookingForDetails.platformCommission || Math.round((selectedBookingForDetails.totalPrice || 0) * 0.1))} F CFA
+                          </span>
+                        </div>
+                        <div>
+                          <span className="text-slate-500 block text-[10px] font-bold uppercase">Net Hôte Propriétaire</span>
+                          <span className="text-xs font-black text-emerald-700">
+                            {formatCurrency(selectedBookingForDetails.ownerNetEarnings || Math.round((selectedBookingForDetails.totalPrice || 0) * 0.9))} F CFA
+                          </span>
+                        </div>
+                        <div>
+                          <span className="text-slate-500 block text-[10px] font-bold uppercase">Part Démarcheur / Mandataire</span>
+                          <span className="text-xs font-black text-amber-700">
+                            +{formatCurrency(selectedBookingForDetails.demarcheurEarnings || 0)} F CFA
+                          </span>
+                        </div>
+                      </div>
+                    )}
                     
                     <div className="mt-3 pt-3 border-t border-slate-205 border-slate-200/50 flex flex-wrap gap-x-6 gap-y-1.5 text-xs text-slate-500 font-medium items-center justify-between">
                       <div className="flex gap-x-6 gap-y-1.5 flex-wrap">
@@ -940,7 +964,7 @@ const BookingTable: React.FC<BookingTableProps> = ({
                 <button 
                   type="button"
                   onClick={() => setSelectedBookingForDetails(null)}
-                  className="px-5 py-2.5 bg-slate-900 hover:bg-red-650 text-white rounded-xl font-bold text-xs uppercase tracking-wider transition-colors cursor-pointer"
+                  className="px-5 py-2.5 bg-slate-900 hover:bg-red-600 text-white rounded-xl font-bold text-xs uppercase tracking-wider transition-colors cursor-pointer"
                 >
                   Fermer l'aperçu
                 </button>
@@ -997,7 +1021,7 @@ const BookingTable: React.FC<BookingTableProps> = ({
               <button 
                 type="button"
                 onClick={() => setSelectedBookingForVerifications(null)}
-                className="px-5 py-2.5 bg-slate-900 hover:bg-red-650 text-white rounded-xl font-bold text-xs uppercase tracking-wider transition-colors cursor-pointer"
+                className="px-5 py-2.5 bg-slate-900 hover:bg-red-600 text-white rounded-xl font-bold text-xs uppercase tracking-wider transition-colors cursor-pointer"
               >
                 Fermer
               </button>
@@ -1299,9 +1323,14 @@ export const OwnerDashboard: React.FC<{ isTestMode?: boolean; onBackToTraveler?:
   const [step, setStep] = useState(1);
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
 
+  const modalWrapperRef = useRef<HTMLDivElement>(null);
+  const modalContentRef = useRef<HTMLDivElement>(null);
+
   useEffect(() => {
-    window.scrollTo({ top: 0, behavior: 'smooth' });
-  }, [step, activeTab]);
+    window.scrollTo({ top: 0, behavior: 'instant' });
+    if (modalWrapperRef.current) modalWrapperRef.current.scrollTop = 0;
+    if (modalContentRef.current) modalContentRef.current.scrollTop = 0;
+  }, [step, isAddOpen, activeTab]);
 
   // Form states
   const [title, setTitle] = useState('');
@@ -1311,6 +1340,12 @@ export const OwnerDashboard: React.FC<{ isTestMode?: boolean; onBackToTraveler?:
   const [selectedNeighborhoodId, setSelectedNeighborhoodId] = useState('');
   const [street, setStreet] = useState('');
   const [pricePerNight, setPricePerNight] = useState('');
+  const [ownerNetPricePerNight, setOwnerNetPricePerNight] = useState('');
+  const [demarcheurFeePerNight, setDemarcheurFeePerNight] = useState('');
+  const [isManagedByDemarcheur, setIsManagedByDemarcheur] = useState(false);
+  const [commissionPayer, setCommissionPayer] = useState<'owner' | 'demarcheur' | 'shared'>('owner');
+  const [demarcheurName, setDemarcheurName] = useState('');
+  const [demarcheurPhone, setDemarcheurPhone] = useState('');
   const [utilitiesIncluded, setUtilitiesIncluded] = useState({ water: false, electricity: false });
   const [pricingTiers, setPricingTiers] = useState<{ minNights: number, pricePerNight: number }[]>([]);
   const [advancePercentage, setAdvancePercentage] = useState(100);
@@ -1509,12 +1544,38 @@ export const OwnerDashboard: React.FC<{ isTestMode?: boolean; onBackToTraveler?:
   const monthlyGains = monthlyBookings
     .filter(b => (b.paymentStatus === 'fully_paid' || b.paymentStatus === 'advance_paid') && b.bookingStatus !== 'cancelled')
     .reduce((acc, curr) => {
+      if (curr.ownerNetEarnings !== undefined && curr.ownerNetEarnings > 0) {
+        return acc + Number(curr.ownerNetEarnings);
+      }
       const totalPrice = Number(curr.totalPrice) || 0;
       const advancePaid = Number(curr.advancePaid) || 0;
       const platformCollected = curr.paymentStatus === 'fully_paid' ? totalPrice : (advancePaid || Math.round(totalPrice * 0.3));
       const platformCommission = totalPrice * (Number(commissionRate) / 100);
       const gain = Math.max(0, Math.round(platformCollected - platformCommission));
       return acc + gain;
+    }, 0);
+
+  const monthlyDemarcheurGains = monthlyBookings
+    .filter(b => (b.paymentStatus === 'fully_paid' || b.paymentStatus === 'advance_paid') && b.bookingStatus !== 'cancelled')
+    .reduce((acc, curr) => {
+      if (curr.demarcheurEarnings !== undefined && curr.demarcheurEarnings > 0) {
+        return acc + Number(curr.demarcheurEarnings);
+      }
+      const res = residences.find(r => r.id === curr.residenceId);
+      if (res?.isManagedByDemarcheur && res?.demarcheurFeePerNight) {
+        const nights = Math.max(1, Math.round((new Date(curr.checkOut).getTime() - new Date(curr.checkIn).getTime()) / 86400000));
+        const payer = res.commissionPayer || 'owner';
+        const fee = res.demarcheurFeePerNight * nights;
+        if (payer === 'demarcheur') {
+          const comm = Math.round((curr.totalPrice || 0) * 0.10);
+          return acc + Math.max(0, fee - comm);
+        } else if (payer === 'shared') {
+          return acc + Math.round(fee * 0.90);
+        } else {
+          return acc + fee;
+        }
+      }
+      return acc;
     }, 0);
 
   const monthlyCommissions = monthlyBookings
@@ -1524,12 +1585,38 @@ export const OwnerDashboard: React.FC<{ isTestMode?: boolean; onBackToTraveler?:
   const totalNetEarned = bookings
     .filter(b => (b.paymentStatus === 'fully_paid' || b.paymentStatus === 'advance_paid') && b.bookingStatus !== 'cancelled')
     .reduce((acc, curr) => {
+      if (curr.ownerNetEarnings !== undefined && curr.ownerNetEarnings > 0) {
+        return acc + Number(curr.ownerNetEarnings);
+      }
       const totalPrice = Number(curr.totalPrice) || 0;
       const advancePaid = Number(curr.advancePaid) || 0;
       const platformCollected = curr.paymentStatus === 'fully_paid' ? totalPrice : (advancePaid || Math.round(totalPrice * 0.3));
       const platformCommission = totalPrice * (Number(commissionRate) / 100);
       const gain = Math.max(0, Math.round(platformCollected - platformCommission));
       return acc + gain;
+    }, 0);
+
+  const totalDemarcheurEarned = bookings
+    .filter(b => (b.paymentStatus === 'fully_paid' || b.paymentStatus === 'advance_paid') && b.bookingStatus !== 'cancelled')
+    .reduce((acc, curr) => {
+      if (curr.demarcheurEarnings !== undefined && curr.demarcheurEarnings > 0) {
+        return acc + Number(curr.demarcheurEarnings);
+      }
+      const res = residences.find(r => r.id === curr.residenceId);
+      if (res?.isManagedByDemarcheur && res?.demarcheurFeePerNight) {
+        const nights = Math.max(1, Math.round((new Date(curr.checkOut).getTime() - new Date(curr.checkIn).getTime()) / 86400000));
+        const payer = res.commissionPayer || 'owner';
+        const fee = res.demarcheurFeePerNight * nights;
+        if (payer === 'demarcheur') {
+          const comm = Math.round((curr.totalPrice || 0) * 0.10);
+          return acc + Math.max(0, fee - comm);
+        } else if (payer === 'shared') {
+          return acc + Math.round(fee * 0.90);
+        } else {
+          return acc + fee;
+        }
+      }
+      return acc;
     }, 0);
 
   const totalWithdrawn = withdrawals
@@ -1903,6 +1990,12 @@ export const OwnerDashboard: React.FC<{ isTestMode?: boolean; onBackToTraveler?:
     setSelectedNeighborhoodId('');
     setStreet('');
     setPricePerNight('');
+    setOwnerNetPricePerNight('');
+    setDemarcheurFeePerNight('');
+    setIsManagedByDemarcheur(false);
+    setCommissionPayer('owner');
+    setDemarcheurName('');
+    setDemarcheurPhone('');
     setAdvancePercentage(100);
     setCleaningFee('');
     setServiceFee('0');
@@ -2018,7 +2111,19 @@ export const OwnerDashboard: React.FC<{ isTestMode?: boolean; onBackToTraveler?:
     setSelectedNeighborhoodId(hood?.id || hoodName || '');
 
     setStreet(res.address?.street || res.street || '');
-    setPricePerNight(res.pricePerNight.toString());
+    const netPrice = res.ownerNetPricePerNight ? Number(res.ownerNetPricePerNight) : 0;
+    const demPrice = res.demarcheurFeePerNight ? Number(res.demarcheurFeePerNight) : 0;
+    if (res.isManagedByDemarcheur && (netPrice > 0 || demPrice > 0)) {
+      setPricePerNight((netPrice + demPrice).toString());
+    } else {
+      setPricePerNight(res.pricePerNight.toString());
+    }
+    setOwnerNetPricePerNight((res.ownerNetPricePerNight || '').toString());
+    setDemarcheurFeePerNight((res.demarcheurFeePerNight || '').toString());
+    setIsManagedByDemarcheur(!!res.isManagedByDemarcheur);
+    setCommissionPayer(res.commissionPayer || 'owner');
+    setDemarcheurName(res.demarcheurName || '');
+    setDemarcheurPhone(res.demarcheurPhone || '');
     setAdvancePercentage(res.advancePercentage);
     setCleaningFee(res.cleaningFee.toString());
     setServiceFee((res.serviceFee || 0).toString());
@@ -2121,6 +2226,12 @@ export const OwnerDashboard: React.FC<{ isTestMode?: boolean; onBackToTraveler?:
       description,
       type: type as any,
       pricePerNight: Number(pricePerNight),
+      ownerNetPricePerNight: ownerNetPricePerNight ? Number(ownerNetPricePerNight) : 0,
+      demarcheurFeePerNight: demarcheurFeePerNight ? Number(demarcheurFeePerNight) : 0,
+      isManagedByDemarcheur: isManagedByDemarcheur,
+      commissionPayer: isManagedByDemarcheur ? commissionPayer : 'owner',
+      demarcheurName: demarcheurName,
+      demarcheurPhone: demarcheurPhone,
       advancePercentage,
       cleaningFee: Number(cleaningFee) || 0,
       serviceFee: useServiceFee ? (Number(serviceFee) || 0) : 0,
@@ -2751,34 +2862,44 @@ export const OwnerDashboard: React.FC<{ isTestMode?: boolean; onBackToTraveler?:
             exit={{ opacity: 0, y: -10 }}
             className="space-y-6"
           >
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              <div className="bg-white border text-center border-slate-100 rounded-2xl p-6 shadow-sm">
-                <p className="text-sm font-black text-slate-400 uppercase tracking-widest mb-1">Gains Nets du mois</p>
-                <p className="text-3xl font-black text-slate-900 leading-tight">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5">
+              <div className="bg-white border text-center border-slate-100 rounded-2xl p-5 shadow-sm">
+                <p className="text-xs font-black text-slate-400 uppercase tracking-widest mb-1">Gains Hôte du mois</p>
+                <p className="text-2xl font-black text-slate-900 leading-tight">
                   {formatCurrency(monthlyGains)} F CFA
                 </p>
-                <div className="mt-4 flex justify-center">
-                  <span className="text-xs bg-green-50 text-green-700 font-bold px-2 py-1 rounded-lg">Versements nets après commission</span>
+                <div className="mt-3 flex justify-center">
+                  <span className="text-[10px] bg-green-50 text-green-700 font-bold px-2 py-0.5 rounded-lg">Part Propriétaire Net</span>
                 </div>
               </div>
 
-              <div className="bg-white border text-center border-slate-100 rounded-2xl p-6 shadow-sm">
-                <p className="text-sm font-black text-slate-400 uppercase tracking-widest mb-1">Taux de Commission</p>
-                <p className="text-3xl font-black text-red-600 leading-tight">
-                  {commissionRate}%
+              <div className="bg-white border text-center border-amber-100/80 bg-amber-50/20 rounded-2xl p-5 shadow-sm">
+                <p className="text-xs font-black text-amber-800 uppercase tracking-widest mb-1">Gains Démarcheurs (Mois)</p>
+                <p className="text-2xl font-black text-amber-700 leading-tight">
+                  +{formatCurrency(monthlyDemarcheurGains)} F CFA
                 </p>
-                <p className="text-xs text-slate-500 font-bold mt-2">Frais de service plateforme</p>
+                <div className="mt-3 flex justify-center">
+                  <span className="text-[10px] bg-amber-100 text-amber-900 font-bold px-2 py-0.5 rounded-lg">Part Mandataires Cumulée</span>
+                </div>
               </div>
 
-              <div className="bg-slate-900 text-center rounded-2xl p-6 shadow-sm relative overflow-hidden">
+              <div className="bg-white border text-center border-slate-100 rounded-2xl p-5 shadow-sm">
+                <p className="text-xs font-black text-slate-400 uppercase tracking-widest mb-1">Taux de Commission</p>
+                <p className="text-2xl font-black text-red-600 leading-tight">
+                  {commissionRate}%
+                </p>
+                <p className="text-[10px] text-slate-500 font-bold mt-2">Frais de service plateforme</p>
+              </div>
+
+              <div className="bg-slate-900 text-center rounded-2xl p-5 shadow-sm relative overflow-hidden">
                 <div className="absolute -right-4 -top-4 w-24 h-24 bg-red-600/20 rounded-full blur-2xl"></div>
-                <p className="text-sm font-black text-slate-300 uppercase tracking-widest mb-1 relative z-10">Déjà Retiré / En cours</p>
-                <p className="text-3xl font-black text-white leading-tight relative z-10">
+                <p className="text-xs font-black text-slate-300 uppercase tracking-widest mb-1 relative z-10">Retiré / En cours</p>
+                <p className="text-2xl font-black text-white leading-tight relative z-10">
                   {formatCurrency(totalWithdrawn + totalPendingWithdrawal)} F CFA
                 </p>
-                <div className="mt-4 flex justify-center gap-2">
-                  <span className="text-[10px] bg-white/10 text-white/60 font-bold px-2 py-1 rounded-lg">Retirés: {formatCurrency(totalWithdrawn)}</span>
-                  <span className="text-[10px] bg-amber-500/20 text-amber-400 font-bold px-2 py-1 rounded-lg">En attente: {formatCurrency(totalPendingWithdrawal)}</span>
+                <div className="mt-3 flex justify-center gap-1.5 flex-wrap">
+                  <span className="text-[9px] bg-white/10 text-white/70 font-bold px-2 py-0.5 rounded-lg">Retirés: {formatCurrency(totalWithdrawn)}</span>
+                  <span className="text-[9px] bg-amber-500/20 text-amber-400 font-bold px-2 py-0.5 rounded-lg">En attente: {formatCurrency(totalPendingWithdrawal)}</span>
                 </div>
               </div>
             </div>
@@ -3016,6 +3137,104 @@ export const OwnerDashboard: React.FC<{ isTestMode?: boolean; onBackToTraveler?:
                   </div>
                 )}
               </div>
+            </div>
+
+            {/* Démarcheurs & Mandataires Gains Table */}
+            <div className="bg-white border border-slate-100 rounded-3xl p-6 shadow-sm space-y-4">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between border-b border-slate-100 pb-4 gap-2">
+                <div>
+                  <h3 className="text-lg font-black text-slate-900 flex items-center gap-2">
+                    <span>🤝</span>
+                    <span>Suivi des Gains & Commissions Démarcheurs</span>
+                  </h3>
+                  <p className="text-xs text-slate-400 font-bold uppercase tracking-wider mt-0.5">
+                    Historique des réservations gérées par un mandataire
+                  </p>
+                </div>
+                <span className="text-xs font-black bg-amber-100 text-amber-900 px-3 py-1.5 rounded-xl self-start sm:self-auto">
+                  Total Cumulé Démarcheurs : {formatCurrency(totalDemarcheurEarned)} F CFA
+                </span>
+              </div>
+
+              {(() => {
+                const demarcheurBookings = bookings.filter(b => {
+                  const res = residences.find(r => r.id === b.residenceId);
+                  return res?.isManagedByDemarcheur || (b.demarcheurEarnings && b.demarcheurEarnings > 0);
+                });
+
+                if (demarcheurBookings.length === 0) {
+                  return (
+                    <div className="text-center py-10 text-slate-400 font-medium text-xs space-y-1">
+                      <p className="font-bold">Aucune réservation avec démarcheur enregistrée pour le moment.</p>
+                      <p className="text-[10px] text-slate-400">
+                        Activez l'option "Résidence gérée par un démarcheur" lors de la création d'un logement.
+                      </p>
+                    </div>
+                  );
+                }
+
+                return (
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-left border-collapse">
+                      <thead>
+                        <tr className="border-b border-slate-100 text-[10px] font-black text-slate-400 uppercase tracking-widest bg-slate-50/50">
+                          <th className="py-3 px-4">Résidence & Démarcheur</th>
+                          <th className="py-3 px-4">Voyageur / Dates</th>
+                          <th className="py-3 px-4 text-right">Tarif Public</th>
+                          <th className="py-3 px-4 text-center">Support Commission (10%)</th>
+                          <th className="py-3 px-4 text-right">Net Hôte</th>
+                          <th className="py-3 px-4 text-right">Gain Démarcheur</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-slate-100 text-xs font-bold text-slate-700">
+                        {demarcheurBookings.map((bk) => {
+                          const res = residences.find(r => r.id === bk.residenceId);
+                          const nights = Math.max(1, Math.round((new Date(bk.checkOut).getTime() - new Date(bk.checkIn).getTime()) / 86400000));
+                          const payer = res?.commissionPayer || 'owner';
+
+                          const demEarned = bk.demarcheurEarnings !== undefined && bk.demarcheurEarnings > 0
+                            ? bk.demarcheurEarnings
+                            : (res?.demarcheurFeePerNight ? (payer === 'demarcheur' ? Math.max(0, (res.demarcheurFeePerNight * nights) - Math.round(bk.totalPrice * 0.1)) : payer === 'shared' ? Math.round((res.demarcheurFeePerNight * nights) * 0.9) : res.demarcheurFeePerNight * nights) : 0);
+
+                          const ownerEarned = bk.ownerNetEarnings !== undefined && bk.ownerNetEarnings > 0
+                            ? bk.ownerNetEarnings
+                            : Math.max(0, bk.totalPrice - Math.round(bk.totalPrice * 0.1) - demEarned);
+
+                          return (
+                            <tr key={bk.id} className="hover:bg-slate-50/60 transition-colors">
+                              <td className="py-3.5 px-4">
+                                <span className="block font-black text-slate-900">{res?.title || 'Logement'}</span>
+                                <span className="text-[10px] font-bold text-amber-800 flex items-center gap-1 mt-0.5">
+                                  <span>👤 {res?.demarcheurName || 'Démarcheur'}</span>
+                                  {res?.demarcheurPhone && <span className="text-slate-400">({res.demarcheurPhone})</span>}
+                                </span>
+                              </td>
+                              <td className="py-3.5 px-4">
+                                <span className="block font-extrabold text-slate-800">{bk.clientName || 'Client'}</span>
+                                <span className="text-[10px] text-slate-400">{nights} nuit(s) &bull; du {formatDateFr(bk.checkIn)} au {formatDateFr(bk.checkOut)}</span>
+                              </td>
+                              <td className="py-3.5 px-4 text-right font-black text-slate-900">
+                                {formatCurrency(bk.totalPrice)} F
+                              </td>
+                              <td className="py-3.5 px-4 text-center">
+                                <span className="inline-block px-2 py-0.5 rounded-lg text-[9px] font-black uppercase tracking-wider bg-amber-50 text-amber-900 border border-amber-200">
+                                  {payer === 'owner' ? 'Hôte (Propriétaire)' : payer === 'demarcheur' ? 'Démarcheur' : 'Partagée (50/50)'}
+                                </span>
+                              </td>
+                              <td className="py-3.5 px-4 text-right font-black text-emerald-700">
+                                {formatCurrency(ownerEarned)} F
+                              </td>
+                              <td className="py-3.5 px-4 text-right font-black text-amber-700">
+                                +{formatCurrency(demEarned)} F
+                              </td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
+                );
+              })()}
             </div>
           </motion.div>
         )}
@@ -3395,10 +3614,11 @@ export const OwnerDashboard: React.FC<{ isTestMode?: boolean; onBackToTraveler?:
       {/* Multistage Form modal overlay */}
       <AnimatePresence>
         {isAddOpen && (
-          <div className="fixed inset-0 z-50 flex items-start justify-center p-3 sm:p-6 pt-4 sm:pt-8 pb-10 overflow-y-auto">
+          <div ref={modalWrapperRef} className="fixed inset-0 z-50 flex items-start justify-center p-3 sm:p-6 pt-4 sm:pt-8 pb-10 overflow-y-auto">
             <div className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm" onClick={handleCloseAddModal} />
             
             <motion.div
+              ref={modalContentRef}
               initial={{ opacity: 0, scale: 0.95, y: 20 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.95, y: 20 }}
@@ -3798,6 +4018,236 @@ export const OwnerDashboard: React.FC<{ isTestMode?: boolean; onBackToTraveler?:
                             placeholder="Montant en F CFA (ex: 2000)"
                             className="w-full bg-white border border-red-100 focus:border-red-500 rounded-xl py-3 px-4 outline-none text-sm font-black text-red-600"
                           />
+                        </motion.div>
+                      )}
+                    </div>
+
+                    {/* Gestion Mandataire / Démarcheur UI Block */}
+                    <div className="p-5 bg-amber-50/60 rounded-2xl border border-amber-200/80 space-y-4">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <label className="block text-xs font-black text-amber-900 uppercase tracking-wider flex items-center gap-1.5">
+                            🤝 Gestion par un Mandataire / Démarcheur
+                          </label>
+                          <p className="text-[10px] text-amber-700 font-bold italic">
+                            Activez si cette résidence est gérée par un démarcheur ou si le prix net de l'hôte diffère du prix public.
+                          </p>
+                        </div>
+                        <button 
+                          type="button"
+                          onClick={() => {
+                            const next = !isManagedByDemarcheur;
+                            setIsManagedByDemarcheur(next);
+                            if (next) {
+                              const net = Number(ownerNetPricePerNight) || 0;
+                              const dem = Number(demarcheurFeePerNight) || 0;
+                              if (net > 0 || dem > 0) {
+                                setPricePerNight((net + dem).toString());
+                              }
+                            } else {
+                              const net = Number(ownerNetPricePerNight) || 0;
+                              if (net > 0) {
+                                setPricePerNight(net.toString());
+                              }
+                            }
+                          }}
+                          className={`w-12 h-6 rounded-full transition-all relative ${isManagedByDemarcheur ? 'bg-amber-600' : 'bg-slate-300'}`}
+                        >
+                          <div className={`absolute top-1 w-4 h-4 rounded-full bg-white transition-all ${isManagedByDemarcheur ? 'left-7' : 'left-1'}`} />
+                        </button>
+                      </div>
+
+                      {isManagedByDemarcheur && (
+                        <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} className="space-y-4 pt-2 border-t border-amber-200/50">
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                            <div>
+                              <label className="block text-xs font-black text-slate-700 uppercase tracking-wider mb-1">
+                                Net Propriétaire / Nuit (F CFA)
+                              </label>
+                              <input
+                                type="number"
+                                value={ownerNetPricePerNight}
+                                onChange={(e) => {
+                                  const val = e.target.value;
+                                  setOwnerNetPricePerNight(val);
+                                  const net = Number(val) || 0;
+                                  const dem = Number(demarcheurFeePerNight) || 0;
+                                  if (net > 0 || dem > 0) {
+                                    setPricePerNight((net + dem).toString());
+                                  }
+                                }}
+                                placeholder="Ex: 15000"
+                                className="w-full bg-white border border-slate-200 focus:border-amber-500 rounded-xl py-3 px-3.5 outline-none text-sm font-bold"
+                              />
+                            </div>
+                            <div>
+                              <label className="block text-xs font-black text-slate-700 uppercase tracking-wider mb-1">
+                                Part / Gain Démarcheur / Nuit (F CFA)
+                              </label>
+                              <input
+                                type="number"
+                                value={demarcheurFeePerNight}
+                                onChange={(e) => {
+                                  const val = e.target.value;
+                                  setDemarcheurFeePerNight(val);
+                                  const net = Number(ownerNetPricePerNight) || 0;
+                                  const dem = Number(val) || 0;
+                                  if (net > 0 || dem > 0) {
+                                    setPricePerNight((net + dem).toString());
+                                  }
+                                }}
+                                placeholder="Ex: 5000"
+                                className="w-full bg-white border border-slate-200 focus:border-amber-500 rounded-xl py-3 px-3.5 outline-none text-sm font-bold text-amber-800"
+                              />
+                            </div>
+                          </div>
+
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                            <div>
+                              <label className="block text-xs font-black text-slate-700 uppercase tracking-wider mb-1">
+                                Nom du Démarcheur / Mandataire (Optionnel)
+                              </label>
+                              <input
+                                type="text"
+                                value={demarcheurName}
+                                onChange={(e) => setDemarcheurName(e.target.value)}
+                                placeholder="Ex: Ibrahim Sawadogo"
+                                className="w-full bg-white border border-slate-200 focus:border-amber-500 rounded-xl py-2.5 px-3.5 outline-none text-xs font-medium"
+                              />
+                            </div>
+                            <div>
+                              <label className="block text-xs font-black text-slate-700 uppercase tracking-wider mb-1">
+                                Téléphone Démarcheur (Optionnel)
+                              </label>
+                              <input
+                                type="tel"
+                                value={demarcheurPhone}
+                                onChange={(e) => setDemarcheurPhone(e.target.value)}
+                                placeholder="Ex: +226 70 00 00 00"
+                                className="w-full bg-white border border-slate-200 focus:border-amber-500 rounded-xl py-2.5 px-3.5 outline-none text-xs font-medium"
+                              />
+                            </div>
+                          </div>
+
+                          {/* Platform Fee Payer Selector */}
+                          <div className="space-y-2 pt-2 border-t border-amber-200/50">
+                            <label className="block text-xs font-black text-slate-800 uppercase tracking-wider">
+                              Qui supporte les frais de plateforme (10%) ?
+                            </label>
+                            <p className="text-[11px] text-slate-500 font-medium">
+                              Choisissez la partie qui prend en charge la commission de 10% appliquée sur le tarif total de location.
+                            </p>
+                            <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 pt-1">
+                              <button
+                                type="button"
+                                onClick={() => setCommissionPayer('owner')}
+                                className={cn(
+                                  "p-3 rounded-xl border text-left transition-all cursor-pointer flex flex-col justify-between",
+                                  commissionPayer === 'owner'
+                                    ? "bg-amber-50 border-amber-500 ring-2 ring-amber-500/20 text-amber-950 font-bold shadow-xs"
+                                    : "bg-white border-slate-200 text-slate-600 hover:bg-slate-50"
+                                )}
+                              >
+                                <div className="flex items-center gap-1.5 font-black text-xs">
+                                  <span>🏢</span>
+                                  <span>Propriétaire</span>
+                                </div>
+                                <span className="text-[10px] text-slate-500 font-semibold mt-1">10% déduits du propriétaire</span>
+                              </button>
+
+                              <button
+                                type="button"
+                                onClick={() => setCommissionPayer('demarcheur')}
+                                className={cn(
+                                  "p-3 rounded-xl border text-left transition-all cursor-pointer flex flex-col justify-between",
+                                  commissionPayer === 'demarcheur'
+                                    ? "bg-amber-50 border-amber-500 ring-2 ring-amber-500/20 text-amber-950 font-bold shadow-xs"
+                                    : "bg-white border-slate-200 text-slate-600 hover:bg-slate-50"
+                                )}
+                              >
+                                <div className="flex items-center gap-1.5 font-black text-xs">
+                                  <span>🤝</span>
+                                  <span>Démarcheur</span>
+                                </div>
+                                <span className="text-[10px] text-slate-500 font-semibold mt-1">10% déduits du démarcheur</span>
+                              </button>
+
+                              <button
+                                type="button"
+                                onClick={() => setCommissionPayer('shared')}
+                                className={cn(
+                                  "p-3 rounded-xl border text-left transition-all cursor-pointer flex flex-col justify-between",
+                                  commissionPayer === 'shared'
+                                    ? "bg-amber-50 border-amber-500 ring-2 ring-amber-500/20 text-amber-950 font-bold shadow-xs"
+                                    : "bg-white border-slate-200 text-slate-600 hover:bg-slate-50"
+                                )}
+                              >
+                                <div className="flex items-center gap-1.5 font-black text-xs">
+                                  <span>⚖️</span>
+                                  <span>Partagée (Prorata)</span>
+                                </div>
+                                <span className="text-[10px] text-slate-500 font-semibold mt-1">-10% sur chaque part</span>
+                              </button>
+                            </div>
+                          </div>
+
+                          {/* Dynamic Simulation Card */}
+                          {Number(pricePerNight) > 0 && (() => {
+                            const tot = Number(pricePerNight) || 0;
+                            const comm = Math.round(tot * 0.10);
+                            const netOwn = Number(ownerNetPricePerNight) || 0;
+                            const demFee = Number(demarcheurFeePerNight) || 0;
+
+                            let simOwn = 0;
+                            let simDem = 0;
+                            if (commissionPayer === 'owner') {
+                              simDem = demFee;
+                              simOwn = Math.max(0, tot - comm - demFee);
+                            } else if (commissionPayer === 'demarcheur') {
+                              simOwn = netOwn;
+                              simDem = Math.max(0, tot - comm - netOwn);
+                            } else {
+                              simOwn = Math.round(netOwn * 0.90);
+                              simDem = Math.round(demFee * 0.90);
+                            }
+
+                            return (
+                              <div className="bg-white p-4 rounded-2xl border border-amber-200/90 text-xs space-y-2.5 shadow-sm">
+                                <span className="font-black text-amber-900 uppercase block tracking-wider text-[11px] border-b border-amber-100 pb-1.5">
+                                  📊 Simulation de Répartition Financière par Nuit (10% Commission)
+                                </span>
+                                
+                                <div className="space-y-1.5 p-3 bg-amber-50/70 rounded-xl border border-amber-200/60 font-sans">
+                                  <div className="flex justify-between items-center text-slate-700">
+                                    <span>Prix Total Public Client :</span>
+                                    <span className="font-black text-red-600 text-sm">{formatCurrency(tot)} F CFA</span>
+                                  </div>
+                                  <div className="flex justify-between items-center text-red-600 font-semibold text-[11px]">
+                                    <span>Commission Plateforme (10%) :</span>
+                                    <span className="font-extrabold">-{formatCurrency(comm)} F CFA</span>
+                                  </div>
+                                  <div className="flex justify-between items-center text-slate-800 font-bold pt-1 border-t border-amber-200/50">
+                                    <span>💰 Gain Net Propriétaire Hôte :</span>
+                                    <span className="font-black text-slate-900 text-sm">{formatCurrency(simOwn)} F CFA</span>
+                                  </div>
+                                  <div className="flex justify-between items-center text-amber-900 font-bold">
+                                    <span>🤝 Gain Net Démarcheur / Mandataire :</span>
+                                    <span className="font-black text-amber-800 text-sm">+{formatCurrency(simDem)} F CFA</span>
+                                  </div>
+                                </div>
+
+                                <p className="text-[10px] text-slate-600 font-medium italic leading-relaxed bg-amber-50/40 p-2 rounded-lg border border-amber-100">
+                                  💡 <strong>Répartition configurée :</strong> {
+                                    commissionPayer === 'owner' 
+                                      ? `La commission de 10% (${formatCurrency(comm)} F CFA) est entièrement supportée par le Propriétaire. Le Démarcheur perçoit l'intégralité de sa part (${formatCurrency(simDem)} F CFA).`
+                                      : commissionPayer === 'demarcheur'
+                                      ? `La commission de 10% (${formatCurrency(comm)} F CFA) est entièrement supportée par le Démarcheur. Le Propriétaire perçoit l'intégralité de son net (${formatCurrency(simOwn)} F CFA).`
+                                      : `La commission de 10% est répartie au prorata (-10% sur la part propriétaire et -10% sur la part démarcheur).`
+                                  }
+                                </p>
+                              </div>
+                            );
+                          })()}
                         </motion.div>
                       )}
                     </div>

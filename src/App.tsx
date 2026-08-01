@@ -97,6 +97,9 @@ function AppContent() {
     }
   }, [resData, resLoading, residences.length]);
 
+  const [clientServiceFeeEnabled, setClientServiceFeeEnabled] = useState(false);
+  const [clientServiceFeePercentage, setClientServiceFeePercentage] = useState(5);
+
   useEffect(() => {
     if (gsData) {
       const gs = gsData as any;
@@ -107,6 +110,8 @@ function AppContent() {
       if (gs.minReservationAmountEnabled !== undefined) setMinReservationAmountEnabled(gs.minReservationAmountEnabled);
       if (gs.minReservationAmount !== undefined) setMinReservationAmount(gs.minReservationAmount);
       if (gs.maxBookingsWithoutId !== undefined) setMaxBookingsWithoutId(Number(gs.maxBookingsWithoutId));
+      if (gs.clientServiceFeeEnabled !== undefined) setClientServiceFeeEnabled(!!gs.clientServiceFeeEnabled);
+      if (gs.clientServiceFeePercentage !== undefined) setClientServiceFeePercentage(Number(gs.clientServiceFeePercentage) || 5);
       
       if (gs.announcements && gs.announcements.length > 0) {
         setAnnouncements(gs.announcements);
@@ -375,11 +380,37 @@ function AppContent() {
     const cleaning = Number(res.cleaningFee || res.cleaning_fee || 0);
     const extraService = Number(res.serviceFee || res.service_fee || 0);
     
-    // Global platform commission is supported by the host, not the client
-    const total = base + cleaning + extraService;
+    const clientFee = clientServiceFeeEnabled 
+      ? Math.round(base * (clientServiceFeePercentage / 100))
+      : 0;
+
+    const total = base + cleaning + extraService + clientFee;
     
     if (isNaN(total) || total < 0) return 0;
     return Math.round(total);
+  };
+
+  const calculateClientServiceFeeAmount = (res: Residence) => {
+    if (!res || !clientServiceFeeEnabled) return 0;
+    const nights = calculateNights();
+    const rawPrice = res.promoPrice ?? res.promo_price ?? res.pricePerNight ?? res.price_per_night ?? 0;
+    let pricePerNight = Number(rawPrice);
+    if (res.pricingTiers && Array.isArray(res.pricingTiers) && res.pricingTiers.length > 0) {
+      const applicableTiers = [...res.pricingTiers]
+        .filter(tier => nights >= tier.minNights)
+        .sort((a, b) => b.minNights - a.minNights);
+      if (applicableTiers.length > 0) {
+        pricePerNight = Number(applicableTiers[0].pricePerNight);
+      }
+    }
+    let discount = 0;
+    if (nights >= 28 && (res.monthlyDiscount || res.monthly_discount)) {
+      discount = Number(res.monthlyDiscount || res.monthly_discount);
+    } else if (nights >= 7 && (res.weeklyDiscount || res.weekly_discount)) {
+      discount = Number(res.weeklyDiscount || res.weekly_discount);
+    }
+    const base = (pricePerNight * nights) * (1 - (discount || 0) / 100);
+    return Math.round(base * (clientServiceFeePercentage / 100));
   };
 
   const calculateAdvance = (res: Residence) => {
@@ -584,6 +615,37 @@ function AppContent() {
         return;
       }
       const advanceAmount = calculateAdvance(selectedResidence);
+      const clientServiceFeeVal = calculateClientServiceFeeAmount(selectedResidence);
+      const nightsVal = calculateNights();
+      const platformCommVal = Math.round((totalAmount - clientServiceFeeVal) * (commissionRate / 100));
+      
+      const netPriceNight = selectedResidence.ownerNetPricePerNight || 0;
+      const demFeeNight = selectedResidence.demarcheurFeePerNight || 0;
+      const isDem = selectedResidence.isManagedByDemarcheur;
+      const payer = selectedResidence.commissionPayer || 'owner';
+
+      let ownerNetVal = 0;
+      let demarcheurFeeVal = 0;
+
+      if (isDem && (netPriceNight > 0 || demFeeNight > 0)) {
+        const publicStayPrice = totalAmount - clientServiceFeeVal;
+        if (payer === 'owner') {
+          demarcheurFeeVal = demFeeNight * nightsVal;
+          ownerNetVal = Math.max(0, publicStayPrice - platformCommVal - demarcheurFeeVal);
+        } else if (payer === 'demarcheur') {
+          ownerNetVal = netPriceNight * nightsVal;
+          demarcheurFeeVal = Math.max(0, publicStayPrice - platformCommVal - ownerNetVal);
+        } else if (payer === 'shared') {
+          ownerNetVal = Math.round((netPriceNight * nightsVal) * 0.90);
+          demarcheurFeeVal = Math.round((demFeeNight * nightsVal) * 0.90);
+        } else {
+          demarcheurFeeVal = demFeeNight * nightsVal;
+          ownerNetVal = Math.max(0, publicStayPrice - platformCommVal - demarcheurFeeVal);
+        }
+      } else {
+        ownerNetVal = Math.max(0, (totalAmount - clientServiceFeeVal) - platformCommVal);
+        demarcheurFeeVal = 0;
+      }
 
       const bookingPayload = {
         residenceId: selectedResidence.id,
@@ -594,6 +656,10 @@ function AppContent() {
         guests: searchFilters?.capacity || 1,
         totalPrice: totalAmount,
         advancePaid: advanceAmount,
+        clientServiceFee: clientServiceFeeVal,
+        platformCommission: platformCommVal,
+        ownerNetEarnings: ownerNetVal,
+        demarcheurEarnings: demarcheurFeeVal,
         bookingStatus: 'pending' as const, // En attente d'approbation d'hôte
         paymentStatus: 'pending' as const, // Pay progress starts
         createdAt: new Date().toISOString(),
@@ -1497,6 +1563,13 @@ function AppContent() {
                               <span>Frais de ménage</span>
                               <span className="font-medium">{formatFCFA(selectedResidence.cleaningFee || selectedResidence.cleaning_fee)}</span>
                             </div>
+
+                            {clientServiceFeeEnabled && (
+                              <div className="flex justify-between text-slate-600 font-bold">
+                                <span>Frais d'utilisation / service ({clientServiceFeePercentage}%)</span>
+                                <span className="font-black text-red-600">+{formatFCFA(calculateClientServiceFeeAmount(selectedResidence))}</span>
+                              </div>
+                            )}
                           </>
                         );
                       })()}

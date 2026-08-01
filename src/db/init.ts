@@ -276,6 +276,17 @@ export const initDatabase = async () => {
       console.warn("Avertissement migration MariaDB residences.type:", typeErr.message);
     }
 
+    await safeAlter('residences', 'owner_net_price_per_night', 'DECIMAL(10, 2) DEFAULT 0');
+    await safeAlter('residences', 'demarcheur_fee_per_night', 'DECIMAL(10, 2) DEFAULT 0');
+    await safeAlter('residences', 'is_managed_by_demarcheur', 'BOOLEAN DEFAULT 0');
+    await safeAlter('residences', 'demarcheur_name', 'VARCHAR(255) NULL');
+    await safeAlter('residences', 'demarcheur_phone', 'VARCHAR(50) NULL');
+
+    await safeAlter('bookings', 'client_service_fee', 'DECIMAL(10, 2) DEFAULT 0');
+    await safeAlter('bookings', 'owner_net_earnings', 'DECIMAL(10, 2) DEFAULT 0');
+    await safeAlter('bookings', 'demarcheur_earnings', 'DECIMAL(10, 2) DEFAULT 0');
+    await safeAlter('bookings', 'platform_commission', 'DECIMAL(10, 2) DEFAULT 0');
+
     // Residence Amenities Table
     await executeSql(`
       CREATE TABLE IF NOT EXISTS residence_amenities (
@@ -697,6 +708,12 @@ export const initDatabase = async () => {
         owner_phone TEXT,
         rating REAL DEFAULT 0,
         review_count INTEGER DEFAULT 0,
+        owner_net_price_per_night REAL DEFAULT 0,
+        demarcheur_fee_per_night REAL DEFAULT 0,
+        is_managed_by_demarcheur INTEGER DEFAULT 0,
+        commission_payer TEXT DEFAULT 'owner',
+        demarcheur_name TEXT,
+        demarcheur_phone TEXT,
         created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
         FOREIGN KEY(owner_id) REFERENCES users(uid)
       )
@@ -706,6 +723,12 @@ export const initDatabase = async () => {
     await safeAlter('residences', 'owner_phone', 'TEXT');
     await safeAlter('residences', 'rating', 'REAL DEFAULT 0');
     await safeAlter('residences', 'review_count', 'INTEGER DEFAULT 0');
+    await safeAlter('residences', 'owner_net_price_per_night', 'REAL DEFAULT 0');
+    await safeAlter('residences', 'demarcheur_fee_per_night', 'REAL DEFAULT 0');
+    await safeAlter('residences', 'is_managed_by_demarcheur', 'INTEGER DEFAULT 0');
+    await safeAlter('residences', 'commission_payer', "TEXT DEFAULT 'owner'");
+    await safeAlter('residences', 'demarcheur_name', 'TEXT');
+    await safeAlter('residences', 'demarcheur_phone', 'TEXT');
 
     // Residence Amenities Table
     await executeSql(`
@@ -763,6 +786,11 @@ export const initDatabase = async () => {
         FOREIGN KEY(owner_id) REFERENCES users(uid)
       )
     `);
+
+    await safeAlter('bookings', 'client_service_fee', 'REAL DEFAULT 0');
+    await safeAlter('bookings', 'owner_net_earnings', 'REAL DEFAULT 0');
+    await safeAlter('bookings', 'demarcheur_earnings', 'REAL DEFAULT 0');
+    await safeAlter('bookings', 'platform_commission', 'REAL DEFAULT 0');
 
     // Reviews Table
     await executeSql(`

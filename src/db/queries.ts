@@ -52,6 +52,9 @@ export const getAllResidences = async (ownerId?: string) => {
   let sql = `
     SELECT 
       id, owner_id as ownerId, title, description, type, price_per_night as pricePerNight, 
+      owner_net_price_per_night as ownerNetPricePerNight, demarcheur_fee_per_night as demarcheurFeePerNight,
+      is_managed_by_demarcheur as isManagedByDemarcheur, commission_payer as commissionPayer,
+      demarcheur_name as demarcheurName, demarcheur_phone as demarcheurPhone,
       advance_percentage as advancePercentage, cleaning_fee as cleaningFee, service_fee as serviceFee, 
       city, neighborhood, street, capacity, bedrooms, beds, bathrooms, rooms, status, 
       availability_status as availabilityStatus, promoted, weekly_discount as weeklyDiscount, 
@@ -148,6 +151,12 @@ export const getAllResidences = async (ownerId?: string) => {
     description: res.description,
     type: res.type,
     pricePerNight: res.pricePerNight !== undefined ? res.pricePerNight : (res.price_per_night !== undefined ? res.price_per_night : res.pricepernight),
+    ownerNetPricePerNight: res.ownerNetPricePerNight !== undefined ? res.ownerNetPricePerNight : (res.owner_net_price_per_night !== undefined ? res.owner_net_price_per_night : 0),
+    demarcheurFeePerNight: res.demarcheurFeePerNight !== undefined ? res.demarcheurFeePerNight : (res.demarcheur_fee_per_night !== undefined ? res.demarcheur_fee_per_night : 0),
+    isManagedByDemarcheur: res.isManagedByDemarcheur !== undefined ? !!res.isManagedByDemarcheur : !!res.is_managed_by_demarcheur,
+    commissionPayer: res.commissionPayer || res.commission_payer || 'owner',
+    demarcheurName: res.demarcheurName || res.demarcheur_name || '',
+    demarcheurPhone: res.demarcheurPhone || res.demarcheur_phone || '',
     advancePercentage: res.advancePercentage !== undefined ? res.advancePercentage : (res.advance_percentage !== undefined ? res.advance_percentage : res.advancepercentage),
     cleaningFee: res.cleaningFee !== undefined ? res.cleaningFee : (res.cleaning_fee !== undefined ? res.cleaning_fee : res.cleaningfee),
     serviceFee: res.serviceFee !== undefined ? res.serviceFee : (res.service_fee !== undefined ? res.service_fee : res.servicefee),
@@ -195,6 +204,9 @@ export const getResidenceById = async (id: string) => {
   const rows = await executeSql(`
     SELECT 
       id, owner_id as ownerId, title, description, type, price_per_night as pricePerNight, 
+      owner_net_price_per_night as ownerNetPricePerNight, demarcheur_fee_per_night as demarcheurFeePerNight,
+      is_managed_by_demarcheur as isManagedByDemarcheur, commission_payer as commissionPayer,
+      demarcheur_name as demarcheurName, demarcheur_phone as demarcheurPhone,
       advance_percentage as advancePercentage, cleaning_fee as cleaningFee, service_fee as serviceFee, 
       city, neighborhood, street, capacity, bedrooms, beds, bathrooms, rooms, status, 
       availability_status as availabilityStatus, promoted, weekly_discount as weeklyDiscount, 
@@ -233,6 +245,12 @@ export const getResidenceById = async (id: string) => {
     description: row.description,
     type: row.type,
     pricePerNight: row.pricePerNight !== undefined ? row.pricePerNight : (row.price_per_night !== undefined ? row.price_per_night : row.pricepernight),
+    ownerNetPricePerNight: row.ownerNetPricePerNight !== undefined ? row.ownerNetPricePerNight : (row.owner_net_price_per_night !== undefined ? row.owner_net_price_per_night : 0),
+    demarcheurFeePerNight: row.demarcheurFeePerNight !== undefined ? row.demarcheurFeePerNight : (row.demarcheur_fee_per_night !== undefined ? row.demarcheur_fee_per_night : 0),
+    isManagedByDemarcheur: row.isManagedByDemarcheur !== undefined ? !!row.isManagedByDemarcheur : !!row.is_managed_by_demarcheur,
+    commissionPayer: row.commissionPayer || row.commission_payer || 'owner',
+    demarcheurName: row.demarcheurName || row.demarcheur_name || '',
+    demarcheurPhone: row.demarcheurPhone || row.demarcheur_phone || '',
     advancePercentage: row.advancePercentage !== undefined ? row.advancePercentage : (row.advance_percentage !== undefined ? row.advance_percentage : row.advancepercentage),
     cleaningFee: row.cleaningFee !== undefined ? row.cleaningFee : (row.cleaning_fee !== undefined ? row.cleaning_fee : row.cleaningfee),
     serviceFee: row.serviceFee !== undefined ? row.serviceFee : (row.service_fee !== undefined ? row.service_fee : row.servicefee),
@@ -646,6 +664,8 @@ export const formatSqlValue = (val: any) => {
 
 const VALID_RESIDENCE_COLS = new Set([
   'id', 'owner_id', 'title', 'description', 'type', 'price_per_night',
+  'owner_net_price_per_night', 'demarcheur_fee_per_night', 'is_managed_by_demarcheur',
+  'commission_payer', 'demarcheur_name', 'demarcheur_phone',
   'advance_percentage', 'cleaning_fee', 'service_fee', 'city', 'neighborhood',
   'street', 'capacity', 'bedrooms', 'beds', 'bathrooms', 'rooms', 'status',
   'availability_status', 'promoted', 'weekly_discount', 'monthly_discount',
