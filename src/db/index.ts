@@ -4,15 +4,19 @@ dotenv.config();
 import { dbQuery as sqliteQuery } from './sqlite';
 import { dbQuery as mariadbQuery } from './mariadb';
 
-const dbType = process.env.DB_TYPE || (process.env.NODE_ENV === 'production' ? 'mariadb' : 'sqlite');
+export const getDbType = (): string => {
+  const dt = process.env.DB_TYPE || (process.env.NODE_ENV === 'production' ? 'mariadb' : 'sqlite');
+  return dt.toLowerCase().trim();
+};
 
 export let queryDatabase = async (query: string, params?: any[]): Promise<any> => {
-  if (dbType === 'mariadb') {
+  if (getDbType() === 'mariadb') {
     return await mariadbQuery(query, params);
   } else {
     return await sqliteQuery(query, params);
   }
 };
+
 
 function toCamel(s: string) {
   return s.replace(/([-_][a-z])/ig, ($1) => {

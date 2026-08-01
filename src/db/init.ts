@@ -276,11 +276,14 @@ export const initDatabase = async () => {
       console.warn("Avertissement migration MariaDB residences.type:", typeErr.message);
     }
 
+    // safeAlter helper
     await safeAlter('residences', 'owner_net_price_per_night', 'DECIMAL(10, 2) DEFAULT 0');
     await safeAlter('residences', 'demarcheur_fee_per_night', 'DECIMAL(10, 2) DEFAULT 0');
     await safeAlter('residences', 'is_managed_by_demarcheur', 'BOOLEAN DEFAULT 0');
+    await safeAlter('residences', 'commission_payer', "VARCHAR(50) DEFAULT 'owner'");
     await safeAlter('residences', 'demarcheur_name', 'VARCHAR(255) NULL');
     await safeAlter('residences', 'demarcheur_phone', 'VARCHAR(50) NULL');
+
 
     await safeAlter('bookings', 'client_service_fee', 'DECIMAL(10, 2) DEFAULT 0');
     await safeAlter('bookings', 'owner_net_earnings', 'DECIMAL(10, 2) DEFAULT 0');

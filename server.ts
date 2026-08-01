@@ -18,7 +18,7 @@ import { registerDeviceToken, unregisterDeviceToken, sendPushNotification, sendP
 dotenv.config();
 
 const JWT_SECRET = process.env.JWT_SECRET || 'super-secret-key-change-me';
-const DB_TYPE = process.env.DB_TYPE || (process.env.NODE_ENV === 'production' ? 'mariadb' : 'sqlite'); // 'mariadb' ou 'sqlite'
+const DB_TYPE = (process.env.DB_TYPE || (process.env.NODE_ENV === 'production' ? 'mariadb' : 'sqlite')).toLowerCase().trim(); // 'mariadb' ou 'sqlite'
 
 // ---------- SAPPAY CONFIGURATION ----------
 // IDs des opérateurs (à adapter selon votre base Sappay)
