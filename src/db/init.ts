@@ -14,17 +14,20 @@ export const initDatabase = async () => {
           const exists = cols.some((c: any) => String(c.name || c.Field || c.field || '').toLowerCase() === column.toLowerCase());
           if (exists) return;
         }
-      } else if (dbType === 'mariadb') {
+      } else {
         try {
-          const cols: any = await executeSql(`SHOW COLUMNS FROM ${table} LIKE ?`, [column]);
-          if (Array.isArray(cols) && cols.length > 0) return;
+          const cols: any = await executeSql(`SHOW COLUMNS FROM \`${table}\``);
+          if (Array.isArray(cols)) {
+            const exists = cols.some((c: any) => String(c.Field || c.field || c.COLUMN_NAME || c.column_name || '').toLowerCase() === column.toLowerCase());
+            if (exists) return;
+          }
         } catch (e) {}
       }
-      await executeSql(`ALTER TABLE ${table} ADD COLUMN ${column} ${type}`);
+      await executeSql(`ALTER TABLE \`${table}\` ADD COLUMN \`${column}\` ${type}`);
     } catch (err: any) {
       // Silently ignore if column exists
       const msg = err.message || '';
-      if (msg.includes('duplicate') || msg.includes('already exists') || msg.includes('Duplicate')) {
+      if (msg.includes('duplicate') || msg.includes('already exists') || msg.includes('Duplicate') || err.code === 'ER_DUP_FIELDNAME' || err.errno === 1060) {
         return;
       }
       console.warn(`Could not add ${column} to ${table}:`, msg);
@@ -64,15 +67,9 @@ export const initDatabase = async () => {
     `);
 
     // Migration: Ensure password_hash is large enough (fix for older DBs)
-    try {
-      await executeSql("ALTER TABLE users ADD COLUMN commission_percentage DECIMAL(10, 2) NULL");
-    } catch (err) {}
-    try {
-      await executeSql("ALTER TABLE users ADD COLUMN host_cancellation_fee DECIMAL(10, 2) DEFAULT 0");
-    } catch (err) {}
-    try {
-      await executeSql("ALTER TABLE users ADD COLUMN host_cancellation_rules_text TEXT NULL");
-    } catch (err) {}
+    await safeAlter('users', 'commission_percentage', 'DECIMAL(10, 2) NULL');
+    await safeAlter('users', 'host_cancellation_fee', 'DECIMAL(10, 2) DEFAULT 0');
+    await safeAlter('users', 'host_cancellation_rules_text', 'TEXT NULL');
     
     try {
       await executeSql("ALTER TABLE users MODIFY COLUMN password_hash VARCHAR(255)");
@@ -142,42 +139,19 @@ export const initDatabase = async () => {
       }
 
       // Ensure all extra user columns exist for MariaDB
-      const extraCols = [
-        'identity_document_front', 'identity_document_back', 'permissions', 
-        'id_number', 'id_type', 'id_expiry', 'id_card_url', 
-        'verification_status', 'has_accepted_terms', 'host_cancellation_fee', 
-        'host_cancellation_rules_text', 'deactivated', 'commission_percentage'
-      ];
-      for (const col of extraCols) {
-        const columns: any = await executeSql(`
-          SELECT COLUMN_NAME 
-          FROM INFORMATION_SCHEMA.COLUMNS 
-          WHERE TABLE_SCHEMA = DATABASE() 
-            AND TABLE_NAME = 'users' 
-            AND COLUMN_NAME = ?
-        `, [col]);
-        if (!columns || columns.length === 0) {
-          console.log(`Migration MariaDB: Ajout de la colonne '${col}'...`);
-          let typeDef = "LONGTEXT NULL";
-          if (col === 'verification_status') {
-            typeDef = "VARCHAR(50) DEFAULT 'none'";
-          } else if (['id_card_url', 'identity_document_front', 'identity_document_back', 'display_name'].includes(col)) {
-            typeDef = "LONGTEXT NULL";
-          } else if (['id_number', 'id_type', 'id_expiry'].includes(col)) {
-            typeDef = "VARCHAR(255) NULL";
-          } else if (col === 'has_accepted_terms') {
-            typeDef = "BOOLEAN DEFAULT 0";
-          } else if (col === 'host_cancellation_fee' || col === 'commission_percentage') {
-            typeDef = "DECIMAL(10, 2) DEFAULT NULL";
-            if (col === 'host_cancellation_fee') typeDef = "DECIMAL(10, 2) DEFAULT 0";
-          } else if (col === 'host_cancellation_rules_text') {
-            typeDef = "TEXT NULL";
-          }
-          try {
-            await executeSql(`ALTER TABLE users ADD COLUMN ${col} ${typeDef}`);
-          } catch (err: any) {}
-        }
-      }
+      await safeAlter('users', 'identity_document_front', 'LONGTEXT NULL');
+      await safeAlter('users', 'identity_document_back', 'LONGTEXT NULL');
+      await safeAlter('users', 'permissions', 'TEXT NULL');
+      await safeAlter('users', 'id_number', 'VARCHAR(255) NULL');
+      await safeAlter('users', 'id_type', 'VARCHAR(255) NULL');
+      await safeAlter('users', 'id_expiry', 'VARCHAR(255) NULL');
+      await safeAlter('users', 'id_card_url', 'LONGTEXT NULL');
+      await safeAlter('users', 'verification_status', "VARCHAR(50) DEFAULT 'none'");
+      await safeAlter('users', 'has_accepted_terms', 'BOOLEAN DEFAULT 0');
+      await safeAlter('users', 'host_cancellation_fee', 'DECIMAL(10, 2) DEFAULT 0');
+      await safeAlter('users', 'host_cancellation_rules_text', 'TEXT NULL');
+      await safeAlter('users', 'deactivated', 'BOOLEAN DEFAULT 0');
+      await safeAlter('users', 'commission_percentage', 'DECIMAL(10, 2) NULL');
     } catch (err: any) {
       console.warn("Migration MariaDB users check failed:", err.message);
     }
