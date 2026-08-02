@@ -807,9 +807,9 @@ export const MyBookings: React.FC<{ onContactHost: (ownerId: string, resId: stri
         const dbType = await getBackendDbType();
         // SQL / API
                     const list = await getClientBookings(user.uid);
-                    const sortedList = (list || []).sort((a, b) => 
-                      new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime()
-                    );
+                    const sortedList = (list || [])
+                      .sort((a, b) => new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime())
+                      .slice(0, 10);
                     setBookings(sortedList);
       } catch (err) {
         console.error("Error fetching bookings:", err);
@@ -893,7 +893,7 @@ export const MyBookings: React.FC<{ onContactHost: (ownerId: string, resId: stri
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-10">
         <div>
           <h2 className="text-3xl font-black text-slate-900 tracking-tight leading-none mb-2">Mes Réservations</h2>
-          <p className="text-slate-500 text-sm font-medium">Consultez, payez vos réservations et discutez en direct avec vos hôtes.</p>
+          <p className="text-slate-500 text-sm font-medium">Consultez et gérez vos 10 plus récentes réservations.</p>
         </div>
         <div className="flex items-center gap-3">
           <button 
