@@ -6003,7 +6003,7 @@ export const AdminDashboard: React.FC<{ onBackToTraveler?: () => void }> = ({ on
 
                         {promoPopupConfig.imageUrl && (
                           <div className="relative h-28 w-full rounded-2xl overflow-hidden border border-slate-200 bg-slate-900 group">
-                            <img src={promoPopupConfig.imageUrl} alt="Aperçu" className="w-full h-full object-cover" />
+                            <img src={promoPopupConfig.imageUrl} alt="Aperçu" className={cn("w-full h-full", (promoPopupConfig.imageFit || 'contain') === 'contain' ? "object-contain p-1" : "object-cover")} />
                             <button
                               type="button"
                               onClick={() => setPromoPopupConfig(prev => ({ ...prev, imageUrl: '' }))}
@@ -6014,6 +6014,75 @@ export const AdminDashboard: React.FC<{ onBackToTraveler?: () => void }> = ({ on
                             </button>
                           </div>
                         )}
+                      </div>
+                    </div>
+
+                    {/* Image Fit & Overlay Selector */}
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-3 border-t border-slate-100">
+                      <div className="space-y-1.5">
+                        <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest">Format de l'Image</label>
+                        <div className="grid grid-cols-2 gap-2">
+                          <button
+                            type="button"
+                            onClick={() => setPromoPopupConfig(prev => ({ ...prev, imageFit: 'contain' }))}
+                            className={cn(
+                              "p-2.5 rounded-xl border text-xs font-extrabold cursor-pointer transition text-center",
+                              (promoPopupConfig.imageFit || 'contain') === 'contain'
+                                ? "bg-red-50 text-red-700 border-red-200 ring-2 ring-red-500/20"
+                                : "bg-slate-50 text-slate-600 border-slate-200 hover:bg-slate-100"
+                            )}
+                          >
+                            Entière (Sans Rognage)
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setPromoPopupConfig(prev => ({ ...prev, imageFit: 'cover' }))}
+                            className={cn(
+                              "p-2.5 rounded-xl border text-xs font-extrabold cursor-pointer transition text-center",
+                              promoPopupConfig.imageFit === 'cover'
+                                ? "bg-red-50 text-red-700 border-red-200 ring-2 ring-red-500/20"
+                                : "bg-slate-50 text-slate-600 border-slate-200 hover:bg-slate-100"
+                            )}
+                          >
+                            Remplir (Rogné)
+                          </button>
+                        </div>
+                        <p className="text-[10px] text-slate-400 font-medium">
+                          "Entière" préserve la totalité du visuel/flyer sans couper de texte.
+                        </p>
+                      </div>
+
+                      <div className="space-y-1.5">
+                        <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest">Placement du Titre</label>
+                        <div className="grid grid-cols-2 gap-2">
+                          <button
+                            type="button"
+                            onClick={() => setPromoPopupConfig(prev => ({ ...prev, showTitleOnOverlay: false }))}
+                            className={cn(
+                              "p-2.5 rounded-xl border text-xs font-extrabold cursor-pointer transition text-center",
+                              !promoPopupConfig.showTitleOnOverlay
+                                ? "bg-red-50 text-red-700 border-red-200 ring-2 ring-red-500/20"
+                                : "bg-slate-50 text-slate-600 border-slate-200 hover:bg-slate-100"
+                            )}
+                          >
+                            Sous l'Image (Propre)
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setPromoPopupConfig(prev => ({ ...prev, showTitleOnOverlay: true }))}
+                            className={cn(
+                              "p-2.5 rounded-xl border text-xs font-extrabold cursor-pointer transition text-center",
+                              promoPopupConfig.showTitleOnOverlay
+                                ? "bg-red-50 text-red-700 border-red-200 ring-2 ring-red-500/20"
+                                : "bg-slate-50 text-slate-600 border-slate-200 hover:bg-slate-100"
+                            )}
+                          >
+                            Sur l'Image (Superposé)
+                          </button>
+                        </div>
+                        <p className="text-[10px] text-slate-400 font-medium">
+                          "Sous l'Image" évite de masquer le texte de votre affiche.
+                        </p>
                       </div>
                     </div>
 

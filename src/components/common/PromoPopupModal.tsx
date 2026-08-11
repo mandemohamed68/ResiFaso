@@ -113,7 +113,10 @@ export const PromoPopupModal: React.FC<PromoPopupModalProps> = ({
   };
 
   const handleActionClick = () => {
-    if (!config?.linkUrl) return;
+    if (!config?.linkUrl) {
+      handleClose();
+      return;
+    }
 
     if (config.linkUrl.startsWith('http://') || config.linkUrl.startsWith('https://')) {
       window.open(config.linkUrl, '_blank', 'noopener,noreferrer');
@@ -127,10 +130,12 @@ export const PromoPopupModal: React.FC<PromoPopupModalProps> = ({
   if (!isOpen || !config) return null;
 
   const badgeText = config.badgeText || (config.title ? '' : 'OFFRE SPÉCIALE');
+  const imageFit = config.imageFit || 'contain'; // Default to 'contain' so full image is always visible
+  const showOverlay = !!config.showTitleOnOverlay;
 
   return (
     <AnimatePresence>
-      <div className="fixed inset-0 z-[99999] flex items-center justify-center p-4 sm:p-6 overflow-y-auto">
+      <div className="fixed inset-0 z-[99999] flex items-center justify-center p-3 sm:p-6 overflow-y-auto">
         {/* Backdrop overlay */}
         <motion.div
           initial={{ opacity: 0 }}
@@ -146,7 +151,7 @@ export const PromoPopupModal: React.FC<PromoPopupModalProps> = ({
           animate={{ opacity: 1, scale: 1, y: 0 }}
           exit={{ opacity: 0, scale: 0.88, y: 20 }}
           transition={{ type: 'spring', damping: 25, stiffness: 300 }}
-          className="relative w-full max-w-[440px] bg-white rounded-[32px] shadow-2xl overflow-visible border border-slate-100 z-10 my-auto"
+          className="relative w-full max-w-[460px] bg-white rounded-[32px] shadow-2xl overflow-visible border border-slate-100 z-10 my-auto"
         >
           {/* Prominent Circular Floating Close Button (Orange/Red Max-It Style) */}
           <button
@@ -158,19 +163,40 @@ export const PromoPopupModal: React.FC<PromoPopupModalProps> = ({
             <X size={20} className="stroke-[3] group-hover:rotate-90 transition-transform duration-300" />
           </button>
 
-          {/* Main Visual Image Banner */}
-          <div className="relative w-full rounded-t-[32px] overflow-hidden bg-slate-900 aspect-[4/3] sm:aspect-[16/11]">
-            <img
-              src={config.imageUrl}
-              alt={config.title || 'Publicité promotionnelle'}
-              className="w-full h-full object-cover transition-transform duration-700 hover:scale-105"
-            />
+          {/* Main Visual Image Banner Container */}
+          <div className="relative w-full rounded-t-[32px] overflow-hidden bg-slate-950 flex items-center justify-center">
+            {imageFit === 'contain' ? (
+              /* Contain Mode: Full image is 100% visible without cropping + Blurred background fill */
+              <div className="relative w-full min-h-[220px] max-h-[380px] flex items-center justify-center p-2 bg-slate-950">
+                {/* Soft Blurred Backdrop matching image colors */}
+                <div 
+                  className="absolute inset-0 bg-cover bg-center opacity-30 blur-xl scale-125 pointer-events-none"
+                  style={{ backgroundImage: `url(${config.imageUrl})` }}
+                />
+
+                {/* Main Intact Poster Image */}
+                <img
+                  src={config.imageUrl}
+                  alt={config.title || 'Publicité promotionnelle'}
+                  className="relative z-10 max-h-[360px] w-auto max-w-full object-contain rounded-xl shadow-lg transition-transform duration-500 hover:scale-[1.02]"
+                />
+              </div>
+            ) : (
+              /* Cover Mode: Crops image to fill fixed aspect ratio */
+              <div className="relative w-full aspect-[4/3] sm:aspect-[16/11] bg-slate-900">
+                <img
+                  src={config.imageUrl}
+                  alt={config.title || 'Publicité promotionnelle'}
+                  className="w-full h-full object-cover transition-transform duration-700 hover:scale-105"
+                />
+              </div>
+            )}
 
             {/* Top Badge Overlay */}
             {badgeText && (
-              <div className="absolute top-4 left-4 z-20">
+              <div className="absolute top-3.5 left-3.5 z-20">
                 <span
-                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest text-white shadow-lg backdrop-blur-md border border-white/20"
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest text-white shadow-xl backdrop-blur-md border border-white/20"
                   style={{ backgroundColor: config.badgeColor || '#EF2B2D' }}
                 >
                   <Sparkles size={12} className="animate-pulse" />
@@ -179,11 +205,11 @@ export const PromoPopupModal: React.FC<PromoPopupModalProps> = ({
               </div>
             )}
 
-            {/* Gradient overlay at bottom of image if text exists */}
-            {(config.title || config.description) && (
-              <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-slate-950/90 via-slate-950/40 to-transparent p-5 text-white pt-12">
+            {/* Optional Overlay Text (Only if specifically requested) */}
+            {showOverlay && (config.title || config.subtitle) && (
+              <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-slate-950/90 via-slate-950/40 to-transparent p-4 text-white pt-10 z-20">
                 {config.title && (
-                  <h3 className="font-black text-lg sm:text-xl leading-tight text-white drop-shadow-md">
+                  <h3 className="font-black text-base sm:text-lg leading-tight text-white drop-shadow-md">
                     {config.title}
                   </h3>
                 )}
@@ -198,6 +224,22 @@ export const PromoPopupModal: React.FC<PromoPopupModalProps> = ({
 
           {/* Content Body & CTA Button */}
           <div className="p-5 sm:p-6 space-y-4">
+            {/* Title & Subtitle in Clean Body Section (Avoids text overlap on image) */}
+            {!showOverlay && (config.title || config.subtitle) && (
+              <div className="space-y-1">
+                {config.subtitle && (
+                  <span className="text-[10px] font-black uppercase tracking-widest text-[#EF2B2D] block">
+                    {config.subtitle}
+                  </span>
+                )}
+                {config.title && (
+                  <h3 className="font-black text-slate-900 text-lg sm:text-xl leading-tight">
+                    {config.title}
+                  </h3>
+                )}
+              </div>
+            )}
+
             {config.description && (
               <p className="text-slate-600 text-xs sm:text-sm font-medium leading-relaxed">
                 {config.description}
@@ -205,28 +247,18 @@ export const PromoPopupModal: React.FC<PromoPopupModalProps> = ({
             )}
 
             {/* Action CTA Button */}
-            {config.linkUrl ? (
-              <button
-                type="button"
-                onClick={handleActionClick}
-                className="w-full bg-[#EF2B2D] hover:bg-red-700 text-white py-3.5 px-6 rounded-2xl font-black text-xs uppercase tracking-widest flex items-center justify-center gap-2.5 shadow-xl shadow-red-200 hover:shadow-red-300 active:scale-[0.98] transition-all cursor-pointer group"
-              >
-                <span>{config.buttonText || "Profiter de l'offre"}</span>
-                <ExternalLink size={15} className="group-hover:translate-x-0.5 transition-transform" />
-              </button>
-            ) : (
-              <button
-                type="button"
-                onClick={handleClose}
-                className="w-full bg-slate-900 hover:bg-slate-800 text-white py-3.5 px-6 rounded-2xl font-black text-xs uppercase tracking-widest flex items-center justify-center gap-2 shadow-lg transition-all cursor-pointer"
-              >
-                Compris
-              </button>
-            )}
+            <button
+              type="button"
+              onClick={handleActionClick}
+              className="w-full bg-gradient-to-r from-red-600 via-orange-500 to-amber-500 hover:from-red-700 hover:to-orange-600 text-white py-3.5 px-6 rounded-2xl font-black text-xs sm:text-sm uppercase tracking-wider flex items-center justify-center gap-2.5 shadow-xl shadow-orange-500/20 hover:shadow-orange-500/35 active:scale-[0.98] transition-all cursor-pointer group"
+            >
+              <span>{config.buttonText || (config.linkUrl ? "Profiter de l'offre" : "J'en profite")}</span>
+              <ExternalLink size={16} className="group-hover:translate-x-0.5 transition-transform" />
+            </button>
 
             {/* Footer option: Don't show again today */}
             <div className="flex items-center justify-between pt-2 border-t border-slate-100 text-[11px]">
-              <label className="flex items-center gap-2 text-slate-400 font-medium hover:text-slate-600 cursor-pointer select-none">
+              <label className="flex items-center gap-2 text-slate-500 font-semibold hover:text-slate-800 cursor-pointer select-none">
                 <input
                   type="checkbox"
                   checked={dontShowAgainToday}
@@ -239,7 +271,7 @@ export const PromoPopupModal: React.FC<PromoPopupModalProps> = ({
               <button
                 type="button"
                 onClick={handleClose}
-                className="text-slate-400 font-bold hover:text-slate-700 transition"
+                className="text-slate-400 font-bold hover:text-slate-700 transition cursor-pointer"
               >
                 Fermer
               </button>

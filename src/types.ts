@@ -207,6 +207,8 @@ export interface PromoPopupConfig {
   badgeText?: string;
   badgeColor?: string;
   imageUrl: string;
+  imageFit?: 'contain' | 'cover';
+  showTitleOnOverlay?: boolean;
   linkUrl?: string;
   buttonText?: string;
   delaySeconds: number;

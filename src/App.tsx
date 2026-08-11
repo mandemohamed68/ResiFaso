@@ -195,6 +195,7 @@ function AppContent() {
 
   useEffect(() => {
     apiFetch('/api/settings/promo_popup')
+      .then(res => res.ok ? res.json() : null)
       .then(data => {
         if (data && typeof data === 'object' && Object.keys(data).length > 0) {
           setPromoPopupConfig(data as unknown as PromoPopupConfig);
