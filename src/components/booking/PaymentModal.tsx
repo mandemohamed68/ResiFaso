@@ -529,27 +529,27 @@ export const PaymentModal: React.FC<Props> = ({ isOpen, onClose, amount, residen
       >
         <div className="flex h-1 bg-slate-100 shrink-0">
           <div className={cn(
-            "h-full bg-red-600 transition-all duration-500",
+            "h-full bg-slate-900 transition-all duration-500",
             step === 'provider' ? "w-1/4" : step === 'phone' ? "w-2/4" : step === 'otp' ? "w-3/4" : "w-full"
           )} />
         </div>
 
         {/* Header */}
-        <div className="px-4 py-3 sm:px-6 sm:py-4 border-b border-slate-100 flex items-center justify-between relative overflow-hidden shrink-0">
+        <div className="px-5 py-4 border-b border-slate-100 flex items-center justify-between relative overflow-hidden shrink-0">
           <div>
             <div className="flex items-center gap-2">
-              <h3 className="text-base sm:text-lg font-black text-slate-900">
+              <h3 className="text-base sm:text-lg font-bold text-slate-900">
                 {isFullPayment ? "Paiement du solde" : "Paiement de l'acompte"}
               </h3>
             </div>
             <p className="text-xs text-slate-500 font-medium truncate max-w-[220px] sm:max-w-xs">{residenceTitle}</p>
           </div>
-          <button onClick={onClose} className="p-1.5 hover:bg-slate-100 rounded-full transition-colors text-slate-400 shrink-0">
+          <button onClick={onClose} className="p-1.5 hover:bg-slate-100 rounded-xl transition-colors text-slate-400 hover:text-slate-600 shrink-0 cursor-pointer">
             <X size={18} />
           </button>
         </div>
 
-        <div className="p-3.5 sm:p-5 overflow-y-auto flex-1 min-h-0">
+        <div className="p-4 sm:p-6 overflow-y-auto flex-1 min-h-0">
           <AnimatePresence mode="wait">
             {step === 'provider' && (
               <motion.div 
@@ -559,19 +559,19 @@ export const PaymentModal: React.FC<Props> = ({ isOpen, onClose, amount, residen
                 exit={{ opacity: 0, x: -20 }}
                 className="space-y-4"
               >
-                <div className="bg-red-50 p-4 rounded-2xl flex justify-between items-center mb-6 border border-orange-100">
-                  <span className="text-xs font-bold text-orange-800 uppercase tracking-tighter">
+                <div className="bg-slate-50 p-4 rounded-xl flex justify-between items-center mb-5 border border-slate-200/80">
+                  <span className="text-xs font-medium text-slate-600">
                     {isFullPayment ? "Solde restant à régler" : isFullPayment ? "Paiement total" : "Acompte de validation"}
                   </span>
-                  <span className="text-xl font-black text-orange-900 underline underline-offset-4">{formatCurrency(amount)} FCFA</span>
+                  <span className="text-lg font-extrabold text-slate-900">{formatCurrency(amount)} FCFA</span>
                 </div>
                 
-                <p className="text-xs font-bold text-slate-500 uppercase tracking-widest mb-4">MOYEN DE PAIEMENT OTP</p>
+                <p className="text-xs font-semibold text-slate-700 tracking-wide mb-3">Moyen de paiement mobile</p>
                 
                 {utilitiesIncluded && (
                   <div className="p-3 bg-slate-50 rounded-xl mb-4 border border-slate-200/80">
                     <p className="text-[11px] font-semibold text-slate-500 mb-2">Rappel des charges :</p>
-                    <div className="flex flex-wrap gap-3">
+                    <div className="flex flex-wrap gap-2.5">
                       <span className={cn("text-xs font-medium flex items-center gap-1.5 px-2.5 py-1 rounded-lg border", utilitiesIncluded.water ? "text-blue-700 bg-blue-50 border-blue-100" : "text-slate-600 bg-white border-slate-200")}>
                         <Droplets size={12} className={utilitiesIncluded.water ? "text-blue-500" : "text-slate-400"} />
                         Eau : {utilitiesIncluded.water ? 'Incluse' : 'Non incluse'}
@@ -597,17 +597,17 @@ export const PaymentModal: React.FC<Props> = ({ isOpen, onClose, amount, residen
                         setProvider(p.id as Provider);
                         setStep('phone');
                       }}
-                      className="flex flex-col items-center gap-3 p-4 border border-slate-100 rounded-3xl hover:border-red-500 hover:bg-red-50 transition-all group h-32 justify-center cursor-pointer"
+                      className="flex flex-col items-center gap-2.5 p-4 border border-slate-200/80 rounded-2xl hover:border-slate-400 hover:bg-slate-50 transition-all group h-28 justify-center cursor-pointer shadow-xs"
                     >
-                      <div className="w-14 h-14 rounded-2xl flex items-center justify-center p-1.5 shadow-sm border border-slate-100 bg-white group-hover:border-red-200 transition-colors">
+                      <div className="w-12 h-12 rounded-xl flex items-center justify-center p-1.5 shadow-xs border border-slate-200/80 bg-white group-hover:border-slate-300 transition-colors">
                         <img 
                           src={p.logo} 
                           alt={p.name} 
                           referrerPolicy="no-referrer"
-                          className="w-full h-full object-contain rounded-lg"
+                          className="w-full h-full object-contain rounded-md"
                         />
                       </div>
-                      <span className="text-[11px] font-bold text-slate-700 group-hover:text-red-600 uppercase tracking-tight">{p.name}</span>
+                      <span className="text-xs font-semibold text-slate-800 group-hover:text-slate-900">{p.name}</span>
                     </button>
                   ))}
                 </div>
@@ -620,23 +620,23 @@ export const PaymentModal: React.FC<Props> = ({ isOpen, onClose, amount, residen
                 initial={{ opacity: 0, x: 20 }}
                 animate={{ opacity: 1, x: 0 }}
                 exit={{ opacity: 0, x: -20 }}
-                className="space-y-5"
+                className="space-y-4"
               >
                 <div className="flex items-center justify-between gap-3 pb-3 border-b border-slate-100">
                   <div className="flex items-center gap-2">
                     <button onClick={() => setStep('provider')} className="text-slate-400 hover:text-slate-600 cursor-pointer p-1 rounded-lg hover:bg-slate-100 transition-colors">
-                      <ArrowRight size={20} className="rotate-180" />
+                      <ArrowRight size={18} className="rotate-180" />
                     </button>
                     <span className="font-bold text-slate-900 text-sm">Numéro Burkina (+226)</span>
                   </div>
                   {provider && (
-                    <div className="flex items-center gap-2 px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-2xl shadow-xs">
+                    <div className="flex items-center gap-1.5 px-2.5 py-1 bg-slate-100 border border-slate-200/80 rounded-lg">
                       <img 
                         src={provider === 'orange' ? '/orange.png' : provider === 'moov' ? '/moov-1.png' : provider === 'telecel' ? '/telecel.png' : '/coris.png'} 
                         alt={provider} 
-                        className="w-5 h-5 object-contain rounded-md"
+                        className="w-4 h-4 object-contain rounded-sm"
                       />
-                      <span className="text-xs font-black text-slate-800 uppercase tracking-tight">
+                      <span className="text-xs font-semibold text-slate-800">
                         {provider === 'orange' ? 'Orange' : provider === 'moov' ? 'Moov' : provider === 'telecel' ? 'Telecel' : 'Coris'}
                       </span>
                     </div>
@@ -650,19 +650,19 @@ export const PaymentModal: React.FC<Props> = ({ isOpen, onClose, amount, residen
                 )}
 
                 <div className="space-y-1.5">
-                  <label className="block text-xs font-bold text-slate-600 uppercase tracking-wider">
+                  <label className="block text-xs font-medium text-slate-600">
                     Numéro de compte ({provider === 'orange' ? 'Orange Money' : provider === 'moov' ? 'Moov Money' : provider === 'telecel' ? 'Telecel Money' : 'Coris Money'})
                   </label>
                   <div className="relative">
-                    <div className="absolute inset-y-0 left-4 flex items-center text-slate-400">
-                      <Phone size={20} />
+                    <div className="absolute inset-y-0 left-3.5 flex items-center text-slate-400">
+                      <Phone size={18} />
                     </div>
                     <input 
                       type="tel"
-                      placeholder="Numéro de compte"
+                      placeholder="Numéro de compte (ex: 70 00 00 00)"
                       value={getFormattedPhone()}
                       onChange={handlePhoneChange}
-                      className="w-full pl-12 pr-4 py-4 bg-slate-50 border border-slate-200 rounded-2xl font-bold text-slate-900 focus:ring-2 focus:ring-red-600 outline-none transition-all"
+                      className="w-full pl-10 pr-4 py-3 bg-slate-50 border border-slate-200/80 rounded-xl font-semibold text-slate-900 text-sm focus:ring-2 focus:ring-slate-400 focus:bg-white outline-none transition-all"
                     />
                   </div>
                 </div>
@@ -670,9 +670,9 @@ export const PaymentModal: React.FC<Props> = ({ isOpen, onClose, amount, residen
                 <button 
                   disabled={getCleanBFNumber(phone).length < 8 || loading}
                   onClick={handleInitiate}
-                  className="w-full bg-red-600 text-white py-3.5 rounded-2xl font-black text-base sm:text-lg hover:bg-red-700 transition-all disabled:opacity-50 flex items-center justify-center gap-2 shadow-lg shadow-red-600/20 cursor-pointer"
+                  className="w-full bg-slate-900 hover:bg-slate-800 text-white py-3.5 rounded-xl font-semibold text-sm transition-all disabled:opacity-50 flex items-center justify-center gap-2 shadow-sm cursor-pointer"
                 >
-                  {loading ? <Loader2 className="animate-spin" /> : 'VALIDER ET SAISIR LE CODE'}
+                  {loading ? <Loader2 className="animate-spin" size={18} /> : 'Valider et recevoir le code'}
                 </button>
               </motion.div>
             )}
@@ -683,58 +683,58 @@ export const PaymentModal: React.FC<Props> = ({ isOpen, onClose, amount, residen
                 initial={{ opacity: 0, x: 20 }}
                 animate={{ opacity: 1, x: 0 }}
                 exit={{ opacity: 0, x: -20 }}
-                className="space-y-3.5 sm:space-y-4"
+                className="space-y-4"
               >
-                <div className="flex items-center gap-3">
+                <div className="flex items-center gap-2">
                   <button onClick={() => setStep('phone')} className="text-slate-400 hover:text-slate-600 cursor-pointer p-1 rounded-lg hover:bg-slate-100"><ArrowRight size={18} className="rotate-180" /></button>
-                  <span className="font-bold text-slate-900 text-xs sm:text-sm uppercase tracking-wider">Code de validation</span>
+                  <span className="font-bold text-slate-900 text-sm">Code de validation</span>
                 </div>
 
                 <div className="text-center">
-                  <div className="w-14 h-14 sm:w-16 sm:h-16 bg-white border border-slate-100 shadow-sm rounded-2xl flex items-center justify-center mx-auto mb-2 p-2">
-                    {provider === 'orange' && <img src="/orange.png" alt="Orange Money" className="w-full h-full object-contain rounded-lg" />}
-                    {provider === 'moov' && <img src="/moov-1.png" alt="Moov Money" className="w-full h-full object-contain rounded-lg" />}
-                    {provider === 'telecel' && <img src="/telecel.png" alt="Telecel Money" className="w-full h-full object-contain rounded-lg" />}
-                    {provider === 'coris' && <img src="/coris.png" alt="Coris Money" className="w-full h-full object-contain rounded-lg" />}
+                  <div className="w-12 h-12 bg-white border border-slate-200/80 shadow-xs rounded-xl flex items-center justify-center mx-auto mb-2 p-2">
+                    {provider === 'orange' && <img src="/orange.png" alt="Orange Money" className="w-full h-full object-contain rounded-md" />}
+                    {provider === 'moov' && <img src="/moov-1.png" alt="Moov Money" className="w-full h-full object-contain rounded-md" />}
+                    {provider === 'telecel' && <img src="/telecel.png" alt="Telecel Money" className="w-full h-full object-contain rounded-md" />}
+                    {provider === 'coris' && <img src="/coris.png" alt="Coris Money" className="w-full h-full object-contain rounded-md" />}
                   </div>
-                  <h4 className="text-base sm:text-lg font-bold text-slate-900 mb-1">Validation {provider === 'orange' ? 'Orange' : provider === 'moov' ? 'Moov' : provider === 'telecel' ? 'Telecel' : 'Coris'}</h4>
-                  <p className="text-xs sm:text-sm text-slate-500 mb-3 px-1 leading-normal">
+                  <h4 className="text-base font-bold text-slate-900 mb-1">Validation {provider === 'orange' ? 'Orange' : provider === 'moov' ? 'Moov' : provider === 'telecel' ? 'Telecel' : 'Coris'}</h4>
+                  <p className="text-xs text-slate-500 mb-3 px-1 leading-relaxed">
                     {helperMessage || `Un code de sécurité est nécessaire pour valider le paiement sur le numéro ${getFormattedPhone()}.`}
                   </p>
 
                   {provider === 'orange' && (
-                    <div className="space-y-1 mb-2">
-                      <a href="tel:*144*4*6%23" className="w-full inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-orange-500 text-white rounded-xl text-xs sm:text-sm font-black hover:bg-orange-600 transition-all shadow-md cursor-pointer">
-                        <Phone size={16} /> GÉNÉRER LE CODE (*144*4*6#)
+                    <div className="space-y-1.5 mb-2">
+                      <a href="tel:*144*4*6%23" className="w-full inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-amber-600 hover:bg-amber-700 text-white rounded-xl text-xs sm:text-sm font-semibold transition-all shadow-sm cursor-pointer">
+                        <Phone size={16} /> Générer le code (*144*4*6#)
                       </a>
-                      <p className="text-[10px] text-slate-400 font-bold uppercase tracking-tight">Le code généré est valable 15 minutes</p>
+                      <p className="text-[11px] text-slate-400 font-medium">Code valable pendant 15 minutes</p>
                     </div>
                   )}
                   {provider === 'moov' && (
                     <div className="space-y-1 mb-2">
-                      <a href="tel:*555%23" className="w-full inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-blue-600 text-white rounded-xl text-xs sm:text-sm font-black hover:bg-blue-700 transition-all shadow-md cursor-pointer">
-                        <Phone size={16} /> MENU MOOV (*555#)
+                      <a href="tel:*555%23" className="w-full inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-slate-800 hover:bg-slate-900 text-white rounded-xl text-xs sm:text-sm font-semibold transition-all shadow-sm cursor-pointer">
+                        <Phone size={16} /> Menu Moov (*555#)
                       </a>
                     </div>
                   )}
                   {provider === 'telecel' && (
                     <div className="space-y-1 mb-2">
-                      <a href="tel:*808*4*4%23" className="w-full inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-red-500 text-white rounded-xl text-xs sm:text-sm font-black hover:bg-red-600 transition-all shadow-md cursor-pointer">
-                        <Phone size={16} /> CODE TELECEL (*808*4*4#)
+                      <a href="tel:*808*4*4%23" className="w-full inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-slate-800 hover:bg-slate-900 text-white rounded-xl text-xs sm:text-sm font-semibold transition-all shadow-sm cursor-pointer">
+                        <Phone size={16} /> Code Telecel (*808*4*4#)
                       </a>
                     </div>
                   )}
                 </div>
 
                 {error && (
-                  <div className="p-2.5 sm:p-3 bg-red-50 border border-red-100 rounded-xl text-red-600 text-xs font-bold text-center leading-snug">
+                  <div className="p-3 bg-red-50 border border-red-100 rounded-xl text-red-600 text-xs font-medium text-center leading-relaxed">
                     {error}
                   </div>
                 )}
 
-                <div className="space-y-1">
-                  <label className="block text-center text-[10px] font-black text-slate-400 uppercase tracking-widest">
-                    Saisissez votre code ci-dessous
+                <div className="space-y-1.5">
+                  <label className="block text-center text-xs font-medium text-slate-500">
+                    Saisissez votre code OTP ci-dessous
                   </label>
                   <input 
                     type="text"
@@ -744,21 +744,21 @@ export const PaymentModal: React.FC<Props> = ({ isOpen, onClose, amount, residen
                     maxLength={(provider === 'telecel' || provider === 'coris') ? 5 : 6}
                     value={otp}
                     onChange={(e) => setOtp(e.target.value.replace(/\D/g, ''))}
-                    className="w-full text-center tracking-[0.4em] sm:tracking-[0.5em] py-3 sm:py-3.5 bg-slate-50 border-2 border-slate-100 rounded-2xl font-black text-2xl sm:text-3xl text-slate-900 focus:ring-2 focus:ring-red-100 focus:border-red-500 focus:bg-white outline-none transition-all"
+                    className="w-full text-center tracking-[0.5em] py-3 bg-slate-50 border border-slate-200 rounded-xl font-mono font-bold text-2xl text-slate-900 focus:ring-2 focus:ring-slate-400 focus:border-slate-400 focus:bg-white outline-none transition-all"
                   />
                 </div>
 
                 {loading ? (
-                  <div className="w-full bg-slate-100 text-slate-400 py-3 sm:py-3.5 rounded-2xl font-black text-sm sm:text-base flex items-center justify-center gap-2">
-                    <Loader2 className="animate-spin" size={18} /> TRAITEMENT EN COURS...
+                  <div className="w-full bg-slate-100 text-slate-500 py-3.5 rounded-xl font-semibold text-sm flex items-center justify-center gap-2">
+                    <Loader2 className="animate-spin" size={18} /> Traitement en cours...
                   </div>
                 ) : (
                   <button 
                     disabled={otp.length !== ((provider === 'telecel' || provider === 'coris') ? 5 : 6)}
                     onClick={handleVerify}
-                    className="w-full bg-red-600 text-white py-3 sm:py-3.5 rounded-2xl font-black text-sm sm:text-base hover:bg-red-700 transition-all disabled:opacity-50 flex items-center justify-center gap-2 cursor-pointer shadow-md shadow-red-600/20"
+                    className="w-full bg-slate-900 hover:bg-slate-800 text-white py-3.5 rounded-xl font-semibold text-sm transition-all disabled:opacity-50 flex items-center justify-center gap-2 cursor-pointer shadow-sm"
                   >
-                    CONFIRMER LE PAIEMENT
+                    Confirmer le paiement
                   </button>
                 )}
 
@@ -768,16 +768,16 @@ export const PaymentModal: React.FC<Props> = ({ isOpen, onClose, amount, residen
                       type="button"
                       disabled={resendLoading}
                       onClick={handleResendOtp}
-                      className="w-full inline-flex items-center justify-center gap-2 text-xs font-bold text-slate-700 hover:text-red-600 transition-colors py-2 px-3 bg-slate-100 hover:bg-slate-200/80 rounded-xl cursor-pointer disabled:opacity-50 border border-slate-200"
+                      className="w-full inline-flex items-center justify-center gap-2 text-xs font-medium text-slate-700 hover:text-slate-900 transition-colors py-2 px-3 bg-slate-100 hover:bg-slate-200/80 rounded-xl cursor-pointer disabled:opacity-50 border border-slate-200/80"
                     >
                       {resendLoading ? (
-                        <><Loader2 className="animate-spin" size={14} /> Demande de code en cours...</>
+                        <><Loader2 className="animate-spin" size={14} /> Envoi du code en cours...</>
                       ) : (
-                        <><RefreshCw size={14} className="text-slate-500" /> Vous n'avez pas reçu le SMS ? Renvoyer le code OTP</>
+                        <><RefreshCw size={14} className="text-slate-500" /> Renvoyer le code OTP par SMS</>
                       )}
                     </button>
                     {resendSuccess && (
-                      <p className="text-xs font-bold text-emerald-600 text-center animate-in fade-in">
+                      <p className="text-xs font-semibold text-emerald-600 text-center animate-in fade-in">
                         {resendSuccess}
                       </p>
                     )}
@@ -787,9 +787,9 @@ export const PaymentModal: React.FC<Props> = ({ isOpen, onClose, amount, residen
                 {error && !loading && (
                   <button 
                     onClick={() => { setError(null); handleInitiate(); }}
-                    className="w-full text-slate-400 text-xs sm:text-sm font-bold hover:text-red-600 transition-colors py-1 cursor-pointer text-center"
+                    className="w-full text-slate-500 text-xs font-medium hover:text-slate-800 transition-colors py-1 cursor-pointer text-center"
                   >
-                    RÉESSAYER L'ENVOI DU CODE
+                    Réessayer l'envoi du code
                   </button>
                 )}
               </motion.div>
@@ -798,30 +798,30 @@ export const PaymentModal: React.FC<Props> = ({ isOpen, onClose, amount, residen
             {step === 'success' && (
               <motion.div 
                 key="success"
-                initial={{ opacity: 0, scale: 0.9 }}
+                initial={{ opacity: 0, scale: 0.95 }}
                 animate={{ opacity: 1, scale: 1 }}
-                className="text-center py-8"
+                className="text-center py-6"
               >
-                <div className="w-20 h-20 bg-green-50 text-green-500 rounded-full flex items-center justify-center mx-auto mb-6">
-                  <CheckCircle size={48} />
+                <div className="w-16 h-16 bg-emerald-50 text-emerald-600 rounded-2xl flex items-center justify-center mx-auto mb-4 border border-emerald-100">
+                  <CheckCircle size={36} />
                 </div>
-                <h4 className="text-2xl font-bold text-gray-900 mb-2">Paiement reçu !</h4>
-                <p className="text-gray-500 font-medium mb-1">Votre réservation est confirmée.</p>
-                <p className="text-slate-400 text-xs font-bold uppercase tracking-widest animate-pulse">Redirection vers resifaso.net...</p>
+                <h4 className="text-xl font-bold text-slate-900 mb-1">Paiement reçu</h4>
+                <p className="text-slate-600 font-normal text-sm mb-2">Votre réservation est confirmée.</p>
+                <p className="text-slate-400 text-xs font-medium animate-pulse">Redirection vers resifaso.net...</p>
               </motion.div>
             )}
           </AnimatePresence>
         </div>
 
         {/* Footer info */}
-        <div className="p-3 sm:p-4 bg-gray-50 border-t border-gray-100 text-center space-y-1 shrink-0">
-          <p className="text-[10px] text-gray-400 font-bold uppercase tracking-widest flex items-center justify-center gap-2">
-            <ShieldCheck size={12} /> Transaction sécurisée par cryptage SSL
+        <div className="p-4 bg-slate-50 border-t border-slate-100 text-center space-y-1 shrink-0">
+          <p className="text-xs text-slate-500 font-medium flex items-center justify-center gap-1.5">
+            <ShieldCheck size={14} className="text-slate-400" /> Transaction sécurisée par cryptage SSL
           </p>
-          <p className="text-[9px] text-slate-400 font-medium leading-tight">
-            🛡️ {isFullPayment 
-              ? "En réglant ce solde, vous finalisez le paiement de votre séjour. La commission de service de la plateforme est non remboursable." 
-              : "En payant cet acompte, vous acceptez les conditions d'annulation. La commission de service de la plateforme est non remboursable."}
+          <p className="text-[11px] text-slate-500 font-normal leading-relaxed">
+            {isFullPayment 
+              ? "En réglant ce solde, vous finalisez le paiement de votre séjour. La commission de service est non remboursable." 
+              : "En payant cet acompte, vous acceptez les conditions d'annulation. La commission de service est non remboursable."}
           </p>
         </div>
       </motion.div>

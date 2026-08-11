@@ -36,50 +36,49 @@ export const GlobalModal: React.FC<GlobalModalProps> = ({
             className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm"
           />
           <motion.div
-            initial={{ opacity: 0, scale: 0.95, y: 20 }}
+            initial={{ opacity: 0, scale: 0.95, y: 15 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
-            exit={{ opacity: 0, scale: 0.95, y: 20 }}
-            className="relative bg-white dark:bg-slate-900 rounded-[32px] w-full max-w-md overflow-hidden shadow-2xl border border-slate-100 dark:border-slate-800 p-8 my-auto sm:my-0 max-h-[88vh] overflow-y-auto"
+            exit={{ opacity: 0, scale: 0.95, y: 15 }}
+            className="relative bg-white dark:bg-slate-900 rounded-2xl w-full max-w-md overflow-hidden shadow-xl border border-slate-200/80 dark:border-slate-800 p-6 sm:p-7 my-auto sm:my-0 max-h-[88vh] overflow-y-auto"
           >
             <button
               onClick={onClose}
-              className="absolute top-6 right-6 p-2 rounded-full hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-400 transition"
+              className="absolute top-5 right-5 p-1.5 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-400 hover:text-slate-600 transition cursor-pointer"
             >
               <X size={18} />
             </button>
 
             <div className="flex flex-col items-center text-center">
               <div className={cn(
-                "w-16 h-16 rounded-full flex items-center justify-center mb-6",
-                type === 'success' && "bg-emerald-50 text-emerald-600 dark:bg-emerald-500/10 dark:text-emerald-500",
-                type === 'confirm' && "bg-blue-50 text-blue-600 dark:bg-blue-500/10 dark:text-blue-500",
-                type === 'error' && "bg-red-50 text-red-600 dark:bg-red-500/10 dark:text-red-500",
-                type === 'info' && "bg-slate-50 text-slate-600 dark:bg-slate-500/10 dark:text-slate-500"
+                "w-12 h-12 rounded-2xl flex items-center justify-center mb-4",
+                type === 'success' && "bg-emerald-50 text-emerald-600 dark:bg-emerald-500/10 dark:text-emerald-400",
+                type === 'confirm' && "bg-slate-100 text-slate-800 dark:bg-slate-800 dark:text-slate-200",
+                type === 'error' && "bg-red-50 text-red-600 dark:bg-red-500/10 dark:text-red-400",
+                type === 'info' && "bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300"
               )}>
-                {type === 'success' && <CheckCircle2 size={32} />}
-                {type === 'confirm' && <HelpCircle size={32} />}
-                {type === 'error' && <AlertCircle size={32} />}
-                {type === 'info' && <Info size={32} />}
+                {type === 'success' && <CheckCircle2 size={24} />}
+                {type === 'confirm' && <HelpCircle size={24} />}
+                {type === 'error' && <AlertCircle size={24} />}
+                {type === 'info' && <Info size={24} />}
               </div>
 
-              <div className="flex items-center gap-2 mb-2">
-                <Globe size={14} className="text-slate-400" />
-                <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Notification Système</span>
-              </div>
+              <span className="text-xs font-semibold text-slate-500 dark:text-slate-400 mb-1">
+                Notification
+              </span>
 
-              <h3 className="text-xl font-black text-slate-900 dark:text-white leading-tight mb-3">
+              <h3 className="text-lg font-bold text-slate-900 dark:text-white leading-snug mb-2">
                 {title}
               </h3>
               
-              <div className="text-slate-500 dark:text-slate-400 text-sm font-medium leading-relaxed whitespace-pre-wrap">
+              <div className="text-slate-600 dark:text-slate-400 text-sm font-normal leading-relaxed whitespace-pre-wrap">
                 {message}
               </div>
 
-              <div className="flex items-center gap-3 w-full mt-8">
+              <div className="flex items-center gap-3 w-full mt-6">
                 {type === 'confirm' && (
                   <button
                     onClick={onClose}
-                    className="flex-1 px-6 py-3.5 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300 rounded-2xl text-xs font-black uppercase tracking-widest transition cursor-pointer"
+                    className="flex-1 px-5 py-3 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200/80 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 rounded-xl text-xs font-semibold transition cursor-pointer"
                   >
                     {cancelLabel}
                   </button>
@@ -90,10 +89,11 @@ export const GlobalModal: React.FC<GlobalModalProps> = ({
                     onClose();
                   }}
                   className={cn(
-                    "flex-1 px-6 py-3.5 rounded-2xl text-xs font-black uppercase tracking-widest transition cursor-pointer shadow-lg",
-                    type === 'success' && "bg-emerald-600 hover:bg-emerald-700 text-white shadow-emerald-200/50 dark:shadow-none",
-                    type === 'error' && "bg-red-600 hover:bg-red-700 text-white shadow-red-200/50 dark:shadow-none",
-                    "bg-blue-600 hover:bg-blue-700 text-white shadow-blue-200/50 dark:shadow-none"
+                    "flex-1 px-5 py-3 rounded-xl text-xs font-semibold transition cursor-pointer shadow-sm",
+                    type === 'success' && "bg-emerald-700 hover:bg-emerald-800 text-white",
+                    type === 'error' && "bg-red-600 hover:bg-red-700 text-white",
+                    type === 'confirm' && "bg-slate-900 hover:bg-slate-800 text-white",
+                    type === 'info' && "bg-slate-900 hover:bg-slate-800 text-white"
                   )}
                 >
                   {confirmLabel}

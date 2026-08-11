@@ -30,7 +30,7 @@ export const SearchForm: React.FC<SearchFormProps> = ({ onSearch }) => {
   const amenitiesList = [
     { label: 'Wi-Fi', icon: Wifi },
     { label: 'Climatisation', icon: Wind },
-    { label: 'Piscine', icon: HelpCircle, customIcon: '🏊‍♂️' },
+    { label: 'Piscine', icon: Building2 },
     { label: 'Parking', icon: Car },
     { label: 'Sécurité 24/7', icon: ShieldCheck },
     { label: 'Cuisine équipée', icon: Utensils },
@@ -57,8 +57,8 @@ export const SearchForm: React.FC<SearchFormProps> = ({ onSearch }) => {
   };
 
   return (
-    <form onSubmit={handleSearchSubmit} className="w-full max-w-6xl mx-auto px-4 mt-[-40px] md:mt-[-60px] relative z-20 animate-in fade-in slide-in-from-bottom-6 duration-700">
-      <div className="bg-white rounded-[32px] md:rounded-[40px] shadow-2xl p-5 md:p-6 border border-slate-100 flex flex-col gap-5 md:gap-6">
+    <form onSubmit={handleSearchSubmit} className="w-full max-w-6xl mx-auto px-4 mt-[-40px] md:mt-[-50px] relative z-20 animate-in fade-in slide-in-from-bottom-6 duration-700">
+      <div className="bg-white rounded-3xl shadow-xl p-5 md:p-6 border border-slate-200/80 flex flex-col gap-5 md:gap-6">
         
         {/* Main Search Row */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:flex lg:items-end gap-4">
@@ -121,10 +121,10 @@ export const SearchForm: React.FC<SearchFormProps> = ({ onSearch }) => {
           <div className="sm:col-span-2 lg:col-span-1 lg:w-auto mt-2 lg:mt-0">
             <button 
               type="submit" 
-              className="w-full bg-red-600 hover:bg-red-700 text-white px-10 py-4.5 md:py-4 rounded-2xl font-black text-xs flex items-center justify-center gap-3 transition-all shadow-xl shadow-red-100 active:scale-95 group shrink-0"
+              className="w-full bg-slate-900 hover:bg-slate-800 text-white px-8 py-3.5 md:py-3.5 rounded-xl font-semibold text-xs flex items-center justify-center gap-2.5 transition-all shadow-sm active:scale-98 group shrink-0 cursor-pointer"
             >
-              <Search size={18} className="text-white group-hover:scale-110 transition-transform" />
-              <span className="tracking-widest uppercase italic">Rechercher</span>
+              <Search size={16} className="text-white group-hover:scale-105 transition-transform" />
+              <span className="tracking-wide">Rechercher</span>
             </button>
           </div>
         </div>

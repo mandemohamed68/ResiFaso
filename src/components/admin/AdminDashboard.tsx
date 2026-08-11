@@ -2122,16 +2122,21 @@ export const AdminDashboard: React.FC<{ onBackToTraveler?: () => void }> = ({ on
       {/* Sidebar */}
       <aside className="w-full lg:w-80 bg-slate-50 border-r border-slate-200 p-6 flex flex-col gap-6 h-screen sticky top-0 overflow-y-auto">
         <div>
-          <div className="bg-[#EF2B2D] text-white p-6 rounded-[32px] shadow-xl shadow-red-100/50 mb-4 border-b-4 border-yellow-400">
-            <h1 className="font-black text-2xl tracking-tighter flex items-center gap-2">
-              <span className="text-yellow-400">★</span> {platformName}
-            </h1>
-            <p className="text-[9px] font-black opacity-90 uppercase tracking-[0.2em] mt-1">Super Modérateur Faso</p>
+          <div className="bg-slate-900 text-white p-5 rounded-2xl shadow-sm mb-4 border border-slate-800">
+            <div className="flex items-center justify-between mb-1">
+              <h1 className="font-bold text-xl tracking-tight flex items-center gap-2 text-white">
+                {platformName}
+              </h1>
+              <span className="px-2 py-0.5 rounded-full bg-slate-800 border border-slate-700 text-[10px] font-semibold text-slate-300">
+                Admin
+              </span>
+            </div>
+            <p className="text-xs text-slate-400 font-medium">Espace Super Modérateur Faso</p>
           </div>
           {onBackToTraveler && (
             <button
               onClick={onBackToTraveler}
-              className="w-full mt-2 flex items-center justify-center gap-2 px-4 py-3 bg-white hover:bg-slate-100 text-slate-700 hover:text-slate-900 border border-slate-200 hover:border-slate-300 rounded-2xl font-black text-xs uppercase tracking-wider transition-all duration-200 cursor-pointer shadow-sm hover:shadow"
+              className="w-full mt-2 flex items-center justify-center gap-2 px-4 py-2.5 bg-white hover:bg-slate-100 text-slate-700 hover:text-slate-900 border border-slate-200/80 rounded-xl font-semibold text-xs transition-all duration-200 cursor-pointer shadow-sm"
             >
               <ArrowLeft size={14} />
               Quitter l'Admin
@@ -2198,18 +2203,18 @@ export const AdminDashboard: React.FC<{ onBackToTraveler?: () => void }> = ({ on
                       key={tab.id}
                       onClick={() => setActiveTab(tab.id as any)}
                       className={cn(
-                        "w-full flex items-center justify-between px-4 py-3 rounded-xl font-bold transition-all text-[11px] uppercase tracking-wider cursor-pointer group",
+                        "w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl font-semibold transition-all text-xs cursor-pointer group",
                         isActive 
-                          ? "bg-slate-900 text-white shadow-md" 
-                          : "text-slate-600 hover:bg-slate-200/50"
+                          ? "bg-slate-900 text-white shadow-sm" 
+                          : "text-slate-600 hover:bg-slate-200/60 hover:text-slate-900"
                       )}
                     >
                       <div className="flex items-center gap-3">
-                        <tab.icon size={16} className={cn(isActive ? "text-yellow-400" : "text-slate-400 group-hover:text-slate-600")} />
+                        <tab.icon size={16} className={cn(isActive ? "text-white" : "text-slate-400 group-hover:text-slate-600")} />
                         <span>{tab.label}</span>
                       </div>
                       {tab.badge && tab.badge > 0 ? (
-                        <span className={cn("text-white text-[9px] font-black px-2 py-0.5 rounded-full", tab.badgeColor || "bg-red-500")}>
+                        <span className={cn("text-white text-[10px] font-bold px-2 py-0.5 rounded-full", tab.badgeColor || "bg-slate-800")}>
                           {tab.badge}
                         </span>
                       ) : null}
@@ -2289,12 +2294,12 @@ export const AdminDashboard: React.FC<{ onBackToTraveler?: () => void }> = ({ on
       {/* Main Content */}
       <main className="flex-1 overflow-y-auto p-10 bg-white relative">
         {/* Floating Refresh/Sync bar */}
-        <div className="absolute top-2 right-10 z-20 flex items-center gap-3">
+        <div className="absolute top-6 right-10 z-20 flex items-center gap-3">
           <button
             onClick={() => setIsGuideOpen(true)}
-            className="flex items-center gap-2 px-4 py-2 bg-slate-50 hover:bg-slate-100 border border-slate-200 text-slate-700 hover:text-slate-900 rounded-xl text-xs font-black uppercase tracking-wider transition-all duration-200 cursor-pointer shadow-sm"
+            className="flex items-center gap-2 px-3.5 py-2 bg-slate-100 hover:bg-slate-200 border border-slate-200/80 text-slate-800 rounded-xl text-xs font-semibold transition-all cursor-pointer shadow-sm"
           >
-            <Compass size={13} className="text-red-600 animate-pulse" />
+            <Compass size={14} className="text-slate-600" />
             Guide Admin
           </button>
           <button
@@ -2307,50 +2312,50 @@ export const AdminDashboard: React.FC<{ onBackToTraveler?: () => void }> = ({ on
               }
             }}
             disabled={isReloading}
-            className="flex items-center gap-2 px-4 py-2 bg-slate-50 hover:bg-slate-100 border border-slate-200 text-slate-700 hover:text-slate-900 rounded-xl text-xs font-black uppercase tracking-wider transition-all duration-200 cursor-pointer shadow-sm disabled:opacity-50"
+            className="flex items-center gap-2 px-3.5 py-2 bg-slate-100 hover:bg-slate-200 border border-slate-200/80 text-slate-800 rounded-xl text-xs font-semibold transition-all cursor-pointer shadow-sm disabled:opacity-50"
             title="Actualiser manuellement toutes les données de la plateforme"
           >
-            <RefreshCw size={13} className={cn("text-red-600", isReloading && "animate-spin")} />
+            <RefreshCw size={14} className={cn("text-slate-600", isReloading && "animate-spin")} />
             {isReloading ? "Actualisation..." : "Actualiser"}
           </button>
         </div>
         
         {/* TAB 1: OVERVIEW */}
         {activeTab === 'overview' && (
-          <div className="space-y-10 animate-in fade-in duration-500">
+          <div className="space-y-8 animate-in fade-in duration-500">
             <div>
-              <h2 className="text-3xl font-black text-slate-900 tracking-tight mb-1">Espace Super Admin</h2>
+              <h2 className="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight mb-1">Espace Super Admin</h2>
               <p className="text-slate-500 font-medium text-sm">Gestion globale et modération légale des hébergements du Burkina.</p>
             </div>
 
             {/* Stats Cards */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
               {stats.map((s) => (
-                <div key={s.label} className="bg-slate-50/50 border border-slate-100 p-6 rounded-[28px] hover:shadow-lg transition-all group">
-                  <div className={cn("p-3 rounded-xl bg-white w-fit mb-4 shadow-sm group-hover:scale-105 transition-transform", s.color)}>
-                    <s.icon size={20} />
+                <div key={s.label} className="bg-white border border-slate-200/80 p-5 rounded-2xl shadow-sm hover:shadow-md transition-all group">
+                  <div className={cn("p-2.5 rounded-xl bg-slate-100 w-fit mb-3 text-slate-800 transition-transform", s.color)}>
+                    <s.icon size={18} />
                   </div>
                   <div className="flex items-center justify-between mb-0.5">
-                    <span className="text-[10px] font-black text-slate-400 uppercase tracking-wider">{s.label}</span>
+                    <span className="text-xs font-semibold text-slate-500">{s.label}</span>
                   </div>
-                  <div className="text-2xl font-black text-slate-900 tracking-tight leading-none mb-1">{s.value}</div>
-                  <span className="text-[10px] text-slate-400/80 font-bold leading-none">{s.subtitle}</span>
+                  <div className="text-2xl font-extrabold text-slate-900 tracking-tight mb-1">{s.value}</div>
+                  <span className="text-xs text-slate-400 font-normal">{s.subtitle}</span>
                 </div>
               ))}
             </div>
 
             {/* Approval Tasks */}
-            <div className="bg-slate-50/50 border border-slate-100 p-8 rounded-[32px]">
-              <div className="flex items-center justify-between mb-6">
+            <div className="bg-slate-50 border border-slate-200/80 p-6 rounded-2xl space-y-4">
+              <div className="flex items-center justify-between">
                 <div>
-                  <h3 className="text-lg font-black text-slate-900">Demandes de Modération Immédiate</h3>
-                  <p className="text-xs text-slate-500 font-medium mt-0.5">Appartements et villas soumis qui exigent votre vérification légale avant d'apparaître en ligne.</p>
+                  <h3 className="text-base font-bold text-slate-900">Demandes de Modération Immédiate</h3>
+                  <p className="text-xs text-slate-500 font-normal mt-0.5">Appartements et villas soumis qui exigent votre vérification légale avant d'apparaître en ligne.</p>
                 </div>
               </div>
 
               {pendingResCount === 0 ? (
-                <div className="bg-white border border-slate-150 rounded-2xl p-6 text-center text-slate-400 font-bold text-xs shadow-sm">
-                  Aucun bien en attente de vérification ! Votre catalogue est à jour 🎉
+                <div className="bg-white border border-slate-200/80 rounded-xl p-8 text-center text-slate-500 font-medium text-xs shadow-sm">
+                  Aucun bien en attente de vérification. Votre catalogue est à jour.
                 </div>
               ) : (
                 <div className="grid grid-cols-1 gap-4">
