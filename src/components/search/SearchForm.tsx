@@ -147,7 +147,7 @@ export const SearchForm: React.FC<SearchFormProps> = ({ onSearch }) => {
                       key={amenityLabel}
                       className="bg-red-50 text-red-700 text-[10px] font-black uppercase tracking-tight px-3 py-1.5 rounded-lg border border-red-100 flex items-center gap-2 animate-in zoom-in-95 duration-200"
                     >
-                      {amenity?.customIcon || (amenity?.icon && <amenity.icon size={12} />)}
+                      {amenity?.icon && <amenity.icon size={12} />}
                       {amenityLabel}
                       <button 
                         type="button"
@@ -210,7 +210,7 @@ export const SearchForm: React.FC<SearchFormProps> = ({ onSearch }) => {
                                   )}
                                 >
                                   <div className="flex items-center gap-2">
-                                    {a.customIcon ? <span>{a.customIcon}</span> : <a.icon size={14} />}
+                                    <a.icon size={14} />
                                     <span>{a.label}</span>
                                   </div>
                                   {isSelected && <Check size={14} />}

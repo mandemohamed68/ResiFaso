@@ -3,12 +3,13 @@ import React, { useState, useEffect } from 'react';
 import { apiFetch } from '../../lib/api';
 import { 
   LayoutDashboard, Home, Users, BarChart3, Settings, ShieldCheck, 
-  Activity, Search, Trash2, Edit3, Plus, ArrowUpRight, TrendingUp, Calendar, Check, X, Eye,
-  FileText, Download, Award, ShieldAlert, Megaphone, Upload, Wallet, ArrowLeft, MapPin, MessageSquare, Mail, Phone, Clock,
+  Activity, Search, Trash2, Edit3, Plus, ArrowUpRight, TrendingUp, Calendar, Check, CheckCircle2, X, Eye,
+  FileText, Download, Award, ShieldAlert, Megaphone, Upload, Wallet, ArrowLeft, MapPin, MessageSquare, Mail, Phone, Clock, Sparkles,
   ChevronLeft, ChevronRight, RefreshCw, KeyRound, Shield, Compass, Zap, Sliders, Smartphone, Link, ExternalLink
 } from 'lucide-react';
 import { CustomSelect } from '../common/CustomSelect';
-import { Residence, UserProfile, UserRole, Booking, Review, BookingStatus, PaymentStatus, Advertisement, WithdrawalRequest, WithdrawalStatus, FAQItem, ContactMessage, ContactSettings } from '../../types';
+import { Residence, UserProfile, UserRole, Booking, Review, BookingStatus, PaymentStatus, Advertisement, PromoPopupConfig, WithdrawalRequest, WithdrawalStatus, FAQItem, ContactMessage, ContactSettings } from '../../types';
+import { PromoPopupModal } from '../common/PromoPopupModal';
 import { BURKINA_LOCATIONS } from '../../constants/locations';
 import { useLocations } from '../../hooks/useLocations';
 import { motion, AnimatePresence } from 'motion/react';
@@ -69,7 +70,29 @@ export const AdminDashboard: React.FC<{ onBackToTraveler?: () => void }> = ({ on
   const queryClient = useQueryClient();
   const { data: adminData, isLoading: isAdminLoading } = useAdminData(user?.role);
 
-  const [activeTab, setActiveTab] = useState<'overview' | 'alerts' | 'listings' | 'users' | 'bookings' | 'revenue' | 'reviews' | 'reports' | 'settings' | 'logs' | 'ads' | 'withdrawals' | 'locations' | 'flash-info' | 'faq' | 'contact' | 'email' | 'verifications' | 'support' | 'partners' | 'refunds' | 'mobile'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'alerts' | 'listings' | 'users' | 'bookings' | 'revenue' | 'reviews' | 'reports' | 'settings' | 'logs' | 'ads' | 'promo-popup' | 'withdrawals' | 'locations' | 'flash-info' | 'faq' | 'contact' | 'email' | 'verifications' | 'support' | 'partners' | 'refunds' | 'mobile'>('overview');
+
+  // Promo Popup State
+  const [promoPopupConfig, setPromoPopupConfig] = useState<PromoPopupConfig>({
+    id: 'promo_popup_main',
+    isActive: false,
+    title: '100% de bonus réservez vite !',
+    subtitle: 'Profitez des réductions exclusives du Faso',
+    description: 'Bénéficiez de remises exceptionnelles sur nos résidences partenaires de prestige à Ouagadougou et Bobo-Dioulasso.',
+    badgeText: '100% DE BONUS',
+    badgeColor: '#EF2B2D',
+    imageUrl: 'https://images.unsplash.com/photo-1542314831-068cd1dbfeeb?auto=format&fit=crop&w=1200&q=80',
+    linkUrl: '',
+    buttonText: 'Profiter de l\'offre',
+    delaySeconds: 2,
+    frequency: 'always',
+    intervalMinutes: 30,
+    targetPage: 'all',
+    startAt: '',
+    endAt: ''
+  });
+  const [isSavingPromoPopup, setIsSavingPromoPopup] = useState<boolean>(false);
+  const [showPromoPopupPreview, setShowPromoPopupPreview] = useState<boolean>(false);
   
   // Sync adminData to states
   useEffect(() => {
@@ -355,6 +378,59 @@ export const AdminDashboard: React.FC<{ onBackToTraveler?: () => void }> = ({ on
   useEffect(() => {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }, [activeTab]);
+
+  // Fetch Promo Popup settings on mount & lastRefresh
+  useEffect(() => {
+    apiFetch('/api/settings/promo_popup')
+      .then(data => {
+        if (data && typeof data === 'object' && Object.keys(data).length > 0) {
+          setPromoPopupConfig(prev => ({ ...prev, ...data }));
+        }
+      })
+      .catch(err => console.error("Error loading promo popup config:", err));
+  }, [lastRefresh]);
+
+  const handleSavePromoPopup = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsSavingPromoPopup(true);
+    try {
+      const payload = {
+        ...promoPopupConfig,
+        updatedAt: new Date().toISOString()
+      };
+      await apiFetch('/api/settings/promo_popup', {
+        method: 'POST',
+        body: JSON.stringify(payload)
+      });
+      addToast("Pop-up promotionnel sauvegardé avec succès !", "success");
+      logAction("Mise à jour de la configuration du Pop-up Promotionnel Interstitiel");
+    } catch (err: any) {
+      addToast("Erreur de sauvegarde du Pop-up: " + (err.message || "Erreur serveur"), "error");
+    } finally {
+      setIsSavingPromoPopup(false);
+    }
+  };
+
+  const handlePromoPopupImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (file.size > 5 * 1024 * 1024) {
+      addToast("La taille du fichier ne doit pas dépasser 5 Mo", "error");
+      return;
+    }
+
+    setIsUploadingAd(true);
+    try {
+      const resized = await resizeImage(file, 1200);
+      setPromoPopupConfig(prev => ({ ...prev, imageUrl: resized }));
+      addToast("Affiche promotionnelle chargée et optimisée avec succès !", "success");
+    } catch (err: any) {
+      addToast("Erreur lors de l'importation de l'image", "error");
+    } finally {
+      setIsUploadingAd(false);
+    }
+  };
 
   // Custom Hard Reset Modal States
   const [showResetModal, setShowResetModal] = useState(false);
@@ -2173,6 +2249,7 @@ export const AdminDashboard: React.FC<{ onBackToTraveler?: () => void }> = ({ on
                 { id: 'refunds', label: 'Remboursements', icon: Wallet, badge: bookings.filter(b=>b.refundStatus==='pending').length, badgeColor: 'bg-red-500', permission: 'manage_withdrawals' },
                 { id: 'locations', label: 'Villes & Quartiers', icon: MapPin, permission: 'manage_listings' },
                 { id: 'ads', label: 'Affiches & Pubs', icon: Megaphone, badge: ads.filter(a => a.isActive).length, badgeColor: 'bg-green-600', permission: 'manage_ads' },
+                { id: 'promo-popup', label: 'Pop-up Promo Interstitiel', icon: Sparkles, badge: promoPopupConfig?.isActive ? 1 : 0, badgeColor: 'bg-amber-500', permission: 'manage_ads' },
                 { id: 'flash-info', label: 'Flash Info', icon: Megaphone, badge: announcementActive ? 1 : 0, badgeColor: 'bg-red-500', permission: 'manage_settings' },
               ]
             },
@@ -5837,7 +5914,349 @@ export const AdminDashboard: React.FC<{ onBackToTraveler?: () => void }> = ({ on
           </div>
         )}
 
-        {/* TAB 14.5: REFUNDS & PAYOUT MANAGEMENT */}
+        {/* TAB: PROMO POPUP MODAL MANAGEMENT */}
+        {activeTab === 'promo-popup' && (
+          <div className="space-y-6 animate-in fade-in" id="promo-popup-tab-container">
+            {/* Header */}
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-white p-6 rounded-[28px] border border-slate-100 shadow-sm">
+              <div className="space-y-1">
+                <div className="flex items-center gap-2">
+                  <span className="p-2 bg-amber-100 text-amber-700 rounded-xl">
+                    <Sparkles size={20} />
+                  </span>
+                  <h2 className="text-2xl font-black text-slate-900 tracking-tight">Pop-up Promotionnel Interstitiel</h2>
+                </div>
+                <p className="text-slate-500 font-medium text-xs sm:text-sm pl-10">
+                  Configurez la fenêtre modale de publicité ou d'offre spéciale qui s'affiche au premier plan pour vos visiteurs.
+                </p>
+              </div>
+
+              <div className="flex items-center gap-3 shrink-0 w-full sm:w-auto justify-end">
+                <button
+                  type="button"
+                  onClick={() => setShowPromoPopupPreview(true)}
+                  className="bg-slate-100 hover:bg-slate-200 text-slate-800 px-4 py-3 rounded-2xl text-xs font-black uppercase tracking-wider transition flex items-center gap-2 cursor-pointer"
+                >
+                  <Eye size={16} className="text-amber-600" />
+                  <span>Aperçu en direct</span>
+                </button>
+
+                <label className="flex items-center gap-3 bg-slate-50 border border-slate-200 px-4 py-2.5 rounded-2xl cursor-pointer select-none hover:bg-slate-100 transition">
+                  <input
+                    type="checkbox"
+                    checked={promoPopupConfig.isActive}
+                    onChange={(e) => setPromoPopupConfig(prev => ({ ...prev, isActive: e.target.checked }))}
+                    className="w-5 h-5 text-red-600 rounded focus:ring-red-500 cursor-pointer"
+                  />
+                  <span className="text-xs font-black uppercase tracking-wider text-slate-800">
+                    {promoPopupConfig.isActive ? "🟢 Pop-up Actif" : "🔴 Désactivé"}
+                  </span>
+                </label>
+              </div>
+            </div>
+
+            {/* Form Container */}
+            <form onSubmit={handleSavePromoPopup} className="space-y-6">
+              <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+                
+                {/* Left Column: Visuals & Image (7 cols) */}
+                <div className="lg:col-span-7 space-y-6">
+                  <div className="bg-white border border-slate-150 rounded-[28px] p-6 space-y-5 shadow-sm">
+                    <div className="border-b border-slate-100 pb-3 flex items-center justify-between">
+                      <h3 className="font-extrabold text-slate-900 text-base flex items-center gap-2">
+                        <Upload size={18} className="text-red-600" /> Image & Visuel de l'affiche
+                      </h3>
+                      <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Format 4:3 ou 16:9 recommandé</span>
+                    </div>
+
+                    {/* Upload Box & Drag Drop */}
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest">Uploader une image locale</label>
+                        <div className="p-6 border-2 border-dashed border-slate-200 hover:border-red-500 bg-slate-50/80 rounded-2xl text-center relative transition duration-200 group">
+                          <input
+                            type="file"
+                            accept="image/png, image/jpeg, image/jpg, image/webp"
+                            onChange={handlePromoPopupImageUpload}
+                            disabled={isUploadingAd}
+                            className="absolute inset-0 w-full h-full opacity-0 cursor-pointer disabled:cursor-not-allowed z-10"
+                          />
+                          <Upload size={24} className="mx-auto text-red-500 mb-2 group-hover:scale-110 transition-transform" />
+                          <p className="text-xs font-extrabold text-slate-700">
+                            {isUploadingAd ? "Optimisation..." : "Glissez votre image de promo"}
+                          </p>
+                          <p className="text-[10px] text-slate-400 font-medium mt-1">PNG, JPG, WEBP jusqu'à 5Mo</p>
+                        </div>
+                      </div>
+
+                      <div className="space-y-3">
+                        <div className="space-y-1">
+                          <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest">Ou URL d'image externe</label>
+                          <input
+                            type="url"
+                            value={promoPopupConfig.imageUrl}
+                            onChange={(e) => setPromoPopupConfig(prev => ({ ...prev, imageUrl: e.target.value }))}
+                            placeholder="https://..."
+                            className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs font-bold outline-none focus:ring-2 focus:ring-red-500"
+                          />
+                        </div>
+
+                        {promoPopupConfig.imageUrl && (
+                          <div className="relative h-28 w-full rounded-2xl overflow-hidden border border-slate-200 bg-slate-900 group">
+                            <img src={promoPopupConfig.imageUrl} alt="Aperçu" className="w-full h-full object-cover" />
+                            <button
+                              type="button"
+                              onClick={() => setPromoPopupConfig(prev => ({ ...prev, imageUrl: '' }))}
+                              className="absolute top-2 right-2 p-1.5 bg-black/70 hover:bg-black rounded-lg text-white transition"
+                              title="Effacer l'image"
+                            >
+                              <X size={12} />
+                            </button>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Texts and CTA Fields */}
+                    <div className="space-y-4 pt-3 border-t border-slate-100">
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div className="space-y-1.5">
+                          <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest">Titre principal</label>
+                          <input
+                            type="text"
+                            value={promoPopupConfig.title}
+                            onChange={(e) => setPromoPopupConfig(prev => ({ ...prev, title: e.target.value }))}
+                            placeholder="Ex: 100% de bonus réservez vite !"
+                            className="w-full bg-white border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs font-bold outline-none focus:ring-2 focus:ring-red-500"
+                          />
+                        </div>
+
+                        <div className="space-y-1.5">
+                          <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest">Sous-titre / Slogan</label>
+                          <input
+                            type="text"
+                            value={promoPopupConfig.subtitle || ''}
+                            onChange={(e) => setPromoPopupConfig(prev => ({ ...prev, subtitle: e.target.value }))}
+                            placeholder="Ex: Profitez des réductions exclusives du Faso"
+                            className="w-full bg-white border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs font-bold outline-none focus:ring-2 focus:ring-red-500"
+                          />
+                        </div>
+                      </div>
+
+                      <div className="space-y-1.5">
+                        <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest">Description explicative</label>
+                        <textarea
+                          rows={2}
+                          value={promoPopupConfig.description || ''}
+                          onChange={(e) => setPromoPopupConfig(prev => ({ ...prev, description: e.target.value }))}
+                          placeholder="Saisissez un message promotionnel captivant..."
+                          className="w-full bg-white border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs font-bold outline-none focus:ring-2 focus:ring-red-500 resize-none"
+                        />
+                      </div>
+
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div className="space-y-1.5">
+                          <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest">Texte du Badge</label>
+                          <input
+                            type="text"
+                            value={promoPopupConfig.badgeText || ''}
+                            onChange={(e) => setPromoPopupConfig(prev => ({ ...prev, badgeText: e.target.value }))}
+                            placeholder="Ex: 100% DE BONUS"
+                            className="w-full bg-white border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs font-bold outline-none focus:ring-2 focus:ring-red-500"
+                          />
+                        </div>
+
+                        <div className="space-y-1.5">
+                          <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest">Couleur du Badge</label>
+                          <div className="flex items-center gap-2">
+                            {['#EF2B2D', '#F97316', '#10B981', '#3B82F6', '#8B5CF6'].map(color => (
+                              <button
+                                type="button"
+                                key={color}
+                                onClick={() => setPromoPopupConfig(prev => ({ ...prev, badgeColor: color }))}
+                                className={cn(
+                                  "w-7 h-7 rounded-full transition-transform cursor-pointer border border-white shadow-sm",
+                                  promoPopupConfig.badgeColor === color && "scale-125 ring-2 ring-slate-900"
+                                )}
+                                style={{ backgroundColor: color }}
+                              />
+                            ))}
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div className="space-y-1.5">
+                          <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest">Texte du Bouton CTA</label>
+                          <input
+                            type="text"
+                            value={promoPopupConfig.buttonText || ''}
+                            onChange={(e) => setPromoPopupConfig(prev => ({ ...prev, buttonText: e.target.value }))}
+                            placeholder="Ex: Profiter de l'offre"
+                            className="w-full bg-white border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs font-bold outline-none focus:ring-2 focus:ring-red-500"
+                          />
+                        </div>
+
+                        <div className="space-y-1.5">
+                          <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest">Lien de redirection (Clic)</label>
+                          <input
+                            type="text"
+                            value={promoPopupConfig.linkUrl || ''}
+                            onChange={(e) => setPromoPopupConfig(prev => ({ ...prev, linkUrl: e.target.value }))}
+                            placeholder="Ex: https://... ou /residences"
+                            className="w-full bg-white border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs font-bold outline-none focus:ring-2 focus:ring-red-500"
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Right Column: Timing, Frequency & Display Logic (5 cols) */}
+                <div className="lg:col-span-5 space-y-6">
+                  <div className="bg-white border border-slate-150 rounded-[28px] p-6 space-y-5 shadow-sm">
+                    <div className="border-b border-slate-100 pb-3">
+                      <h3 className="font-extrabold text-slate-900 text-base flex items-center gap-2">
+                        <Clock size={18} className="text-amber-600" /> Timing & Fréquence
+                      </h3>
+                    </div>
+
+                    {/* Delay Seconds Slider / Input */}
+                    <div className="space-y-2 bg-slate-50 p-4 rounded-2xl border border-slate-100">
+                      <div className="flex justify-between items-center">
+                        <label className="text-xs font-black text-slate-800 uppercase tracking-wider">Délai d'affichage</label>
+                        <span className="text-xs font-black text-red-600 bg-red-50 px-2.5 py-1 rounded-lg border border-red-100">
+                          {promoPopupConfig.delaySeconds || 1} seconde(s)
+                        </span>
+                      </div>
+                      <input
+                        type="range"
+                        min="0"
+                        max="30"
+                        step="1"
+                        value={promoPopupConfig.delaySeconds || 1}
+                        onChange={(e) => setPromoPopupConfig(prev => ({ ...prev, delaySeconds: parseInt(e.target.value, 10) }))}
+                        className="w-full accent-red-600 cursor-pointer"
+                      />
+                      <p className="text-[10px] text-slate-400 font-medium">
+                        Temps d'attente avant que le Pop-up ne surgisse sur l'écran du visiteur.
+                      </p>
+                    </div>
+
+                    {/* Frequency Selection */}
+                    <div className="space-y-2">
+                      <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest">Fréquence d'apparition</label>
+                      <div className="grid grid-cols-1 gap-2.5">
+                        {[
+                          { id: 'always', title: 'À chaque rechargement', desc: 'Apparaît à chaque visite de la page' },
+                          { id: 'once_per_session', title: 'Une fois par session', desc: 'Apparaît une seule fois pendant la navigation' },
+                          { id: 'once_per_day', title: 'Une fois par 24 Heures', desc: 'Réapparaît au bout de 24h par utilisateur' },
+                          { id: 'interval', title: 'Récurrence périodique', desc: 'Réapparaît toutes les X minutes' }
+                        ].map(opt => (
+                          <label
+                            key={opt.id}
+                            onClick={() => setPromoPopupConfig(prev => ({ ...prev, frequency: opt.id as any }))}
+                            className={cn(
+                              "p-3.5 rounded-2xl border cursor-pointer transition-all flex items-start gap-3 select-none",
+                              promoPopupConfig.frequency === opt.id
+                                ? "bg-slate-900 text-white border-slate-900 shadow-sm"
+                                : "bg-slate-50 text-slate-700 border-slate-200 hover:bg-slate-100"
+                            )}
+                          >
+                            <input
+                              type="radio"
+                              name="popup_frequency"
+                              checked={promoPopupConfig.frequency === opt.id}
+                              onChange={() => {}}
+                              className="mt-1 accent-red-500"
+                            />
+                            <div>
+                              <p className="text-xs font-black">{opt.title}</p>
+                              <p className={cn("text-[10px]", promoPopupConfig.frequency === opt.id ? "text-slate-300" : "text-slate-500")}>
+                                {opt.desc}
+                              </p>
+                            </div>
+                          </label>
+                        ))}
+                      </div>
+
+                      {promoPopupConfig.frequency === 'interval' && (
+                        <div className="pt-2">
+                          <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest">Intervalle (Minutes)</label>
+                          <input
+                            type="number"
+                            min="1"
+                            value={promoPopupConfig.intervalMinutes || 30}
+                            onChange={(e) => setPromoPopupConfig(prev => ({ ...prev, intervalMinutes: parseInt(e.target.value, 10) }))}
+                            className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2 text-xs font-bold mt-1"
+                          />
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Target Page Filter */}
+                    <div className="space-y-1.5 pt-2 border-t border-slate-100">
+                      <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest">Emplacement Cible</label>
+                      <select
+                        value={promoPopupConfig.targetPage || 'all'}
+                        onChange={(e) => setPromoPopupConfig(prev => ({ ...prev, targetPage: e.target.value as any }))}
+                        className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs font-bold outline-none focus:ring-2 focus:ring-red-500"
+                      >
+                        <option value="all">Toutes les pages</option>
+                        <option value="home">Page d'accueil uniquement</option>
+                        <option value="search">Page de recherche uniquement</option>
+                      </select>
+                    </div>
+
+                    {/* Start and End Date */}
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2 border-t border-slate-100">
+                      <div className="space-y-1">
+                        <label className="block text-[9px] font-black text-slate-400 uppercase tracking-widest">Date Début (Optionnel)</label>
+                        <input
+                          type="datetime-local"
+                          value={promoPopupConfig.startAt || ''}
+                          onChange={(e) => setPromoPopupConfig(prev => ({ ...prev, startAt: e.target.value }))}
+                          className="w-full bg-slate-50 border border-slate-200 rounded-xl px-2.5 py-2 text-[11px] font-bold"
+                        />
+                      </div>
+
+                      <div className="space-y-1">
+                        <label className="block text-[9px] font-black text-slate-400 uppercase tracking-widest">Date Fin (Optionnel)</label>
+                        <input
+                          type="datetime-local"
+                          value={promoPopupConfig.endAt || ''}
+                          onChange={(e) => setPromoPopupConfig(prev => ({ ...prev, endAt: e.target.value }))}
+                          className="w-full bg-slate-50 border border-slate-200 rounded-xl px-2.5 py-2 text-[11px] font-bold"
+                        />
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Save Action Bar */}
+              <div className="flex justify-end items-center gap-4 bg-white p-5 rounded-[24px] border border-slate-100 shadow-sm">
+                <button
+                  type="button"
+                  onClick={() => setShowPromoPopupPreview(true)}
+                  className="px-5 py-3 text-slate-700 bg-slate-100 hover:bg-slate-200 text-xs font-black uppercase tracking-widest rounded-2xl transition cursor-pointer flex items-center gap-2"
+                >
+                  <Eye size={16} />
+                  <span>Aperçu</span>
+                </button>
+
+                <button
+                  type="submit"
+                  disabled={isSavingPromoPopup}
+                  className="px-8 py-3 bg-[#EF2B2D] hover:bg-red-700 disabled:opacity-50 text-white text-xs font-black uppercase tracking-widest rounded-2xl transition cursor-pointer shadow-lg shadow-red-200 flex items-center gap-2"
+                >
+                  <CheckCircle2 size={16} />
+                  <span>{isSavingPromoPopup ? "Enregistrement..." : "Enregistrer la configuration"}</span>
+                </button>
+              </div>
+            </form>
+          </div>
+        )}
         {activeTab === 'refunds' && (() => {
           const refundBookings = bookings.filter(b => b.refundStatus && b.refundStatus !== 'none');
           const pendingRefunds = bookings.filter(b => b.refundStatus === 'pending');
@@ -7693,6 +8112,13 @@ export const AdminDashboard: React.FC<{ onBackToTraveler?: () => void }> = ({ on
           </div>
         </div>
       )}
+
+      {/* Live Preview Modal for Admin */}
+      <PromoPopupModal
+        config={promoPopupConfig}
+        isPreview={showPromoPopupPreview}
+        onClosePreview={() => setShowPromoPopupPreview(false)}
+      />
     </div>
   );
 };

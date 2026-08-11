@@ -198,6 +198,26 @@ export interface Advertisement {
   endAt?: string;
 }
 
+export interface PromoPopupConfig {
+  id?: string;
+  isActive: boolean;
+  title: string;
+  subtitle?: string;
+  description?: string;
+  badgeText?: string;
+  badgeColor?: string;
+  imageUrl: string;
+  linkUrl?: string;
+  buttonText?: string;
+  delaySeconds: number;
+  frequency: 'always' | 'once_per_session' | 'once_per_day' | 'interval';
+  intervalMinutes?: number;
+  targetPage?: 'all' | 'home' | 'search';
+  startAt?: string;
+  endAt?: string;
+  updatedAt?: string;
+}
+
 export type WithdrawalStatus = 'pending' | 'approved' | 'rejected' | 'failed';
 export type MobileMoneyProvider = 'orange' | 'moov' | 'telecel' | 'coris';
 

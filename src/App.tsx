@@ -19,7 +19,8 @@ import { AuthModal } from './components/common/AuthModal';
 import { TermsGuideModal } from './components/common/TermsGuideModal';
 import { SupportChatWidget } from './components/support/SupportChatWidget';
 import { ReviewsSection } from './components/search/ReviewsSection';
-import { Residence } from './types';
+import { PromoPopupModal } from './components/common/PromoPopupModal';
+import { Residence, PromoPopupConfig } from './types';
 import { motion, AnimatePresence } from 'motion/react';
 import { 
   Filter, Map as MapIcon, List, ArrowRight, Star, 
@@ -190,6 +191,17 @@ function AppContent() {
   const [minReservationAmount, setMinReservationAmount] = useState<number>(5000);
   const [maxBookingsWithoutId, setMaxBookingsWithoutId] = useState<number>(3);
   const [clientBookingCount, setClientBookingCount] = useState<number>(0);
+  const [promoPopupConfig, setPromoPopupConfig] = useState<PromoPopupConfig | null>(null);
+
+  useEffect(() => {
+    apiFetch('/api/settings/promo_popup')
+      .then(data => {
+        if (data && typeof data === 'object' && Object.keys(data).length > 0) {
+          setPromoPopupConfig(data as unknown as PromoPopupConfig);
+        }
+      })
+      .catch(err => console.error("Error fetching promo popup settings:", err));
+  }, [lastRefresh]);
 
   const announcementsList = globalAnnouncement && globalAnnouncement.text
     ? globalAnnouncement.text.split('\n').map(t => t.trim()).filter(t => t.length > 0)
@@ -1880,6 +1892,12 @@ function AppContent() {
           }}
         />
       )}
+
+      {/* Global Promotional Interstitial Popup */}
+      <PromoPopupModal 
+        config={promoPopupConfig} 
+        currentPage={view === 'home' ? 'home' : view === 'search' ? 'search' : 'all'} 
+      />
     </div>
   );
 }
