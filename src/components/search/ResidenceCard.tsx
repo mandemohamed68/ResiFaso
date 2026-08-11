@@ -138,20 +138,18 @@ export const ResidenceCard: React.FC<Props> = ({
           )}
         </div>
 
-        {/* Compact Availability Strip */}
-        <div className="mb-3.5 bg-slate-50/80 p-2.5 rounded-xl border border-slate-200/60">
-          <div className="flex items-center justify-between mb-1.5">
-            <span className="text-[10px] font-black uppercase text-slate-500 tracking-wider flex items-center gap-1.5">
-              <CalendarIcon size={12} className="text-slate-400" /> Disponibilité (14j)
-            </span>
-            <span className="text-[10px] text-emerald-700 font-bold bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-100">
-              Dispo en ligne
+        {/* Availability 14-Day Numbered Matrix */}
+        <div className="mb-3.5 bg-slate-50/80 p-2 rounded-xl border border-slate-200/60">
+          <div className="flex items-center justify-between mb-1.5 px-0.5">
+            <span className="text-[9px] font-extrabold uppercase text-slate-500 tracking-wider flex items-center gap-1">
+              <CalendarIcon size={11} className="text-slate-400" /> DISPONIBILITÉ (14 PROCHAINS JOURS)
             </span>
           </div>
-          <div className="flex items-center justify-between gap-1">
+          <div className="grid grid-cols-7 gap-1 text-center">
             {Array.from({ length: 14 }).map((_, i) => {
               const d = new Date();
               d.setDate(d.getDate() + i);
+              const dayNum = d.getDate();
               const dateStr = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
               const isBooked = residence.occupiedDates?.some((occ: any) => {
                 const status = (occ.status || occ.bookingStatus || occ.booking_status || '').toLowerCase();
@@ -162,15 +160,20 @@ export const ResidenceCard: React.FC<Props> = ({
                 const dTo = (occ.to || occ.check_out || '').split('T')[0];
                 return dFrom && dTo && dateStr >= dFrom && dateStr <= dTo;
               });
+
               return (
                 <div 
-                  key={dateStr} 
+                  key={dateStr}
                   title={`${formatDateFr(dateStr)}: ${isBooked ? "Occupé" : "Disponible"}`}
                   className={cn(
-                    "flex-1 h-2 rounded-full transition-all cursor-help",
-                    isBooked ? "bg-red-400" : "bg-emerald-500"
+                    "text-[10px] font-black py-0.5 rounded border transition-all select-none cursor-help",
+                    isBooked 
+                      ? "bg-red-50 text-red-600 border-red-200 line-through" 
+                      : "bg-emerald-50 text-emerald-700 border-emerald-200/80"
                   )}
-                />
+                >
+                  {dayNum}
+                </div>
               );
             })}
           </div>
