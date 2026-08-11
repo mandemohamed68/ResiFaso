@@ -1,7 +1,7 @@
 import { formatCurrency } from '../../utils/currency';
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { X, Phone, ShieldCheck, ArrowRight, Loader2, CheckCircle, RefreshCw } from 'lucide-react';
+import { X, Phone, ShieldCheck, ArrowRight, Loader2, CheckCircle, RefreshCw, Droplets, Zap } from 'lucide-react';
 import { cn } from '../../lib/utils';
 import { apiFetch } from '../../lib/api';
 import { useAuth } from '../../contexts/AuthContext';
@@ -569,14 +569,16 @@ export const PaymentModal: React.FC<Props> = ({ isOpen, onClose, amount, residen
                 <p className="text-xs font-bold text-slate-500 uppercase tracking-widest mb-4">MOYEN DE PAIEMENT OTP</p>
                 
                 {utilitiesIncluded && (
-                  <div className="p-3 bg-slate-50 rounded-xl mb-4 border border-slate-100">
-                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1.5">Rappel des charges :</p>
-                    <div className="flex gap-4">
-                      <span className={`text-[11px] font-black ${utilitiesIncluded.water ? 'text-blue-600' : 'text-red-500'}`}>
-                         EAU : {utilitiesIncluded.water ? 'INCLUSE' : 'NON INCLUSE'}
+                  <div className="p-3 bg-slate-50 rounded-xl mb-4 border border-slate-200/80">
+                    <p className="text-[11px] font-semibold text-slate-500 mb-2">Rappel des charges :</p>
+                    <div className="flex flex-wrap gap-3">
+                      <span className={cn("text-xs font-medium flex items-center gap-1.5 px-2.5 py-1 rounded-lg border", utilitiesIncluded.water ? "text-blue-700 bg-blue-50 border-blue-100" : "text-slate-600 bg-white border-slate-200")}>
+                        <Droplets size={12} className={utilitiesIncluded.water ? "text-blue-500" : "text-slate-400"} />
+                        Eau : {utilitiesIncluded.water ? 'Incluse' : 'Non incluse'}
                       </span>
-                      <span className={`text-[11px] font-black ${utilitiesIncluded.electricity ? 'text-amber-600' : 'text-red-500'}`}>
-                         ÉLEC : {utilitiesIncluded.electricity ? 'INCLUSE' : 'NON INCLUSE'}
+                      <span className={cn("text-xs font-medium flex items-center gap-1.5 px-2.5 py-1 rounded-lg border", utilitiesIncluded.electricity ? "text-amber-700 bg-amber-50 border-amber-100" : "text-slate-600 bg-white border-slate-200")}>
+                        <Zap size={12} className={utilitiesIncluded.electricity ? "text-amber-500" : "text-slate-400"} />
+                        Électricité : {utilitiesIncluded.electricity ? 'Incluse' : 'Non incluse'}
                       </span>
                     </div>
                   </div>

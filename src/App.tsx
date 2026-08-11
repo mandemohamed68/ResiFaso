@@ -24,7 +24,8 @@ import { motion, AnimatePresence } from 'motion/react';
 import { 
   Filter, Map as MapIcon, List, ArrowRight, Star, 
   CheckCircle2, ShieldCheck, RefreshCw, Compass, MessageSquare,
-  ChevronLeft, ChevronRight, Phone, Heart, Megaphone, X, Share2, Check, Calendar as CalendarIcon, ShieldAlert
+  ChevronLeft, ChevronRight, Phone, Heart, Megaphone, X, Share2, Check, Calendar as CalendarIcon, ShieldAlert,
+  Droplets, Zap
 } from 'lucide-react';
 import { cn, formatFCFA, formatDateFr } from './lib/utils';
 import { MapView } from './components/search/MapView';
@@ -1178,30 +1179,43 @@ function AppContent() {
                   <div className="mb-12">
                     <h2 className="text-2xl font-bold mb-4">Charges & Services</h2>
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                      <div className={`p-5 rounded-2xl border-2 ${selectedResidence.utilitiesIncluded?.water ? 'bg-blue-50 border-blue-200' : 'bg-slate-50 border-slate-100'}`}>
+                      <div className={`p-5 rounded-2xl border ${selectedResidence.utilitiesIncluded?.water ? 'bg-blue-50/60 border-blue-100' : 'bg-slate-50 border-slate-100'}`}>
                         <div className="flex items-center justify-between mb-2">
-                          <span className="font-black text-[10px] uppercase tracking-widest text-slate-500">Consommation Eau</span>
+                          <span className="text-xs font-bold text-slate-500 uppercase tracking-wider flex items-center gap-1.5">
+                            <Droplets size={14} className="text-blue-500" /> Eau courante
+                          </span>
                           {selectedResidence.utilitiesIncluded?.water ? (
-                            <CheckCircle2 size={16} className="text-blue-600" />
+                            <span className="text-[11px] font-extrabold text-blue-700 bg-blue-100/80 px-2.5 py-0.5 rounded-full flex items-center gap-1">
+                              <Check size={12} /> Incluse
+                            </span>
                           ) : (
-                            <X size={16} className="text-slate-400" />
+                            <span className="text-[11px] font-semibold text-slate-500 bg-slate-200/60 px-2.5 py-0.5 rounded-full">
+                              À la charge du voyageur
+                            </span>
                           )}
                         </div>
-                        <p className={`text-sm font-black ${selectedResidence.utilitiesIncluded?.water ? 'text-blue-900' : 'text-slate-600'}`}>
-                          {selectedResidence.utilitiesIncluded?.water ? '✅ À LA CHARGE DE L\'HÔTE (INCLUS)' : '❌ À LA CHARGE DU VOYAGEUR (NON INCLUS)'}
+                        <p className="text-sm font-medium text-slate-700">
+                          {selectedResidence.utilitiesIncluded?.water ? 'Inclus dans le prix du séjour (prise en charge par l\'hôte)' : 'Facturation à la consommation sur place'}
                         </p>
                       </div>
-                      <div className={`p-5 rounded-2xl border-2 ${selectedResidence.utilitiesIncluded?.electricity ? 'bg-amber-50 border-amber-200' : 'bg-slate-50 border-slate-100'}`}>
+
+                      <div className={`p-5 rounded-2xl border ${selectedResidence.utilitiesIncluded?.electricity ? 'bg-amber-50/60 border-amber-100' : 'bg-slate-50 border-slate-100'}`}>
                         <div className="flex items-center justify-between mb-2">
-                          <span className="font-black text-[10px] uppercase tracking-widest text-slate-500">Consommation Électricité</span>
+                          <span className="text-xs font-bold text-slate-500 uppercase tracking-wider flex items-center gap-1.5">
+                            <Zap size={14} className="text-amber-500" /> Électricité
+                          </span>
                           {selectedResidence.utilitiesIncluded?.electricity ? (
-                            <CheckCircle2 size={16} className="text-amber-600" />
+                            <span className="text-[11px] font-extrabold text-amber-700 bg-amber-100/80 px-2.5 py-0.5 rounded-full flex items-center gap-1">
+                              <Check size={12} /> Incluse
+                            </span>
                           ) : (
-                            <X size={16} className="text-slate-400" />
+                            <span className="text-[11px] font-semibold text-slate-500 bg-slate-200/60 px-2.5 py-0.5 rounded-full">
+                              À la charge du voyageur
+                            </span>
                           )}
                         </div>
-                        <p className={`text-sm font-black ${selectedResidence.utilitiesIncluded?.electricity ? 'text-amber-900' : 'text-slate-600'}`}>
-                          {selectedResidence.utilitiesIncluded?.electricity ? '✅ À LA CHARGE DE L\'HÔTE (INCLUS)' : '❌ À LA CHARGE DU VOYAGEUR (NON INCLUS)'}
+                        <p className="text-sm font-medium text-slate-700">
+                          {selectedResidence.utilitiesIncluded?.electricity ? 'Inclus dans le prix du séjour (prise en charge par l\'hôte)' : 'Facturation au compteur ou forfait à régler sur place'}
                         </p>
                       </div>
                     </div>
@@ -1259,24 +1273,28 @@ function AppContent() {
 
                           {/* Quick Utility Summary */}
                           <div className="flex flex-col gap-1.5 mb-6">
-                            <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-1">Inclus dans le séjour :</p>
+                            <p className="text-xs font-semibold text-slate-500 mb-1">Inclus dans le séjour :</p>
                             <div className="flex flex-wrap gap-2">
                               {selectedResidence.utilitiesIncluded?.water ? (
-                                <span className="text-[10px] font-black bg-blue-50 text-blue-700 px-3 py-1.5 rounded-xl border border-blue-100 uppercase tracking-tight flex items-center gap-1.5">
-                                  💧 EAU INCLUSE
+                                <span className="text-xs font-medium bg-blue-50 text-blue-700 px-3 py-1.5 rounded-xl border border-blue-100 flex items-center gap-1.5">
+                                  <Droplets size={13} className="text-blue-600" />
+                                  Eau incluse
                                 </span>
                               ) : (
-                                <span className="text-[10px] font-black bg-slate-50 text-slate-500 px-3 py-1.5 rounded-xl border border-slate-100 uppercase tracking-tight flex items-center gap-1.5">
-                                  💧 EAU NON INCLUSE
+                                <span className="text-xs font-medium bg-slate-50 text-slate-500 px-3 py-1.5 rounded-xl border border-slate-100 flex items-center gap-1.5">
+                                  <Droplets size={13} className="text-slate-400" />
+                                  Eau non incluse
                                 </span>
                               )}
                               {selectedResidence.utilitiesIncluded?.electricity ? (
-                                <span className="text-[10px] font-black bg-amber-50 text-amber-700 px-3 py-1.5 rounded-xl border border-amber-100 uppercase tracking-tight flex items-center gap-1.5">
-                                  ⚡ ÉLEC. INCLUSE
+                                <span className="text-xs font-medium bg-amber-50 text-amber-700 px-3 py-1.5 rounded-xl border border-amber-100 flex items-center gap-1.5">
+                                  <Zap size={13} className="text-amber-600" />
+                                  Élec. incluse
                                 </span>
                               ) : (
-                                <span className="text-[10px] font-black bg-slate-50 text-slate-500 px-3 py-1.5 rounded-xl border border-slate-100 uppercase tracking-tight flex items-center gap-1.5">
-                                  ⚡ ÉLEC. NON INCLUSE
+                                <span className="text-xs font-medium bg-slate-50 text-slate-500 px-3 py-1.5 rounded-xl border border-slate-100 flex items-center gap-1.5">
+                                  <Zap size={13} className="text-slate-400" />
+                                  Élec. non incluse
                                 </span>
                               )}
                             </div>
@@ -1518,26 +1536,30 @@ function AppContent() {
                         return (
                           <>
                             {/* Note détaillée sur les charges */}
-                            <div className="p-4 bg-slate-950 rounded-2xl mb-6 border border-slate-800 shadow-lg">
-                              <p className="text-[10px] font-black text-red-400 uppercase tracking-widest mb-3 flex items-center gap-2">
-                                <ShieldAlert size={12} />
-                                Récapitulatif des charges :
+                            <div className="p-4 bg-slate-50 rounded-2xl mb-6 border border-slate-200/80">
+                              <p className="text-xs font-bold text-slate-800 mb-3 flex items-center gap-2">
+                                <ShieldCheck size={14} className="text-slate-600" />
+                                Récapitulatif des charges
                               </p>
                               <div className="space-y-2">
-                                <div className="flex justify-between items-center bg-slate-800/50 p-2 rounded-lg">
-                                  <span className="text-xs text-slate-300 font-bold">Eau courante :</span>
-                                  <span className={`text-xs font-black px-2 py-0.5 rounded ${selectedResidence.utilitiesIncluded?.water ? 'text-green-400 bg-green-400/10' : 'text-red-400 bg-red-400/10'}`}>
-                                    {selectedResidence.utilitiesIncluded?.water ? '✅ INCLUS (À LA CHARGE DE L\'HÔTE)' : '❌ NON INCLUS (À VOTRE CHARGE)'}
+                                <div className="flex justify-between items-center bg-white p-2.5 rounded-xl border border-slate-100 text-xs">
+                                  <span className="text-slate-600 font-semibold flex items-center gap-1.5">
+                                    <Droplets size={13} className="text-blue-500" /> Eau courante
+                                  </span>
+                                  <span className={cn("text-[11px] font-bold px-2.5 py-0.5 rounded-lg flex items-center gap-1", selectedResidence.utilitiesIncluded?.water ? "text-emerald-700 bg-emerald-50 border border-emerald-100" : "text-slate-600 bg-slate-100")}>
+                                    {selectedResidence.utilitiesIncluded?.water ? <><Check size={11} /> Incluse (hôte)</> : 'À votre charge'}
                                   </span>
                                 </div>
-                                <div className="flex justify-between items-center bg-slate-800/50 p-2 rounded-lg">
-                                  <span className="text-xs text-slate-300 font-bold">Électricité :</span>
-                                  <span className={`text-xs font-black px-2 py-0.5 rounded ${selectedResidence.utilitiesIncluded?.electricity ? 'text-green-400 bg-green-400/10' : 'text-red-400 bg-red-400/10'}`}>
-                                    {selectedResidence.utilitiesIncluded?.electricity ? '✅ INCLUS (À LA CHARGE DE L\'HÔTE)' : '❌ NON INCLUS (À VOTRE CHARGE)'}
+                                <div className="flex justify-between items-center bg-white p-2.5 rounded-xl border border-slate-100 text-xs">
+                                  <span className="text-slate-600 font-semibold flex items-center gap-1.5">
+                                    <Zap size={13} className="text-amber-500" /> Électricité
+                                  </span>
+                                  <span className={cn("text-[11px] font-bold px-2.5 py-0.5 rounded-lg flex items-center gap-1", selectedResidence.utilitiesIncluded?.electricity ? "text-emerald-700 bg-emerald-50 border border-emerald-100" : "text-slate-600 bg-slate-100")}>
+                                    {selectedResidence.utilitiesIncluded?.electricity ? <><Check size={11} /> Incluse (hôte)</> : 'À votre charge'}
                                   </span>
                                 </div>
                               </div>
-                              <p className="text-[9px] text-slate-500 mt-2 italic font-medium">* Veuillez noter que si les charges ne sont pas incluses, vous devrez payer votre consommation directement sur place (compteur ou forfait).</p>
+                              <p className="text-[11px] text-slate-500 mt-2.5 leading-relaxed font-normal">* Si une charge n'est pas incluse, le règlement s'effectue directement sur place auprès de l'hôte (compteur ou forfait).</p>
                             </div>
 
                             <div className="flex justify-between text-slate-600">

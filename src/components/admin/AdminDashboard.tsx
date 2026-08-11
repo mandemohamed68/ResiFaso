@@ -7364,9 +7364,9 @@ export const AdminDashboard: React.FC<{ onBackToTraveler?: () => void }> = ({ on
                     )}
                     <p>
                       <span className="text-slate-400 font-bold uppercase text-[10px]">Charges incluses :</span>{" "}
-                      {selectedResForDetail.utilitiesIncluded?.water ? "💧 Eau" : ""}
+                      {selectedResForDetail.utilitiesIncluded?.water ? "Eau" : ""}
                       {selectedResForDetail.utilitiesIncluded?.water && selectedResForDetail.utilitiesIncluded?.electricity ? " & " : ""}
-                      {selectedResForDetail.utilitiesIncluded?.electricity ? "⚡ Électricité" : ""}
+                      {selectedResForDetail.utilitiesIncluded?.electricity ? "Électricité" : ""}
                       {!selectedResForDetail.utilitiesIncluded?.water && !selectedResForDetail.utilitiesIncluded?.electricity ? "Aucune charge incluse" : ""}
                     </p>
                   </div>

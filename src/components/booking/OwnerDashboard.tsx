@@ -3926,7 +3926,7 @@ export const OwnerDashboard: React.FC<{ isTestMode?: boolean; onBackToTraveler?:
                                onChange={(e) => setUtilitiesIncluded(prev => ({...prev, water: e.target.checked}))} 
                                className="w-5 h-5 rounded-lg border-slate-300 text-red-600 focus:ring-red-500 transition-all cursor-pointer"
                              />
-                             <span className="text-sm font-black group-hover:text-red-600 transition-colors">💧 Eau (Inclus)</span>
+                             <span className="text-sm font-semibold text-slate-800 group-hover:text-red-600 transition-colors">Eau (Inclus)</span>
                           </label>
                           <label className="flex items-center gap-3 cursor-pointer group">
                              <input 
@@ -3935,7 +3935,7 @@ export const OwnerDashboard: React.FC<{ isTestMode?: boolean; onBackToTraveler?:
                                onChange={(e) => setUtilitiesIncluded(prev => ({...prev, electricity: e.target.checked}))} 
                                className="w-5 h-5 rounded-lg border-slate-300 text-red-600 focus:ring-red-500 transition-all cursor-pointer"
                              />
-                             <span className="text-sm font-black group-hover:text-red-600 transition-colors">⚡ Électricité (Inclus)</span>
+                             <span className="text-sm font-semibold text-slate-800 group-hover:text-red-600 transition-colors">Électricité (Inclus)</span>
                           </label>
                         </div>
                         <p className="mt-3 text-[10px] text-slate-500 italic font-bold bg-slate-50 p-2 rounded-lg border border-slate-100">

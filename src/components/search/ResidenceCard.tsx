@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Star, MapPin, Wifi, AirVent, ShieldCheck, Heart, Phone, MessageCircle, LayoutGrid, Calendar as CalendarIcon } from 'lucide-react';
+import { Star, MapPin, Wifi, AirVent, ShieldCheck, Heart, Phone, MessageCircle, LayoutGrid, Calendar as CalendarIcon, Droplets, Zap, Sparkles } from 'lucide-react';
 import { Residence } from '../../types';
 import { motion } from 'motion/react';
 import { formatFCFA, cn, formatDateFr } from '../../lib/utils';
@@ -73,33 +73,23 @@ export const ResidenceCard: React.FC<Props> = ({
           alt={residence.title}
           className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
         />
-        <div className="absolute top-3 left-3 flex flex-col gap-2">
-          <div className="bg-white/90 backdrop-blur-sm px-2 py-1 rounded text-[10px] font-bold uppercase tracking-widest text-slate-900 shadow-sm self-start">
+        <div className="absolute top-3 left-3 flex flex-wrap gap-1.5 max-w-[85%] z-10">
+          <div className="bg-slate-900/70 backdrop-blur-md text-white px-2.5 py-1 rounded-full text-[10px] font-semibold tracking-wide">
             {residence.type}
           </div>
           {!!residence.promoted && (
-            <div className="bg-red-600/90 text-white px-2 py-1 rounded text-[10px] font-black uppercase tracking-widest shadow-sm self-start border border-red-500/50">
-              Coup de coeur Faso ★
+            <div className="bg-red-600/90 text-white px-2.5 py-1 rounded-full text-[10px] font-bold tracking-wide backdrop-blur-sm flex items-center gap-1 shadow-sm">
+              <Sparkles size={10} /> Coup de cœur
             </div>
           )}
           {!!(residence.weeklyDiscount || residence.monthlyDiscount || residence.weekly_discount || residence.monthly_discount) && (
-            <div className="bg-green-600/90 text-white px-2 py-1 rounded text-[10px] font-black uppercase tracking-widest shadow-sm self-start border border-green-500/50">
-              -{residence.monthlyDiscount || residence.weeklyDiscount}% Durée
+            <div className="bg-emerald-600/90 text-white px-2.5 py-1 rounded-full text-[10px] font-bold tracking-wide backdrop-blur-sm shadow-sm">
+              -{residence.monthlyDiscount || residence.weeklyDiscount}% Séjour
             </div>
           )}
           {!!(residence.promoPrice || residence.promo_price) && (
-            <div className="bg-yellow-400 text-slate-900 px-2 py-1 rounded text-[10px] font-black uppercase tracking-widest shadow-sm self-start animate-pulse">
-              Promo Flash ⚡
-            </div>
-          )}
-          {!!residence.utilitiesIncluded?.water && (
-            <div className="bg-blue-600/90 text-white px-2 py-1 rounded text-[10px] font-black uppercase tracking-widest shadow-sm self-start border border-blue-500/50">
-              Eau incluse 💧
-            </div>
-          )}
-          {!!residence.utilitiesIncluded?.electricity && (
-            <div className="bg-amber-500/90 text-white px-2 py-1 rounded text-[10px] font-black uppercase tracking-widest shadow-sm self-start border border-amber-400/50">
-              Élec. incluse ⚡
+            <div className="bg-amber-400 text-slate-950 px-2.5 py-1 rounded-full text-[10px] font-extrabold tracking-wide flex items-center gap-1 shadow-sm">
+              <Zap size={10} /> Offre spéciale
             </div>
           )}
         </div>
@@ -127,14 +117,23 @@ export const ResidenceCard: React.FC<Props> = ({
           <span className="line-clamp-1">{residence.address?.neighborhood || residence.neighborhood}, {residence.address?.city || residence.city}</span>
         </div>
 
-        <div className="flex items-center gap-3 mb-4">
-          <div className="flex items-center gap-1 text-slate-500 text-[9px] font-black uppercase">
-            <LayoutGrid size={9} className="text-slate-400" />
+        <div className="flex flex-wrap items-center gap-2 mb-3">
+          <div className="flex items-center gap-1 text-slate-500 text-[10px] font-semibold">
+            <LayoutGrid size={11} className="text-slate-400" />
             <span>{residence.rooms || 1} Pièces</span>
           </div>
-          {residence.ownerName && (
-            <div className="text-[9px] text-slate-400 font-bold uppercase tracking-wider border-l border-slate-200 pl-3 line-clamp-1">
-              Hôte: <span className="text-slate-600">{residence.ownerName}</span>
+          {(residence.utilitiesIncluded?.water || residence.utilitiesIncluded?.electricity) && (
+            <div className="flex items-center gap-1.5 border-l border-slate-200 pl-2">
+              {residence.utilitiesIncluded?.water && (
+                <span className="text-[10px] font-medium text-blue-700 bg-blue-50 px-2 py-0.5 rounded-md flex items-center gap-1">
+                  <Droplets size={10} /> Eau incluse
+                </span>
+              )}
+              {residence.utilitiesIncluded?.electricity && (
+                <span className="text-[10px] font-medium text-amber-700 bg-amber-50 px-2 py-0.5 rounded-md flex items-center gap-1">
+                  <Zap size={10} /> Élec. incluse
+                </span>
+              )}
             </div>
           )}
         </div>
