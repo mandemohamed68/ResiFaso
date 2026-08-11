@@ -1265,9 +1265,8 @@ function AppContent() {
                 </div>
 
                 <div className="lg:col-start-3">
-                  <div className="sticky top-28 bg-white p-6 rounded-3xl border-2 border-red-100 shadow-2xl">
-                    <h2 className="text-lg font-bold mb-6 flex items-center gap-2">
-                      <span className="w-2 h-6 bg-red-600 rounded-full"></span>
+                  <div className="sticky top-28 bg-white p-6 rounded-3xl border border-slate-200/80 shadow-xl">
+                    <h2 className="text-xl font-bold text-slate-900 tracking-tight mb-5">
                       Finaliser la Réservation
                     </h2>
 
@@ -1390,9 +1389,9 @@ function AppContent() {
                           const uniqueOccupiedList = occupiedList.filter((v, i, a) => a.findIndex(t => (t.from === v.from && t.to === v.to)) === i);
 
                           return (
-                            <div className="mt-3 bg-red-50/50 p-3 rounded-2xl border border-red-100 mb-6">
-                              <p className="text-[10px] font-black uppercase tracking-widest text-red-600 mb-2 flex items-center gap-1.5">
-                                <span className="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse"></span>
+                            <div className="mt-3 bg-slate-50 p-3 rounded-2xl border border-slate-200/80 mb-6">
+                              <p className="text-xs font-semibold text-slate-700 mb-2 flex items-center gap-1.5">
+                                <span className="w-1.5 h-1.5 rounded-full bg-slate-400"></span>
                                 Dates d'indisponibilité de la résidence :
                               </p>
                               <div className="space-y-1.5 max-h-36 overflow-y-auto no-scrollbar">
@@ -1400,10 +1399,10 @@ function AppContent() {
                                   const fromFr = new Date(occ.from).toLocaleDateString('fr-FR', { day: '2-digit', month: 'short' });
                                   const toFr = new Date(occ.to).toLocaleDateString('fr-FR', { day: '2-digit', month: 'short' });
                                   return (
-                                    <div key={idx} className="flex items-center justify-between bg-white px-2.5 py-1.5 rounded-xl border border-red-50 text-[11px] font-bold text-slate-700">
-                                      <span>Du <strong className="font-extrabold">{fromFr}</strong></span>
-                                      <span className="text-red-300">➜</span>
-                                      <span>Au <strong className="font-extrabold">{toFr}</strong></span>
+                                    <div key={idx} className="flex items-center justify-between bg-white px-2.5 py-1.5 rounded-xl border border-slate-100 text-[11px] font-semibold text-slate-700">
+                                      <span>Du <strong className="font-bold text-slate-900">{fromFr}</strong></span>
+                                      <span className="text-slate-300">→</span>
+                                      <span>Au <strong className="font-bold text-slate-900">{toFr}</strong></span>
                                     </div>
                                   );
                                 })}

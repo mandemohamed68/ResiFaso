@@ -2338,58 +2338,58 @@ export const OwnerDashboard: React.FC<{ isTestMode?: boolean; onBackToTraveler?:
       {/* Upper Panel */}
       <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6 mb-10">
         <div className="max-w-xs xl:max-w-sm">
-          <h2 className="text-3xl font-black text-slate-900 tracking-tight leading-none mb-2 underline decoration-yellow-400 decoration-4 underline-offset-4">Espace Propriétaire</h2>
+          <h2 className="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight mb-1">Espace Propriétaire</h2>
           <p className="text-slate-500 text-sm font-medium">Gérez vos biens immobiliers et optimisez vos rendements au Burkina.</p>
         </div>
         
-        {/* Directives de l'hôte obligatoires */}
-        <div className="flex-1 max-w-xl bg-amber-50/70 border border-amber-200/50 rounded-2xl p-4 flex gap-4 items-center">
-          <div className="bg-amber-500 text-white p-2 rounded-xl shrink-0">
-            <ShieldAlert size={18} />
+        {/* Directives de l'hôte */}
+        <div className="flex-1 max-w-xl bg-slate-50 border border-slate-200/80 rounded-2xl p-4 flex gap-3.5 items-center">
+          <div className="bg-slate-200 text-slate-700 p-2 rounded-xl shrink-0">
+            <ShieldCheck size={18} />
           </div>
           <div className="text-xs leading-snug">
-            <span className="font-black text-amber-950 uppercase tracking-widest block mb-1">📌 Directives Obligatoires de l'Hôte</span>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-x-4 gap-y-1 text-slate-700 font-semibold">
+            <span className="font-bold text-slate-900 block mb-1">Directives Qualité ResiFaso</span>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-x-4 gap-y-1 text-slate-600 font-medium text-[11px]">
               <div className="flex items-center gap-1.5">
-                <span className="text-amber-500 font-black">•</span>
-                <span>Acompte de 100% par défaut à la réservation</span>
+                <span className="text-slate-400">•</span>
+                <span>Acompte à la réservation</span>
               </div>
               <div className="flex items-center gap-1.5">
-                <span className="text-amber-500 font-black">•</span>
-                <span>Contrôle physique rigoureux de la pièce d'identité (KYC)</span>
+                <span className="text-slate-400">•</span>
+                <span>Contrôle d'identité (KYC)</span>
               </div>
               <div className="flex items-center gap-1.5">
-                <span className="text-amber-500 font-black">•</span>
-                <span>Forage ou plaques solaires recommandés (SONABEL)</span>
+                <span className="text-slate-400">•</span>
+                <span>Alternative eau/électricité recommandée</span>
               </div>
               <div className="flex items-center gap-1.5">
-                <span className="text-amber-500 font-black">•</span>
-                <span>Enregistrement obligatoire de l'heure d'arrivée/départ</span>
+                <span className="text-slate-400">•</span>
+                <span>Suivi arrivée / départ</span>
               </div>
             </div>
           </div>
         </div>
 
-        <div className="flex items-center gap-3 self-start lg:self-auto shrink-0">
+        <div className="flex items-center gap-2.5 self-start lg:self-auto shrink-0">
           <button 
             onClick={() => setIsGuideOpen(true)}
-            className="flex items-center gap-2 px-5 py-3.5 bg-slate-100 hover:bg-slate-200 text-slate-700 hover:text-slate-900 font-black text-xs uppercase tracking-wider rounded-2xl transition-all cursor-pointer border border-slate-200/40"
+            className="flex items-center gap-2 px-4 py-3 bg-slate-100 hover:bg-slate-200 text-slate-800 font-semibold text-xs rounded-xl transition-all cursor-pointer border border-slate-200/60"
           >
-            <Compass size={16} className="text-indigo-600 animate-pulse" />
+            <Compass size={15} className="text-slate-600" />
             Guide Hôte
           </button>
           <button
             onClick={handleNavigateToAdd}
-            className="flex items-center justify-center gap-2 px-5 py-3.5 bg-red-600 hover:bg-red-700 text-white rounded-2xl font-black text-xs uppercase tracking-wider transition-all hover:scale-[1.02] shadow-lg shadow-red-50 active:scale-[0.98] cursor-pointer"
+            className="flex items-center justify-center gap-2 px-4 py-3 bg-slate-900 hover:bg-slate-800 text-white rounded-xl font-semibold text-xs transition-all shadow-sm cursor-pointer"
           >
-            <Plus size={16} />
+            <Plus size={15} />
             Ajouter une résidence
           </button>
         </div>
       </div>
 
       {/* Tabs list */}
-      <div className="flex border-b border-slate-100 gap-6 mb-8 overflow-x-auto no-scrollbar">
+      <div className="flex border-b border-slate-200/80 gap-6 mb-8 overflow-x-auto no-scrollbar">
         {[
           { id: 'stats', label: 'Tableau de bord', icon: BarChart3 },
           { id: 'listings', label: 'Mes résidences', icon: Home, count: residences.length },
@@ -2402,16 +2402,16 @@ export const OwnerDashboard: React.FC<{ isTestMode?: boolean; onBackToTraveler?:
           <button
             key={tab.id}
             onClick={() => setActiveTab(tab.id as any)}
-            className={`pb-4 text-sm font-black flex items-center gap-2 border-b-2 transition-all cursor-pointer whitespace-nowrap ${
+            className={`pb-4 text-xs sm:text-sm font-semibold flex items-center gap-2 border-b-2 transition-all cursor-pointer whitespace-nowrap ${
               activeTab === tab.id
-                ? 'border-red-600 text-red-700'
-                : 'border-transparent text-slate-400 hover:text-slate-900'
+                ? 'border-slate-900 text-slate-900'
+                : 'border-transparent text-slate-500 hover:text-slate-800'
             }`}
           >
-            <tab.icon size={16} />
+            <tab.icon size={15} />
             <span>{tab.label}</span>
             {tab.count !== undefined && tab.count > 0 && (
-              <span className={`px-2 py-0.5 rounded-full text-[10px] font-black ${activeTab === tab.id ? 'bg-red-100 text-red-700' : 'bg-slate-150 text-slate-600'}`}>
+              <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${activeTab === tab.id ? 'bg-slate-100 text-slate-900' : 'bg-slate-100 text-slate-600'}`}>
                 {tab.count}
               </span>
             )}
@@ -2430,64 +2430,64 @@ export const OwnerDashboard: React.FC<{ isTestMode?: boolean; onBackToTraveler?:
             className="space-y-8"
           >
             {/* KPI grid counts */}
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-5">
               
-              <div className="bg-white p-6 rounded-[28px] border-b-4 border-b-red-600 border border-slate-100 shadow-sm flex items-center gap-4">
-                <div className="w-12 h-12 bg-red-50 text-red-600 rounded-2xl flex items-center justify-center shrink-0">
-                  <Wallet size={20} />
+              <div className="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-sm flex items-center gap-4">
+                <div className="w-11 h-11 bg-slate-100 text-slate-800 rounded-xl flex items-center justify-center shrink-0">
+                  <Wallet size={18} />
                 </div>
                 <div>
-                  <span className="block text-[10px] text-slate-400 uppercase font-black tracking-wider">Revenu Net (Retirable)</span>
-                  <span className="text-xl font-black text-slate-900">{formatCurrency(retirableBalance)} F CFA</span>
+                  <span className="block text-xs font-semibold text-slate-500">Revenu Net (Retirable)</span>
+                  <span className="text-xl font-extrabold text-slate-900">{formatCurrency(retirableBalance)} F CFA</span>
                 </div>
               </div>
 
-              <div className="bg-white p-6 rounded-[28px] border-b-4 border-b-green-600 border border-slate-100 shadow-sm flex items-center gap-4">
-                <div className="w-12 h-12 bg-green-50 text-green-600 rounded-2xl flex items-center justify-center shrink-0">
-                  <Home size={20} />
+              <div className="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-sm flex items-center gap-4">
+                <div className="w-11 h-11 bg-emerald-50 text-emerald-700 rounded-xl flex items-center justify-center shrink-0">
+                  <Home size={18} />
                 </div>
                 <div>
-                  <span className="block text-[10px] text-slate-400 uppercase font-black tracking-wider">Total Hébergements</span>
-                  <span className="text-xl font-black text-slate-900">{residences.length}</span>
+                  <span className="block text-xs font-semibold text-slate-500">Total Hébergements</span>
+                  <span className="text-xl font-extrabold text-slate-900">{residences.length}</span>
                 </div>
               </div>
 
-              <div className="bg-white p-6 rounded-[28px] border-b-4 border-b-yellow-400 border border-slate-100 shadow-sm flex items-center gap-4">
-                <div className="w-12 h-12 bg-yellow-50 text-yellow-600 rounded-2xl flex items-center justify-center shrink-0">
-                  <CalendarCheck size={20} />
+              <div className="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-sm flex items-center gap-4">
+                <div className="w-11 h-11 bg-amber-50 text-amber-700 rounded-xl flex items-center justify-center shrink-0">
+                  <CalendarCheck size={18} />
                 </div>
                 <div>
-                  <span className="block text-[10px] text-slate-400 uppercase font-black tracking-wider">Taux d'Occupation</span>
-                  <span className="text-xl font-black text-slate-900">{occupancyRate}%</span>
+                  <span className="block text-xs font-semibold text-slate-500">Taux d'Occupation</span>
+                  <span className="text-xl font-extrabold text-slate-900">{occupancyRate}%</span>
                 </div>
               </div>
 
-              <div className="bg-white p-6 rounded-[28px] border border-slate-100 shadow-sm flex items-center gap-4">
-                <div className="w-12 h-12 bg-indigo-50 text-indigo-600 rounded-2xl flex items-center justify-center shrink-0">
-                  <Eye size={20} />
+              <div className="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-sm flex items-center gap-4">
+                <div className="w-11 h-11 bg-blue-50 text-blue-700 rounded-xl flex items-center justify-center shrink-0">
+                  <Eye size={18} />
                 </div>
                 <div>
-                  <span className="block text-[10px] text-slate-400 uppercase font-black tracking-wider">Vues Totales</span>
-                  <span className="text-xl font-black text-slate-900">482</span>
+                  <span className="block text-xs font-semibold text-slate-500">Vues Totales</span>
+                  <span className="text-xl font-extrabold text-slate-900">482</span>
                 </div>
               </div>
 
             </div>
 
             {/* Burkina local context notifications */}
-            <div className="bg-amber-50/60 border border-amber-200/50 rounded-3xl p-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-              <div className="flex gap-4">
-                <div className="w-10 h-10 bg-amber-500 text-white rounded-xl flex items-center justify-center shrink-0">
+            <div className="bg-slate-50 border border-slate-200/80 rounded-2xl p-5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+              <div className="flex gap-3.5">
+                <div className="w-9 h-9 bg-slate-200 text-slate-700 rounded-xl flex items-center justify-center shrink-0">
                   <ShieldAlert size={18} />
                 </div>
                 <div>
-                  <h4 className="text-sm font-black text-slate-900">Note relative à l'Électricité (SONABEL) et l'Eau</h4>
-                  <p className="text-xs text-slate-500 leading-relaxed font-semibold">Pour attirer les voyageurs haut de gamme à Ouaga 2000, l'intégration d'un climatiseur n'est plus suffisante. Les voyageurs préfèrent désormais les logements pré-équipés d'un **Groupe électrogène automatique** ou de **Plaques solaires**, ainsi que d'un **Forage d'eau fonctionnel**.</p>
+                  <h4 className="text-sm font-bold text-slate-900">Conseils d'Équipement pour vos Résidences</h4>
+                  <p className="text-xs text-slate-600 leading-relaxed font-normal mt-0.5">Pour attirer les voyageurs à Ouagadougou et Bobo, pré-équipez vos logements d'un groupe électrogène ou d'installations solaires ainsi que d'un forage d'eau fonctionnel.</p>
                 </div>
               </div>
               <button 
                 onClick={() => setActiveTab('listings')}
-                className="px-4 py-2 bg-white rounded-xl border border-amber-200 text-amber-800 text-xs font-black uppercase tracking-wider shrink-0"
+                className="px-4 py-2 bg-slate-900 hover:bg-slate-800 text-white rounded-xl text-xs font-semibold shrink-0 cursor-pointer transition-colors"
               >
                 Mettre à jour
               </button>
@@ -3478,19 +3478,19 @@ export const OwnerDashboard: React.FC<{ isTestMode?: boolean; onBackToTraveler?:
             exit={{ opacity: 0, y: -10 }}
             className="space-y-6 max-w-3xl mx-auto"
           >
-            <form onSubmit={handleSavePolicy} className="bg-white border border-slate-150 rounded-3xl p-6 shadow-sm space-y-6">
+            <form onSubmit={handleSavePolicy} className="bg-white border border-slate-200/80 rounded-2xl p-6 shadow-sm space-y-6">
               <div>
-                <h3 className="text-lg font-black text-slate-950 flex items-center gap-2 uppercase tracking-tight">
-                  🛡️ Personnalisation de la Charte de Remboursement
+                <h3 className="text-lg font-bold text-slate-900 flex items-center gap-2">
+                  <ShieldCheck size={20} className="text-slate-700" /> Charte de Remboursement & Annulation
                 </h3>
-                <p className="text-[10px] text-slate-400 font-black uppercase mt-0.5 tracking-wider">
+                <p className="text-xs text-slate-500 font-medium mt-1">
                   Configurez vos frais d'annulation locaux et règles administratives
                 </p>
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div className="space-y-2">
-                  <label className="block text-[10px] font-black text-slate-500 uppercase tracking-widest font-bold">
+                  <label className="block text-xs font-semibold text-slate-700">
                     Frais administratifs fixes retenus (F CFA) *
                   </label>
                   <div className="relative">
@@ -3501,19 +3501,19 @@ export const OwnerDashboard: React.FC<{ isTestMode?: boolean; onBackToTraveler?:
                       step={100}
                       value={hostCancellationFee}
                       onChange={(e) => setHostCancellationFee(Math.max(0, parseInt(e.target.value) || 0))}
-                      className="w-full bg-slate-50 border border-slate-200 rounded-xl py-3 px-4 font-extrabold text-slate-900 text-sm focus:bg-white focus:border-red-500 transition-all outline-none"
+                      className="w-full bg-slate-50 border border-slate-200 rounded-xl py-3 px-4 font-bold text-slate-900 text-sm focus:bg-white focus:border-slate-400 transition-all outline-none"
                     />
-                    <div className="absolute right-3.5 top-1/2 -translate-y-1/2 text-xs font-black text-slate-400 uppercase">
+                    <div className="absolute right-3.5 top-1/2 -translate-y-1/2 text-xs font-medium text-slate-400">
                       F CFA
                     </div>
                   </div>
-                  <p className="text-[10px] text-slate-400 leading-normal font-sans">
-                    Frais retenus sur le remboursement d'un voyageur en cas d'annulation de son initiative. Par défaut de 1 000 F CFA.
+                  <p className="text-xs text-slate-500 leading-normal font-sans">
+                    Frais retenus sur le remboursement d'un voyageur en cas d'annulation de son initiative. Par défaut : 1 000 F CFA.
                   </p>
                 </div>
 
                 <div className="space-y-2">
-                  <label className="block text-[10px] font-black text-slate-500 uppercase tracking-widest font-bold">
+                  <label className="block text-xs font-semibold text-slate-700">
                     Conditions Locales Additionnelles (Facultatif)
                   </label>
                   <textarea
@@ -3521,61 +3521,61 @@ export const OwnerDashboard: React.FC<{ isTestMode?: boolean; onBackToTraveler?:
                     value={hostCancellationRulesText}
                     onChange={(e) => setHostCancellationRulesText(e.target.value)}
                     placeholder="Ex: Toute annulation à moins de 24 heures de l'arrivée n'est plus éligible au remboursement..."
-                    className="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 font-bold text-xs focus:bg-white focus:border-red-500 transition-all outline-none resize-none"
+                    className="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 font-medium text-xs focus:bg-white focus:border-slate-400 transition-all outline-none resize-none"
                   />
-                  <p className="text-[10px] text-slate-400 leading-normal font-sans">
-                    Remarques particulières que vous aimeriez afficher sur le justificatif d'annulation du voyageur.
+                  <p className="text-xs text-slate-500 leading-normal font-sans">
+                    Remarques particulières affichées sur le justificatif d'annulation du voyageur.
                   </p>
                 </div>
               </div>
 
               {/* Real-time Scenario Simulators */}
-              <div className="p-5 bg-slate-50 rounded-2xl border border-slate-100 space-y-4">
-                <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest block border-b pb-1.5">
-                  🔍 Prévisualisation interactive des scénarios de remboursement :
+              <div className="p-5 bg-slate-50 rounded-xl border border-slate-200/80 space-y-4">
+                <span className="text-xs font-semibold text-slate-700 block border-b border-slate-200/60 pb-2">
+                  Prévisualisation interactive des scénarios de remboursement :
                 </span>
 
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-                  <div className="bg-white p-3 border border-slate-150 rounded-xl space-y-1.5">
-                    <span className="text-[9px] font-black text-red-650 text-red-600 uppercase tracking-wider block">
+                  <div className="bg-white p-3 border border-slate-200/80 rounded-xl space-y-1.5">
+                    <span className="text-xs font-semibold text-slate-800 block">
                       Cas A : Acompte seul payé
                     </span>
                     <p className="text-[11px] text-slate-500 font-medium leading-normal">
-                      Le voyageur a payé un acompte de <strong className="font-extrabold text-slate-800">10 000 F</strong>. En annulant :
+                      Acompte de <strong className="font-bold text-slate-800">10 000 F</strong>. En annulant :
                     </p>
-                    <div className="text-[11px] font-bold text-slate-700 font-mono bg-slate-50 p-1.5 rounded text-center">
-                      Refund: {formatCurrency(Math.max(0, 10000 - hostCancellationFee))} F CFA
-                      <span className="block text-[8px] text-slate-400 font-sans font-normal lowercase mt-0.5">
+                    <div className="text-[11px] font-bold text-slate-800 font-mono bg-slate-50 p-2 rounded-lg text-center">
+                      Remboursement : {formatCurrency(Math.max(0, 10000 - hostCancellationFee))} F CFA
+                      <span className="block text-[10px] text-slate-500 font-sans font-normal lowercase mt-0.5">
                         (acompte - {formatCurrency(hostCancellationFee)} F de frais)
                       </span>
                     </div>
                   </div>
 
-                  <div className="bg-white p-3 border border-slate-150 rounded-xl space-y-1.5">
-                    <span className="text-[9px] font-black text-red-650 text-red-600 uppercase tracking-wider block">
-                      Cas B : Séjour Entièrement Soldé
+                  <div className="bg-white p-3 border border-slate-200/80 rounded-xl space-y-1.5">
+                    <span className="text-xs font-semibold text-slate-800 block">
+                      Cas B : Séjour entièrement soldé
                     </span>
                     <p className="text-[11px] text-slate-500 font-medium leading-normal">
-                      Le voyageur a réglé <strong className="font-extrabold text-slate-800">50 000 F</strong>. En annulant :
+                      Montant réglé <strong className="font-bold text-slate-800">50 000 F</strong>. En annulant :
                     </p>
-                    <div className="text-[11px] font-bold text-slate-700 font-mono bg-slate-50 p-1.5 rounded text-center">
-                      Refund: {formatCurrency(Math.max(0, 50000 - hostCancellationFee))} F CFA
-                      <span className="block text-[8px] text-slate-400 font-sans font-normal lowercase mt-0.5">
+                    <div className="text-[11px] font-bold text-slate-800 font-mono bg-slate-50 p-2 rounded-lg text-center">
+                      Remboursement : {formatCurrency(Math.max(0, 50000 - hostCancellationFee))} F CFA
+                      <span className="block text-[10px] text-slate-500 font-sans font-normal lowercase mt-0.5">
                         (solde - {formatCurrency(hostCancellationFee)} F de frais)
                       </span>
                     </div>
                   </div>
 
-                  <div className="bg-white p-3 border border-slate-150 rounded-xl space-y-1.5">
-                    <span className="text-[9px] font-black text-red-650 text-red-600 uppercase tracking-wider block">
+                  <div className="bg-white p-3 border border-slate-200/80 rounded-xl space-y-1.5">
+                    <span className="text-xs font-semibold text-slate-800 block">
                       Cas C : Interruption de séjour
                     </span>
                     <p className="text-[11px] text-slate-500 font-medium leading-normal">
-                      6 nuits restantes sur 10. Total payé <strong className="font-extrabold text-slate-800">100 000 F</strong>.
+                      6 nuits restantes sur 10. Total payé <strong className="font-bold text-slate-800">100 000 F</strong>.
                     </p>
-                    <div className="text-[11px] font-bold text-slate-700 font-mono bg-slate-50 p-1.5 rounded text-center">
-                      Refund: {formatCurrency(Math.max(0, 60000 - hostCancellationFee))} F CFA
-                      <span className="block text-[8px] text-slate-400 font-sans font-normal lowercase mt-0.5">
+                    <div className="text-[11px] font-bold text-slate-800 font-mono bg-slate-50 p-2 rounded-lg text-center">
+                      Remboursement : {formatCurrency(Math.max(0, 60000 - hostCancellationFee))} F CFA
+                      <span className="block text-[10px] text-slate-500 font-sans font-normal lowercase mt-0.5">
                         (prorata nuits - {formatCurrency(hostCancellationFee)} F de frais)
                       </span>
                     </div>
@@ -3584,11 +3584,11 @@ export const OwnerDashboard: React.FC<{ isTestMode?: boolean; onBackToTraveler?:
               </div>
 
               {/* Submit panel */}
-              <div className="pt-3 border-t border-slate-100 flex justify-end">
+              <div className="pt-3 border-t border-slate-200/80 flex justify-end">
                 <button
                   type="submit"
                   disabled={isSavingPolicy}
-                  className="px-6 py-3 bg-red-600 hover:bg-red-700 text-white font-black uppercase text-xs tracking-wider rounded-xl transition flex items-center gap-2 cursor-pointer disabled:opacity-50"
+                  className="px-6 py-3 bg-slate-900 hover:bg-slate-800 text-white font-semibold text-xs rounded-xl transition flex items-center gap-2 cursor-pointer disabled:opacity-50"
                 >
                   {isSavingPolicy ? (
                     <>
