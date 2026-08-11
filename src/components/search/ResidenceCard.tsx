@@ -73,23 +73,23 @@ export const ResidenceCard: React.FC<Props> = ({
           alt={residence.title}
           className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
         />
-        <div className="absolute top-3 left-3 flex flex-wrap gap-1.5 max-w-[85%] z-10">
-          <div className="bg-slate-900/70 backdrop-blur-md text-white px-2.5 py-1 rounded-full text-[10px] font-semibold tracking-wide">
+        <div className="absolute top-3 left-3 flex flex-wrap gap-1 max-w-[85%] z-10 pointer-events-none">
+          <div className="bg-slate-900/80 backdrop-blur-md text-white px-2 py-0.5 rounded-full text-[9px] font-bold tracking-wide">
             {residence.type}
           </div>
           {!!residence.promoted && (
-            <div className="bg-red-600/90 text-white px-2.5 py-1 rounded-full text-[10px] font-bold tracking-wide backdrop-blur-sm flex items-center gap-1 shadow-sm">
-              <Sparkles size={10} /> Coup de cœur
+            <div className="bg-red-600/90 text-white px-2 py-0.5 rounded-full text-[9px] font-bold tracking-wide backdrop-blur-sm flex items-center gap-1 shadow-sm">
+              <Sparkles size={9} /> Coup de cœur
             </div>
           )}
           {!!(residence.weeklyDiscount || residence.monthlyDiscount || residence.weekly_discount || residence.monthly_discount) && (
-            <div className="bg-emerald-600/90 text-white px-2.5 py-1 rounded-full text-[10px] font-bold tracking-wide backdrop-blur-sm shadow-sm">
+            <div className="bg-emerald-600/90 text-white px-2 py-0.5 rounded-full text-[9px] font-bold tracking-wide backdrop-blur-sm shadow-sm whitespace-nowrap">
               -{residence.monthlyDiscount || residence.weeklyDiscount}% Séjour
             </div>
           )}
           {!!(residence.promoPrice || residence.promo_price) && (
-            <div className="bg-amber-400 text-slate-950 px-2.5 py-1 rounded-full text-[10px] font-extrabold tracking-wide flex items-center gap-1 shadow-sm">
-              <Zap size={10} /> Offre spéciale
+            <div className="bg-amber-400 text-slate-950 px-2 py-0.5 rounded-full text-[9px] font-extrabold tracking-wide flex items-center gap-1 shadow-sm whitespace-nowrap">
+              <Zap size={9} /> Offre spéciale
             </div>
           )}
         </div>
@@ -153,7 +153,11 @@ export const ResidenceCard: React.FC<Props> = ({
               const dateStr = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
               const isBooked = residence.occupiedDates?.some((occ: any) => {
                 const status = (occ.status || occ.bookingStatus || occ.booking_status || '').toLowerCase();
+                const payStatus = (occ.paymentStatus || occ.payment_status || '').toLowerCase();
                 if (['cancelled', 'declined', 'annulee', 'annulé', 'refusee', 'refusé', 'expired', 'canceled'].includes(status)) {
+                  return false;
+                }
+                if (payStatus && !['paid', 'advance_paid', 'partial_paid', 'partiel', 'fully_paid', 'paye', 'payé'].includes(payStatus)) {
                   return false;
                 }
                 const dFrom = (occ.from || occ.check_in || '').split('T')[0];
@@ -211,17 +215,17 @@ export const ResidenceCard: React.FC<Props> = ({
             </div>
           )}
 
-          <div className="flex items-center justify-between border-t border-slate-100 pt-3 gap-2">
-            <div className="flex flex-col flex-1">
-              <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Par nuit</span>
-              <div className="flex items-baseline gap-1">
+          <div className="flex items-center justify-between border-t border-slate-100 pt-3 gap-1.5 min-w-0">
+            <div className="flex flex-col min-w-0 flex-1">
+              <span className="text-[9px] text-slate-400 font-bold uppercase tracking-wider truncate">Par nuit</span>
+              <div className="flex items-baseline gap-1 flex-wrap">
                 {(residence.promoPrice || residence.promo_price) ? (
                   <>
-                    <span className="text-base font-black text-slate-900 whitespace-nowrap">{formatFCFA(residence.promoPrice || residence.promo_price)}</span>
-                    <span className="text-xs text-slate-400 font-medium line-through shrink-0">{(residence.pricePerNight || residence.price_per_night)}</span>
+                    <span className="text-sm sm:text-base font-black text-slate-900 whitespace-nowrap">{formatFCFA(residence.promoPrice || residence.promo_price)}</span>
+                    <span className="text-[10px] text-slate-400 font-medium line-through shrink-0">{(residence.pricePerNight || residence.price_per_night)}</span>
                   </>
                 ) : (
-                  <span className="text-base font-black text-slate-900 whitespace-nowrap">{formatFCFA(residence.pricePerNight || residence.price_per_night)}</span>
+                  <span className="text-sm sm:text-base font-black text-slate-900 whitespace-nowrap">{formatFCFA(residence.pricePerNight || residence.price_per_night)}</span>
                 )}
               </div>
             </div>
@@ -231,7 +235,7 @@ export const ResidenceCard: React.FC<Props> = ({
                 e.stopPropagation();
                 onClick(residence.id);
               }}
-              className="bg-slate-900 hover:bg-red-600 text-white px-3.5 py-2 rounded-xl text-xs font-bold uppercase tracking-wider transition-colors shrink-0 cursor-pointer shadow-sm"
+              className="bg-slate-900 hover:bg-red-600 text-white px-3 py-1.5 sm:px-3.5 sm:py-2 rounded-xl text-[11px] font-black uppercase tracking-wider transition-colors shrink-0 cursor-pointer shadow-sm whitespace-nowrap"
             >
               DÉTAILS
             </button>

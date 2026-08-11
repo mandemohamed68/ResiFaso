@@ -858,7 +858,7 @@ function AppContent() {
                           initial={{ opacity: 0, y: 15 }}
                           animate={{ opacity: 1, y: 0 }}
                           exit={{ opacity: 0, y: -15 }}
-                          className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-6"
+                          className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6"
                         >
                           {filteredResidences.slice((homePage - 1) * 60, homePage * 60).map((res) => (
                             <div key={res.id} className="relative">
@@ -1331,12 +1331,19 @@ function AppContent() {
                               const bCheckIn = (b.checkIn || b.check_in || '').split('T')[0];
                               const bCheckOut = (b.checkOut || b.check_out || '').split('T')[0];
                               const bStatus = (b.bookingStatus || b.booking_status || b.status || '').toLowerCase();
-                              // Considérer comme occupé si la réservation n'est pas annulée ou déclinée
-                              const isActive = !['cancelled', 'declined', 'annulee', 'annulé', 'refusee', 'refusé', 'expired', 'canceled'].includes(bStatus);
-                              return isActive && dateStr >= bCheckIn && dateStr <= bCheckOut;
+                              const bPayStatus = (b.paymentStatus || b.payment_status || '').toLowerCase();
+                              if (['cancelled', 'declined', 'annulee', 'annulé', 'refusee', 'refusé', 'expired', 'canceled'].includes(bStatus)) {
+                                return false;
+                              }
+                              const isPaid = ['paid', 'advance_paid', 'partial_paid', 'partiel', 'fully_paid', 'paye', 'payé'].includes(bPayStatus);
+                              return isPaid && dateStr >= bCheckIn && dateStr <= bCheckOut;
                             })) || (selectedResidence.occupiedDates?.some((d: any) => {
                               const dStatus = (d.status || d.bookingStatus || d.booking_status || '').toLowerCase();
+                              const dPayStatus = (d.paymentStatus || d.payment_status || '').toLowerCase();
                               if (['cancelled', 'declined', 'annulee', 'annulé', 'refusee', 'refusé', 'expired', 'canceled'].includes(dStatus)) {
+                                return false;
+                              }
+                              if (dPayStatus && !['paid', 'advance_paid', 'partial_paid', 'partiel', 'fully_paid', 'paye', 'payé'].includes(dPayStatus)) {
                                 return false;
                               }
                               const dFrom = (d.from || d.check_in || '').split('T')[0];
@@ -1364,12 +1371,22 @@ function AppContent() {
                         {(() => {
                           const activeBookings = selectedResidenceBookings.filter((b: any) => {
                             const bStatus = (b.bookingStatus || b.booking_status || b.status || '').toLowerCase();
-                            return !['cancelled', 'declined', 'annulee', 'annulé', 'refusee', 'refusé', 'expired', 'canceled'].includes(bStatus);
+                            const bPayStatus = (b.paymentStatus || b.payment_status || '').toLowerCase();
+                            const isCancelled = ['cancelled', 'declined', 'annulee', 'annulé', 'refusee', 'refusé', 'expired', 'canceled'].includes(bStatus);
+                            const isPaid = ['paid', 'advance_paid', 'partial_paid', 'partiel', 'fully_paid', 'paye', 'payé'].includes(bPayStatus);
+                            return !isCancelled && isPaid;
                           });
 
                           const activeOccupiedFromResidence = (selectedResidence.occupiedDates || []).filter((d: any) => {
                             const dStatus = (d.status || d.bookingStatus || d.booking_status || '').toLowerCase();
-                            return !['cancelled', 'declined', 'annulee', 'annulé', 'refusee', 'refusé', 'expired', 'canceled'].includes(dStatus);
+                            const dPayStatus = (d.paymentStatus || d.payment_status || '').toLowerCase();
+                            if (['cancelled', 'declined', 'annulee', 'annulé', 'refusee', 'refusé', 'expired', 'canceled'].includes(dStatus)) {
+                              return false;
+                            }
+                            if (dPayStatus && !['paid', 'advance_paid', 'partial_paid', 'partiel', 'fully_paid', 'paye', 'payé'].includes(dPayStatus)) {
+                              return false;
+                            }
+                            return true;
                           });
 
                           const occupiedList = [
