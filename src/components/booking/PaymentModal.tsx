@@ -64,7 +64,7 @@ const translateSappayErrorToFrench = (rawError: string, status?: number): string
     return "Le code OTP saisi est incorrect ou a expiré. Veuillez vérifier le code reçu et réessayer.";
   }
 
-  // Insufficient Balance
+  // Insufficient Balance & Duplicate Transaction (Operator Error 12)
   if (
     lower.includes("insufficient balance") || 
     lower.includes("not enough money") ||
@@ -73,9 +73,15 @@ const translateSappayErrorToFrench = (rawError: string, status?: number): string
     lower.includes("insufficient funds") ||
     lower.includes("fonds insuffisants") ||
     lower.includes("solde_insuffisant") ||
-    lower.includes("balance low")
+    lower.includes("balance low") ||
+    lower.includes("transaction en double") ||
+    lower.includes("id de transaction en double") ||
+    lower.includes("double transaction") ||
+    lower.includes("double") ||
+    lower.includes("code 12") ||
+    lower.includes("status 12")
   ) {
-    return "Votre solde est insuffisant pour effectuer cette transaction. Veuillez recharger votre compte de paiement mobile money et réessayer.";
+    return "Solde client insuffisant. Veuillez recharger votre compte Mobile Money et réessayer.";
   }
 
   // Expiration
@@ -156,7 +162,7 @@ const getBestErrorMessage = (data: any): string => {
   const response = data.response || {};
   
   // Define keywords that represent a real error
-  const errorKeywords = ["erronés", "incorrect", "failed", "error", "invalide", "invalid", "échec", "refusé", "declined", "wrong", "insuffisant", "cancel", "annul"];
+  const errorKeywords = ["erronés", "incorrect", "failed", "error", "invalide", "invalid", "échec", "refusé", "declined", "wrong", "insuffisant", "cancel", "annul", "double", "dupliq"];
   
   const candidates = [
     data.error?.message,
@@ -564,7 +570,7 @@ export const PaymentModal: React.FC<Props> = ({ isOpen, onClose, amount, residen
 
       if (!resp.ok) {
         // Humanize common Sappay errors from details or error fields
-        const rawMsg = data.details || data.error || data.message || "Validation OTP échouée.";
+        const rawMsg = getBestErrorMessage(data) || data.details || data.error || data.message || "Validation OTP échouée.";
         const msg = translateSappayErrorToFrench(rawMsg, resp.status);
         throw new Error(msg);
       }
