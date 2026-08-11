@@ -232,6 +232,63 @@ const isActuallySuccess = (data: any): boolean => {
   return isTopSuccess || isRespSuccess || hasSuccessText || data.success === true;
 };
 
+const checkSappayOtpResponse = (data: any): { isError: boolean; errorMessage?: string } => {
+  if (!data) return { isError: false };
+
+  const resp = data.response || {};
+
+  // 1. Check explicit error object
+  if (data.error && typeof data.error === 'object' && Object.keys(data.error).length > 0) {
+    if (data.error.message && typeof data.error.message === 'string' && data.error.message.trim().length > 0) {
+      return { isError: true, errorMessage: data.error.message };
+    }
+  }
+
+  // 2. Check top-level success field if explicitly false
+  if (data.success === false) {
+    const msg = data.message || resp.message || "Erreur lors de la demande du code OTP.";
+    return { isError: true, errorMessage: msg };
+  }
+
+  // 3. Inspect operator nested response object
+  const respMessage = resp.message || resp.gateway_message || data.message || "";
+  const respStatus = resp.status !== undefined && resp.status !== null ? String(resp.status).trim() : null;
+
+  // List of keywords that explicitly indicate an operator rejection/error
+  const errorKeywords = [
+    "solde client insuffisant",
+    "solde insuffisant",
+    "insufficient balance",
+    "not enough money",
+    "fonds insuffisants",
+    "compte inactif",
+    "numéro invalide",
+    "invalid msisdn",
+    "refusé",
+    "declined",
+    "échec",
+    "erreur",
+    "failed",
+    "impossible",
+    "non autorisé",
+    "transaction non autorisée"
+  ];
+
+  const lowerRespMsg = respMessage.toLowerCase();
+  const hasErrorKeyword = errorKeywords.some(kw => lowerRespMsg.includes(kw));
+
+  if (hasErrorKeyword) {
+    return { isError: true, errorMessage: respMessage };
+  }
+
+  // In Sappay, if response status is present and is not "0", "00", "1", "200", "SUCCESS", "success"
+  if (respStatus && !["0", "00", "1", "200", "success", "SUCCESS"].includes(respStatus)) {
+    return { isError: true, errorMessage: respMessage || `Erreur de l'opérateur mobile (code ${respStatus})` };
+  }
+
+  return { isError: false };
+};
+
 export const PaymentModal: React.FC<Props> = ({ isOpen, onClose, amount, residenceTitle, onSuccess, isTestMode, utilitiesIncluded, bookingId, isFinalPayment, paymentType }) => {
   const { user } = useAuth();
   const isFullPayment = paymentType === 'full' || isFinalPayment === true;
@@ -377,27 +434,44 @@ export const PaymentModal: React.FC<Props> = ({ isOpen, onClose, amount, residen
             })
           });
 
-          if (otpResp.ok) {
-            const otpData = await otpResp.json();
-            console.log(`[Get-OTP ${provider}] Réponse Sappay:`, otpData);
-
-            const tid = otpData.trans_id || otpData.response?.trans_id || otpData.response?.transactionId;
-            if (tid) setTransId(tid);
-
-            const msg = otpData.message || otpData.response?.message;
-            if (typeof msg === 'string' && msg.trim().length > 0 && !msg.toLowerCase().includes('success') && !msg.toLowerCase().includes('double')) {
-              setHelperMessage(msg);
-            }
-          } else {
-            const errData = await otpResp.json().catch(() => ({}));
-            console.warn(`[Get-OTP ${provider}] HTTP ${otpResp.status}:`, errData);
+          let otpData: any = {};
+          try {
+            otpData = await otpResp.json();
+          } catch (e) {
+            otpData = {};
           }
-        } catch (otpErr) {
-          console.warn(`Avertissement sur get-otp ${provider}:`, otpErr);
+
+          console.log(`[Get-OTP ${provider}] Réponse Sappay:`, otpData);
+
+          if (!otpResp.ok) {
+            const checkRes = checkSappayOtpResponse(otpData);
+            const rawErr = checkRes.errorMessage || otpData.error?.message || otpData.message || `Erreur d'envoi du code OTP (${otpResp.status})`;
+            throw new Error(translateSappayErrorToFrench(rawErr, otpResp.status));
+          }
+
+          // Validation stricte de la réponse de l'opérateur (ex: Solde client insuffisant, code status 12, etc.)
+          const checkRes = checkSappayOtpResponse(otpData);
+          if (checkRes.isError && checkRes.errorMessage) {
+            console.warn(`[Get-OTP ${provider}] Réponse négative de l'opérateur:`, checkRes.errorMessage);
+            throw new Error(translateSappayErrorToFrench(checkRes.errorMessage));
+          }
+
+          const tid = otpData.trans_id || otpData.response?.trans_id || otpData.response?.transactionId;
+          if (tid) setTransId(tid);
+
+          const msg = otpData.message || otpData.response?.message;
+          if (typeof msg === 'string' && msg.trim().length > 0 && !msg.toLowerCase().includes('success') && !msg.toLowerCase().includes('double')) {
+            setHelperMessage(msg);
+          }
+        } catch (otpErr: any) {
+          console.error(`[Get-OTP ${provider}] Interception erreur:`, otpErr.message);
+          setError(otpErr.message || "Erreur de communication lors de la demande du code OTP.");
+          setLoading(false);
+          return; // BLOQUER la transition vers l'écran OTP !
         }
       }
 
-      // Passer immédiatement à l'écran de saisie OTP une fois la facture créée
+      // Passer à l'écran de saisie OTP uniquement si aucune erreur opérateur n'est survenue
       setStep('otp');
     } catch (e: any) {
       setError(e.message || "Erreur de communication avec la passerelle de paiement Sappay.");
@@ -424,16 +498,23 @@ export const PaymentModal: React.FC<Props> = ({ isOpen, onClose, amount, residen
         })
       });
 
+      const otpData = await otpResp.json().catch(() => ({}));
+
       if (otpResp.ok) {
-        const otpData = await otpResp.json();
-        if (otpData.trans_id || otpData.response?.transactionId) {
-          setTransId(otpData.trans_id || otpData.response?.transactionId);
+        const checkRes = checkSappayOtpResponse(otpData);
+        if (checkRes.isError && checkRes.errorMessage) {
+          setError(translateSappayErrorToFrench(checkRes.errorMessage));
+          return;
+        }
+
+        if (otpData.trans_id || otpData.response?.trans_id || otpData.response?.transactionId) {
+          setTransId(otpData.trans_id || otpData.response?.trans_id || otpData.response?.transactionId);
         }
         setResendSuccess("Une nouvelle demande de code OTP a été envoyée. Veuillez vérifier vos SMS.");
         setTimeout(() => setResendSuccess(null), 6000);
       } else {
-        const errData = await otpResp.json();
-        setError(translateSappayErrorToFrench(errData.error || errData.message || "Impossible de renvoyer le code OTP."));
+        const checkRes = checkSappayOtpResponse(otpData);
+        setError(translateSappayErrorToFrench(checkRes.errorMessage || otpData.error?.message || otpData.message || "Impossible de renvoyer le code OTP."));
       }
     } catch (err: any) {
       setError(err.message || "Erreur lors du renvoi du code OTP.");
