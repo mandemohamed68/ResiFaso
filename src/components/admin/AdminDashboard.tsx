@@ -1197,6 +1197,22 @@ export const AdminDashboard: React.FC<{ onBackToTraveler?: () => void }> = ({ on
     }
   };
 
+  const formatForDatetimeLocal = (dateStr: string | null | undefined): string => {
+    if (!dateStr) return '';
+    try {
+      const formatted = dateStr.replace(' ', 'T');
+      if (formatted.length >= 16) {
+        return formatted.slice(0, 16);
+      }
+      const d = new Date(dateStr);
+      if (isNaN(d.getTime())) return '';
+      const pad = (n: number) => String(n).padStart(2, '0');
+      return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+    } catch (e) {
+      return '';
+    }
+  };
+
   const startEditAd = (ad: Advertisement) => {
     setEditingAdId(ad.id);
     setAdImageUrl(ad.imageUrl);
@@ -1205,9 +1221,17 @@ export const AdminDashboard: React.FC<{ onBackToTraveler?: () => void }> = ({ on
     setAdLinkUrl(ad.linkUrl || '');
     setAdIsActive(ad.isActive);
     setAdFrequency(ad.frequencySeconds || 10);
-    setAdStartAt(ad.startAt || '');
-    setAdEndAt(ad.endAt || '');
+    setAdStartAt(formatForDatetimeLocal(ad.startAt));
+    setAdEndAt(formatForDatetimeLocal(ad.endAt));
     setShowAdForm(true);
+
+    // Smooth scroll to the form
+    setTimeout(() => {
+      const formEl = document.getElementById('ad-form-container');
+      if (formEl) {
+        formEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }
+    }, 100);
   };
 
   // Approve identity verification document checklist 
@@ -5594,7 +5618,7 @@ export const AdminDashboard: React.FC<{ onBackToTraveler?: () => void }> = ({ on
 
             {/* Form Section */}
             {showAdForm && (
-              <form onSubmit={handleSaveAd} className="bg-slate-50 border border-slate-200 rounded-[32px] p-6 space-y-6 animate-in slide-in-from-top duration-300">
+              <form id="ad-form-container" onSubmit={handleSaveAd} className="bg-slate-50 border border-slate-200 rounded-[32px] p-6 space-y-6 animate-in slide-in-from-top duration-300">
                 <div className="border-b border-slate-200 pb-4">
                   <h3 className="font-black text-slate-950 text-base">
                     {editingAdId ? "Modifier l'affiche publicitaire" : "Programmer une nouvelle campagne d'affiche"}
@@ -5791,19 +5815,29 @@ export const AdminDashboard: React.FC<{ onBackToTraveler?: () => void }> = ({ on
                     >
                       {/* Image Preview & Info */}
                       <div>
-                        <div className="relative h-44 w-full bg-slate-950">
+                        <div className="relative h-44 w-full bg-slate-950 overflow-hidden">
+                          {/* Blurred background backing to prevent cropped/ugly borders */}
+                          <img
+                            src={ad.imageUrl}
+                            alt=""
+                            className="absolute inset-0 w-full h-full object-cover blur-md opacity-30 scale-105"
+                            onError={(e) => {
+                              (e.target as HTMLImageElement).style.display = 'none';
+                            }}
+                          />
+                          {/* Fully visible crisp contained poster in foreground */}
                           <img
                             src={ad.imageUrl}
                             alt={ad.title}
-                            className="w-full h-full object-cover"
+                            className="relative w-full h-full object-contain z-10"
                             onError={(e) => {
                               (e.target as HTMLImageElement).src = "https://images.unsplash.com/photo-1517048676732-d65bc937f952?w=800";
                             }}
                           />
-                          <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
+                          <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent z-[11]" />
                           
                           {/* Top Status Badge */}
-                          <div className="absolute top-4 right-4 flex gap-1.5">
+                          <div className="absolute top-4 right-4 flex gap-1.5 z-20">
                             <span className={cn(
                               "px-2 py-1 text-[8px] font-black uppercase tracking-wider rounded-lg text-white shadow-sm",
                               ad.isActive ? "bg-green-500" : "bg-slate-500"
@@ -5815,7 +5849,7 @@ export const AdminDashboard: React.FC<{ onBackToTraveler?: () => void }> = ({ on
                             </span>
                           </div>
 
-                          <div className="absolute bottom-4 left-6 right-6 col-span-2">
+                          <div className="absolute bottom-4 left-6 right-6 col-span-2 z-20">
                             <h4 className="text-white font-black text-lg leading-tight truncate">{ad.title}</h4>
                             {ad.linkUrl && (
                               <p className="text-[10px] text-red-300 font-extrabold flex items-center gap-1 mt-1 leading-none truncate outline-none select-none">

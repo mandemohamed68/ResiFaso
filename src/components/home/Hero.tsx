@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import heroBg from '../../assets/images/rond_point_martyrs_bg_1780477317904.png';
 import { Advertisement } from '../../types';
@@ -37,36 +37,42 @@ export const Hero: React.FC = () => {
     return () => clearInterval(intervalId);
   }, []);
 
-  // Filter advertisements dynamically based on active dates schedules
-  const now = new Date().getTime();
-  const scheduledAds = activeAds.filter(ad => {
-    const start = ad.startAt ? new Date(ad.startAt).getTime() : null;
-    const end = ad.endAt ? new Date(ad.endAt).getTime() : null;
-    if (start && now < start) return false;
-    if (end && now > end) return false;
-    return true;
-  });
+  // Filter advertisements dynamically and memoize the slides to prevent reference resets on re-render
+  const slides = useMemo(() => {
+    const nowTime = Date.now();
+    const scheduledAds = activeAds.filter(ad => {
+      const start = ad.startAt ? new Date(ad.startAt).getTime() : null;
+      const end = ad.endAt ? new Date(ad.endAt).getTime() : null;
+      if (start && nowTime < start) return false;
+      if (end && nowTime > end) return false;
+      return true;
+    });
 
-  // Set up carousel slides (default monument bg + active promotional posters)
-  const slides: HeroSlide[] = [
-    {
-      isDefault: true,
-      imageUrl: heroBg,
-      title: "Trouvez votre chez-soi au Burkina Faso",
-      description: "Découvrez les plus belles résidences meublées, villas et appartements pour vos séjours à Ouagadougou, Bobo et partout ailleurs.",
-      frequency: 12
-    },
-    ...scheduledAds.map(ad => ({
-      isDefault: false,
-      imageUrl: ad.imageUrl,
-      title: ad.title,
-      description: ad.description || "",
-      linkUrl: ad.linkUrl,
-      frequency: ad.frequencySeconds || 10
-    }))
-  ];
+    const list: HeroSlide[] = [
+      {
+        isDefault: true,
+        imageUrl: heroBg,
+        title: "Trouvez votre chez-soi au Burkina Faso",
+        description: "Découvrez les plus belles résidences meublées, villas et appartements pour vos séjours à Ouagadougou, Bobo et partout ailleurs.",
+        frequency: 12
+      }
+    ];
 
-  // Dynamic slides rotation timer based on current slide's duration
+    scheduledAds.forEach(ad => {
+      list.push({
+        isDefault: false,
+        imageUrl: ad.imageUrl,
+        title: ad.title,
+        description: ad.description || "",
+        linkUrl: ad.linkUrl,
+        frequency: ad.frequencySeconds || 10
+      });
+    });
+
+    return list;
+  }, [activeAds]);
+
+  // Dynamic slides rotation timer based on current slide's duration (independent of slides reference to prevent resets)
   useEffect(() => {
     if (slides.length <= 1) return;
 
@@ -78,7 +84,7 @@ export const Hero: React.FC = () => {
     }, durationMs);
 
     return () => clearTimeout(timer);
-  }, [currentIndex, slides]);
+  }, [currentIndex, slides.length, slides]);
 
   const currentSlide = slides[currentIndex] || slides[0];
 
@@ -102,12 +108,29 @@ export const Hero: React.FC = () => {
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
           transition={{ duration: 1.2, ease: "easeInOut" }}
-          className="absolute inset-0 bg-cover bg-center"
-          style={{ 
-            backgroundImage: `url(${currentSlide.imageUrl})`,
-            backgroundColor: '#121212'
-          }}
-        />
+          className="absolute inset-0 overflow-hidden"
+          style={{ backgroundColor: '#121212' }}
+        >
+          {currentSlide.isDefault ? (
+            <div 
+              className="absolute inset-0 bg-cover bg-center"
+              style={{ backgroundImage: `url(${currentSlide.imageUrl})` }}
+            />
+          ) : (
+            <>
+              {/* Blurred background cover backing to fill wider screens seamlessly */}
+              <div 
+                className="absolute inset-0 bg-cover bg-center blur-lg opacity-40 scale-105"
+                style={{ backgroundImage: `url(${currentSlide.imageUrl})` }}
+              />
+              {/* Fully visible crisp contained ad poster in foreground */}
+              <div 
+                className="absolute inset-0 bg-contain bg-no-repeat bg-center"
+                style={{ backgroundImage: `url(${currentSlide.imageUrl})` }}
+              />
+            </>
+          )}
+        </motion.div>
       </AnimatePresence>
 
       {/* Hero dark glass overlay gradient */}
