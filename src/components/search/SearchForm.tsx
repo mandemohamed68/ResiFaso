@@ -121,10 +121,10 @@ export const SearchForm: React.FC<SearchFormProps> = ({ onSearch }) => {
           <div className="sm:col-span-2 lg:col-span-1 lg:w-auto mt-2 lg:mt-0">
             <button 
               type="submit" 
-              className="w-full bg-slate-900 hover:bg-slate-800 text-white px-8 py-3.5 md:py-3.5 rounded-xl font-semibold text-xs flex items-center justify-center gap-2.5 transition-all shadow-sm active:scale-98 group shrink-0 cursor-pointer"
+              className="w-full bg-red-600 hover:bg-red-700 text-white px-8 py-3.5 md:py-3.5 rounded-2xl font-black text-xs uppercase tracking-widest flex items-center justify-center gap-2.5 transition-all shadow-lg shadow-red-600/20 active:scale-98 group shrink-0 cursor-pointer"
             >
-              <Search size={16} className="text-white group-hover:scale-105 transition-transform" />
-              <span className="tracking-wide">Rechercher</span>
+              <Search size={18} className="text-yellow-400 group-hover:scale-110 transition-transform" />
+              <span className="tracking-wider">RECHERCHER</span>
             </button>
           </div>
         </div>

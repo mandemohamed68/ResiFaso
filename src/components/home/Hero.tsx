@@ -126,16 +126,20 @@ export const Hero: React.FC = () => {
           >
             {/* Advertisement Badge if it is a promoter slide */}
             {!currentSlide.isDefault && (
-              <span className="inline-flex items-center gap-1.5 bg-slate-900/80 text-white text-[10px] font-semibold tracking-wider uppercase px-3.5 py-1.5 rounded-full select-none border border-white/20 backdrop-blur-md shadow-md">
+              <span className="inline-flex items-center gap-1.5 bg-[#EF2B2D] text-white text-[9px] font-black uppercase tracking-[0.2em] px-3.5 py-1.5 rounded-full select-none border border-red-400/30 shadow-lg">
                 Sponsorisé
               </span>
             )}
 
-            <h1 className="text-3xl md:text-5xl font-extrabold text-white leading-tight tracking-tight drop-shadow-lg max-w-3xl mx-auto">
-              {currentSlide.title}
+            <h1 className="text-3xl md:text-6xl font-black text-white leading-[1.15] md:leading-tight tracking-tight drop-shadow-2xl">
+              {currentSlide.isDefault ? (
+                <>Trouvez votre <span className="text-yellow-400">chez-soi</span> au <span className="relative inline-block text-white">Burkina Faso<span className="absolute -bottom-1 left-0 w-full h-1.5 flex rounded-full overflow-hidden"><span className="flex-1 bg-red-600"></span><span className="flex-1 bg-green-600"></span></span></span></>
+              ) : (
+                currentSlide.title
+              )}
             </h1>
 
-            <p className="text-sm md:text-base text-slate-200 font-normal max-w-2xl mx-auto drop-shadow leading-relaxed px-4">
+            <p className="text-sm md:text-base text-slate-200 font-medium max-w-2xl mx-auto drop-shadow-md leading-relaxed px-4">
               {currentSlide.description}
             </p>
           </motion.div>
@@ -147,18 +151,18 @@ export const Hero: React.FC = () => {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ delay: 0.3 }}
-            className="flex flex-wrap justify-center gap-3 text-xs font-medium text-white/90 mt-8"
+            className="flex flex-wrap justify-center gap-3 text-xs font-black uppercase tracking-wider text-white/90 mt-8"
           >
-            <span className="flex items-center gap-2 bg-white/10 backdrop-blur-md px-4 py-1.5 rounded-full border border-white/15 shadow-sm">
-              <span className="w-2 h-2 bg-red-500 rounded-full"></span>
+            <span className="flex items-center gap-2 bg-white/10 backdrop-blur-md px-4 py-1.5 rounded-full border border-white/20 shadow-md">
+              <span className="w-2.5 h-2.5 bg-red-600 rounded-full"></span>
               Hospitalité
             </span>
-            <span className="flex items-center gap-2 bg-white/10 backdrop-blur-md px-4 py-1.5 rounded-full border border-white/15 shadow-sm">
-              <span className="w-2 h-2 bg-emerald-500 rounded-full"></span>
+            <span className="flex items-center gap-2 bg-white/10 backdrop-blur-md px-4 py-1.5 rounded-full border border-white/20 shadow-md">
+              <span className="w-2.5 h-2.5 bg-[#009E49] rounded-full"></span>
               Sûreté
             </span>
-            <span className="flex items-center gap-2 bg-white/10 backdrop-blur-md px-4 py-1.5 rounded-full border border-white/15 shadow-sm">
-              <span className="w-2 h-2 bg-amber-400 rounded-full"></span>
+            <span className="flex items-center gap-2 bg-white/10 backdrop-blur-md px-4 py-1.5 rounded-full border border-white/20 shadow-md">
+              <span className="w-2.5 h-2.5 bg-[#FCD116] rounded-full"></span>
               Confort
             </span>
           </motion.div>
