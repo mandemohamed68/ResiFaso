@@ -103,35 +103,35 @@ export const ResidenceCard: React.FC<Props> = ({
       </div>
 
       {/* Content */}
-      <div className="p-4 flex flex-col flex-1">
-        <div className="flex items-start justify-between mb-1 gap-2">
-          <h3 className="font-extrabold text-slate-900 group-hover:text-red-600 transition-colors uppercase text-[12px] leading-tight flex-1">{residence.title}</h3>
-          <div className="flex items-center gap-1 text-xs font-bold text-slate-800 shrink-0">
-            <Star size={13} className={cn("text-amber-400", residence.rating ? "fill-amber-400" : "fill-none")} />
+      <div className="p-3 sm:p-3.5 flex flex-col flex-1">
+        <div className="flex items-start justify-between mb-1 gap-1.5">
+          <h3 className="font-extrabold text-slate-900 group-hover:text-red-600 transition-colors uppercase text-[11px] sm:text-[12px] leading-tight flex-1 line-clamp-1">{residence.title}</h3>
+          <div className="flex items-center gap-1 text-[11px] sm:text-xs font-bold text-slate-800 shrink-0">
+            <Star size={12} className={cn("text-amber-400", residence.rating ? "fill-amber-400" : "fill-none")} />
             <span>{residence.rating ? residence.rating : "Nouveau"}</span>
           </div>
         </div>
         
-        <div className="flex items-center gap-1 text-slate-500 text-xs mb-2.5 font-medium">
-          <MapPin size={12} className="text-red-500 shrink-0" />
+        <div className="flex items-center gap-1 text-slate-500 text-[11px] mb-2 font-medium">
+          <MapPin size={11} className="text-red-500 shrink-0" />
           <span className="line-clamp-1">{residence.address?.neighborhood || residence.neighborhood}, {residence.address?.city || residence.city}</span>
         </div>
 
-        <div className="flex flex-wrap items-center gap-2 mb-3">
-          <div className="flex items-center gap-1 text-slate-600 text-xs font-semibold bg-slate-50 px-2.5 py-1 rounded-lg border border-slate-100">
-            <LayoutGrid size={12} className="text-slate-400" />
-            <span>{residence.rooms || 1} Pièces</span>
+        <div className="flex flex-wrap items-center gap-1.5 mb-2.5">
+          <div className="flex items-center gap-1 text-slate-600 text-[10px] sm:text-xs font-semibold bg-slate-50 px-2 py-0.5 rounded-lg border border-slate-100">
+            <LayoutGrid size={11} className="text-slate-400" />
+            <span>{residence.rooms || 1} P.</span>
           </div>
           {(residence.utilitiesIncluded?.water || residence.utilitiesIncluded?.electricity) && (
-            <div className="flex items-center gap-1.5">
+            <div className="flex items-center gap-1">
               {residence.utilitiesIncluded?.water && (
-                <span className="text-[11px] font-bold text-blue-700 bg-blue-50 px-2 py-0.5 rounded-lg flex items-center gap-1 border border-blue-100">
-                  <Droplets size={10} /> Eau incluse
+                <span className="text-[10px] font-bold text-blue-700 bg-blue-50 px-1.5 py-0.5 rounded-md flex items-center gap-0.5 border border-blue-100">
+                  <Droplets size={9} /> Eau
                 </span>
               )}
               {residence.utilitiesIncluded?.electricity && (
-                <span className="text-[11px] font-bold text-amber-800 bg-amber-50 px-2 py-0.5 rounded-lg flex items-center gap-1 border border-amber-100">
-                  <Zap size={10} /> Élec. incluse
+                <span className="text-[10px] font-bold text-amber-800 bg-amber-50 px-1.5 py-0.5 rounded-md flex items-center gap-0.5 border border-amber-100">
+                  <Zap size={9} /> Élec.
                 </span>
               )}
             </div>
@@ -139,13 +139,13 @@ export const ResidenceCard: React.FC<Props> = ({
         </div>
 
         {/* Availability 14-Day Numbered Matrix */}
-        <div className="mb-3.5 bg-slate-50/80 p-2 rounded-xl border border-slate-200/60">
-          <div className="flex items-center justify-between mb-1.5 px-0.5">
-            <span className="text-[9px] font-extrabold uppercase text-slate-500 tracking-wider flex items-center gap-1">
-              <CalendarIcon size={11} className="text-slate-400" /> DISPONIBILITÉ (14 PROCHAINS JOURS)
+        <div className="mb-2.5 bg-slate-50/80 p-1.5 rounded-xl border border-slate-200/60">
+          <div className="flex items-center justify-between mb-1 px-0.5">
+            <span className="text-[8px] sm:text-[9px] font-extrabold uppercase text-slate-500 tracking-wider flex items-center gap-1">
+              <CalendarIcon size={10} className="text-slate-400" /> DISPO. (14J)
             </span>
           </div>
-          <div className="grid grid-cols-7 gap-1 text-center">
+          <div className="grid grid-cols-7 gap-0.5 text-center">
             {Array.from({ length: 14 }).map((_, i) => {
               const d = new Date();
               d.setDate(d.getDate() + i);
@@ -170,7 +170,7 @@ export const ResidenceCard: React.FC<Props> = ({
                   key={dateStr}
                   title={`${formatDateFr(dateStr)}: ${isBooked ? "Occupé" : "Disponible"}`}
                   className={cn(
-                    "text-[10px] font-black py-0.5 rounded border transition-all select-none cursor-help",
+                    "text-[9px] font-black py-0.5 rounded border transition-all select-none cursor-help",
                     isBooked 
                       ? "bg-red-50 text-red-600 border-red-200 line-through" 
                       : "bg-emerald-50 text-emerald-700 border-emerald-200/80"
@@ -183,20 +183,20 @@ export const ResidenceCard: React.FC<Props> = ({
           </div>
         </div>
 
-        <div className="mt-auto space-y-3">
+        <div className="mt-auto space-y-2">
           {/* Quick Contact Actions (Mobile focus) */}
           {(enablePhoneCalls || enableWhatsApp) && (
             <div className={cn(
-              "grid gap-2",
+              "grid gap-1.5",
               enablePhoneCalls && enableWhatsApp ? "grid-cols-2" : "grid-cols-1"
             )}>
               {enablePhoneCalls && (
                 <a 
                   href={`tel:${residence.ownerPhone || '70000000'}`}
                   onClick={(e) => e.stopPropagation()}
-                  className="flex items-center justify-center gap-1.5 py-1.5 bg-slate-50 hover:bg-slate-100 rounded-lg text-xs font-bold text-slate-700 transition-all border border-slate-200/80"
+                  className="flex items-center justify-center gap-1 py-1 bg-slate-50 hover:bg-slate-100 rounded-lg text-[10px] font-bold text-slate-700 transition-all border border-slate-200/80"
                 >
-                  <Phone size={12} className="text-slate-500" />
+                  <Phone size={11} className="text-slate-500" />
                   Appeler
                 </a>
               )}
@@ -206,26 +206,26 @@ export const ResidenceCard: React.FC<Props> = ({
                   target="_blank"
                   rel="noopener noreferrer"
                   onClick={(e) => e.stopPropagation()}
-                  className="flex items-center justify-center gap-1.5 py-1.5 bg-emerald-50 hover:bg-emerald-100/80 rounded-lg text-xs font-bold text-emerald-800 transition-all border border-emerald-200/80"
+                  className="flex items-center justify-center gap-1 py-1 bg-emerald-50 hover:bg-emerald-100/80 rounded-lg text-[10px] font-bold text-emerald-800 transition-all border border-emerald-200/80"
                 >
-                  <MessageCircle size={12} className="text-emerald-600" />
+                  <MessageCircle size={11} className="text-emerald-600" />
                   WhatsApp
                 </a>
               )}
             </div>
           )}
 
-          <div className="flex items-center justify-between border-t border-slate-100 pt-3 gap-1.5 min-w-0">
+          <div className="flex items-center justify-between border-t border-slate-100 pt-2 gap-1 min-w-0">
             <div className="flex flex-col min-w-0 flex-1">
-              <span className="text-[9px] text-slate-400 font-bold uppercase tracking-wider truncate">Par nuit</span>
-              <div className="flex items-baseline gap-1 flex-wrap">
+              <span className="text-[8px] sm:text-[9px] text-slate-400 font-extrabold uppercase tracking-wider truncate">Par nuit</span>
+              <div className="flex items-baseline gap-0.5 min-w-0 flex-wrap">
                 {(residence.promoPrice || residence.promo_price) ? (
                   <>
-                    <span className="text-sm sm:text-base font-black text-slate-900 whitespace-nowrap">{formatFCFA(residence.promoPrice || residence.promo_price)}</span>
-                    <span className="text-[10px] text-slate-400 font-medium line-through shrink-0">{(residence.pricePerNight || residence.price_per_night)}</span>
+                    <span className="text-[11px] sm:text-xs xl:text-[11px] 2xl:text-xs font-black text-slate-900 whitespace-nowrap">{formatFCFA(residence.promoPrice || residence.promo_price)}</span>
+                    <span className="text-[8px] text-slate-400 font-medium line-through shrink-0">{(residence.pricePerNight || residence.price_per_night)}</span>
                   </>
                 ) : (
-                  <span className="text-sm sm:text-base font-black text-slate-900 whitespace-nowrap">{formatFCFA(residence.pricePerNight || residence.price_per_night)}</span>
+                  <span className="text-[11px] sm:text-xs xl:text-[11px] 2xl:text-xs font-black text-slate-900 whitespace-nowrap">{formatFCFA(residence.pricePerNight || residence.price_per_night)}</span>
                 )}
               </div>
             </div>
@@ -235,7 +235,7 @@ export const ResidenceCard: React.FC<Props> = ({
                 e.stopPropagation();
                 onClick(residence.id);
               }}
-              className="bg-slate-900 hover:bg-red-600 text-white px-3 py-1.5 sm:px-3.5 sm:py-2 rounded-xl text-[11px] font-black uppercase tracking-wider transition-colors shrink-0 cursor-pointer shadow-sm whitespace-nowrap"
+              className="bg-slate-900 hover:bg-red-600 text-white px-2 py-1 rounded-lg text-[9px] sm:text-[10px] font-black uppercase tracking-wider transition-colors shrink-0 cursor-pointer shadow-sm whitespace-nowrap"
             >
               DÉTAILS
             </button>
