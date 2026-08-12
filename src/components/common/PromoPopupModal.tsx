@@ -129,111 +129,127 @@ export const PromoPopupModal: React.FC<PromoPopupModalProps> = ({
 
   if (!isOpen || !config) return null;
 
-  const badgeText = config.badgeText || (config.title ? '' : 'OFFRE SPÉCIALE');
-  const imageFit = config.imageFit || 'contain'; // Default to 'contain' so full image is always visible
+  const badgeText = config.badgeText || '100% DE BONUS';
+  const imageFit = config.imageFit || 'contain';
   const showOverlay = !!config.showTitleOnOverlay;
 
   return (
     <AnimatePresence>
-      <div className="fixed inset-0 z-[99999] flex items-center justify-center p-3 sm:p-6 overflow-y-auto">
+      <div className="fixed inset-0 z-[99999] flex items-center justify-center p-4 sm:p-6 overflow-y-auto">
         {/* Backdrop overlay */}
         <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
           onClick={handleClose}
-          className="fixed inset-0 bg-slate-950/80 backdrop-blur-md transition-opacity cursor-pointer"
+          className="fixed inset-0 bg-slate-950/60 backdrop-blur-md transition-opacity cursor-pointer"
         />
 
         {/* Modal Window Container */}
         <motion.div
-          initial={{ opacity: 0, scale: 0.88, y: 20 }}
+          initial={{ opacity: 0, scale: 0.92, y: 15 }}
           animate={{ opacity: 1, scale: 1, y: 0 }}
-          exit={{ opacity: 0, scale: 0.88, y: 20 }}
-          transition={{ type: 'spring', damping: 25, stiffness: 300 }}
-          className="relative w-full max-w-[460px] bg-white rounded-[32px] shadow-2xl overflow-visible border border-slate-100 z-10 my-auto"
+          exit={{ opacity: 0, scale: 0.92, y: 15 }}
+          transition={{ type: 'spring', damping: 26, stiffness: 280 }}
+          className="relative w-full max-w-[460px] bg-white rounded-[36px] shadow-[0_32px_64px_-12px_rgba(15,23,42,0.25)] overflow-hidden border border-slate-100/60 z-10 my-auto"
         >
-          {/* Prominent Circular Floating Close Button (Orange/Red Max-It Style) */}
+          {/* Prominent Circular Floating Close Button */}
           <button
             onClick={handleClose}
             type="button"
             aria-label="Fermer la publicité"
-            className="absolute -top-3.5 -right-3.5 sm:-top-4 sm:-right-4 w-10 h-10 sm:w-11 sm:h-11 bg-gradient-to-tr from-amber-500 via-orange-500 to-red-500 text-white rounded-full flex items-center justify-center shadow-xl ring-4 ring-white hover:scale-110 active:scale-95 transition-all cursor-pointer z-50 group"
+            className="absolute top-4 right-4 w-10 h-10 bg-white/10 hover:bg-white/20 text-white backdrop-blur-md rounded-full flex items-center justify-center shadow-lg border border-white/20 hover:scale-105 active:scale-95 transition-all cursor-pointer z-50 group"
           >
-            <X size={20} className="stroke-[3] group-hover:rotate-90 transition-transform duration-300" />
+            <X size={18} className="stroke-[2.5] group-hover:rotate-90 transition-transform duration-300" />
           </button>
 
           {/* Main Visual Image Banner Container */}
-          <div className="relative w-full rounded-t-[32px] overflow-hidden bg-slate-950 flex items-center justify-center">
+          <div className="relative w-full bg-gradient-to-br from-slate-900 via-slate-950 to-slate-900 p-6 sm:p-8 flex items-center justify-center min-h-[260px] overflow-hidden">
+            {/* Ambient dynamic radial lights behind the logo card */}
+            <div className="absolute -inset-10 bg-[radial-gradient(circle_at_center,rgba(249,115,22,0.15)_0,transparent_60%)] pointer-events-none animate-pulse duration-5000" />
+            
             {imageFit === 'contain' ? (
-              /* Contain Mode: Full image is 100% visible without cropping + Blurred background fill */
-              <div className="relative w-full min-h-[220px] max-h-[380px] flex items-center justify-center p-2 bg-slate-950">
-                {/* Soft Blurred Backdrop matching image colors */}
-                <div 
-                  className="absolute inset-0 bg-cover bg-center opacity-30 blur-xl scale-125 pointer-events-none"
-                  style={{ backgroundImage: `url(${config.imageUrl})` }}
-                />
+              /* Contain Mode: Full image is 100% visible inside a tactile card frame */
+              <div className="relative w-full max-w-[280px] sm:max-w-[310px] aspect-[1/1] bg-white rounded-3xl p-5 flex items-center justify-center shadow-[0_20px_40px_-10px_rgba(0,0,0,0.3)] border border-white/10 relative transition-transform duration-500 hover:scale-[1.03]">
+                {/* Top Floating Badge overlaying the logo card beautifully */}
+                {badgeText && (
+                  <div className="absolute -top-3.5 left-6 z-30">
+                    <span
+                      className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-[9px] sm:text-[10px] font-black uppercase tracking-widest text-white shadow-lg shadow-red-600/30 border border-red-500/10 animate-in fade-in-50 slide-in-from-bottom-2 duration-300"
+                      style={{ backgroundColor: config.badgeColor || '#EF2B2D' }}
+                    >
+                      <Sparkles size={11} className="animate-pulse" />
+                      {badgeText}
+                    </span>
+                  </div>
+                )}
 
                 {/* Main Intact Poster Image */}
                 <img
                   src={config.imageUrl}
                   alt={config.title || 'Publicité promotionnelle'}
-                  className="relative z-10 max-h-[360px] w-auto max-w-full object-contain rounded-xl shadow-lg transition-transform duration-500 hover:scale-[1.02]"
+                  className="max-h-full max-w-full object-contain rounded-xl"
+                  referrerPolicy="no-referrer"
                 />
               </div>
             ) : (
-              /* Cover Mode: Crops image to fill fixed aspect ratio */
-              <div className="relative w-full aspect-[4/3] sm:aspect-[16/11] bg-slate-900">
+              /* Cover Mode: Crops image to fill fixed aspect ratio with organic border radius */
+              <div className="relative w-full aspect-[4/3] sm:aspect-[16/11] bg-slate-900 rounded-3xl overflow-hidden shadow-xl">
                 <img
                   src={config.imageUrl}
                   alt={config.title || 'Publicité promotionnelle'}
                   className="w-full h-full object-cover transition-transform duration-700 hover:scale-105"
+                  referrerPolicy="no-referrer"
                 />
-              </div>
-            )}
-
-            {/* Top Badge Overlay */}
-            {badgeText && (
-              <div className="absolute top-3.5 left-3.5 z-20">
-                <span
-                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest text-white shadow-xl backdrop-blur-md border border-white/20"
-                  style={{ backgroundColor: config.badgeColor || '#EF2B2D' }}
-                >
-                  <Sparkles size={12} className="animate-pulse" />
-                  {badgeText}
-                </span>
+                
+                {/* Top Badge Overlay */}
+                {badgeText && (
+                  <div className="absolute top-3.5 left-3.5 z-20">
+                    <span
+                      className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-[9px] sm:text-[10px] font-black uppercase tracking-widest text-white shadow-xl backdrop-blur-md border border-white/20"
+                      style={{ backgroundColor: config.badgeColor || '#EF2B2D' }}
+                    >
+                      <Sparkles size={11} className="animate-pulse" />
+                      {badgeText}
+                    </span>
+                  </div>
+                )}
               </div>
             )}
 
             {/* Optional Overlay Text (Only if specifically requested) */}
             {showOverlay && (config.title || config.subtitle) && (
-              <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-slate-950/90 via-slate-950/40 to-transparent p-4 text-white pt-10 z-20">
-                {config.title && (
-                  <h3 className="font-black text-base sm:text-lg leading-tight text-white drop-shadow-md">
-                    {config.title}
-                  </h3>
-                )}
+              <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-slate-950/95 via-slate-950/40 to-transparent p-6 text-white pt-12 z-20">
                 {config.subtitle && (
-                  <p className="text-xs font-bold text-amber-300 mt-0.5">
+                  <p className="text-[10px] font-extrabold text-amber-400 uppercase tracking-widest mb-1.5">
                     {config.subtitle}
                   </p>
+                )}
+                {config.title && (
+                  <h3 className="font-black text-lg sm:text-xl leading-tight text-white drop-shadow-md">
+                    {config.title}
+                  </h3>
                 )}
               </div>
             )}
           </div>
 
           {/* Content Body & CTA Button */}
-          <div className="p-5 sm:p-6 space-y-4">
+          <div className="p-6 sm:p-8 space-y-5">
             {/* Title & Subtitle in Clean Body Section (Avoids text overlap on image) */}
             {!showOverlay && (config.title || config.subtitle) && (
-              <div className="space-y-1">
-                {config.subtitle && (
-                  <span className="text-[10px] font-black uppercase tracking-widest text-[#EF2B2D] block">
+              <div className="space-y-2">
+                {config.subtitle ? (
+                  <span className="text-[10px] font-bold uppercase tracking-[0.12em] text-[#EF2B2D] block leading-none">
                     {config.subtitle}
+                  </span>
+                ) : (
+                  <span className="text-[10px] font-bold uppercase tracking-[0.12em] text-[#EF2B2D] block leading-none">
+                    PROFITEZ DES RÉDUCTIONS EXCLUSIVES DU FASO
                   </span>
                 )}
                 {config.title && (
-                  <h3 className="font-black text-slate-900 text-lg sm:text-xl leading-tight">
+                  <h3 className="font-black text-slate-950 text-xl sm:text-2xl leading-tight tracking-tight">
                     {config.title}
                   </h3>
                 )}
@@ -250,28 +266,28 @@ export const PromoPopupModal: React.FC<PromoPopupModalProps> = ({
             <button
               type="button"
               onClick={handleActionClick}
-              className="w-full bg-gradient-to-r from-red-600 via-orange-500 to-amber-500 hover:from-red-700 hover:to-orange-600 text-white py-3.5 px-6 rounded-2xl font-black text-xs sm:text-sm uppercase tracking-wider flex items-center justify-center gap-2.5 shadow-xl shadow-orange-500/20 hover:shadow-orange-500/35 active:scale-[0.98] transition-all cursor-pointer group"
+              className="w-full bg-gradient-to-r from-[#EF2B2D] via-orange-500 to-amber-500 hover:brightness-105 active:scale-[0.98] text-white py-4 px-6 rounded-2xl font-black text-xs sm:text-sm uppercase tracking-wider flex items-center justify-center gap-2 shadow-[0_12px_32px_rgba(249,115,22,0.25)] hover:shadow-[0_16px_36px_rgba(249,115,22,0.35)] transition-all cursor-pointer group"
             >
               <span>{config.buttonText || (config.linkUrl ? "Profiter de l'offre" : "J'en profite")}</span>
-              <ExternalLink size={16} className="group-hover:translate-x-0.5 transition-transform" />
+              <ExternalLink size={15} className="group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-transform" />
             </button>
 
             {/* Footer option: Don't show again today */}
-            <div className="flex items-center justify-between pt-2 border-t border-slate-100 text-[11px]">
-              <label className="flex items-center gap-2 text-slate-500 font-semibold hover:text-slate-800 cursor-pointer select-none">
+            <div className="flex items-center justify-between pt-3 border-t border-slate-100 text-[11px] text-slate-500">
+              <label className="flex items-center gap-2 font-semibold hover:text-slate-800 cursor-pointer select-none group">
                 <input
                   type="checkbox"
                   checked={dontShowAgainToday}
                   onChange={(e) => setDontShowAgainToday(e.target.checked)}
-                  className="rounded border-slate-300 text-red-600 focus:ring-red-500 w-3.5 h-3.5"
+                  className="rounded border-slate-300 text-[#EF2B2D] focus:ring-[#EF2B2D] w-4 h-4 transition cursor-pointer"
                 />
-                <span>Ne plus afficher aujourd'hui</span>
+                <span className="group-hover:translate-x-0.5 transition-transform">Ne plus afficher aujourd'hui</span>
               </label>
 
               <button
                 type="button"
                 onClick={handleClose}
-                className="text-slate-400 font-bold hover:text-slate-700 transition cursor-pointer"
+                className="font-bold hover:text-slate-800 transition cursor-pointer py-1 px-2 hover:bg-slate-100 rounded-lg"
               >
                 Fermer
               </button>

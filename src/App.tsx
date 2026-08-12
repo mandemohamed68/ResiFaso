@@ -129,16 +129,89 @@ function AppContent() {
     }
   }, [gsData]);
   
-  const [view, setView] = useState<'home' | 'search' | 'details' | 'admin' | 'bookings' | 'owner-dashboard' | 'profile' | 'messages' | 'favorites' | 'tos' | 'privacy' | 'faq' | 'contact' | 'guide' | 'reset-password'>('home');
+  // URL parser for routes like /Conditions_Générales or /Politique de Confidentialité
+  const parseViewFromUrl = (): 'home' | 'search' | 'details' | 'admin' | 'bookings' | 'owner-dashboard' | 'profile' | 'messages' | 'favorites' | 'tos' | 'privacy' | 'faq' | 'contact' | 'guide' | 'reset-password' => {
+    if (typeof window === 'undefined') return 'home';
+
+    try {
+      const rawPath = window.location.pathname;
+      let decodedPath = '';
+      try {
+        decodedPath = decodeURIComponent(rawPath).toLowerCase();
+      } catch (_) {
+        decodedPath = rawPath.toLowerCase();
+      }
+
+      const searchParams = new URLSearchParams(window.location.search);
+      const viewParam = (searchParams.get('view') || searchParams.get('page'))?.toLowerCase();
+
+      // Check query params first
+      if (viewParam) {
+        if (['tos', 'cgu', 'conditions', 'conditions_générales', 'conditions_generales', 'conditions-generales'].some(k => viewParam.includes(k))) return 'tos';
+        if (['privacy', 'confidentialite', 'confidentialité', 'politique', 'politique_de_confidentialité', 'politique-de-confidentialite'].some(k => viewParam.includes(k))) return 'privacy';
+        if (viewParam === 'reset-password') return 'reset-password';
+        if (viewParam === 'faq') return 'faq';
+        if (viewParam === 'contact') return 'contact';
+        if (viewParam === 'guide') return 'guide';
+        if (viewParam === 'admin') return 'admin';
+        if (viewParam === 'bookings') return 'bookings';
+        if (viewParam === 'messages') return 'messages';
+        if (viewParam === 'favorites') return 'favorites';
+        if (viewParam === 'profile') return 'profile';
+      }
+
+      // Check path names
+      if (
+        decodedPath.includes('conditions_générales') ||
+        decodedPath.includes('conditions_generales') ||
+        decodedPath.includes('conditions-generales') ||
+        decodedPath.includes('/conditions') ||
+        decodedPath.includes('/cgu') ||
+        decodedPath.includes('/terms') ||
+        decodedPath.includes('/tos')
+      ) {
+        return 'tos';
+      }
+
+      if (
+        decodedPath.includes('politique') ||
+        decodedPath.includes('confidentialit') ||
+        decodedPath.includes('privacy')
+      ) {
+        return 'privacy';
+      }
+
+      if (decodedPath.includes('/faq')) return 'faq';
+      if (decodedPath.includes('/contact')) return 'contact';
+      if (decodedPath.includes('/guide')) return 'guide';
+      if (decodedPath.includes('/reset-password')) return 'reset-password';
+      if (decodedPath.includes('/admin')) return 'admin';
+      if (decodedPath.includes('/bookings') || decodedPath.includes('/reservations')) return 'bookings';
+      if (decodedPath.includes('/messages') || decodedPath.includes('/chat')) return 'messages';
+      if (decodedPath.includes('/favorites') || decodedPath.includes('/favoris')) return 'favorites';
+      if (decodedPath.includes('/profile') || decodedPath.includes('/profil')) return 'profile';
+
+    } catch (err) {
+      console.error("Error parsing URL view:", err);
+    }
+
+    return 'home';
+  };
+
+  const [view, setView] = useState<'home' | 'search' | 'details' | 'admin' | 'bookings' | 'owner-dashboard' | 'profile' | 'messages' | 'favorites' | 'tos' | 'privacy' | 'faq' | 'contact' | 'guide' | 'reset-password'>(parseViewFromUrl);
   const [selectedResidence, setSelectedResidence] = useState<Residence | null>(null);
 
-  // URL parsing for views (like reset-password)
+  // URL parsing and popstate sync
   useEffect(() => {
-    const params = new URLSearchParams(window.location.search);
-    const viewParam = params.get('view');
-    if (viewParam === 'reset-password') {
-      setView('reset-password');
-    }
+    const handleUrlChange = () => {
+      const detectedView = parseViewFromUrl();
+      setView(detectedView);
+    };
+
+    window.addEventListener('popstate', handleUrlChange);
+    return () => {
+      window.removeEventListener('popstate', handleUrlChange);
+    };
   }, []);
   const [isPaymentOpen, setIsPaymentOpen] = useState(false);
   const [activeBookingForPayment, setActiveBookingForPayment] = useState<any>(null);
@@ -272,6 +345,29 @@ function AppContent() {
   const handleNavigate = (v: typeof view) => {
     setView(v);
     window.scrollTo({ top: 0, behavior: 'smooth' });
+
+    if (typeof window !== 'undefined') {
+      let targetPath = '/';
+      if (v === 'tos') targetPath = '/Conditions_Générales';
+      else if (v === 'privacy') targetPath = '/Politique de Confidentialité';
+      else if (v === 'faq') targetPath = '/faq';
+      else if (v === 'contact') targetPath = '/contact';
+      else if (v === 'guide') targetPath = '/guide';
+      else if (v === 'reset-password') targetPath = '/reset-password';
+      else if (v === 'admin') targetPath = '/admin';
+      else if (v === 'bookings') targetPath = '/bookings';
+      else if (v === 'messages') targetPath = '/messages';
+      else if (v === 'favorites') targetPath = '/favorites';
+      else if (v === 'profile') targetPath = '/profile';
+
+      try {
+        if (decodeURIComponent(window.location.pathname) !== targetPath) {
+          window.history.pushState({}, '', targetPath);
+        }
+      } catch (_) {
+        window.history.pushState({}, '', targetPath);
+      }
+    }
   };
 
   // Database list and loadings - Redundant now
