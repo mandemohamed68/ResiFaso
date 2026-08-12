@@ -348,8 +348,8 @@ function AppContent() {
 
     if (typeof window !== 'undefined') {
       let targetPath = '/';
-      if (v === 'tos') targetPath = '/Conditions_Générales';
-      else if (v === 'privacy') targetPath = '/Politique de Confidentialité';
+      if (v === 'tos') targetPath = '/Conditions_Generales';
+      else if (v === 'privacy') targetPath = '/Politique_de_Confidentialite';
       else if (v === 'faq') targetPath = '/faq';
       else if (v === 'contact') targetPath = '/contact';
       else if (v === 'guide') targetPath = '/guide';
