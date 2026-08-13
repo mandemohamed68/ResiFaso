@@ -2,7 +2,7 @@ import { apiFetch } from "../../lib/api";
 import React, { useEffect, useState } from 'react';
 
 interface FooterProps {
-  onNavigate?: (view: 'tos' | 'privacy' | 'home' | 'faq' | 'contact') => void;
+  onNavigate?: (view: any) => void;
 }
 
 export const Footer: React.FC<FooterProps> = ({ onNavigate }) => {
@@ -28,11 +28,18 @@ export const Footer: React.FC<FooterProps> = ({ onNavigate }) => {
       <div className="max-w-7xl mx-auto flex flex-col items-center justify-center gap-3">
         <div className="flex flex-wrap justify-center gap-x-6 gap-y-2 text-[10px] font-black uppercase tracking-[0.2em] text-slate-500">
           <a 
+            href="/accueil" 
+            onClick={(e) => { e.preventDefault(); onNavigate?.('showcase'); }} 
+            className="hover:text-red-500 transition-colors cursor-pointer text-white font-black"
+          >
+            Présentation ResiFaso
+          </a>
+          <a 
             href="/" 
             onClick={(e) => { e.preventDefault(); onNavigate?.('home'); }} 
             className="hover:text-red-500 transition-colors cursor-pointer"
           >
-            Accueil
+            Trouver un Logement
           </a>
           <a 
             href="https://www.resifaso.net/Conditions_Generales" 

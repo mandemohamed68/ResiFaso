@@ -281,7 +281,7 @@ export const LegalPage: React.FC<LegalPageProps> = ({ type: initialType = 'tos' 
                     <h2 className="text-base uppercase tracking-wide">Préambule</h2>
                   </div>
                   <p className="text-xs text-slate-600 leading-relaxed">
-                    Le présent document régit l'utilisation de la plateforme numérique **ResiFaso** (accessible sur <code className="bg-slate-100 px-1 py-0.5 rounded font-mono text-slate-800">www.resifaso.net</code>) dédiée à la réservation de logements meublés, appartements et résidences au Burkina Faso.
+                    Le présent document régit l'utilisation de la plateforme numérique **ResiFaso** (accessible sur <code className="bg-slate-100 px-1 py-0.5 rounded font-mono text-slate-800">www.resifaso.net</code>), éditée et exploitée par **SAPPAY TECHNOLOGIE**, dédiée à la réservation de logements meublés, appartements et résidences au Burkina Faso.
                   </p>
                   <p className="text-xs text-slate-600 leading-relaxed">
                     Toute utilisation des services implique l'acceptation pleine et entière des présentes conditions par les Utilisateurs (Voyageurs et Hôtes).
@@ -303,7 +303,7 @@ export const LegalPage: React.FC<LegalPageProps> = ({ type: initialType = 'tos' 
                     <ul className="space-y-2 pl-1">
                       <li className="bg-slate-50 p-3 rounded-lg border border-slate-200/80">
                         <strong className="text-slate-900 block font-semibold mb-0.5">● ResiFaso ("la Plateforme") :</strong> 
-                        Service d'intermédiation technique permettant la mise en relation entre propriétaires et locataires temporaires.
+                        Service d'intermédiation technique développé et géré par la société SAPPAY TECHNOLOGIE, permettant la mise en relation entre propriétaires et locataires temporaires.
                       </li>
                       <li className="bg-slate-50 p-3 rounded-lg border border-slate-200/80">
                         <strong className="text-slate-900 block font-semibold mb-0.5">● Voyageur / Client :</strong> 
@@ -475,7 +475,7 @@ export const LegalPage: React.FC<LegalPageProps> = ({ type: initialType = 'tos' 
 
                   <div className="text-xs text-slate-600 space-y-2 leading-relaxed">
                     <p>
-                      ResiFaso agit exclusivement en qualité d'intermédiaire technique et décline toute responsabilité pour les interruptions de services d'utilité publique (eau ONEA, électricité SONABEL) ou cas de force majeure.
+                      SAPPAY TECHNOLOGIE, au travers de la plateforme ResiFaso, agit exclusivement en qualité d'intermédiaire technique et décline toute responsabilité pour les interruptions de services d'utilité publique (eau ONEA, électricité SONABEL) ou cas de force majeure.
                     </p>
                   </div>
                 </div>
@@ -572,7 +572,7 @@ export const LegalPage: React.FC<LegalPageProps> = ({ type: initialType = 'tos' 
                     <span>Art 6. Vos Droits (Accès & Suppression)</span>
                   </h3>
                   <p className="text-xs text-slate-600 leading-relaxed">
-                    Chaque utilisateur peut demander l'accès, la rectification ou la suppression de ses données à tout moment depuis son espace profil ou via <code className="bg-slate-100 px-1 py-0.5 rounded font-mono text-slate-800">contact@resifaso.net</code>.
+                    Chaque utilisateur peut demander l'accès, la rectification ou la suppression de ses données à tout moment depuis son espace profil ou en contactant l'assistance de la plateforme.
                   </p>
                 </div>
 
@@ -636,7 +636,23 @@ export const LegalPage: React.FC<LegalPageProps> = ({ type: initialType = 'tos' 
                   <div className="space-y-2 text-xs text-slate-600">
                     <div className="p-3 bg-slate-50 rounded-lg border border-slate-200/80">
                       <strong className="text-slate-900 block font-semibold mb-0.5">Q : Comment annuler une réservation ?</strong>
-                      <p>R : Rendez-vous dans votre espace Réservations et sélectionnez "Annuler".</p>
+                      <p>R : Rendez-vous dans votre espace Réservations, sélectionnez la réservation concernée et cliquez sur "Annuler". Le remboursement sera calculé selon la politique d'annulation de l'Hôte.</p>
+                    </div>
+                    <div className="p-3 bg-slate-50 rounded-lg border border-slate-200/80">
+                      <strong className="text-slate-900 block font-semibold mb-0.5">Q : Quand serai-je remboursé après une annulation ?</strong>
+                      <p>R : Les remboursements via Mobile Money sont généralement traités sous 24 à 48 heures ouvrées, déduction faite de la commission de la plateforme et des éventuels frais d'annulation.</p>
+                    </div>
+                    <div className="p-3 bg-slate-50 rounded-lg border border-slate-200/80">
+                      <strong className="text-slate-900 block font-semibold mb-0.5">Q : Que faire si le logement ne correspond pas aux photos ?</strong>
+                      <p>R : Contactez immédiatement l'assistance ResiFaso (dans les 24h suivant le check-in) avec des photos à l'appui. Nous bloquerons le paiement à l'Hôte et procéderons à une médiation.</p>
+                    </div>
+                    <div className="p-3 bg-slate-50 rounded-lg border border-slate-200/80">
+                      <strong className="text-slate-900 block font-semibold mb-0.5">Q : L'électricité est-elle incluse dans le prix ?</strong>
+                      <p>R : Cela dépend de l'Hôte. Lisez attentivement la description de l'annonce. Certains incluent un forfait, d'autres exigent que le Voyageur recharge le compteur Cash Power (SONABEL).</p>
+                    </div>
+                    <div className="p-3 bg-slate-50 rounded-lg border border-slate-200/80">
+                      <strong className="text-slate-900 block font-semibold mb-0.5">Q : Puis-je payer en espèces à l'arrivée ?</strong>
+                      <p>R : Non, l'acompte de réservation doit obligatoirement être réglé via Mobile Money sur la plateforme pour sécuriser les dates. Le solde peut parfois être réglé sur place selon les conditions de l'Hôte.</p>
                     </div>
                   </div>
                 </div>

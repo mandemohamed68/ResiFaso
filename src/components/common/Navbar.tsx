@@ -238,8 +238,20 @@ export const Navbar: React.FC<{
             {isDarkMode ? <Sun size={16} className="text-amber-500" /> : <Moon size={16} className="text-slate-600" />}
           </button>
           <button 
+            onClick={() => onNavigate('showcase')}
+            className={cn(
+              "font-extrabold text-xs uppercase tracking-wider transition-colors cursor-pointer px-2.5 py-1 rounded-lg",
+              activeView === 'showcase' ? "bg-red-50 text-red-600" : "text-slate-700 hover:text-red-600"
+            )}
+          >
+            Présentation
+          </button>
+          <button 
             onClick={() => onNavigate('home')}
-            className="text-slate-650 hover:text-red-600 font-bold text-xs uppercase tracking-wider transition-colors cursor-pointer px-2"
+            className={cn(
+              "font-bold text-xs uppercase tracking-wider transition-colors cursor-pointer px-2.5 py-1 rounded-lg",
+              activeView === 'home' || activeView === 'search' ? "bg-slate-100 text-slate-900 font-extrabold" : "text-slate-650 hover:text-red-600"
+            )}
           >
             Rechercher
           </button>

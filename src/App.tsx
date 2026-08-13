@@ -48,6 +48,7 @@ import { ResetPassword } from './components/auth/ResetPassword';
 import { Footer } from './components/common/Footer';
 import { Partners } from './components/home/Partners';
 import { Features } from './components/home/Features';
+import { ShowcasePage } from './components/home/ShowcasePage';
 import { BURKINA_LOCATIONS } from './constants/locations';
 import { GlobalModal } from './components/common/GlobalModal';
 import { apiFetch } from './lib/api';
@@ -129,8 +130,8 @@ function AppContent() {
     }
   }, [gsData]);
   
-  // URL parser for routes like /Conditions_Générales or /Politique de Confidentialité
-  const parseViewFromUrl = (): 'home' | 'search' | 'details' | 'admin' | 'bookings' | 'owner-dashboard' | 'profile' | 'messages' | 'favorites' | 'tos' | 'privacy' | 'faq' | 'contact' | 'guide' | 'reset-password' => {
+  // URL parser for routes like /Conditions_Générales or /Politique de Confidentialité or /accueil
+  const parseViewFromUrl = (): 'home' | 'showcase' | 'search' | 'details' | 'admin' | 'bookings' | 'owner-dashboard' | 'profile' | 'messages' | 'favorites' | 'tos' | 'privacy' | 'faq' | 'contact' | 'guide' | 'reset-password' => {
     if (typeof window === 'undefined') return 'home';
 
     try {
@@ -147,6 +148,7 @@ function AppContent() {
 
       // Check query params first
       if (viewParam) {
+        if (['accueil', 'showcase', 'presentation', 'vitrine'].includes(viewParam)) return 'showcase';
         if (['tos', 'cgu', 'conditions', 'conditions_générales', 'conditions_generales', 'conditions-generales'].some(k => viewParam.includes(k))) return 'tos';
         if (['privacy', 'confidentialite', 'confidentialité', 'politique', 'politique_de_confidentialité', 'politique-de-confidentialite'].some(k => viewParam.includes(k))) return 'privacy';
         if (viewParam === 'reset-password') return 'reset-password';
@@ -161,6 +163,15 @@ function AppContent() {
       }
 
       // Check path names
+      if (
+        decodedPath.includes('/accueil') ||
+        decodedPath.includes('/presentation') ||
+        decodedPath.includes('/showcase') ||
+        decodedPath.includes('/vitrine')
+      ) {
+        return 'showcase';
+      }
+
       if (
         decodedPath.includes('conditions_générales') ||
         decodedPath.includes('conditions_generales') ||
@@ -198,7 +209,7 @@ function AppContent() {
     return 'home';
   };
 
-  const [view, setView] = useState<'home' | 'search' | 'details' | 'admin' | 'bookings' | 'owner-dashboard' | 'profile' | 'messages' | 'favorites' | 'tos' | 'privacy' | 'faq' | 'contact' | 'guide' | 'reset-password'>(parseViewFromUrl);
+  const [view, setView] = useState<'home' | 'showcase' | 'search' | 'details' | 'admin' | 'bookings' | 'owner-dashboard' | 'profile' | 'messages' | 'favorites' | 'tos' | 'privacy' | 'faq' | 'contact' | 'guide' | 'reset-password'>(parseViewFromUrl);
   const [selectedResidence, setSelectedResidence] = useState<Residence | null>(null);
 
   // URL parsing and popstate sync
@@ -1902,6 +1913,13 @@ function AppContent() {
               <AdminDashboard onBackToTraveler={() => handleNavigate('home')} />
             </motion.div>
           )}
+          {/* Presentation Showcase view / Accueil */}
+          {view === 'showcase' && (
+            <motion.div key="showcase" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
+              <ShowcasePage onNavigate={handleNavigate} onOpenAuth={() => setIsAuthOpen(true)} />
+            </motion.div>
+          )}
+
           {/* Legal views */}
           {view === 'tos' && (
             <motion.div key="tos" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
