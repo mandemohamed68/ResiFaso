@@ -696,19 +696,19 @@ const SuiviReservationModal: React.FC<SuiviReservationModalProps> = ({ isOpen, o
             <div className="text-[10px] text-slate-600 leading-relaxed font-medium bg-white p-3.5 rounded-xl border border-slate-100 space-y-2">
               {booking.paymentStatus === 'pending' ? (
                 <p>
-                  💡 <strong>Rappel de paiement :</strong> L'acompte est en attente de versement. Effectuez le paiement de l'acompte requis en ligne pour bloquer vos dates. Le solde de <strong>{formatCurrency(remainingToPay)} F CFA</strong> sera réglé directement à l'hôte à l'arrivée.
+                  <strong>Rappel de paiement :</strong> L'acompte est en attente de versement. Effectuez le paiement de l'acompte requis en ligne pour bloquer vos dates. Le solde de <strong>{formatCurrency(remainingToPay)} F CFA</strong> sera réglé directement à l'hôte à l'arrivée.
                 </p>
               ) : booking.paymentStatus === 'advance_paid' ? (
                 <p>
-                  💡 <strong>Rappel crucial :</strong> L'acompte de <strong>{formatCurrency(booking.advancePaid)} F CFA ({(booking.totalPrice > 0 && booking.advancePaid > 0) ? Math.round((booking.advancePaid / booking.totalPrice) * 100) : 30}%)</strong> a été versé et sécurisé en ligne. Le solde restant de <strong>{formatCurrency(remainingToPay)} F CFA</strong> est à régler directement à l'hôte lors de la remise des clés de la résidence (en espèces ou par Mobile Money local).
+                  <strong>Rappel crucial :</strong> L'acompte de <strong>{formatCurrency(booking.advancePaid)} F CFA ({(booking.totalPrice > 0 && booking.advancePaid > 0) ? Math.round((booking.advancePaid / booking.totalPrice) * 100) : 30}%)</strong> a été versé et sécurisé en ligne. Le solde restant de <strong>{formatCurrency(remainingToPay)} F CFA</strong> est à régler directement à l'hôte lors de la remise des clés de la résidence (en espèces ou par Mobile Money local).
                 </p>
               ) : (
                 <p>
-                  💡 <strong>Rappel :</strong> La totalité de votre séjour (<strong>{formatCurrency(booking.totalPrice)} F CFA</strong>) a été réglée et sécurisée en ligne. Aucun solde supplémentaire n'est dû à l'arrivée.
+                  <strong>Rappel :</strong> La totalité de votre séjour (<strong>{formatCurrency(booking.totalPrice)} F CFA</strong>) a été réglée et sécurisée en ligne. Aucun solde supplémentaire n'est dû à l'arrivée.
                 </p>
               )}
-              <p className="text-[9px] text-slate-400 font-semibold border-t border-slate-100 pt-2 flex items-center gap-1">
-                🛡️ <strong>Politique d'annulation :</strong> Toute demande d'annulation est soumise à la politique définie par l'hôte. Les frais administratifs et la commission de service restent non remboursables.
+              <p className="text-[9px] text-slate-500 font-medium border-t border-slate-100 pt-2 flex items-center gap-1">
+                <strong>Politique d'annulation :</strong> Toute demande d'annulation est soumise à la politique définie par l'hôte. Les frais administratifs et la commission de service restent non remboursables.
               </p>
             </div>
           </div>
@@ -977,46 +977,47 @@ export const MyBookings: React.FC<{ onContactHost: (ownerId: string, resId: stri
                     </div>
 
                     {booking.bookingStatus === 'cancelled' && (
-                      <div className="mt-4 p-4 rounded-2xl bg-red-50 border border-red-200/60 space-y-2.5">
-                        <div className="flex items-center gap-1.5 text-red-700 font-black text-xs uppercase tracking-wide">
-                          <span>❌ Séjour Annulé</span>
-                          <span className="normal-case font-bold text-red-600">(par {booking.cancelledBy === 'client' ? 'vous-même' : booking.cancelledBy === 'owner' ? "l'hôte" : "l'administration"})</span>
+                      <div className="mt-4 p-4 rounded-2xl bg-rose-50/80 border border-rose-200/80 space-y-2.5">
+                        <div className="flex items-center gap-2 text-rose-800 font-extrabold text-xs uppercase tracking-wide">
+                          <AlertCircle size={15} className="text-rose-600 shrink-0" />
+                          <span>Séjour Annulé</span>
+                          <span className="normal-case font-semibold text-rose-700">(par {booking.cancelledBy === 'client' ? 'vous-même' : booking.cancelledBy === 'owner' ? "l'hôte" : "l'administration"})</span>
                         </div>
                         {booking.cancellationReason && (
                           <p className="text-xs text-slate-700 font-bold">
-                            Motif : <span className="italic font-medium text-slate-605 text-slate-500">"{booking.cancellationReason}"</span>
+                            Motif : <span className="italic font-normal text-slate-600">"{booking.cancellationReason}"</span>
                           </p>
                         )}
                         {booking.refundStatus && booking.refundStatus !== 'none' && (
-                          <div className="pt-2 border-t border-red-100 space-y-2">
-                            <span className="block text-[9px] font-black text-slate-400 uppercase tracking-widest">Suivi de Remboursement & Politique</span>
+                          <div className="pt-2 border-t border-rose-100 space-y-2">
+                            <span className="block text-[9px] font-bold text-slate-500 uppercase tracking-widest">Suivi de Remboursement & Politique</span>
                             
                             {/* Breakdown summary */}
-                            <div className="bg-red-50/50 p-2.5 rounded-xl border border-red-100/50 space-y-1">
-                               <p className="text-[10px] text-red-800 font-bold leading-tight">
-                                 💰 {booking.refundAmount > 0 
+                            <div className="bg-white/80 p-2.5 rounded-xl border border-rose-100 space-y-1">
+                               <p className="text-[10px] text-slate-800 font-bold leading-tight">
+                                 {booking.refundAmount > 0 
                                    ? `Remboursement de ${formatCurrency(booking.refundAmount)} F CFA calculé selon la politique d'annulation.`
                                    : "Aucun remboursement applicable selon la politique d'annulation."}
                                </p>
                                <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-[9px] text-slate-500 font-medium italic">
                                  {(booking.hostCancellationFee !== undefined || booking.refundAmount !== undefined) && (
-                                   <p>• Frais administratifs : <span className="text-red-600">-{formatCurrency(booking.hostCancellationFee || 0)} F</span></p>
+                                   <p>• Frais administratifs : <span className="text-rose-600">-{formatCurrency(booking.hostCancellationFee || 0)} F</span></p>
                                  )}
                                  {booking.nightsConsumed !== undefined && booking.nightsConsumed > 0 && (
-                                   <p>• Nuitées consommées : <span className="text-red-600">-{formatCurrency(booking.costOfNightsSpent || 0)} F</span></p>
+                                   <p>• Nuitées consommées : <span className="text-rose-600">-{formatCurrency(booking.costOfNightsSpent || 0)} F</span></p>
                                  )}
                                </div>
                             </div>
 
                             {booking.refundStatus === 'pending' && (
-                              <div className="flex items-center gap-1.5 text-xs text-amber-700 font-bold bg-amber-50 px-3 py-2 rounded-xl border border-amber-200 w-fit">
-                                <span className="animate-pulse">⏳</span>
+                              <div className="flex items-center gap-2 text-xs text-amber-800 font-bold bg-amber-50 px-3 py-2 rounded-xl border border-amber-200/80 w-fit">
+                                <Clock size={13} className="text-amber-600 shrink-0" />
                                 <span>Remboursement de {formatCurrency(booking.refundAmount)} F CFA en cours via {booking.refundProvider?.toUpperCase()} (+226 {booking.refundPhone})</span>
                               </div>
                             )}
                             {booking.refundStatus === 'refunded' && (
-                              <div className="flex items-center gap-1.5 text-xs text-green-700 font-bold bg-green-50 px-3 py-2 rounded-xl border border-green-200 w-fit">
-                                <span>✅</span>
+                              <div className="flex items-center gap-2 text-xs text-emerald-800 font-bold bg-emerald-50 px-3 py-2 rounded-xl border border-emerald-200/80 w-fit">
+                                <CheckCircle2 size={13} className="text-emerald-600 shrink-0" />
                                 <span>Remboursement de {formatCurrency(booking.refundAmount)} F CFA crédité le {booking.refundProcessedAt ? formatDateFr(booking.refundProcessedAt) : ''} via {booking.refundProvider?.toUpperCase()} (+226 {booking.refundPhone})</span>
                               </div>
                             )}

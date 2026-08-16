@@ -511,6 +511,15 @@ export const Navbar: React.FC<{
                               unreadBorder = "border-emerald-200 ring-1 ring-emerald-50/50";
                             }
 
+                            const cleanTitle = (notif.title || '')
+                              .replace(/[\u{1F300}-\u{1F9FF}]|[\u{2600}-\u{26FF}]|[\u{2700}-\u{27BF}]|❌|🚪|⚡|💰|🛡️|⚠️|✅|👍|📦/gu, '')
+                              .replace(/\s+/g, ' ')
+                              .trim();
+                            const cleanMessage = (notif.message || '')
+                              .replace(/[\u{1F300}-\u{1F9FF}]|[\u{2600}-\u{26FF}]|[\u{2700}-\u{27BF}]|❌|🚪|⚡|💰|🛡️|⚠️|✅|👍|📦/gu, '')
+                              .replace(/\s+/g, ' ')
+                              .trim();
+
                             return (
                               <div
                                 key={notif.id}
@@ -529,39 +538,39 @@ export const Navbar: React.FC<{
                                   setIsNotifOpen(false);
                                 }}
                                 className={cn(
-                                  "group relative p-3 rounded-2xl border transition-all duration-300 cursor-pointer flex gap-3.5 hover:bg-slate-50/50 hover:scale-[1.01] hover:shadow-xs",
+                                  "group relative p-3.5 rounded-2xl border transition-all duration-300 cursor-pointer flex gap-3.5 hover:bg-slate-50/60 hover:shadow-xs",
                                   isRead 
-                                    ? "bg-white border-slate-100 opacity-75 hover:opacity-100" 
-                                    : cn("bg-white border-slate-200 shadow-xs", unreadBorder)
+                                    ? "bg-white border-slate-100/80 opacity-75 hover:opacity-100" 
+                                    : cn("bg-white border-slate-200/90 shadow-2xs", unreadBorder)
                                 )}
                               >
                                 {/* Unread dot badge indicator */}
                                 {!isRead && (
-                                  <div className="absolute top-3 right-3 w-2 h-2 bg-red-600 rounded-full animate-pulse shadow-sm shadow-red-200" />
+                                  <div className="absolute top-3.5 right-3.5 w-2 h-2 bg-red-500 rounded-full animate-pulse" />
                                 )}
                                 
                                 <div className={cn(
-                                  "w-10 h-10 rounded-xl flex items-center justify-center shrink-0 transition-transform group-hover:scale-110",
+                                  "w-9 h-9 rounded-xl flex items-center justify-center shrink-0 transition-transform group-hover:scale-105",
                                   bgColor,
                                   iconColor
                                 )}>
-                                  <Icon size={18} className="stroke-[2.5]" />
+                                  <Icon size={16} className="stroke-[2.2]" />
                                 </div>
 
                                 <div className="flex-1 min-w-0 pr-2">
                                   <div className="flex items-center justify-between mb-0.5">
                                     <span className={cn(
-                                      "text-xs font-extrabold tracking-tight truncate",
+                                      "text-xs font-bold tracking-tight truncate",
                                       isRead ? "text-slate-600" : "text-slate-900"
                                     )}>
-                                      {notif.title}
+                                      {cleanTitle || notif.title}
                                     </span>
                                   </div>
                                   <p className={cn(
                                     "text-[11px] leading-relaxed font-medium line-clamp-2",
                                     isRead ? "text-slate-400" : "text-slate-600"
                                   )}>
-                                    {notif.message}
+                                    {cleanMessage || notif.message}
                                   </p>
                                   <div className="flex items-center gap-2 mt-2">
                                     <Clock size={11} className="text-slate-300 stroke-[2.5]" />

@@ -911,33 +911,20 @@ function AppContent() {
           --brand-secondary-dark: ${darkenColor(branding.secondaryColor || '#ef4444', 15)};
           --brand-secondary-light: ${adjustBrightness(branding.secondaryColor || '#ef4444', 85)};
         }
-        /* Redirect Tailwind Emerald utility classes to dynamic brand primary */
-        .text-emerald-500, .text-emerald-600 { color: var(--brand-primary) !important; }
-        .text-emerald-700, .text-emerald-800 { color: var(--brand-primary-dark) !important; }
-        .bg-emerald-500, .bg-emerald-600 { background-color: var(--brand-primary) !important; }
-        .bg-emerald-700, .bg-emerald-800 { background-color: var(--brand-primary-dark) !important; }
-        .bg-emerald-50, .bg-emerald-100 { background-color: var(--brand-primary-light) !important; }
-        .border-emerald-500, .border-emerald-600 { border-color: var(--brand-primary) !important; }
-        .hover\\:bg-emerald-600:hover { background-color: var(--brand-primary) !important; }
-        .hover\\:bg-emerald-700:hover { background-color: var(--brand-primary-dark) !important; }
-        .hover\\:text-emerald-600:hover { color: var(--brand-primary) !important; }
-        .from-emerald-500 { --tw-gradient-from: var(--brand-primary) !important; }
-        .to-emerald-600 { --tw-gradient-to: var(--brand-primary-dark) !important; }
-        .focus\\:ring-emerald-500:focus { --tw-ring-color: var(--brand-primary) !important; }
+        /* Brand primary & secondary dynamic mappings */
+        .text-brand-primary, .text-primary { color: var(--brand-primary) !important; }
+        .text-brand-secondary, .text-secondary { color: var(--brand-secondary) !important; }
+        .bg-brand-primary, .bg-primary { background-color: var(--brand-primary) !important; }
+        .bg-brand-primary-dark, .bg-primary-dark { background-color: var(--brand-primary-dark) !important; }
+        .bg-brand-secondary, .bg-secondary { background-color: var(--brand-secondary) !important; }
+        .border-brand-primary, .border-primary { border-color: var(--brand-primary) !important; }
+        .border-brand-secondary, .border-secondary { border-color: var(--brand-secondary) !important; }
 
-        /* Redirect Tailwind Red utility classes to dynamic brand secondary */
-        .text-red-500, .text-red-600 { color: var(--brand-secondary) !important; }
-        .text-red-700, .text-red-800 { color: var(--brand-secondary-dark) !important; }
-        .bg-red-500, .bg-red-600 { background-color: var(--brand-secondary) !important; }
-        .bg-red-700, .bg-red-800 { background-color: var(--brand-secondary-dark) !important; }
-        .bg-red-50, .bg-red-100 { background-color: var(--brand-secondary-light) !important; }
-        .border-red-500, .border-red-600 { border-color: var(--brand-secondary) !important; }
-        .hover\\:bg-red-600:hover { background-color: var(--brand-secondary) !important; }
-        .hover\\:bg-red-700:hover { background-color: var(--brand-secondary-dark) !important; }
-        .hover\\:text-red-600:hover { color: var(--brand-secondary) !important; }
-        .from-red-500 { --tw-gradient-from: var(--brand-secondary) !important; }
-        .to-red-600 { --tw-gradient-to: var(--brand-secondary-dark) !important; }
-        .focus\\:ring-red-500:focus { --tw-ring-color: var(--brand-secondary) !important; }
+        /* Subtle brand button highlights without hijacking semantic light alerts */
+        .btn-brand-primary { background-color: var(--brand-primary) !important; color: #ffffff !important; }
+        .btn-brand-primary:hover { background-color: var(--brand-primary-dark) !important; }
+        .btn-brand-secondary { background-color: var(--brand-secondary) !important; color: #ffffff !important; }
+        .btn-brand-secondary:hover { background-color: var(--brand-secondary-dark) !important; }
 
         /* Custom branding & algorithmic shade helpers */
         .text-brand-primary, .text-primary { color: var(--brand-primary) !important; }

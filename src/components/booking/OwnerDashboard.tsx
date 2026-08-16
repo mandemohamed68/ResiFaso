@@ -1228,7 +1228,7 @@ export const OwnerDashboard: React.FC<{ isTestMode?: boolean; onBackToTraveler?:
               });
               await sendNotification({
                 userId: b.ownerId,
-                title: "🚪 Séjour auto-terminé !",
+                title: "Séjour auto-terminé",
                 message: `Le séjour à la résidence "${res?.title || 'Logement'}" est arrivé à son terme automatique aujourd'hui.`,
                 type: 'system',
                 referenceId: b.id
@@ -1835,7 +1835,7 @@ export const OwnerDashboard: React.FC<{ isTestMode?: boolean; onBackToTraveler?:
       
       await sendNotification({
         userId: booking.clientId,
-        title: isFullyPaid ? "Séjour Soldé ! ✅" : "Acompte Reçu ! 👍",
+        title: isFullyPaid ? "Séjour soldé" : "Acompte reçu",
         message: isFullyPaid
           ? `Votre hôte a confirmé la réception de la totalité de votre séjour (${formatCurrency(booking.totalPrice)} F CFA). Votre réservation est entièrement réglée.`
           : `Votre hôte a confirmé la réception de votre acompte de ${formatCurrency(advance)} F CFA. Votre réservation est maintenant confirmée.`,
@@ -1872,7 +1872,7 @@ export const OwnerDashboard: React.FC<{ isTestMode?: boolean; onBackToTraveler?:
       
       await sendNotification({
         userId: booking.clientId,
-        title: "Séjour Soldé ! ✅",
+        title: "Séjour soldé",
         message: `Votre hôte a confirmé la réception du solde de votre séjour. Votre dossier est maintenant complet. Merci !`,
         type: 'booking',
         referenceId: booking.id
@@ -1935,7 +1935,7 @@ export const OwnerDashboard: React.FC<{ isTestMode?: boolean; onBackToTraveler?:
       // Notify host
       await sendNotification({
         userId: booking.ownerId,
-        title: "🚪 Fin de séjour enregistrée !",
+        title: "Fin de séjour enregistrée",
         message: `Le séjour à la résidence "${res?.title || 'Logement'}" est terminé. La résidence est de nouveau entièrement disponible.`,
         type: 'booking',
         referenceId: booking.id
@@ -1944,7 +1944,7 @@ export const OwnerDashboard: React.FC<{ isTestMode?: boolean; onBackToTraveler?:
       // Notify traveler
       await sendNotification({
         userId: booking.clientId,
-        title: "🚪 Séjour terminé chez Faso Loft",
+        title: "Séjour terminé",
         message: `Votre départ/Check-Out de la résidence "${res?.title || 'Logement'}" a été enregistré. Merci de votre confiance ! Pensez à laisser un avis pour partager votre expérience.`,
         type: 'booking',
         referenceId: booking.id

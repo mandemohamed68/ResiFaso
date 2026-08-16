@@ -1663,7 +1663,7 @@ async function startServer() {
             [
               hostNotifId,
               ownerId,
-              "Retrait Effectué ⚡",
+              "Retrait Effectué",
               `Votre retrait de ${amountNum} F CFA via ${provider.toUpperCase()} a été traité automatiquement avec succès (TxID SapPay: ${payoutResult.transactionId}).`,
               "payment",
               id
@@ -1680,7 +1680,7 @@ async function startServer() {
                 [
                   adminNotifId,
                   admin.uid,
-                  "Retrait Automatique Réussi ⚡",
+                  "Retrait Automatique Réussi",
                   `Un virement automatique de ${amountNum} F CFA pour l'hôte ${ownerName} a été payé avec succès via SapPay.`,
                   "payment",
                   id

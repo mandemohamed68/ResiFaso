@@ -170,10 +170,10 @@ export const ResidenceCard: React.FC<Props> = ({
                   key={dateStr}
                   title={`${formatDateFr(dateStr)}: ${isBooked ? "Occupé" : "Disponible"}`}
                   className={cn(
-                    "text-[9px] font-black py-0.5 rounded border transition-all select-none cursor-help",
+                    "text-[9px] font-bold py-0.5 rounded border transition-colors select-none cursor-help",
                     isBooked 
-                      ? "bg-red-50 text-red-600 border-red-200 line-through" 
-                      : "bg-emerald-50 text-emerald-700 border-emerald-200/80"
+                      ? "bg-rose-50 text-rose-600 border-rose-200/80 line-through opacity-60" 
+                      : "bg-emerald-50/90 text-emerald-800 border-emerald-200/80 hover:bg-emerald-100"
                   )}
                 >
                   {dayNum}

@@ -1,9 +1,15 @@
-import { apiFetch } from "../../lib/api";
 import React, { useState } from 'react';
+import { apiFetch } from "../../lib/api";
 import { useAuth } from '../../contexts/AuthContext';
+import { useBrandingSettings } from '../../hooks/useQueries';
 import { motion, AnimatePresence } from 'motion/react';
-import { X, Mail, Lock, User, Phone, CheckCircle2, AlertCircle, ArrowRight, Eye, EyeOff } from 'lucide-react';
-import { UserRole, UserProfile } from '../../types';
+import { 
+  X, Mail, Lock, User, Phone, CheckCircle2, AlertCircle, 
+  ArrowRight, Eye, EyeOff, ShieldCheck, Sparkles, Building2, 
+  Compass, UploadCloud, RefreshCw, Check
+} from 'lucide-react';
+import { UserRole } from '../../types';
+import { cn } from '../../lib/utils';
 
 interface AuthModalProps {
   isOpen: boolean;
@@ -12,7 +18,8 @@ interface AuthModalProps {
 }
 
 export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onNavigate }) => {
-  const { login, register, loginAsMock } = useAuth();
+  const { login, register } = useAuth();
+  const { data: branding } = useBrandingSettings();
   const [isSignUp, setIsSignUp] = useState(false);
   const [isForgotPassword, setIsForgotPassword] = useState(false);
   const [email, setEmail] = useState('');
@@ -36,6 +43,20 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onNavigat
 
   if (!isOpen) return null;
 
+  const bName1 = branding?.brandNamePart1 || 'Resi';
+  const bName2 = branding?.brandNamePart2 || 'Faso';
+  const bSlogan = branding?.brandSlogan || 'Résidences du Burkina';
+  const activeTheme = branding?.activeTheme || 'default';
+
+  const isChristmas = activeTheme === 'christmas';
+  const isNewYear = activeTheme === 'newyear';
+  const isValentines = activeTheme === 'valentines';
+  const isRamadan = activeTheme === 'ramadan';
+  const isBurkina = activeTheme === 'burkina';
+  const isRainy = activeTheme === 'rainy';
+  const isHarmattan = activeTheme === 'harmattan';
+  const isSpring = activeTheme === 'spring';
+
   const handleForgotPassword = async () => {
     if (!email) {
       setError("Veuillez saisir votre adresse email.");
@@ -58,10 +79,10 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onNavigat
         throw new Error(data.error || "Une erreur est survenue lors de l'envoi de l'email.");
       }
 
-      setSuccess("Un e-mail contenant le code de sécurité a été transmis à " + email + ". Veuillez vérifier votre messagerie.");
+      setSuccess(`Un e-mail contenant le code de sécurité a été transmis à ${email}.`);
       setResetCode('');
       if (data.code) {
-        setTestCodeMessage("Réf. validation : #" + data.code);
+        setTestCodeMessage(`Code : #${data.code}`);
       }
       setResetStep('reset');
     } catch (err: any) {
@@ -93,14 +114,14 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onNavigat
         throw new Error(data.error || "Le code est incorrect ou a expiré.");
       }
 
-      setSuccess("Votre mot de passe a été réinitialisé avec succès ! Vous pouvez maintenant vous connecter.");
+      setSuccess("Votre mot de passe a été réinitialisé avec succès ! Connexion en cours...");
       setTestCodeMessage(null);
       setTimeout(() => {
         setIsForgotPassword(false);
         setResetStep('request');
         setError(null);
         setSuccess(null);
-      }, 3000);
+      }, 2500);
     } catch (err: any) {
       console.error("Password reset finish error:", err);
       setError(err.message || "Une erreur est survenue lors de la réinitialisation du mot de passe.");
@@ -115,389 +136,527 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onNavigat
     setError(null);
     setSuccess(null);
 
-    // Secure validation check for our Super Admin credentials (not needed as shortcut anymore, regular login preferred)
     try {
       if (isSignUp) {
         if (!acceptTerms) {
           throw new Error("Vous devez accepter les conditions d'utilisation et la politique de confidentialité pour continuer.");
         }
-        if (!displayName) {
-          throw new Error("Veuillez saisir votre nom complet.");
+        if (!displayName.trim()) {
+          throw new Error("Veuillez renseigner votre nom complet.");
         }
         await register(email, password, displayName, selectedRole, identityDocumentFront || undefined, identityDocumentBack || undefined);
-        setSuccess("Votre compte a été créé avec succès ! En cours de connexion...");
+        setSuccess("Compte créé avec succès ! Bienvenue sur ResiFaso.");
       } else {
         await login(email, password);
-        setSuccess("Connexion réussie !");
+        setSuccess("Connexion réussie ! Heureux de vous revoir.");
       }
 
       setTimeout(() => {
         onClose();
         setSuccess(null);
-      }, 3500);
+      }, 1500);
 
     } catch (err: any) {
       console.error("Auth error:", err);
-      setError(err.message || "Une erreur est survenue lors de l'authentification.");
+      setError(err.message || "Identifiants invalides ou erreur d'authentification.");
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-start justify-center p-3 sm:p-6 pt-4 sm:pt-8 pb-10 overflow-y-auto">
-      {/* Backdrop */}
+    <div className="fixed inset-0 z-[100] flex items-center justify-center p-3 sm:p-6 overflow-y-auto">
+      {/* Backdrop with modern blur */}
       <motion.div 
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
         onClick={onClose}
-        className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm"
+        className="fixed inset-0 bg-slate-950/60 backdrop-blur-md transition-opacity"
       />
 
-      {/* Modal Container */}
+      {/* Modal Card */}
       <motion.div
-        initial={{ opacity: 0, scale: 0.95, y: 20 }}
+        initial={{ opacity: 0, scale: 0.96, y: 16 }}
         animate={{ opacity: 1, scale: 1, y: 0 }}
-        exit={{ opacity: 0, scale: 0.95, y: 20 }}
-        className="relative w-full max-w-md my-auto sm:my-0 bg-white rounded-3xl border border-slate-100 shadow-2xl p-8 overflow-y-auto z-10 max-h-[88vh]"
+        exit={{ opacity: 0, scale: 0.96, y: 16 }}
+        transition={{ duration: 0.25, ease: [0.16, 1, 0.3, 1] }}
+        className="relative w-full max-w-[460px] bg-white dark:bg-slate-900 rounded-[28px] border border-slate-100 dark:border-slate-800 shadow-2xl shadow-slate-950/20 overflow-hidden z-10 my-auto max-h-[92vh] flex flex-col"
       >
+        {/* Dynamic Festive / Brand Top Ribbon */}
+        <div 
+          className={cn(
+            "h-1.5 w-full transition-all duration-500",
+            isChristmas ? "bg-gradient-to-r from-red-600 via-amber-300 to-emerald-600 shadow-[0_0_10px_rgba(239,68,68,0.5)]" :
+            isNewYear ? "bg-gradient-to-r from-blue-900 via-amber-400 to-indigo-900 shadow-[0_0_10px_rgba(251,191,36,0.5)]" :
+            isValentines ? "bg-gradient-to-r from-pink-500 via-rose-400 to-red-600 shadow-[0_0_10px_rgba(236,72,153,0.5)]" :
+            isRamadan ? "bg-gradient-to-r from-emerald-700 via-amber-400 to-emerald-900 shadow-[0_0_10px_rgba(16,185,129,0.5)]" :
+            isBurkina ? "bg-gradient-to-r from-emerald-600 via-amber-400 to-red-600 shadow-[0_0_10px_rgba(22,163,74,0.5)]" :
+            isRainy ? "bg-gradient-to-r from-sky-600 via-blue-400 to-teal-500 shadow-[0_0_10px_rgba(2,132,199,0.5)]" :
+            isHarmattan ? "bg-gradient-to-r from-amber-600 via-yellow-500 to-amber-700 shadow-[0_0_10px_rgba(217,119,6,0.5)]" :
+            isSpring ? "bg-gradient-to-r from-pink-400 via-emerald-400 to-rose-300 shadow-[0_0_10px_rgba(244,114,182,0.5)]" :
+            "bg-gradient-to-r from-brand-primary via-amber-400 to-brand-secondary"
+          )}
+          style={{
+            background: (!isChristmas && !isNewYear && !isValentines && !isRamadan && !isBurkina && !isRainy && !isHarmattan && !isSpring)
+              ? `linear-gradient(to right, var(--brand-primary, #10b981), #fbbf24, var(--brand-secondary, #ef4444))`
+              : undefined
+          }}
+        />
+
         {/* Close Button */}
         <button 
           onClick={onClose}
-          className="absolute top-6 right-6 p-2 rounded-xl text-slate-400 hover:bg-slate-50 hover:text-slate-900 transition-colors"
+          className="absolute top-4 right-4 p-2 rounded-full text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition-all cursor-pointer z-20"
+          aria-label="Fermer"
         >
           <X size={18} />
         </button>
 
-        <div className="mb-6 text-center select-none">
-          <div className="inline-flex items-center gap-3 justify-center mb-1">
-            <div className="w-20 h-20 flex-shrink-0 flex items-center justify-center overflow-hidden rounded-2xl bg-white border border-slate-200 shadow-sm relative">
-              <img 
-                src="/logoresifasoORG.png" 
-                alt="ResiFaso logo" 
-                className="w-full h-full object-contain p-1" 
-                referrerPolicy="no-referrer"
-                onError={(e) => {
-                  const target = e.target as HTMLImageElement;
-                  target.src = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23dc2626' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z'/%3E%3Cpolyline points='9 22 9 12 15 12 15 22'/%3E%3C/svg%3E";
-                }}
-              />
+        {/* Scrollable Content Body */}
+        <div className="p-6 sm:p-8 overflow-y-auto hide-scrollbar space-y-6">
+          
+          {/* Brand Header */}
+          <div className="text-center select-none pt-1">
+            <div className="inline-flex items-center gap-3.5 justify-center mb-3">
+              <div className="w-14 h-14 sm:w-16 sm:h-16 flex-shrink-0 flex items-center justify-center overflow-hidden rounded-2xl bg-white border border-slate-200/80 dark:border-slate-700 shadow-sm p-1">
+                <img 
+                  src="/logoresifaso_new.jpg" 
+                  alt="ResiFaso logo" 
+                  className="w-full h-full object-contain" 
+                  referrerPolicy="no-referrer"
+                  onError={(e) => {
+                    const target = e.target as HTMLImageElement;
+                    target.src = "/logoresifasoORG.png";
+                  }}
+                />
+              </div>
+              <div className="flex flex-col text-left">
+                <span className="text-2xl sm:text-3xl font-black tracking-tight leading-none">
+                  <span className="text-brand-primary">{bName1}</span><span className="text-brand-secondary">{bName2}</span>
+                </span>
+                <span className="text-[9px] font-bold uppercase tracking-[0.2em] text-slate-400 dark:text-slate-500 mt-1">
+                  {bSlogan}
+                </span>
+              </div>
             </div>
-            <div className="flex flex-col text-left">
-              <span className="text-2xl font-black tracking-tighter text-slate-900 leading-none">
-                Resi<span className="text-red-600">Faso</span>
-              </span>
-              <span className="text-[8px] font-black uppercase tracking-[0.25em] text-slate-400 mt-1">
-                Résidences du Burkina
-              </span>
-            </div>
+
+            <h3 className="text-xl sm:text-2xl font-black text-slate-900 dark:text-white tracking-tight">
+              {isForgotPassword 
+                ? "Mot de passe oublié" 
+                : isSignUp 
+                  ? "Créer votre compte" 
+                  : "Connexion"}
+            </h3>
+            <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 font-medium mt-1">
+              {isForgotPassword 
+                ? "Recevez un code sécurisé pour réinitialiser votre accès" 
+                : isSignUp 
+                  ? "Rejoignez la première plateforme de résidences au Burkina" 
+                  : "Accédez à votre espace sécurisé ResiFaso"}
+            </p>
           </div>
-          <h3 className="text-2xl font-black text-slate-900 tracking-tight mt-4">
-            {isForgotPassword ? "Mot de passe oublié" : isSignUp ? "Créer un compte" : "Connexion"}
-          </h3>
-          <p className="text-sm text-slate-500 font-medium">
-            {isForgotPassword 
-              ? "Réinitialisez votre accès en quelques instants" 
-              : isSignUp 
-                ? "Rejoignez ResiFaso dès aujourd'hui" 
-                : "Accédez à votre espace ResiFaso"}
-          </p>
-        </div>
 
-        {/* Notifications */}
-        <AnimatePresence mode="wait">
-          {error && (
-            <motion.div 
-              initial={{ opacity: 0, y: -10 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -10 }}
-              className="flex items-start gap-3 p-4 bg-red-50 border border-red-100 rounded-2xl text-red-700 text-xs font-semibold mb-6"
-            >
-              <AlertCircle size={16} className="shrink-0 mt-0.5" />
-              <div>{error}</div>
-            </motion.div>
-          )}
-
-          {success && (
-            <motion.div 
-              initial={{ opacity: 0, y: -10 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -10 }}
-              className="flex items-start gap-3 p-4 bg-green-50 border border-green-100 rounded-2xl text-green-800 text-xs font-semibold mb-6"
-            >
-              <CheckCircle2 size={16} className="shrink-0 mt-0.5" />
-              <div>{success}</div>
-            </motion.div>
-          )}
-        </AnimatePresence>
-
-        {isForgotPassword ? (
-          <div className="space-y-4">
-            {resetStep === 'request' ? (
-              <form onSubmit={(e) => { e.preventDefault(); handleForgotPassword(); }} className="space-y-4">
-                <div>
-                  <label className="block text-xs font-black text-slate-400 uppercase tracking-wider mb-2">Adresse Email</label>
-                  <div className="relative">
-                    <Mail className="absolute left-4 top-3.5 text-slate-300" size={18} />
-                    <input
-                      type="email"
-                      required
-                      value={email}
-                      onChange={(e) => setEmail(e.target.value)}
-                      placeholder="nom@exemple.com"
-                      className="w-full bg-slate-50 border border-slate-100 hover:border-slate-200 focus:bg-white focus:border-red-500 rounded-2xl py-3.5 pl-12 pr-4 outline-none text-sm font-bold transition-all placeholder:text-slate-300"
-                    />
-                  </div>
-                </div>
-
-                <button
-                  type="submit"
-                  disabled={loading}
-                  className="w-full bg-red-600 text-white rounded-2xl py-4 text-xs font-black uppercase tracking-[0.2em] shadow-xl shadow-red-100 hover:bg-red-700 transition-all hover:scale-[1.02] active:scale-[0.98] disabled:opacity-50 disabled:pointer-events-none mt-2"
-                >
-                  {loading ? "Génération du code..." : "Demander un code de réinitialisation"}
-                </button>
-              </form>
-            ) : (
-              <form onSubmit={(e) => { e.preventDefault(); handleResetPassword(); }} className="space-y-4">
-                <div>
-                  <label className="block text-xs font-black text-slate-400 uppercase tracking-wider mb-2">Adresse Email</label>
-                  <div className="relative">
-                    <Mail className="absolute left-4 top-3.5 text-slate-300" size={18} />
-                    <input
-                      type="email"
-                      disabled
-                      value={email}
-                      className="w-full bg-slate-100 border border-slate-100 rounded-2xl py-3.5 pl-12 pr-4 outline-none text-sm font-bold text-slate-500"
-                    />
-                  </div>
-                </div>
-
-                <div>
-                  <div className="flex items-center justify-between mb-2">
-                    <label className="block text-xs font-black text-slate-400 uppercase tracking-wider">
-                      Code de sécurité (6 chiffres)
-                    </label>
-                    {testCodeMessage && (
-                      <span className="text-[11px] font-mono font-bold text-slate-500 bg-slate-100 px-2.5 py-0.5 rounded-md border border-slate-200">
-                        {testCodeMessage}
-                      </span>
-                    )}
-                  </div>
-                  <div className="relative">
-                    <Lock className="absolute left-4 top-3.5 text-slate-300" size={18} />
-                    <input
-                      type="text"
-                      required
-                      maxLength={6}
-                      value={resetCode}
-                      onChange={(e) => setResetCode(e.target.value)}
-                      placeholder="Ex: 123456"
-                      className="w-full bg-slate-50 border border-slate-100 hover:border-slate-200 focus:bg-white focus:border-red-500 rounded-2xl py-3.5 pl-12 pr-4 outline-none text-sm font-bold transition-all placeholder:text-slate-300"
-                    />
-                  </div>
-                </div>
-
-                <div>
-                  <label className="block text-xs font-black text-slate-400 uppercase tracking-wider mb-2">Nouveau mot de passe</label>
-                  <div className="relative">
-                    <Lock className="absolute left-4 top-3.5 text-slate-300" size={18} />
-                    <input
-                      type={showPassword ? "text" : "password"}
-                      required
-                      value={newPassword}
-                      onChange={(e) => setNewPassword(e.target.value)}
-                      placeholder="••••••••"
-                      className="w-full bg-slate-50 border border-slate-100 hover:border-slate-200 focus:bg-white focus:border-red-500 rounded-2xl py-3.5 pl-12 pr-12 outline-none text-sm font-bold transition-all placeholder:text-slate-300"
-                    />
-                    <button
-                      type="button"
-                      onClick={() => setShowPassword(!showPassword)}
-                      className="absolute right-4 top-3.5 text-slate-400 hover:text-slate-600"
-                    >
-                      {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
-                    </button>
-                  </div>
-                </div>
-
-                <button
-                  type="submit"
-                  disabled={loading}
-                  className="w-full bg-red-600 text-white rounded-2xl py-4 text-xs font-black uppercase tracking-[0.2em] shadow-xl shadow-red-100 hover:bg-red-700 transition-all hover:scale-[1.02] active:scale-[0.98] disabled:opacity-50 disabled:pointer-events-none mt-2"
-                >
-                  {loading ? "Mise à jour..." : "Mettre à jour le mot de passe"}
-                </button>
-
-                <div className="text-center pt-1">
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setResetStep('request');
-                      setError(null);
-                      setSuccess(null);
-                      setTestCodeMessage(null);
-                    }}
-                    className="text-xs font-bold text-red-600 hover:text-red-700 transition-colors"
-                  >
-                    Renvoyer un nouveau code
-                  </button>
-                </div>
-              </form>
-            )}
-
-            <div className="text-center pt-2">
+          {/* Segmented Tab Switcher (Connexion / Inscription) */}
+          {!isForgotPassword && (
+            <div className="grid grid-cols-2 p-1 bg-slate-100 dark:bg-slate-800/90 rounded-2xl border border-slate-200/60 dark:border-slate-700/60">
               <button
                 type="button"
                 onClick={() => {
-                  setIsForgotPassword(false);
-                  setResetStep('request');
+                  setIsSignUp(false);
                   setError(null);
                   setSuccess(null);
-                  setTestCodeMessage(null);
                 }}
-                className="text-xs font-bold text-slate-500 hover:text-red-600 transition-colors"
+                className={cn(
+                  "py-2.5 px-3 rounded-xl text-xs font-black uppercase tracking-wider transition-all duration-200 cursor-pointer relative",
+                  !isSignUp 
+                    ? "bg-white dark:bg-slate-900 text-brand-primary shadow-sm" 
+                    : "text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200"
+                )}
               >
-                Retour à la connexion
+                Connexion
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setIsSignUp(true);
+                  setError(null);
+                  setSuccess(null);
+                }}
+                className={cn(
+                  "py-2.5 px-3 rounded-xl text-xs font-black uppercase tracking-wider transition-all duration-200 cursor-pointer relative",
+                  isSignUp 
+                    ? "bg-white dark:bg-slate-900 text-brand-primary shadow-sm" 
+                    : "text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200"
+                )}
+              >
+                S'inscrire
               </button>
             </div>
-          </div>
-        ) : (
-          <>
+          )}
+
+          {/* Error & Success Feedback Alerts */}
+          <AnimatePresence mode="wait">
+            {error && (
+              <motion.div 
+                initial={{ opacity: 0, y: -8 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -8 }}
+                className="flex items-start gap-3 p-3.5 bg-red-50 dark:bg-red-950/40 border border-red-200 dark:border-red-800/60 rounded-2xl text-red-700 dark:text-red-300 text-xs font-semibold"
+              >
+                <AlertCircle size={17} className="shrink-0 mt-0.5 text-red-600 dark:text-red-400" />
+                <div className="flex-1 leading-relaxed">{error}</div>
+              </motion.div>
+            )}
+
+            {success && (
+              <motion.div 
+                initial={{ opacity: 0, y: -8 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -8 }}
+                className="flex items-start gap-3 p-3.5 bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800/60 rounded-2xl text-emerald-800 dark:text-emerald-300 text-xs font-semibold"
+              >
+                <CheckCircle2 size={17} className="shrink-0 mt-0.5 text-emerald-600 dark:text-emerald-400" />
+                <div className="flex-1 leading-relaxed">{success}</div>
+              </motion.div>
+            )}
+          </AnimatePresence>
+
+          {/* Forgot Password Flow */}
+          {isForgotPassword ? (
+            <div className="space-y-4">
+              {resetStep === 'request' ? (
+                <form onSubmit={(e) => { e.preventDefault(); handleForgotPassword(); }} className="space-y-4">
+                  <div className="space-y-1.5">
+                    <label className="block text-[11px] font-black text-slate-500 dark:text-slate-400 uppercase tracking-wider">
+                      Votre Adresse Email
+                    </label>
+                    <div className="relative flex items-center">
+                      <Mail className="absolute left-4 text-slate-400 dark:text-slate-500" size={18} />
+                      <input
+                        type="email"
+                        required
+                        value={email}
+                        onChange={(e) => setEmail(e.target.value)}
+                        placeholder="exemple@email.com"
+                        className="w-full bg-slate-50 dark:bg-slate-800/70 border border-slate-200 dark:border-slate-700 hover:border-slate-300 dark:hover:border-slate-600 focus:bg-white dark:focus:bg-slate-800 focus:border-brand-primary focus:ring-4 focus:ring-brand-primary/10 rounded-2xl py-3.5 pl-11 pr-4 outline-none text-sm font-semibold text-slate-900 dark:text-white transition-all placeholder:text-slate-400 shadow-xs"
+                      />
+                    </div>
+                  </div>
+
+                  <button
+                    type="submit"
+                    disabled={loading}
+                    className="w-full bg-brand-primary hover:bg-brand-primary-dark text-white rounded-2xl py-3.5 text-xs font-black uppercase tracking-[0.15em] shadow-lg shadow-brand-primary/20 hover:shadow-xl transition-all cursor-pointer disabled:opacity-50 flex items-center justify-center gap-2"
+                  >
+                    {loading ? (
+                      <>
+                        <RefreshCw size={16} className="animate-spin" />
+                        <span>Envoi en cours...</span>
+                      </>
+                    ) : (
+                      <>
+                        <span>Envoyer le code de réinitialisation</span>
+                        <ArrowRight size={16} />
+                      </>
+                    )}
+                  </button>
+                </form>
+              ) : (
+                <form onSubmit={(e) => { e.preventDefault(); handleResetPassword(); }} className="space-y-4">
+                  <div className="space-y-1.5">
+                    <label className="block text-[11px] font-black text-slate-500 dark:text-slate-400 uppercase tracking-wider">
+                      Adresse Email
+                    </label>
+                    <div className="relative flex items-center">
+                      <Mail className="absolute left-4 text-slate-400" size={18} />
+                      <input
+                        type="email"
+                        disabled
+                        value={email}
+                        className="w-full bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl py-3.5 pl-11 pr-4 text-sm font-semibold text-slate-500 opacity-80"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <div className="flex items-center justify-between">
+                      <label className="block text-[11px] font-black text-slate-500 dark:text-slate-400 uppercase tracking-wider">
+                        Code à 6 chiffres
+                      </label>
+                      {testCodeMessage && (
+                        <span className="text-[10px] font-mono font-bold text-brand-primary bg-brand-primary/10 px-2 py-0.5 rounded-md">
+                          {testCodeMessage}
+                        </span>
+                      )}
+                    </div>
+                    <div className="relative flex items-center">
+                      <Lock className="absolute left-4 text-slate-400" size={18} />
+                      <input
+                        type="text"
+                        required
+                        maxLength={6}
+                        value={resetCode}
+                        onChange={(e) => setResetCode(e.target.value)}
+                        placeholder="123456"
+                        className="w-full bg-slate-50 dark:bg-slate-800/70 border border-slate-200 dark:border-slate-700 focus:bg-white dark:focus:bg-slate-800 focus:border-brand-primary focus:ring-4 focus:ring-brand-primary/10 rounded-2xl py-3.5 pl-11 pr-4 outline-none text-sm font-mono font-bold tracking-widest text-slate-900 dark:text-white transition-all placeholder:text-slate-400 shadow-xs"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <label className="block text-[11px] font-black text-slate-500 dark:text-slate-400 uppercase tracking-wider">
+                      Nouveau Mot de Passe
+                    </label>
+                    <div className="relative flex items-center">
+                      <Lock className="absolute left-4 text-slate-400" size={18} />
+                      <input
+                        type={showPassword ? "text" : "password"}
+                        required
+                        value={newPassword}
+                        onChange={(e) => setNewPassword(e.target.value)}
+                        placeholder="Au moins 6 caractères"
+                        className="w-full bg-slate-50 dark:bg-slate-800/70 border border-slate-200 dark:border-slate-700 focus:bg-white dark:focus:bg-slate-800 focus:border-brand-primary focus:ring-4 focus:ring-brand-primary/10 rounded-2xl py-3.5 pl-11 pr-11 outline-none text-sm font-semibold text-slate-900 dark:text-white transition-all placeholder:text-slate-400 shadow-xs"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowPassword(!showPassword)}
+                        className="absolute right-4 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 cursor-pointer"
+                      >
+                        {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                      </button>
+                    </div>
+                  </div>
+
+                  <button
+                    type="submit"
+                    disabled={loading}
+                    className="w-full bg-brand-primary hover:bg-brand-primary-dark text-white rounded-2xl py-3.5 text-xs font-black uppercase tracking-[0.15em] shadow-lg shadow-brand-primary/20 hover:shadow-xl transition-all cursor-pointer disabled:opacity-50 flex items-center justify-center gap-2"
+                  >
+                    {loading ? (
+                      <>
+                        <RefreshCw size={16} className="animate-spin" />
+                        <span>Mise à jour...</span>
+                      </>
+                    ) : (
+                      <>
+                        <span>Confirmer le nouveau mot de passe</span>
+                        <Check size={16} />
+                      </>
+                    )}
+                  </button>
+
+                  <div className="text-center">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setResetStep('request');
+                        setError(null);
+                        setSuccess(null);
+                        setTestCodeMessage(null);
+                      }}
+                      className="text-xs font-bold text-brand-primary hover:underline cursor-pointer"
+                    >
+                      Renvoyer un nouveau code
+                    </button>
+                  </div>
+                </form>
+              )}
+
+              <div className="text-center pt-2 border-t border-slate-100 dark:border-slate-800">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setIsForgotPassword(false);
+                    setResetStep('request');
+                    setError(null);
+                    setSuccess(null);
+                    setTestCodeMessage(null);
+                  }}
+                  className="text-xs font-bold text-slate-500 hover:text-brand-primary dark:text-slate-400 transition-colors cursor-pointer"
+                >
+                  ← Retour à la connexion
+                </button>
+              </div>
+            </div>
+          ) : (
+            /* Main Connexion & Inscription Form */
             <form onSubmit={handleSubmit} className="space-y-4">
+              
+              {/* Registration Extra Fields */}
               {isSignUp && (
                 <>
-                  <div>
-                    <label className="block text-xs font-black text-slate-400 uppercase tracking-wider mb-2">Nom Complet</label>
-                    <div className="relative">
-                      <User className="absolute left-4 top-3.5 text-slate-300" size={18} />
+                  {/* Full Name */}
+                  <div className="space-y-1.5">
+                    <label className="block text-[11px] font-black text-slate-500 dark:text-slate-400 uppercase tracking-wider">
+                      Nom complet
+                    </label>
+                    <div className="relative flex items-center">
+                      <User className="absolute left-4 text-slate-400" size={18} />
                       <input
                         type="text"
                         required
                         value={displayName}
                         onChange={(e) => setDisplayName(e.target.value)}
-                        placeholder="Abdoulaye Sawadogo"
-                        className="w-full bg-slate-50 border border-slate-100 hover:border-slate-200 focus:bg-white focus:border-red-500 rounded-2xl py-3.5 pl-12 pr-4 outline-none text-sm font-bold transition-all placeholder:text-slate-300"
+                        placeholder="Ex: Abdoulaye Sawadogo"
+                        className="w-full bg-slate-50 dark:bg-slate-800/70 border border-slate-200 dark:border-slate-700 hover:border-slate-300 dark:hover:border-slate-600 focus:bg-white dark:focus:bg-slate-800 focus:border-brand-primary focus:ring-4 focus:ring-brand-primary/10 rounded-2xl py-3.5 pl-11 pr-4 outline-none text-sm font-semibold text-slate-900 dark:text-white transition-all placeholder:text-slate-400 shadow-xs"
                       />
                     </div>
                   </div>
 
-                  <div>
-                    <label className="block text-xs font-black text-slate-400 uppercase tracking-wider mb-2">Téléphone (Burkina Faso)</label>
-                    <div className="relative">
-                      <Phone className="absolute left-4 top-3.5 text-slate-300" size={18} />
+                  {/* Phone Number */}
+                  <div className="space-y-1.5">
+                    <label className="block text-[11px] font-black text-slate-500 dark:text-slate-400 uppercase tracking-wider">
+                      Numéro Téléphone / WhatsApp
+                    </label>
+                    <div className="relative flex items-center">
+                      <Phone className="absolute left-4 text-slate-400" size={18} />
                       <input
                         type="tel"
                         value={phoneNumber}
                         onChange={(e) => setPhoneNumber(e.target.value)}
-                        placeholder="+226 70 12 34 56"
-                        className="w-full bg-slate-50 border border-slate-100 hover:border-slate-200 focus:bg-white focus:border-red-500 rounded-2xl py-3.5 pl-12 pr-4 outline-none text-sm font-bold transition-all placeholder:text-slate-300"
+                        placeholder="+226 70 00 00 00"
+                        className="w-full bg-slate-50 dark:bg-slate-800/70 border border-slate-200 dark:border-slate-700 hover:border-slate-300 dark:hover:border-slate-600 focus:bg-white dark:focus:bg-slate-800 focus:border-brand-primary focus:ring-4 focus:ring-brand-primary/10 rounded-2xl py-3.5 pl-11 pr-4 outline-none text-sm font-semibold text-slate-900 dark:text-white transition-all placeholder:text-slate-400 shadow-xs"
                       />
                     </div>
                   </div>
 
-                  <div className="space-y-4 pt-2">
-                    <div className="bg-slate-50 p-4 rounded-2xl border border-dashed border-slate-200">
-                      <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 font-bold">Pièce d'Identité (Optionnel)</label>
-                      <div className="grid grid-cols-2 gap-3">
-                        <div className="space-y-2">
-                          <span className="text-[9px] font-bold text-slate-500 block">Recto</span>
-                          <input 
-                            type="file" 
-                            accept="image/*"
-                            onChange={async (e) => {
-                              const file = e.target.files?.[0];
-                              if (file) {
-                                const reader = new FileReader();
-                                reader.onloadend = () => setIdentityDocumentFront(reader.result as string);
-                                reader.readAsDataURL(file);
-                              }
-                            }}
-                            className="text-[9px] w-full file:mr-2 file:py-1 file:px-2 file:rounded-md file:border-0 file:text-[9px] file:font-black file:bg-red-50 file:text-red-700 hover:file:bg-red-100 cursor-pointer"
-                          />
-                          {identityDocumentFront && (
-                            <div className="h-10 w-full rounded-lg bg-white border border-slate-100 overflow-hidden">
-                              <img src={identityDocumentFront} className="w-full h-full object-cover" alt="ID Front" />
-                            </div>
-                          )}
-                        </div>
-                        <div className="space-y-2">
-                          <span className="text-[9px] font-bold text-slate-500 block">Verso</span>
-                          <input 
-                            type="file" 
-                            accept="image/*"
-                            onChange={async (e) => {
-                              const file = e.target.files?.[0];
-                              if (file) {
-                                const reader = new FileReader();
-                                reader.onloadend = () => setIdentityDocumentBack(reader.result as string);
-                                reader.readAsDataURL(file);
-                              }
-                            }}
-                            className="text-[9px] w-full file:mr-2 file:py-1 file:px-2 file:rounded-md file:border-0 file:text-[9px] file:font-black file:bg-red-50 file:text-red-700 hover:file:bg-red-100 cursor-pointer"
-                          />
-                          {identityDocumentBack && (
-                            <div className="h-10 w-full rounded-lg bg-white border border-slate-100 overflow-hidden">
-                              <img src={identityDocumentBack} className="w-full h-full object-cover" alt="ID Back" />
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-
-                  <div>
-                    <label className="block text-xs font-black text-slate-400 uppercase tracking-wider mb-2">S'inscrire comme</label>
-                    <div className="grid grid-cols-2 gap-3 pt-1">
+                  {/* Role Type Selection Cards */}
+                  <div className="space-y-1.5 pt-1">
+                    <label className="block text-[11px] font-black text-slate-500 dark:text-slate-400 uppercase tracking-wider">
+                      Type de compte
+                    </label>
+                    <div className="grid grid-cols-2 gap-3">
                       <button
                         type="button"
                         onClick={() => setSelectedRole('client')}
-                        className={`py-3 rounded-2xl text-xs font-black uppercase tracking-wider border transition-all ${
+                        className={cn(
+                          "p-3 rounded-2xl border-2 text-left transition-all duration-200 cursor-pointer flex flex-col gap-1",
                           selectedRole === 'client'
-                            ? 'bg-red-50 border-red-500 text-red-700 shadow-sm'
-                            : 'bg-white border-slate-200 text-slate-500 hover:bg-slate-50'
-                        }`}
+                            ? "border-brand-primary bg-brand-primary/5 dark:bg-brand-primary/10"
+                            : "border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800/50 hover:border-slate-300"
+                        )}
                       >
-                        Voyageur
+                        <div className="flex items-center justify-between">
+                          <span className="text-base">🧳</span>
+                          {selectedRole === 'client' && (
+                            <div className="w-4 h-4 rounded-full bg-brand-primary flex items-center justify-center text-white">
+                              <Check size={11} strokeWidth={3} />
+                            </div>
+                          )}
+                        </div>
+                        <div className="font-black text-xs text-slate-900 dark:text-white mt-1">Voyageur</div>
+                        <div className="text-[10px] text-slate-500 dark:text-slate-400 leading-tight">Pour réserver des séjours</div>
                       </button>
+
                       <button
                         type="button"
                         onClick={() => setSelectedRole('owner')}
-                        className={`py-3 rounded-2xl text-xs font-black uppercase tracking-wider border transition-all ${
+                        className={cn(
+                          "p-3 rounded-2xl border-2 text-left transition-all duration-200 cursor-pointer flex flex-col gap-1",
                           selectedRole === 'owner'
-                            ? 'bg-red-50 border-red-500 text-red-700 shadow-sm'
-                            : 'bg-white border-slate-200 text-slate-500 hover:bg-slate-50'
-                        }`}
+                            ? "border-brand-primary bg-brand-primary/5 dark:bg-brand-primary/10"
+                            : "border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800/50 hover:border-slate-300"
+                        )}
                       >
-                        Propriétaire
+                        <div className="flex items-center justify-between">
+                          <span className="text-base">🏠</span>
+                          {selectedRole === 'owner' && (
+                            <div className="w-4 h-4 rounded-full bg-brand-primary flex items-center justify-center text-white">
+                              <Check size={11} strokeWidth={3} />
+                            </div>
+                          )}
+                        </div>
+                        <div className="font-black text-xs text-slate-900 dark:text-white mt-1">Propriétaire</div>
+                        <div className="text-[10px] text-slate-500 dark:text-slate-400 leading-tight">Publier et louer des biens</div>
                       </button>
+                    </div>
+                  </div>
+
+                  {/* ID Document Upload Dropzone (Optional) */}
+                  <div className="p-3.5 bg-slate-50 dark:bg-slate-800/60 rounded-2xl border border-dashed border-slate-200 dark:border-slate-700 space-y-2">
+                    <div className="flex items-center justify-between">
+                      <span className="text-[10px] font-black uppercase tracking-wider text-slate-500 dark:text-slate-400">
+                        Pièce d'Identité (Optionnel)
+                      </span>
+                      <span className="text-[9px] font-bold text-slate-400">CNIB ou Passeport</span>
+                    </div>
+                    <div className="grid grid-cols-2 gap-2">
+                      <div className="space-y-1">
+                        <label className="text-[9px] font-bold text-slate-500 block">Recto</label>
+                        <input 
+                          type="file" 
+                          accept="image/*"
+                          onChange={(e) => {
+                            const file = e.target.files?.[0];
+                            if (file) {
+                              const reader = new FileReader();
+                              reader.onloadend = () => setIdentityDocumentFront(reader.result as string);
+                              reader.readAsDataURL(file);
+                            }
+                          }}
+                          className="text-[9px] w-full file:mr-2 file:py-1 file:px-2 file:rounded-lg file:border-0 file:text-[9px] file:font-black file:bg-brand-primary/10 file:text-brand-primary hover:file:bg-brand-primary/20 cursor-pointer"
+                        />
+                        {identityDocumentFront && (
+                          <div className="h-10 w-full rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 overflow-hidden mt-1">
+                            <img src={identityDocumentFront} className="w-full h-full object-cover" alt="ID Recto" />
+                          </div>
+                        )}
+                      </div>
+                      <div className="space-y-1">
+                        <label className="text-[9px] font-bold text-slate-500 block">Verso</label>
+                        <input 
+                          type="file" 
+                          accept="image/*"
+                          onChange={(e) => {
+                            const file = e.target.files?.[0];
+                            if (file) {
+                              const reader = new FileReader();
+                              reader.onloadend = () => setIdentityDocumentBack(reader.result as string);
+                              reader.readAsDataURL(file);
+                            }
+                          }}
+                          className="text-[9px] w-full file:mr-2 file:py-1 file:px-2 file:rounded-lg file:border-0 file:text-[9px] file:font-black file:bg-brand-primary/10 file:text-brand-primary hover:file:bg-brand-primary/20 cursor-pointer"
+                        />
+                        {identityDocumentBack && (
+                          <div className="h-10 w-full rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 overflow-hidden mt-1">
+                            <img src={identityDocumentBack} className="w-full h-full object-cover" alt="ID Verso" />
+                          </div>
+                        )}
+                      </div>
                     </div>
                   </div>
                 </>
               )}
 
-              <div>
-                <label className="block text-xs font-black text-slate-400 uppercase tracking-wider mb-2">Adresse Email</label>
-                <div className="relative">
-                  <Mail className="absolute left-4 top-3.5 text-slate-300" size={18} />
+              {/* Email Address */}
+              <div className="space-y-1.5">
+                <label className="block text-[11px] font-black text-slate-500 dark:text-slate-400 uppercase tracking-wider">
+                  Adresse Email
+                </label>
+                <div className="relative flex items-center">
+                  <Mail className="absolute left-4 text-slate-400" size={18} />
                   <input
                     type="email"
                     required
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
-                    placeholder="nom@exemple.com"
-                    className="w-full bg-slate-50 border border-slate-100 hover:border-slate-200 focus:bg-white focus:border-red-500 rounded-2xl py-3.5 pl-12 pr-4 outline-none text-sm font-bold transition-all placeholder:text-slate-300"
+                    placeholder="exemple@email.com"
+                    className="w-full bg-slate-50 dark:bg-slate-800/70 border border-slate-200 dark:border-slate-700 hover:border-slate-300 dark:hover:border-slate-600 focus:bg-white dark:focus:bg-slate-800 focus:border-brand-primary focus:ring-4 focus:ring-brand-primary/10 rounded-2xl py-3.5 pl-11 pr-4 outline-none text-sm font-semibold text-slate-900 dark:text-white transition-all placeholder:text-slate-400 shadow-xs"
                   />
                 </div>
               </div>
 
-              <div>
-                <div className="flex justify-between items-center mb-2">
-                  <label className="block text-xs font-black text-slate-400 uppercase tracking-wider">Mot de Passe</label>
+              {/* Password */}
+              <div className="space-y-1.5">
+                <div className="flex justify-between items-center">
+                  <label className="block text-[11px] font-black text-slate-500 dark:text-slate-400 uppercase tracking-wider">
+                    Mot de Passe
+                  </label>
                   {!isSignUp && (
                     <button 
                       type="button"
-                      className="text-xs text-red-600 hover:underline font-bold"
+                      className="text-xs text-brand-primary hover:underline font-bold cursor-pointer"
                       onClick={() => {
                         setIsForgotPassword(true);
                         setError(null);
@@ -508,72 +667,92 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onNavigat
                     </button>
                   )}
                 </div>
-                <div className="relative">
-                  <Lock className="absolute left-4 top-3.5 text-slate-300" size={18} />
+                <div className="relative flex items-center">
+                  <Lock className="absolute left-4 text-slate-400" size={18} />
                   <input
                     type={showPassword ? "text" : "password"}
                     required
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     placeholder="••••••••"
-                    className="w-full bg-slate-50 border border-slate-100 hover:border-slate-200 focus:bg-white focus:border-red-500 rounded-2xl py-3.5 pl-12 pr-12 outline-none text-sm font-bold transition-all placeholder:text-slate-300"
+                    className="w-full bg-slate-50 dark:bg-slate-800/70 border border-slate-200 dark:border-slate-700 hover:border-slate-300 dark:hover:border-slate-600 focus:bg-white dark:focus:bg-slate-800 focus:border-brand-primary focus:ring-4 focus:ring-brand-primary/10 rounded-2xl py-3.5 pl-11 pr-11 outline-none text-sm font-semibold text-slate-900 dark:text-white transition-all placeholder:text-slate-400 shadow-xs"
                   />
                   <button
                     type="button"
                     onClick={() => setShowPassword(!showPassword)}
-                    className="absolute right-4 top-3.5 text-slate-400 hover:text-slate-600 cursor-pointer"
+                    className="absolute right-4 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 cursor-pointer p-1"
+                    aria-label={showPassword ? "Masquer le mot de passe" : "Afficher le mot de passe"}
                   >
                     {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
                   </button>
                 </div>
               </div>
 
+              {/* Legal Terms Checkbox on Registration */}
               {isSignUp && (
-                <div className="flex items-start gap-2 mt-2">
+                <div className="flex items-start gap-2.5 pt-1">
                   <input
                     type="checkbox"
                     id="terms"
                     checked={acceptTerms}
                     onChange={(e) => setAcceptTerms(e.target.checked)}
-                    className="mt-1 w-4 h-4 text-red-600 rounded focus:ring-red-500 border-slate-300 cursor-pointer"
+                    className="mt-1 w-4 h-4 rounded text-brand-primary focus:ring-brand-primary border-slate-300 dark:border-slate-700 cursor-pointer"
                   />
-                  <label htmlFor="terms" className="text-xs text-slate-500 font-medium leading-tight">
-                    J'accepte les <button type="button" onClick={() => { onClose(); onNavigate?.('tos'); }} className="text-red-600 hover:underline">conditions d'utilisation</button>, la <button type="button" onClick={() => { onClose(); onNavigate?.('privacy'); }} className="text-red-600 hover:underline">politique de confidentialité</button> et j'ai lu le <button type="button" onClick={() => { onClose(); onNavigate?.('guide'); }} className="text-red-600 hover:underline">mode d'emploi</button>.
+                  <label htmlFor="terms" className="text-xs text-slate-500 dark:text-slate-400 font-medium leading-relaxed">
+                    J'accepte les <button type="button" onClick={() => { onClose(); onNavigate?.('tos'); }} className="text-brand-primary font-bold hover:underline">conditions générales</button> et la <button type="button" onClick={() => { onClose(); onNavigate?.('privacy'); }} className="text-brand-primary font-bold hover:underline">politique de confidentialité</button>.
                   </label>
                 </div>
               )}
 
+              {/* Submit Button */}
               <button
                 type="submit"
                 disabled={loading}
-                className="w-full bg-red-600 text-white rounded-2xl py-4 text-xs font-black uppercase tracking-[0.2em] shadow-xl shadow-red-100 hover:bg-red-700 transition-all hover:scale-[1.02] active:scale-[0.98] disabled:opacity-50 disabled:pointer-events-none mt-2"
+                className="w-full bg-brand-primary hover:bg-brand-primary-dark text-white rounded-2xl py-4 text-xs font-black uppercase tracking-[0.18em] shadow-lg shadow-brand-primary/25 hover:shadow-xl hover:scale-[1.01] active:scale-[0.99] transition-all cursor-pointer disabled:opacity-50 flex items-center justify-center gap-2 mt-3"
               >
-                {loading ? "Chargement..." : isSignUp ? "Créer mon Compte" : "Se Connecter"}
+                {loading ? (
+                  <>
+                    <RefreshCw size={17} className="animate-spin" />
+                    <span>Traitement en cours...</span>
+                  </>
+                ) : (
+                  <>
+                    <span>{isSignUp ? "Créer mon Compte" : "Se Connecter"}</span>
+                    <ArrowRight size={17} />
+                  </>
+                )}
               </button>
             </form>
+          )}
 
-            <div className="relative flex py-4 items-center">
-              <div className="flex-grow border-t border-slate-100"></div>
-            </div>
-
-            <div className="mt-8 text-center">
+          {/* Quick Footer Toggle */}
+          {!isForgotPassword && (
+            <div className="pt-2 text-center select-none border-t border-slate-100 dark:border-slate-800">
               <button
                 type="button"
                 onClick={() => {
                   setIsSignUp(!isSignUp);
                   setError(null);
+                  setSuccess(null);
                 }}
-                className="text-xs font-bold text-slate-500 hover:text-red-600 transition-colors"
+                className="text-xs font-medium text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-white transition-colors cursor-pointer"
               >
                 {isSignUp ? (
-                  <span>Déjà un compte ? <strong className="text-red-600">Connectez-vous</strong></span>
+                  <span>Vous avez déjà un compte ? <strong className="text-brand-primary font-extrabold ml-1">Se connecter</strong></span>
                 ) : (
-                  <span>Nouveau sur la plateforme ? <strong className="text-red-600 font-extrabold text-sm uppercase tracking-wider ml-1">S'inscrire</strong></span>
+                  <span>Nouveau sur ResiFaso ? <strong className="text-brand-primary font-extrabold uppercase tracking-wider ml-1">S'inscrire</strong></span>
                 )}
               </button>
             </div>
-          </>
-        )}
+          )}
+
+          {/* Security Assurance footer pill */}
+          <div className="flex items-center justify-center gap-1.5 text-[10px] font-bold text-slate-400 dark:text-slate-500">
+            <ShieldCheck size={13} className="text-brand-primary" />
+            <span>Connexion sécurisée SSL 256-bit • Données protégées</span>
+          </div>
+
+        </div>
       </motion.div>
     </div>
   );
