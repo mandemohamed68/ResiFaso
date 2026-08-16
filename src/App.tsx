@@ -6,9 +6,16 @@ import { RoleProvider, useRole } from './contexts/RoleContext';
 import { ToastProvider, useToast } from './contexts/ToastContext';
 import { DataRefreshProvider, useDataRefresh } from './contexts/DataRefreshContext';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { useResidences, useGlobalSettings } from './hooks/useQueries';
+import { useResidences, useGlobalSettings, useBrandingSettings } from './hooks/useQueries';
 import { Navbar } from './components/common/Navbar';
 import { LoadingScreen } from './components/common/LoadingScreen';
+import { SnowEffect } from './components/common/SnowEffect';
+import { ChristmasLights } from './components/common/ChristmasLights';
+import { RainEffect } from './components/common/RainEffect';
+import { HarmattanEffect } from './components/common/HarmattanEffect';
+import { ConfettiEffect } from './components/common/ConfettiEffect';
+import { EventCanvasEffects } from './components/common/EventCanvasEffects';
+import { EventOrnaments } from './components/common/EventOrnaments';
 import { Hero } from './components/home/Hero';
 import { SearchForm } from './components/search/SearchForm';
 import { ResidenceCard } from './components/search/ResidenceCard';
@@ -53,6 +60,40 @@ import { BURKINA_LOCATIONS } from './constants/locations';
 import { GlobalModal } from './components/common/GlobalModal';
 import { apiFetch } from './lib/api';
 
+function adjustBrightness(hex: string, percent: number) {
+  if (!hex || hex.length < 7) return hex;
+  try {
+    let R = parseInt(hex.substring(1, 3), 16);
+    let G = parseInt(hex.substring(3, 5), 16);
+    let B = parseInt(hex.substring(5, 7), 16);
+
+    R = parseInt((R * (100 + percent)) / 100 as any);
+    G = parseInt((G * (100 + percent)) / 100 as any);
+    B = parseInt((B * (100 + percent)) / 100 as any);
+
+    R = R < 255 ? R : 255;
+    G = G < 255 ? G : 255;
+    B = B < 255 ? B : 255;
+
+    R = R > 0 ? R : 0;
+    G = G > 0 ? G : 0;
+    B = B > 0 ? B : 0;
+
+    const rHex = R.toString(16).padStart(2, '0');
+    const gHex = G.toString(16).padStart(2, '0');
+    const bHex = B.toString(16).padStart(2, '0');
+
+    return `#${rHex}${gHex}${bHex}`;
+  } catch (e) {
+    return hex;
+  }
+}
+
+// Algorithmic color shade calculator
+function darkenColor(hex: string, percent: number = 15): string {
+  return adjustBrightness(hex, -Math.abs(percent));
+}
+
 function AppContent() {
   const { user, profile, loginAsMock, logOut } = useAuth();
   const { currentRole, setCurrentRole } = useRole();
@@ -62,6 +103,47 @@ function AppContent() {
 
   const { data: resData, isLoading: resLoading } = useResidences();
   const { data: gsData } = useGlobalSettings();
+  const { data: bData } = useBrandingSettings();
+
+  const [branding, setBranding] = useState({
+    brandNamePart1: 'Resi',
+    brandNamePart2: 'Faso',
+    brandSlogan: 'La référence de la réservation meublée au Burkina Faso',
+    activeTheme: 'default',
+    primaryColor: '#10b981',
+    secondaryColor: '#ef4444',
+    christmasLights: false,
+    snowParticles: false,
+    rainParticles: false,
+    harmattanParticles: false,
+    confettiParticles: false,
+    heartsParticles: false,
+    starsParticles: false,
+    petalsParticles: false,
+    ornamentsEnabled: true
+  });
+
+  useEffect(() => {
+    if (bData) {
+      setBranding({
+        brandNamePart1: bData.brandNamePart1 || 'Resi',
+        brandNamePart2: bData.brandNamePart2 || 'Faso',
+        brandSlogan: bData.brandSlogan || 'La référence de la réservation meublée au Burkina Faso',
+        activeTheme: bData.activeTheme || 'default',
+        primaryColor: bData.primaryColor || '#10b981',
+        secondaryColor: bData.secondaryColor || '#ef4444',
+        christmasLights: !!bData.christmasLights,
+        snowParticles: !!bData.snowParticles,
+        rainParticles: !!bData.rainParticles,
+        harmattanParticles: !!bData.harmattanParticles,
+        confettiParticles: !!bData.confettiParticles,
+        heartsParticles: !!bData.heartsParticles,
+        starsParticles: !!bData.starsParticles,
+        petalsParticles: !!bData.petalsParticles,
+        ornamentsEnabled: bData.ornamentsEnabled !== undefined ? !!bData.ornamentsEnabled : true
+      });
+    }
+  }, [bData]);
 
   const [residences, setResidences] = useState<Residence[]>(() => {
     if (typeof window !== 'undefined') {
@@ -819,6 +901,80 @@ function AppContent() {
       "min-h-screen font-sans transition-colors duration-300",
       isDarkMode ? "bg-slate-950 text-slate-100" : "bg-white text-slate-900"
     )}>
+      {/* Dynamic Branding Stylesheet */}
+      <style>{`
+        :root {
+          --brand-primary: ${branding.primaryColor || '#10b981'};
+          --brand-primary-dark: ${darkenColor(branding.primaryColor || '#10b981', 15)};
+          --brand-primary-light: ${adjustBrightness(branding.primaryColor || '#10b981', 85)};
+          --brand-secondary: ${branding.secondaryColor || '#ef4444'};
+          --brand-secondary-dark: ${darkenColor(branding.secondaryColor || '#ef4444', 15)};
+          --brand-secondary-light: ${adjustBrightness(branding.secondaryColor || '#ef4444', 85)};
+        }
+        /* Redirect Tailwind Emerald utility classes to dynamic brand primary */
+        .text-emerald-500, .text-emerald-600 { color: var(--brand-primary) !important; }
+        .text-emerald-700, .text-emerald-800 { color: var(--brand-primary-dark) !important; }
+        .bg-emerald-500, .bg-emerald-600 { background-color: var(--brand-primary) !important; }
+        .bg-emerald-700, .bg-emerald-800 { background-color: var(--brand-primary-dark) !important; }
+        .bg-emerald-50, .bg-emerald-100 { background-color: var(--brand-primary-light) !important; }
+        .border-emerald-500, .border-emerald-600 { border-color: var(--brand-primary) !important; }
+        .hover\\:bg-emerald-600:hover { background-color: var(--brand-primary) !important; }
+        .hover\\:bg-emerald-700:hover { background-color: var(--brand-primary-dark) !important; }
+        .hover\\:text-emerald-600:hover { color: var(--brand-primary) !important; }
+        .from-emerald-500 { --tw-gradient-from: var(--brand-primary) !important; }
+        .to-emerald-600 { --tw-gradient-to: var(--brand-primary-dark) !important; }
+        .focus\\:ring-emerald-500:focus { --tw-ring-color: var(--brand-primary) !important; }
+
+        /* Redirect Tailwind Red utility classes to dynamic brand secondary */
+        .text-red-500, .text-red-600 { color: var(--brand-secondary) !important; }
+        .text-red-700, .text-red-800 { color: var(--brand-secondary-dark) !important; }
+        .bg-red-500, .bg-red-600 { background-color: var(--brand-secondary) !important; }
+        .bg-red-700, .bg-red-800 { background-color: var(--brand-secondary-dark) !important; }
+        .bg-red-50, .bg-red-100 { background-color: var(--brand-secondary-light) !important; }
+        .border-red-500, .border-red-600 { border-color: var(--brand-secondary) !important; }
+        .hover\\:bg-red-600:hover { background-color: var(--brand-secondary) !important; }
+        .hover\\:bg-red-700:hover { background-color: var(--brand-secondary-dark) !important; }
+        .hover\\:text-red-600:hover { color: var(--brand-secondary) !important; }
+        .from-red-500 { --tw-gradient-from: var(--brand-secondary) !important; }
+        .to-red-600 { --tw-gradient-to: var(--brand-secondary-dark) !important; }
+        .focus\\:ring-red-500:focus { --tw-ring-color: var(--brand-secondary) !important; }
+
+        /* Custom branding & algorithmic shade helpers */
+        .text-brand-primary, .text-primary { color: var(--brand-primary) !important; }
+        .text-brand-secondary, .text-secondary { color: var(--brand-secondary) !important; }
+        .bg-brand-primary, .bg-primary { background-color: var(--brand-primary) !important; }
+        .bg-brand-primary-dark, .bg-primary-dark { background-color: var(--brand-primary-dark) !important; }
+        .bg-brand-secondary, .bg-secondary { background-color: var(--brand-secondary) !important; }
+        .border-brand-primary, .border-primary { border-color: var(--brand-primary) !important; }
+        .border-brand-secondary, .border-secondary { border-color: var(--brand-secondary) !important; }
+        .hover\\:bg-brand-primary-dark:hover, .hover\\:bg-primary-dark:hover {
+          background-color: var(--brand-primary-dark) !important;
+        }
+        .focus\\:ring-brand-primary:focus, .focus\\:ring-primary:focus {
+          --tw-ring-color: var(--brand-primary) !important;
+        }
+      `}</style>
+
+      {/* 60 FPS Event Canvas Engine */}
+      <EventCanvasEffects
+        snow={branding.snowParticles}
+        rain={branding.rainParticles}
+        harmattan={branding.harmattanParticles}
+        confetti={branding.confettiParticles}
+        hearts={branding.heartsParticles}
+        stars={branding.starsParticles}
+        petals={branding.petalsParticles}
+      />
+
+      {/* Seasonal & Holiday Visual Ornaments */}
+      <EventOrnaments
+        theme={branding.activeTheme}
+        enabled={branding.ornamentsEnabled}
+      />
+
+      {/* Christmas Lights Garland (Header) */}
+      {branding.christmasLights && <ChristmasLights />}
+
       <AnimatePresence mode="wait">
         {loading && <LoadingScreen key="loading-screen" />}
       </AnimatePresence>

@@ -13,7 +13,8 @@ import {
   getAllFaqs,
   getContactSettings,
   getAllContactMessages,
-  getMobileAppSettings
+  getMobileAppSettings,
+  getBrandingSettings
 } from '../lib/db';
 import { apiFetch } from '../lib/api';
 
@@ -45,6 +46,16 @@ export const useGlobalSettings = () => {
   return useQuery({
     queryKey: ['global-settings'],
     queryFn: getGlobalSettings,
+  });
+};
+
+export const useBrandingSettings = () => {
+  return useQuery({
+    queryKey: ['branding-settings'],
+    queryFn: getBrandingSettings,
+    refetchInterval: 8000,
+    staleTime: 4000,
+    refetchOnWindowFocus: true
   });
 };
 
@@ -165,7 +176,8 @@ export const useAdminData = (role: string | undefined) => {
         messageList,
         verifTypeList,
         partnerList,
-        mobileAppSettingsData
+        mobileAppSettingsData,
+        brandingSettingsData
       ] = await Promise.all([
         getAllResidences().catch(() => []),
         getAllUsers().catch(() => []),
@@ -179,7 +191,8 @@ export const useAdminData = (role: string | undefined) => {
         getAllContactMessages().catch(() => []),
         apiFetch('/api/admin/verification-types').then(r => r.ok ? r.json() : []).catch(() => []),
         apiFetch('/api/partners').then(r => r.ok ? r.json() : []).catch(() => []),
-        getMobileAppSettings().catch(() => ({}))
+        getMobileAppSettings().catch(() => ({})),
+        getBrandingSettings().catch(() => ({}))
       ]);
       return {
         residences: resList,
@@ -194,7 +207,8 @@ export const useAdminData = (role: string | undefined) => {
         messages: messageList,
         verificationTypes: verifTypeList,
         partners: partnerList,
-        mobileAppSettings: mobileAppSettingsData
+        mobileAppSettings: mobileAppSettingsData,
+        brandingSettings: brandingSettingsData
       };
     },
     enabled: role === 'admin',

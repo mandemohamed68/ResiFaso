@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
+import { useBrandingSettings } from '../../hooks/useQueries';
 import { 
   Search, ShieldCheck, Smartphone, Home, MapPin, Calendar, CheckCircle2, 
   ArrowRight, Users, Zap, Droplets, CreditCard, Star, Clock, Lock, 
@@ -13,6 +14,11 @@ interface ShowcasePageProps {
 }
 
 export const ShowcasePage: React.FC<ShowcasePageProps> = ({ onNavigate, onOpenAuth }) => {
+  const { data: branding } = useBrandingSettings();
+  const bName1 = branding?.brandNamePart1 || 'Resi';
+  const bName2 = branding?.brandNamePart2 || 'Faso';
+  const bSlogan = branding?.brandSlogan || "La référence de la réservation meublée au Burkina Faso";
+
   const [activeRoleTab, setActiveRoleTab] = useState<'traveler' | 'host'>('traveler');
   const [openFaqIndex, setOpenFaqIndex] = useState<number | null>(0);
 
@@ -115,8 +121,8 @@ export const ShowcasePage: React.FC<ShowcasePageProps> = ({ onNavigate, onOpenAu
 
   const faqItems = [
     {
-      q: "Qu'est-ce que la plateforme ResiFaso ?",
-      a: "ResiFaso est un service d'intermédiation technique édité et exploité par la société SAPPAY TECHNOLOGIE. Il permet la mise en relation sécurisée entre propriétaires d'hébergements meublés et voyageurs pour des séjours temporaires au Burkina Faso."
+      q: `Qu'est-ce que la plateforme ${bName1}${bName2} ?`,
+      a: `${bName1}${bName2} est un service d'intermédiation technique édité et exploité par la société SAPPAY TECHNOLOGIE. Il permet la mise en relation sécurisée entre propriétaires d'hébergements meublés et voyageurs pour des séjours temporaires au Burkina Faso.`
     },
     {
       q: "Quels sont les modes de paiement acceptés ?",
@@ -177,11 +183,11 @@ export const ShowcasePage: React.FC<ShowcasePageProps> = ({ onNavigate, onOpenAu
               </div>
 
               <h1 className="text-3xl sm:text-5xl lg:text-5xl font-black text-slate-900 tracking-tight leading-[1.15]">
-                La solution globale pour vos hébergements meublés au Burkina Faso
+                {bSlogan}
               </h1>
 
               <p className="text-slate-600 text-base sm:text-lg font-normal leading-relaxed max-w-2xl mx-auto lg:mx-0">
-                ResiFaso simplifie la recherche et la réservation d'appartements, studios et villas meublés pour vos déplacements professionnels et séjours en famille à Ouagadougou, Bobo-Dioulasso, Koudougou et Banfora.
+                <span className="font-extrabold"><span className="text-brand-primary">{bName1}</span><span className="text-brand-secondary">{bName2}</span></span> simplifie la recherche et la réservation d'appartements, studios et villas meublés pour vos déplacements professionnels et séjours en famille à Ouagadougou, Bobo-Dioulasso, Koudougou et Banfora.
               </p>
 
               {/* Action Buttons */}
@@ -236,8 +242,8 @@ export const ShowcasePage: React.FC<ShowcasePageProps> = ({ onNavigate, onOpenAu
                 
                 <div className="flex items-center justify-between border-b border-slate-100 pb-4">
                   <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-xl bg-slate-900 text-white flex items-center justify-center font-black text-xs">
-                      RF
+                    <div className="w-10 h-10 rounded-xl bg-slate-50 border border-slate-200 flex items-center justify-center font-black text-xs select-none">
+                      <span className="text-emerald-600">R</span><span className="text-red-600">F</span>
                     </div>
                     <div>
                       <h3 className="font-extrabold text-slate-900 text-sm">Résidence Meublée de Standing</h3>
@@ -504,7 +510,7 @@ export const ShowcasePage: React.FC<ShowcasePageProps> = ({ onNavigate, onOpenAu
                 Engagement de conformité et protection des usagers
               </h2>
               <p className="text-xs text-slate-300 leading-relaxed">
-                La plateforme ResiFaso, développée et gérée par <strong>SAPPAY TECHNOLOGIE</strong>, opère dans le strict respect de la réglementation burkinabè sur l'intermédiation numérique, le traitement des données à caractère personnel (CIL) et la sécurisation des flux financiers par Mobile Money.
+                La plateforme <span className="font-extrabold"><span className="text-brand-primary">{bName1}</span><span className="text-brand-secondary">{bName2}</span></span>, développée et gérée par <strong>SAPPAY TECHNOLOGIE</strong>, opère dans le strict respect de la réglementation burkinabè sur l'intermédiation numérique, le traitement des données à caractère personnel (CIL) et la sécurisation des flux financiers par Mobile Money.
               </p>
               
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-2 text-xs font-medium text-slate-200">

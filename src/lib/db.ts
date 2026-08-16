@@ -288,6 +288,17 @@ export async function saveMobileAppSettings(settings: any): Promise<void> {
   });
 }
 
+export async function getBrandingSettings(): Promise<any> {
+  return apiFetch('/api/settings/branding').catch(() => ({}));
+}
+
+export async function saveBrandingSettings(settings: any): Promise<void> {
+  await apiFetch('/api/settings/branding', {
+    method: 'POST',
+    body: JSON.stringify(settings)
+  });
+}
+
 // ==========================================
 // FAQS
 // ==========================================

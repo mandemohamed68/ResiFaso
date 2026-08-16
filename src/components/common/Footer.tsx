@@ -32,7 +32,7 @@ export const Footer: React.FC<FooterProps> = ({ onNavigate }) => {
             onClick={(e) => { e.preventDefault(); onNavigate?.('showcase'); }} 
             className="hover:text-red-500 transition-colors cursor-pointer text-white font-black"
           >
-            Présentation ResiFaso
+            Présentation <span className="text-emerald-500">Resi</span><span className="text-red-500">Faso</span>
           </a>
           <a 
             href="/" 
@@ -74,7 +74,13 @@ export const Footer: React.FC<FooterProps> = ({ onNavigate }) => {
         <div className="flex flex-col items-center gap-1">
           <div className="flex items-center gap-2">
             <span className="w-8 h-px bg-slate-800"></span>
-            <p className="font-bold text-slate-300 tracking-wide text-xs">{footerContent}</p>
+            <p className="font-bold text-slate-300 tracking-wide text-xs">
+              {footerContent === "© 2026 ResiFaso. Tous droits réservés." ? (
+                <>
+                  © 2026 <span className="text-emerald-500">Resi</span><span className="text-red-500 font-extrabold">Faso</span>. Tous droits réservés.
+                </>
+              ) : footerContent}
+            </p>
             <span className="w-8 h-px bg-slate-800"></span>
           </div>
           <p className="text-[9px] text-slate-600 font-medium">Plateforme sécurisée pour séjours de courte durée au Burkina Faso</p>

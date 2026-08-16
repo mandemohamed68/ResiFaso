@@ -1332,11 +1332,40 @@ async function startServer() {
     }
   });
 
-  // --- Settings ---
+  // --- Settings & Branding ---
   app.get("/api/settings/:key", async (req, res) => {
     try {
+      res.set('Cache-Control', 'no-cache, no-store, must-revalidate');
       const settings = await queries.getSettings(req.params.key);
       res.json(settings);
+    } catch (err: any) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  // Dedicated Mobile & Web Branding Endpoint (instant sync)
+  app.get(["/api/branding", "/api/mobile/branding"], async (req, res) => {
+    try {
+      res.set('Cache-Control', 'no-cache, no-store, must-revalidate');
+      const branding = await queries.getSettings('branding');
+      res.json(branding || {
+        brandNamePart1: 'Resi',
+        brandNamePart2: 'Faso',
+        brandSlogan: 'Résidences du Burkina',
+        activeTheme: 'default',
+        primaryColor: '#10b981',
+        secondaryColor: '#ef4444',
+        christmasLights: false,
+        snowParticles: false,
+        rainParticles: false,
+        harmattanParticles: false,
+        confettiParticles: false,
+        heartsParticles: false,
+        starsParticles: false,
+        petalsParticles: false,
+        ornamentsEnabled: false,
+        updatedAt: new Date().toISOString()
+      });
     } catch (err: any) {
       res.status(500).json({ error: err.message });
     }
@@ -1354,23 +1383,36 @@ async function startServer() {
     }
   });
 
-  // --- Mobile App Version & APK Public Endpoint ---
+  // --- Mobile App Version & APK Public Endpoint (includes real-time branding for mobile apps) ---
   app.get("/api/app-version", async (req, res) => {
     try {
-      const settings = await queries.getSettings('mobile_app');
+      res.set('Cache-Control', 'no-cache, no-store, must-revalidate');
+      const [settings, branding] = await Promise.all([
+        queries.getSettings('mobile_app'),
+        queries.getSettings('branding')
+      ]);
+
       res.json({
-        androidMinVersion: settings.androidMinVersion || '1.0.0',
-        androidLatestVersion: settings.androidLatestVersion || '1.0.0',
-        androidApkUrl: settings.androidApkUrl || 'https://www.resifaso.net/downloads/resifaso.apk',
-        iosMinVersion: settings.iosMinVersion || '1.0.0',
-        iosLatestVersion: settings.iosLatestVersion || '1.0.0',
-        iosAppStoreUrl: settings.iosAppStoreUrl || 'https://apps.apple.com/app/resifaso',
-        forceUpdate: !!settings.forceUpdate,
-        updateMessage: settings.updateMessage || "Une nouvelle version de l'application ResiFaso est disponible. Veuillez mettre à jour votre application.",
-        mobileMaintenance: !!settings.mobileMaintenance,
-        mobileMaintenanceMessage: settings.mobileMaintenanceMessage || "L'application mobile est actuellement en maintenance programmée. Merci de repasser plus tard.",
-        packageName: settings.packageName || "com.resifaso.app",
-        updatedAt: settings.updatedAt || new Date().toISOString()
+        androidMinVersion: settings?.androidMinVersion || '1.0.0',
+        androidLatestVersion: settings?.androidLatestVersion || '1.0.0',
+        androidApkUrl: settings?.androidApkUrl || 'https://www.resifaso.net/downloads/resifaso.apk',
+        iosMinVersion: settings?.iosMinVersion || '1.0.0',
+        iosLatestVersion: settings?.iosLatestVersion || '1.0.0',
+        iosAppStoreUrl: settings?.iosAppStoreUrl || 'https://apps.apple.com/app/resifaso',
+        forceUpdate: !!settings?.forceUpdate,
+        updateMessage: settings?.updateMessage || "Une nouvelle version de l'application ResiFaso est disponible. Veuillez mettre à jour votre application.",
+        mobileMaintenance: !!settings?.mobileMaintenance,
+        mobileMaintenanceMessage: settings?.mobileMaintenanceMessage || "L'application mobile est actuellement en maintenance programmée. Merci de repasser plus tard.",
+        packageName: settings?.packageName || "com.resifaso.app",
+        branding: branding || {
+          brandNamePart1: 'Resi',
+          brandNamePart2: 'Faso',
+          brandSlogan: 'Résidences du Burkina',
+          activeTheme: 'default',
+          primaryColor: '#10b981',
+          secondaryColor: '#ef4444'
+        },
+        updatedAt: settings?.updatedAt || new Date().toISOString()
       });
     } catch (err: any) {
       res.status(500).json({ error: err.message });

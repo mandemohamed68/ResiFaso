@@ -287,5 +287,24 @@ export interface ContactSettings {
   isAddressEnabled?: boolean;
 }
 
+export interface BrandingSettings {
+  brandNamePart1?: string;
+  brandNamePart2?: string;
+  brandSlogan?: string;
+  activeTheme?: 'default' | 'christmas' | 'newyear' | 'valentines' | 'rainy' | 'harmattan' | 'ramadan' | 'burkina' | 'spring' | 'custom' | 'celebration';
+  primaryColor?: string;
+  secondaryColor?: string;
+  christmasLights?: boolean;
+  snowParticles?: boolean;
+  rainParticles?: boolean;
+  harmattanParticles?: boolean;
+  confettiParticles?: boolean;
+  heartsParticles?: boolean;
+  starsParticles?: boolean;
+  petalsParticles?: boolean;
+  ornamentsEnabled?: boolean;
+  updatedAt?: string;
+}
+
 
 

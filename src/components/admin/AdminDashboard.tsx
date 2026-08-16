@@ -23,7 +23,7 @@ import { resizeImage } from '../../lib/imageResize';
 import { 
   hardResetDatabase, updateWithdrawalStatus, sendNotification,
   getBackendDbType, getGlobalSettings, saveGlobalSettings, getContactSettings, saveContactSettings,
-  getMobileAppSettings, saveMobileAppSettings,
+  getMobileAppSettings, saveMobileAppSettings, getBrandingSettings, saveBrandingSettings,
   getAllFaqs, saveFaq, deleteFaq,
   getAllAds, saveAd, deleteAd,
   getAllWithdrawals,
@@ -152,8 +152,45 @@ export const AdminDashboard: React.FC<{ onBackToTraveler?: () => void }> = ({ on
         if (m.mobileMaintenanceMessage !== undefined) setMobileMaintenanceMsg(m.mobileMaintenanceMessage);
         if (m.releaseNotes !== undefined) setMobileReleaseNotes(m.releaseNotes);
       }
+
+      const b = adminData.brandingSettings;
+      if (b) {
+        if (b.brandNamePart1 !== undefined) setBrandNamePart1(b.brandNamePart1);
+        if (b.brandNamePart2 !== undefined) setBrandNamePart2(b.brandNamePart2);
+        if (b.brandSlogan !== undefined) setBrandSlogan(b.brandSlogan);
+        if (b.activeTheme !== undefined) setActiveTheme(b.activeTheme);
+        if (b.primaryColor !== undefined) setPrimaryColor(b.primaryColor);
+        if (b.secondaryColor !== undefined) setSecondaryColor(b.secondaryColor);
+        if (b.christmasLights !== undefined) setChristmasLights(!!b.christmasLights);
+        if (b.snowParticles !== undefined) setSnowParticles(!!b.snowParticles);
+        if (b.rainParticles !== undefined) setRainParticles(!!b.rainParticles);
+        if (b.harmattanParticles !== undefined) setHarmattanParticles(!!b.harmattanParticles);
+        if (b.confettiParticles !== undefined) setConfettiParticles(!!b.confettiParticles);
+        if (b.heartsParticles !== undefined) setHeartsParticles(!!b.heartsParticles);
+        if (b.starsParticles !== undefined) setStarsParticles(!!b.starsParticles);
+        if (b.petalsParticles !== undefined) setPetalsParticles(!!b.petalsParticles);
+        if (b.ornamentsEnabled !== undefined) setOrnamentsEnabled(!!b.ornamentsEnabled);
+      }
     }
   }, [adminData]);
+
+  // Branding Settings States
+  const [brandNamePart1, setBrandNamePart1] = useState('Resi');
+  const [brandNamePart2, setBrandNamePart2] = useState('Faso');
+  const [brandSlogan, setBrandSlogan] = useState('La référence de la réservation meublée au Burkina Faso');
+  const [activeTheme, setActiveTheme] = useState<'default' | 'christmas' | 'newyear' | 'valentines' | 'rainy' | 'harmattan' | 'ramadan' | 'burkina' | 'spring' | 'custom' | 'celebration'>('default');
+  const [primaryColor, setPrimaryColor] = useState('#10b981');
+  const [secondaryColor, setSecondaryColor] = useState('#ef4444');
+  const [christmasLights, setChristmasLights] = useState(false);
+  const [snowParticles, setSnowParticles] = useState(false);
+  const [rainParticles, setRainParticles] = useState(false);
+  const [harmattanParticles, setHarmattanParticles] = useState(false);
+  const [confettiParticles, setConfettiParticles] = useState(false);
+  const [heartsParticles, setHeartsParticles] = useState(false);
+  const [starsParticles, setStarsParticles] = useState(false);
+  const [petalsParticles, setPetalsParticles] = useState(false);
+  const [ornamentsEnabled, setOrnamentsEnabled] = useState(true);
+  const [isSavingBranding, setIsSavingBranding] = useState(false);
 
   // Mobile App Back-Office States
   const [androidMinVersion, setAndroidMinVersion] = useState('1.0.0');
@@ -1481,6 +1518,42 @@ export const AdminDashboard: React.FC<{ onBackToTraveler?: () => void }> = ({ on
       addToast("Erreur lors de la sauvegarde des paramètres mobiles.", "error");
     } finally {
       setIsSavingMobileSettings(false);
+    }
+  };
+
+  const handleSaveBrandingSettings = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsSavingBranding(true);
+    const payload = {
+      brandNamePart1,
+      brandNamePart2,
+      brandSlogan,
+      activeTheme,
+      primaryColor,
+      secondaryColor,
+      christmasLights,
+      snowParticles,
+      rainParticles,
+      harmattanParticles,
+      confettiParticles,
+      heartsParticles,
+      starsParticles,
+      petalsParticles,
+      ornamentsEnabled,
+      updatedAt: new Date().toISOString()
+    };
+
+    try {
+      await saveBrandingSettings(payload);
+      queryClient.invalidateQueries({ queryKey: ['branding-settings'] });
+      await reloadData();
+      logAction(`Branding de la plateforme mis à jour : ${brandNamePart1}${brandNamePart2} - Thème : ${activeTheme}`);
+      triggerSuccess("Le branding de la plateforme a été mis à jour avec succès !");
+    } catch (err) {
+      console.error(err);
+      addToast("Erreur lors de la sauvegarde du branding.", "error");
+    } finally {
+      setIsSavingBranding(false);
     }
   };
 
@@ -3942,23 +4015,23 @@ export const AdminDashboard: React.FC<{ onBackToTraveler?: () => void }> = ({ on
             </div>
 
             {/* Dual Mode Card for Withdrawals (Auto vs Manual) */}
-            <div className="bg-gradient-to-br from-slate-900 to-red-950 p-6 rounded-[32px] text-white shadow-xl flex flex-col md:flex-row md:items-center justify-between gap-6 border border-slate-800">
+            <div className="bg-slate-50 border border-slate-200 p-6 rounded-[32px] text-slate-900 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-6">
               <div className="space-y-2">
                 <div className="flex items-center gap-2">
                   <span className={cn(
                     "w-2.5 h-2.5 rounded-full animate-pulse",
-                    withdrawalMode === 'auto' ? "bg-green-500" : "bg-amber-500"
+                    withdrawalMode === 'auto' ? "bg-emerald-500" : "bg-amber-500"
                   )} />
-                  <span className="text-[10px] font-black uppercase tracking-widest text-slate-400">Mode de Traitement Actuel</span>
+                  <span className="text-[10px] font-black uppercase tracking-widest text-slate-500">Mode de Traitement Actuel</span>
                 </div>
-                <h3 className="text-xl font-black flex items-center gap-2">
+                <h3 className="text-xl font-black flex items-center gap-2 text-slate-900">
                   {withdrawalMode === 'auto' ? (
-                    <>Virement Mobile Automatique (SapPay) <span className="bg-green-500/20 text-green-400 text-[10px] px-2 py-0.5 rounded-full font-bold">ACTIF</span></>
+                    <>Virement Mobile Automatique (SapPay) <span className="bg-emerald-100 text-emerald-800 text-[10px] px-2 py-0.5 rounded-full font-extrabold border border-emerald-200">ACTIF</span></>
                   ) : (
-                    <>Traitement Manuel (Hors-Plateforme) <span className="bg-amber-500/20 text-amber-400 text-[10px] px-2 py-0.5 rounded-full font-bold">ACTIF</span></>
+                    <>Traitement Manuel (Hors-Plateforme) <span className="bg-amber-100 text-amber-800 text-[10px] px-2 py-0.5 rounded-full font-extrabold border border-amber-200">ACTIF</span></>
                   )}
                 </h3>
-                <p className="text-xs text-slate-300 max-w-xl font-medium leading-relaxed">
+                <p className="text-xs text-slate-600 max-w-xl font-medium leading-relaxed">
                   {withdrawalMode === 'auto' 
                     ? "Enclenchement automatique : Dès la soumission d'une demande de retrait par l'hôte, le système initie immédiatement une transaction de payout (virement mobile instantané) via l'API SapPay. Le statut est mis à jour en temps réel."
                     : "Règlement hors-plateforme : L'administrateur procède manuellement au virement ou paiement physique par ses propres moyens (espèces, Orange Money direct, etc.) puis valide la demande pour en notifier les intervenants."
@@ -3966,14 +4039,14 @@ export const AdminDashboard: React.FC<{ onBackToTraveler?: () => void }> = ({ on
                 </p>
               </div>
               
-              <div className="flex bg-slate-800/80 p-1.5 rounded-2xl border border-slate-700/60 self-start md:self-auto shadow-inner">
+              <div className="flex bg-slate-200 p-1.5 rounded-2xl border border-slate-300 self-start md:self-auto shadow-inner">
                 <button
                   onClick={() => handleToggleWithdrawalMode('manual')}
                   className={cn(
                     "px-4 py-2.5 rounded-xl text-xs font-black uppercase tracking-wider transition-all cursor-pointer flex items-center gap-1.5",
                     withdrawalMode === 'manual'
-                      ? "bg-white text-slate-900 shadow-md scale-105"
-                      : "text-slate-400 hover:text-white"
+                      ? "bg-white text-slate-900 shadow-sm scale-105 border border-slate-300/50"
+                      : "text-slate-600 hover:text-slate-900"
                   )}
                 >
                   🖐️ Manuel
@@ -3983,8 +4056,8 @@ export const AdminDashboard: React.FC<{ onBackToTraveler?: () => void }> = ({ on
                   className={cn(
                     "px-4 py-2.5 rounded-xl text-xs font-black uppercase tracking-wider transition-all cursor-pointer flex items-center gap-1.5",
                     withdrawalMode === 'auto'
-                      ? "bg-red-600 text-white shadow-md scale-105"
-                      : "text-slate-400 hover:text-red-400"
+                      ? "bg-red-600 text-white shadow-sm scale-105"
+                      : "text-slate-600 hover:text-slate-900"
                   )}
                 >
                   ⚡ Automatique
@@ -4664,55 +4737,55 @@ export const AdminDashboard: React.FC<{ onBackToTraveler?: () => void }> = ({ on
         {activeTab === 'mobile' && (
           <div className="space-y-8 animate-in fade-in" id="mobile-app-admin-panel">
             {/* Header Banner */}
-            <div className="bg-gradient-to-r from-slate-900 via-slate-800 to-red-950 rounded-[32px] p-8 text-white shadow-xl relative overflow-hidden">
-              <div className="absolute -right-8 -bottom-8 opacity-10 pointer-events-none">
+            <div className="bg-slate-50 border border-slate-200 rounded-[32px] p-8 text-slate-900 shadow-sm relative overflow-hidden">
+              <div className="absolute -right-8 -bottom-8 opacity-5 pointer-events-none text-slate-900">
                 <Smartphone size={240} />
               </div>
               <div className="relative z-10 max-w-3xl space-y-3">
-                <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-red-500/20 border border-red-500/30 text-red-300 text-[10px] font-black uppercase tracking-widest">
+                <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-red-50 border border-red-100 text-red-600 text-[10px] font-black uppercase tracking-widest">
                   <Smartphone size={12} /> Back-Office Mobile & Distribution APK
                 </div>
-                <h2 className="text-3xl font-black tracking-tight leading-none text-white">
+                <h2 className="text-3xl font-black tracking-tight leading-none text-slate-900">
                   Gestion des Applications Mobiles (APK & App Store)
                 </h2>
-                <p className="text-slate-300 text-sm font-medium leading-relaxed">
+                <p className="text-slate-500 text-sm font-medium leading-relaxed">
                   Pilotez les versions diffusées sur Android (fichier APK direct) et iOS, déclenchez les mises à jour obligatoires à distance, gérez le mode maintenance mobile et permettez le téléchargement direct de l'application ResiFaso.
                 </p>
               </div>
 
               {/* Status Indicator Cards */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mt-6 pt-6 border-t border-slate-700/60">
-                <div className="bg-slate-800/80 backdrop-blur-sm border border-slate-700/80 p-4 rounded-2xl">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mt-6 pt-6 border-t border-slate-200">
+                <div className="bg-white border border-slate-200 p-4 rounded-2xl">
                   <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-1">Android APK</span>
                   <div className="flex items-center justify-between">
-                    <span className="text-base font-black text-white">v{androidLatestVersion}</span>
-                    <span className="px-2 py-0.5 rounded-full bg-green-500/20 text-green-400 text-[10px] font-black uppercase">En Ligne</span>
+                    <span className="text-base font-black text-slate-900">v{androidLatestVersion}</span>
+                    <span className="px-2 py-0.5 rounded-full bg-green-50 text-green-700 border border-green-200 text-[10px] font-black uppercase">En Ligne</span>
                   </div>
                 </div>
 
-                <div className="bg-slate-800/80 backdrop-blur-sm border border-slate-700/80 p-4 rounded-2xl">
+                <div className="bg-white border border-slate-200 p-4 rounded-2xl">
                   <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-1">iOS App Store</span>
                   <div className="flex items-center justify-between">
-                    <span className="text-base font-black text-white">v{iosLatestVersion}</span>
-                    <span className="px-2 py-0.5 rounded-full bg-blue-500/20 text-blue-400 text-[10px] font-black uppercase">App Store</span>
+                    <span className="text-base font-black text-slate-900">v{iosLatestVersion}</span>
+                    <span className="px-2 py-0.5 rounded-full bg-blue-50 text-blue-700 border border-blue-200 text-[10px] font-black uppercase">App Store</span>
                   </div>
                 </div>
 
-                <div className="bg-slate-800/80 backdrop-blur-sm border border-slate-700/80 p-4 rounded-2xl">
+                <div className="bg-white border border-slate-200 p-4 rounded-2xl">
                   <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-1">Mise à jour Forcée</span>
                   <div className="flex items-center justify-between">
-                    <span className="text-sm font-black text-white">{forceUpdateMobile ? 'Activée' : 'Désactivée'}</span>
-                    <span className={cn("px-2 py-0.5 rounded-full text-[10px] font-black uppercase", forceUpdateMobile ? "bg-red-500/20 text-red-400" : "bg-slate-700 text-slate-400")}>
+                    <span className="text-sm font-black text-slate-900">{forceUpdateMobile ? 'Activée' : 'Désactivée'}</span>
+                    <span className={cn("px-2 py-0.5 rounded-full text-[10px] font-black uppercase border", forceUpdateMobile ? "bg-red-50 text-red-700 border-red-200" : "bg-slate-100 text-slate-600 border-slate-200")}>
                       {forceUpdateMobile ? 'Strict' : 'Optionnelle'}
                     </span>
                   </div>
                 </div>
 
-                <div className="bg-slate-800/80 backdrop-blur-sm border border-slate-700/80 p-4 rounded-2xl">
+                <div className="bg-white border border-slate-200 p-4 rounded-2xl">
                   <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-1">Mode Maintenance</span>
                   <div className="flex items-center justify-between">
-                    <span className="text-sm font-black text-white">{mobileMaintenanceMode ? 'Maintenance ON' : 'Normal'}</span>
-                    <span className={cn("px-2 py-0.5 rounded-full text-[10px] font-black uppercase", mobileMaintenanceMode ? "bg-amber-500/20 text-amber-400" : "bg-green-500/20 text-green-400")}>
+                    <span className="text-sm font-black text-slate-900">{mobileMaintenanceMode ? 'Maintenance ON' : 'Normal'}</span>
+                    <span className={cn("px-2 py-0.5 rounded-full text-[10px] font-black uppercase border", mobileMaintenanceMode ? "bg-amber-50 text-amber-700 border-amber-200" : "bg-green-50 text-green-700 border-green-200")}>
                       {mobileMaintenanceMode ? 'Bloqué' : 'Accessible'}
                     </span>
                   </div>
@@ -5484,6 +5557,564 @@ export const AdminDashboard: React.FC<{ onBackToTraveler?: () => void }> = ({ on
                 {isSaving ? 'Enregistrement...' : 'Sauvegarder les paramètres de la plateforme'}
               </button>
             </form>
+
+            {/* FORM 9B: BRANDING DE SAISON & PERSO (SAAS) */}
+            <div className="max-w-xl bg-white border border-slate-100 p-8 rounded-[32px] shadow-sm space-y-6">
+              <div>
+                <div className="flex items-center gap-2 mb-1">
+                  <Sparkles className="text-amber-500 w-5 h-5 animate-pulse" />
+                  <h3 className="text-xl font-black text-slate-900 tracking-tight leading-none">Branding & Thèmes Événementiels</h3>
+                </div>
+                <p className="text-slate-500 font-medium text-xs leading-relaxed">
+                  Personnalisez le nom, le slogan de la marque et activez des chartes graphiques saisonnières (Noël, Nouvel An, etc.) en temps réel sur toute la plateforme.
+                </p>
+              </div>
+
+              <form onSubmit={handleSaveBrandingSettings} className="space-y-6">
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1.5">Nom Marque (Partie 1)</label>
+                    <input 
+                      type="text" 
+                      value={brandNamePart1} 
+                      onChange={(e) => setBrandNamePart1(e.target.value)}
+                      className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-sm font-bold outline-none focus:ring-2 focus:ring-slate-900" 
+                      placeholder="Ex: Resi"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1.5">Nom Marque (Partie 2)</label>
+                    <input 
+                      type="text" 
+                      value={brandNamePart2} 
+                      onChange={(e) => setBrandNamePart2(e.target.value)}
+                      className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-sm font-bold outline-none focus:ring-2 focus:ring-slate-900" 
+                      placeholder="Ex: Faso"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1.5">Slogan de la Marque</label>
+                  <input 
+                    type="text" 
+                    value={brandSlogan} 
+                    onChange={(e) => setBrandSlogan(e.target.value)}
+                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-sm font-medium outline-none focus:ring-2 focus:ring-slate-900" 
+                    placeholder="Ex: Votre confort meublé, en toute simplicité"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-[10px] font-black text-slate-500 uppercase tracking-widest mb-2">Thème de Saison Actif (SaaS Skins)</label>
+                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setActiveTheme('default');
+                        setPrimaryColor('#10b981');
+                        setSecondaryColor('#ef4444');
+                        setChristmasLights(false);
+                        setSnowParticles(false);
+                        setRainParticles(false);
+                        setHarmattanParticles(false);
+                        setConfettiParticles(false);
+                        setHeartsParticles(false);
+                        setStarsParticles(false);
+                        setPetalsParticles(false);
+                      }}
+                      className={cn(
+                        "p-4 rounded-2xl border text-left flex flex-col justify-between transition-all duration-200",
+                        activeTheme === 'default' 
+                          ? "border-emerald-500 bg-emerald-50/50 shadow-sm" 
+                          : "border-slate-200 hover:border-slate-350 bg-white"
+                      )}
+                    >
+                      <span className="text-xs font-black text-slate-900">Standard Faso 🇧🇫</span>
+                      <span className="text-[10px] text-slate-500 font-medium mt-1">Vert Émeraude & Rouge. Chaleureux et officiel.</span>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setActiveTheme('christmas');
+                        setPrimaryColor('#dc2626');
+                        setSecondaryColor('#d4af37');
+                        setChristmasLights(true);
+                        setSnowParticles(true);
+                        setRainParticles(false);
+                        setHarmattanParticles(false);
+                        setConfettiParticles(false);
+                        setHeartsParticles(false);
+                        setStarsParticles(false);
+                        setPetalsParticles(false);
+                        setOrnamentsEnabled(true);
+                      }}
+                      className={cn(
+                        "p-4 rounded-2xl border text-left flex flex-col justify-between transition-all duration-200",
+                        activeTheme === 'christmas' 
+                          ? "border-red-500 bg-red-50/50 shadow-sm" 
+                          : "border-slate-200 hover:border-slate-350 bg-white"
+                      )}
+                    >
+                      <span className="text-xs font-black text-slate-900">Magie de Noël 🎄</span>
+                      <span className="text-[10px] text-slate-500 font-medium mt-1">Rouge & Or. Boules oscillantes, guirlandes et neige.</span>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setActiveTheme('newyear');
+                        setPrimaryColor('#1e3a8a');
+                        setSecondaryColor('#fbbf24');
+                        setChristmasLights(false);
+                        setSnowParticles(false);
+                        setRainParticles(false);
+                        setHarmattanParticles(false);
+                        setConfettiParticles(true);
+                        setHeartsParticles(false);
+                        setStarsParticles(true);
+                        setPetalsParticles(false);
+                        setOrnamentsEnabled(true);
+                      }}
+                      className={cn(
+                        "p-4 rounded-2xl border text-left flex flex-col justify-between transition-all duration-200",
+                        activeTheme === 'newyear' 
+                          ? "border-blue-700 bg-blue-50/50 shadow-sm" 
+                          : "border-slate-200 hover:border-slate-350 bg-white"
+                      )}
+                    >
+                      <span className="text-xs font-black text-slate-900">Nouvel An 🎉</span>
+                      <span className="text-[10px] text-slate-500 font-medium mt-1">Bleu Nuit & Or. Confettis, étoiles et bannière festive.</span>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setActiveTheme('valentines');
+                        setPrimaryColor('#ec4899');
+                        setSecondaryColor('#be185d');
+                        setChristmasLights(false);
+                        setSnowParticles(false);
+                        setRainParticles(false);
+                        setHarmattanParticles(false);
+                        setConfettiParticles(false);
+                        setHeartsParticles(true);
+                        setStarsParticles(false);
+                        setPetalsParticles(false);
+                        setOrnamentsEnabled(true);
+                      }}
+                      className={cn(
+                        "p-4 rounded-2xl border text-left flex flex-col justify-between transition-all duration-200",
+                        activeTheme === 'valentines' 
+                          ? "border-pink-500 bg-pink-50/50 shadow-sm" 
+                          : "border-slate-200 hover:border-slate-350 bg-white"
+                      )}
+                    >
+                      <span className="text-xs font-black text-slate-900">Saint-Valentin 💖</span>
+                      <span className="text-[10px] text-slate-500 font-medium mt-1">Rose & Rubis. Cœurs montants et suspensions d'amour.</span>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setActiveTheme('rainy');
+                        setPrimaryColor('#0284c7');
+                        setSecondaryColor('#38bdf8');
+                        setChristmasLights(false);
+                        setSnowParticles(false);
+                        setRainParticles(true);
+                        setHarmattanParticles(false);
+                        setConfettiParticles(false);
+                        setHeartsParticles(false);
+                        setStarsParticles(false);
+                        setPetalsParticles(false);
+                      }}
+                      className={cn(
+                        "p-4 rounded-2xl border text-left flex flex-col justify-between transition-all duration-200",
+                        activeTheme === 'rainy' 
+                          ? "border-sky-500 bg-sky-50/50 shadow-sm" 
+                          : "border-slate-200 hover:border-slate-350 bg-white"
+                      )}
+                    >
+                      <span className="text-xs font-black text-slate-900">Saison des Pluies 🌧️</span>
+                      <span className="text-[10px] text-slate-500 font-medium mt-1">Bleu Pluie. Gouttes rafraîchissantes et ondulations d'eau.</span>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setActiveTheme('harmattan');
+                        setPrimaryColor('#d97706');
+                        setSecondaryColor('#92400e');
+                        setChristmasLights(false);
+                        setSnowParticles(false);
+                        setRainParticles(false);
+                        setHarmattanParticles(true);
+                        setConfettiParticles(false);
+                        setHeartsParticles(false);
+                        setStarsParticles(false);
+                        setPetalsParticles(false);
+                      }}
+                      className={cn(
+                        "p-4 rounded-2xl border text-left flex flex-col justify-between transition-all duration-200",
+                        activeTheme === 'harmattan' 
+                          ? "border-amber-500 bg-amber-50/50 shadow-sm" 
+                          : "border-slate-200 hover:border-slate-350 bg-white"
+                      )}
+                    >
+                      <span className="text-xs font-black text-slate-900">Harmattan Doré 🌪️</span>
+                      <span className="text-[10px] text-slate-500 font-medium mt-1">Sable & Ocre. Brise et particules dorées du Sahel.</span>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setActiveTheme('ramadan');
+                        setPrimaryColor('#059669');
+                        setSecondaryColor('#eab308');
+                        setChristmasLights(false);
+                        setSnowParticles(false);
+                        setRainParticles(false);
+                        setHarmattanParticles(false);
+                        setConfettiParticles(false);
+                        setHeartsParticles(false);
+                        setStarsParticles(true);
+                        setPetalsParticles(false);
+                        setOrnamentsEnabled(true);
+                      }}
+                      className={cn(
+                        "p-4 rounded-2xl border text-left flex flex-col justify-between transition-all duration-200",
+                        activeTheme === 'ramadan' 
+                          ? "border-emerald-600 bg-emerald-50/50 shadow-sm" 
+                          : "border-slate-200 hover:border-slate-350 bg-white"
+                      )}
+                    >
+                      <span className="text-xs font-black text-slate-900">Ramadan & Aïd 🌙</span>
+                      <span className="text-[10px] text-slate-500 font-medium mt-1">Vert & Or. Croissants de lune et étoiles dorées scintillantes.</span>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setActiveTheme('burkina');
+                        setPrimaryColor('#16a34a');
+                        setSecondaryColor('#dc2626');
+                        setChristmasLights(false);
+                        setSnowParticles(false);
+                        setRainParticles(false);
+                        setHarmattanParticles(false);
+                        setConfettiParticles(true);
+                        setHeartsParticles(false);
+                        setStarsParticles(true);
+                        setPetalsParticles(false);
+                        setOrnamentsEnabled(true);
+                      }}
+                      className={cn(
+                        "p-4 rounded-2xl border text-left flex flex-col justify-between transition-all duration-200",
+                        activeTheme === 'burkina' 
+                          ? "border-green-600 bg-green-50/50 shadow-sm" 
+                          : "border-slate-200 hover:border-slate-350 bg-white"
+                      )}
+                    >
+                      <span className="text-xs font-black text-slate-900">Fête Nationale 🇧🇫</span>
+                      <span className="text-[10px] text-slate-500 font-medium mt-1">Vert & Rouge Faso. Rubans patriotiques et confettis.</span>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setActiveTheme('spring');
+                        setPrimaryColor('#f472b6');
+                        setSecondaryColor('#4ade80');
+                        setChristmasLights(false);
+                        setSnowParticles(false);
+                        setRainParticles(false);
+                        setHarmattanParticles(false);
+                        setConfettiParticles(false);
+                        setHeartsParticles(false);
+                        setStarsParticles(false);
+                        setPetalsParticles(true);
+                        setOrnamentsEnabled(true);
+                      }}
+                      className={cn(
+                        "p-4 rounded-2xl border text-left flex flex-col justify-between transition-all duration-200",
+                        activeTheme === 'spring' 
+                          ? "border-pink-400 bg-pink-50/50 shadow-sm" 
+                          : "border-slate-200 hover:border-slate-350 bg-white"
+                      )}
+                    >
+                      <span className="text-xs font-black text-slate-900">Pâques / Printemps 🌸</span>
+                      <span className="text-[10px] text-slate-500 font-medium mt-1">Rose & Vert Tendre. Pétales floraux flottant au vent.</span>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => setActiveTheme('custom')}
+                      className={cn(
+                        "p-4 rounded-2xl border text-left flex flex-col justify-between transition-all duration-200",
+                        activeTheme === 'custom' 
+                          ? "border-slate-900 bg-slate-50 shadow-sm" 
+                          : "border-slate-200 hover:border-slate-350 bg-white"
+                      )}
+                    >
+                      <span className="text-xs font-black text-slate-900">Perso / Palette Libre 🎨</span>
+                      <span className="text-[10px] text-slate-500 font-medium mt-1">Configurez vos propres couleurs hexadécimales.</span>
+                    </button>
+                  </div>
+                </div>
+
+                {activeTheme === 'custom' && (
+                  <div className="grid grid-cols-2 gap-4 bg-slate-50 p-4 rounded-2xl border border-slate-200 animate-in slide-in-from-top-2 duration-200">
+                    <div>
+                      <label className="block text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1">Couleur Primaire</label>
+                      <div className="flex items-center gap-2">
+                        <input 
+                          type="color" 
+                          value={primaryColor} 
+                          onChange={(e) => setPrimaryColor(e.target.value)}
+                          className="w-8 h-8 rounded cursor-pointer border-0 p-0"
+                        />
+                        <input 
+                          type="text" 
+                          value={primaryColor} 
+                          onChange={(e) => setPrimaryColor(e.target.value)}
+                          className="w-full bg-white border border-slate-200 rounded-lg px-2 py-1 text-xs font-mono outline-none" 
+                        />
+                      </div>
+                    </div>
+                    <div>
+                      <label className="block text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1">Couleur Secondaire</label>
+                      <div className="flex items-center gap-2">
+                        <input 
+                          type="color" 
+                          value={secondaryColor} 
+                          onChange={(e) => setSecondaryColor(e.target.value)}
+                          className="w-8 h-8 rounded cursor-pointer border-0 p-0"
+                        />
+                        <input 
+                          type="text" 
+                          value={secondaryColor} 
+                          onChange={(e) => setSecondaryColor(e.target.value)}
+                          className="w-full bg-white border border-slate-200 rounded-lg px-2 py-1 text-xs font-mono outline-none" 
+                        />
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                <div className="bg-slate-50 p-4 rounded-2xl border border-slate-200 space-y-4">
+                  <h4 className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Animations & Effets Graphiques de Saison</h4>
+                  
+                  {/* Ornaments Master Toggle */}
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <span className="text-xs font-bold text-slate-800 block">Ornements et Décorations de Thème</span>
+                      <span className="text-[10px] text-slate-500 font-medium">Affiche les éléments suspendus (Boules de Noël, Croissants de lune, Cœurs, Rubans).</span>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setOrnamentsEnabled(!ornamentsEnabled)}
+                      className={cn(
+                        "relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none",
+                        ornamentsEnabled ? "bg-slate-900" : "bg-slate-200"
+                      )}
+                    >
+                      <span
+                        className={cn(
+                          "pointer-events-none inline-block h-4 w-4 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out",
+                          ornamentsEnabled ? "translate-x-4" : "translate-x-0"
+                        )}
+                      />
+                    </button>
+                  </div>
+
+                  <div className="flex items-center justify-between border-t border-slate-200 pt-3">
+                    <div>
+                      <span className="text-xs font-bold text-slate-800 block">Effet chute de neige</span>
+                      <span className="text-[10px] text-slate-500 font-medium">Fait tomber de délicats flocons de neige (Moteur Canvas 60 FPS).</span>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setSnowParticles(!snowParticles)}
+                      className={cn(
+                        "relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none",
+                        snowParticles ? "bg-slate-900" : "bg-slate-200"
+                      )}
+                    >
+                      <span
+                        className={cn(
+                          "pointer-events-none inline-block h-4 w-4 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out",
+                          snowParticles ? "translate-x-4" : "translate-x-0"
+                        )}
+                      />
+                    </button>
+                  </div>
+
+                  <div className="flex items-center justify-between border-t border-slate-200 pt-3">
+                    <div>
+                      <span className="text-xs font-bold text-slate-800 block">Guirlandes lumineuses de Noël</span>
+                      <span className="text-[10px] text-slate-500 font-medium">Ajoute des guirlandes clignotantes festives en haut de l'écran.</span>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setChristmasLights(!christmasLights)}
+                      className={cn(
+                        "relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none",
+                        christmasLights ? "bg-slate-900" : "bg-slate-200"
+                      )}
+                    >
+                      <span
+                        className={cn(
+                          "pointer-events-none inline-block h-4 w-4 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out",
+                          christmasLights ? "translate-x-4" : "translate-x-0"
+                        )}
+                      />
+                    </button>
+                  </div>
+
+                  <div className="flex items-center justify-between border-t border-slate-200 pt-3">
+                    <div>
+                      <span className="text-xs font-bold text-slate-800 block">Effet Chute de Pluie & Ondulations</span>
+                      <span className="text-[10px] text-slate-500 font-medium">Simule des gouttes de pluie fines avec effet ripple au sol.</span>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setRainParticles(!rainParticles)}
+                      className={cn(
+                        "relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none",
+                        rainParticles ? "bg-slate-900" : "bg-slate-200"
+                      )}
+                    >
+                      <span
+                        className={cn(
+                          "pointer-events-none inline-block h-4 w-4 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out",
+                          rainParticles ? "translate-x-4" : "translate-x-0"
+                        )}
+                      />
+                    </button>
+                  </div>
+
+                  <div className="flex items-center justify-between border-t border-slate-200 pt-3">
+                    <div>
+                      <span className="text-xs font-bold text-slate-800 block">Brise de sable de l'Harmattan</span>
+                      <span className="text-[10px] text-slate-500 font-medium">Fait flotter de délicates poussières dorées et particules ocres du Sahel.</span>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setHarmattanParticles(!harmattanParticles)}
+                      className={cn(
+                        "relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none",
+                        harmattanParticles ? "bg-slate-900" : "bg-slate-200"
+                      )}
+                    >
+                      <span
+                        className={cn(
+                          "pointer-events-none inline-block h-4 w-4 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out",
+                          harmattanParticles ? "translate-x-4" : "translate-x-0"
+                        )}
+                      />
+                    </button>
+                  </div>
+
+                  <div className="flex items-center justify-between border-t border-slate-200 pt-3">
+                    <div>
+                      <span className="text-xs font-bold text-slate-800 block">Pluie de Confettis Célébration</span>
+                      <span className="text-[10px] text-slate-500 font-medium">Fait tomber des confettis multicolores et des étoiles tournantes.</span>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setConfettiParticles(!confettiParticles)}
+                      className={cn(
+                        "relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none",
+                        confettiParticles ? "bg-slate-900" : "bg-slate-200"
+                      )}
+                    >
+                      <span
+                        className={cn(
+                          "pointer-events-none inline-block h-4 w-4 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out",
+                          confettiParticles ? "translate-x-4" : "translate-x-0"
+                        )}
+                      />
+                    </button>
+                  </div>
+
+                  <div className="flex items-center justify-between border-t border-slate-200 pt-3">
+                    <div>
+                      <span className="text-xs font-bold text-slate-800 block">Envol de Cœurs translucides (Saint-Valentin)</span>
+                      <span className="text-[10px] text-slate-500 font-medium">Fait s'envoler de gracieux cœurs roses et rubis en mouvement ascendant.</span>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setHeartsParticles(!heartsParticles)}
+                      className={cn(
+                        "relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none",
+                        heartsParticles ? "bg-slate-900" : "bg-slate-200"
+                      )}
+                    >
+                      <span
+                        className={cn(
+                          "pointer-events-none inline-block h-4 w-4 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out",
+                          heartsParticles ? "translate-x-4" : "translate-x-0"
+                        )}
+                      />
+                    </button>
+                  </div>
+
+                  <div className="flex items-center justify-between border-t border-slate-200 pt-3">
+                    <div>
+                      <span className="text-xs font-bold text-slate-800 block">Étoiles & Croissants scintillants (Ramadan / Célébration)</span>
+                      <span className="text-[10px] text-slate-500 font-medium">Anime des étoiles dorées et croissants de lune scintillants.</span>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setStarsParticles(!starsParticles)}
+                      className={cn(
+                        "relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none",
+                        starsParticles ? "bg-slate-900" : "bg-slate-200"
+                      )}
+                    >
+                      <span
+                        className={cn(
+                          "pointer-events-none inline-block h-4 w-4 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out",
+                          starsParticles ? "translate-x-4" : "translate-x-0"
+                        )}
+                      />
+                    </button>
+                  </div>
+
+                  <div className="flex items-center justify-between border-t border-slate-200 pt-3">
+                    <div>
+                      <span className="text-xs font-bold text-slate-800 block">Pétales floraux flottants (Pâques / Printemps)</span>
+                      <span className="text-[10px] text-slate-500 font-medium">Fait voleter de doux pétales roses et pastel au gré de la brise.</span>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setPetalsParticles(!petalsParticles)}
+                      className={cn(
+                        "relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none",
+                        petalsParticles ? "bg-slate-900" : "bg-slate-200"
+                      )}
+                    >
+                      <span
+                        className={cn(
+                          "pointer-events-none inline-block h-4 w-4 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out",
+                          petalsParticles ? "translate-x-4" : "translate-x-0"
+                        )}
+                      />
+                    </button>
+                  </div>
+                </div>
+
+                <button 
+                  type="submit" 
+                  disabled={isSavingBranding}
+                  className="bg-slate-900 text-white px-6 py-3 rounded-xl text-xs font-black uppercase tracking-wider hover:bg-slate-800 transition disabled:opacity-50 cursor-pointer flex items-center gap-2 w-full justify-center"
+                >
+                  {isSavingBranding ? 'Application du branding...' : 'Mettre à jour le branding de la plateforme'}
+                </button>
+              </form>
+            </div>
 
             {/* BOUTON EXPORT DB */}
             <div className="max-w-xl bg-slate-900 p-8 rounded-[32px] mt-8 space-y-6 text-white">
@@ -6383,24 +7014,24 @@ export const AdminDashboard: React.FC<{ onBackToTraveler?: () => void }> = ({ on
               {/* STATS & CONTROL GRID */}
               <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                 {/* CARD 1: REFUND MODE TOGGLE */}
-                <div className="bg-slate-55 bg-gradient-to-br from-slate-900 to-slate-950 text-white border border-slate-800 p-6 rounded-[32px] flex flex-col justify-between shadow-md">
+                <div className="bg-white border border-slate-200 p-6 rounded-[32px] flex flex-col justify-between shadow-sm">
                   <div>
                     <span className="text-[10px] uppercase font-black text-slate-400 tracking-widest block mb-2">Mode de Remboursement Actuel</span>
                     <div className="flex items-center gap-2 mb-4">
                       {refundMode === 'auto' ? (
                         <>
-                          <span className="w-2.5 h-2.5 bg-green-500 rounded-full animate-ping"></span>
-                          <span className="w-2.5 h-2.5 bg-green-500 rounded-full absolute"></span>
-                          <span className="text-lg font-black text-green-400">AUTOMATIQUE ⚡</span>
+                          <span className="w-2.5 h-2.5 bg-emerald-500 rounded-full animate-ping"></span>
+                          <span className="w-2.5 h-2.5 bg-emerald-500 rounded-full absolute"></span>
+                          <span className="text-lg font-black text-emerald-700 ml-4">AUTOMATIQUE ⚡</span>
                         </>
                       ) : (
                         <>
-                          <span className="w-2.5 h-2.5 bg-yellow-500 rounded-full"></span>
-                          <span className="text-lg font-black text-yellow-400">MANUEL 🛡️</span>
+                          <span className="w-2.5 h-2.5 bg-amber-500 rounded-full"></span>
+                          <span className="text-lg font-black text-amber-700">MANUEL 🛡️</span>
                         </>
                       )}
                     </div>
-                    <p className="text-xs text-slate-400 leading-relaxed font-medium mb-4">
+                    <p className="text-xs text-slate-500 leading-relaxed font-medium mb-4">
                       {refundMode === 'auto' 
                         ? "Les remboursements sont calculés et payés instantanément par Mobile Money (payout SapPay) dès l'annulation du voyageur."
                         : "Les annulations sont placées en attente. L'administration doit valider manuellement chaque virement depuis ce tableau."}
@@ -6411,10 +7042,10 @@ export const AdminDashboard: React.FC<{ onBackToTraveler?: () => void }> = ({ on
                       onClick={() => handleToggleRefundMode('auto')}
                       disabled={isSaving}
                       className={cn(
-                        "flex-1 text-center py-2 px-3 rounded-xl text-xs font-black transition cursor-pointer",
+                        "flex-1 text-center py-2 px-3 rounded-xl text-xs font-black transition cursor-pointer border",
                         refundMode === 'auto'
-                          ? "bg-green-600 text-white"
-                          : "bg-slate-800 hover:bg-slate-700 text-slate-300"
+                          ? "bg-emerald-600 text-white border-emerald-700 shadow-sm hover:bg-emerald-700"
+                          : "bg-slate-50 hover:bg-slate-100 text-slate-700 border-slate-200"
                       )}
                     >
                       Mode Auto ⚡
@@ -6423,10 +7054,10 @@ export const AdminDashboard: React.FC<{ onBackToTraveler?: () => void }> = ({ on
                       onClick={() => handleToggleRefundMode('manual')}
                       disabled={isSaving}
                       className={cn(
-                        "flex-1 text-center py-2 px-3 rounded-xl text-xs font-black transition cursor-pointer",
+                        "flex-1 text-center py-2 px-3 rounded-xl text-xs font-black transition cursor-pointer border",
                         refundMode === 'manual'
-                          ? "bg-yellow-600 text-white"
-                          : "bg-slate-800 hover:bg-slate-700 text-slate-300"
+                          ? "bg-amber-600 text-white border-amber-700 shadow-sm hover:bg-amber-700"
+                          : "bg-slate-50 hover:bg-slate-100 text-slate-700 border-slate-200"
                       )}
                     >
                       Mode Manuel 🛡️

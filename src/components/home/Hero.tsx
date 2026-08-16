@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from 'motion/react';
 import heroBg from '../../assets/images/rond_point_martyrs_bg_1780477317904.png';
 import { Advertisement } from '../../types';
 import { apiFetch } from '../../lib/api';
+import { useBrandingSettings } from '../../hooks/useQueries';
 
 interface HeroSlide {
   isDefault: boolean;
@@ -14,6 +15,11 @@ interface HeroSlide {
 }
 
 export const Hero: React.FC = () => {
+  const { data: branding } = useBrandingSettings();
+  const bName1 = branding?.brandNamePart1 || 'Resi';
+  const bName2 = branding?.brandNamePart2 || 'Faso';
+  const bSlogan = branding?.brandSlogan || "Découvrez les plus belles résidences meublées, villas et appartements pour vos séjours à Ouagadougou, Bobo et partout ailleurs.";
+
   const [activeAds, setActiveAds] = useState<Advertisement[]>([]);
   const [currentIndex, setCurrentIndex] = useState(0);
 
@@ -156,14 +162,14 @@ export const Hero: React.FC = () => {
 
             <h1 className="text-3xl md:text-6xl font-black text-white leading-[1.15] md:leading-tight tracking-tight drop-shadow-2xl">
               {currentSlide.isDefault ? (
-                <>Trouvez votre <span className="text-yellow-400">chez-soi</span> au <span className="relative inline-block text-white">Burkina Faso<span className="absolute -bottom-1 left-0 w-full h-1.5 flex rounded-full overflow-hidden"><span className="flex-1 bg-red-600"></span><span className="flex-1 bg-green-600"></span></span></span></>
+                <>Trouvez votre <span className="text-brand-secondary">chez-soi</span> avec <span className="relative inline-block text-white"><span className="text-brand-primary">{bName1}</span><span className="text-brand-secondary">{bName2}</span><span className="absolute -bottom-1 left-0 w-full h-1.5 flex rounded-full overflow-hidden"><span className="flex-1 bg-brand-primary"></span><span className="flex-1 bg-brand-secondary"></span></span></span></>
               ) : (
                 currentSlide.title
               )}
             </h1>
 
-            <p className="text-sm md:text-base text-slate-200 font-medium max-w-2xl mx-auto drop-shadow-md leading-relaxed px-4">
-              {currentSlide.description}
+            <p className="text-sm md:text-base text-slate-200 font-semibold max-w-2xl mx-auto drop-shadow-md leading-relaxed px-4">
+              {currentSlide.isDefault ? bSlogan : currentSlide.description}
             </p>
           </motion.div>
         </AnimatePresence>
