@@ -1,0 +1,15 @@
+# Configuration de la clé de signature Release pour ResiFaso
+# Copiez ce fichier sous le nom 'key.properties' dans le dossier 'android/' ou 'android/app/'
+# IMPORTANT : Ne JAMAIS commiter votre vrai fichier key.properties ni votre fichier .jks sur GitHub / Git public.
+
+# Chemin vers votre fichier Keystore (relatif au dossier android/app ou chemin absolu)
+storeFile=resifaso-release-key.jks
+
+# Mot de passe du Keystore
+storePassword=VOTRE_MOT_DE_PASSE_KEYSTORE
+
+# Alias de la clé (par défaut 'resifaso-key' ou celui choisi lors du keytool)
+keyAlias=resifaso-key
+
+# Mot de passe de la clé (généralement identique au mot de passe du Keystore)
+keyPassword=VOTRE_MOT_DE_PASSE_KEY

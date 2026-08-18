@@ -171,16 +171,24 @@ export const AdminSupport: React.FC = () => {
 
             <div className="flex-1 overflow-y-auto p-6 space-y-4">
               {conversations[selectedUserId].map(msg => {
-                const isAdmin = (msg.senderId || msg.sender_id) === 'admin';
+                const sender = msg.senderId || msg.sender_id;
+                const isAdmin = sender === 'admin';
+                const clientInfo = getUserDetails(selectedUserId);
                 return (
                   <div key={msg.id} className={`flex ${isAdmin ? 'justify-end' : 'justify-start'}`}>
-                    <div className={`max-w-[70%] rounded-2xl p-4 text-sm font-medium shadow-sm ${
+                    <div className={`max-w-[75%] rounded-2xl p-3.5 text-sm font-medium shadow-xs ${
                       isAdmin 
-                        ? 'bg-red-600 text-white rounded-tr-sm' 
-                        : 'bg-white border border-slate-100 text-slate-800 rounded-tl-sm'
+                        ? 'bg-red-600 text-white rounded-tr-none shadow-red-100' 
+                        : 'bg-slate-100 border border-slate-200/90 text-slate-800 rounded-tl-none'
                     }`}>
-                      {msg.message}
-                      <div className={`text-[10px] mt-2 text-right ${isAdmin ? 'text-red-200' : 'text-slate-400'}`}>
+                      {!isAdmin && (
+                        <div className="text-[10px] font-black text-slate-600 uppercase tracking-wider mb-1 flex items-center gap-1.5">
+                          <span className="w-1.5 h-1.5 rounded-full bg-slate-500"></span>
+                          <span>{clientInfo.displayName || clientInfo.email || 'Client / Utilisateur'}</span>
+                        </div>
+                      )}
+                      <p className="leading-relaxed">{msg.message}</p>
+                      <div className={`text-[9px] mt-1 text-right font-bold ${isAdmin ? 'text-red-200' : 'text-slate-400'}`}>
                         {safeDate(msg.createdAt || msg.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                       </div>
                     </div>

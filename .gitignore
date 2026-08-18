@@ -13,3 +13,13 @@ google-services.json
 GoogleService-Info.plist
 *.plist
 *.sqlite*
+
+# Android Keystores & Signing Keys
+*.jks
+*.keystore
+key.properties
+android/key.properties
+android/app/key.properties
+android/app/*.jks
+android/app/*.keystore
+

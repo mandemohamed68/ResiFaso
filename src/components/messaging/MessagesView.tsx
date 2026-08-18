@@ -251,8 +251,20 @@ export const MessagesView: React.FC<{ initialConversationId?: string | null }> =
                     <p className="text-slate-400 text-sm max-w-xs font-medium">Votre sécurité est notre priorité. Échangez uniquement via la plateforme.</p>
                   </div>
                 ) : (
-                  messages.map((msg, i) => {
-                    const isMe = msg.senderId === user?.uid;
+                  messages.map((msg) => {
+                    const sender = msg.senderId || (msg as any).sender_id;
+                    const isMe = sender === user?.uid;
+                    const opponent = getOpponent(selectedConversation);
+                    const formatDate = (dateVal: any) => {
+                      if (!dateVal) return '';
+                      let d = new Date(dateVal);
+                      if (isNaN(d.getTime()) && typeof dateVal === 'string') {
+                        d = new Date(dateVal.replace(' ', 'T'));
+                      }
+                      if (isNaN(d.getTime())) return '';
+                      return d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+                    };
+
                     return (
                       <motion.div 
                         key={msg.id}
@@ -264,19 +276,24 @@ export const MessagesView: React.FC<{ initialConversationId?: string | null }> =
                         )}
                       >
                         <div className={cn(
-                          "px-4 py-2.5 rounded-2xl shadow-sm text-sm font-medium",
+                          "px-4 py-2.5 rounded-2xl shadow-xs text-sm font-medium",
                           isMe 
                             ? "bg-red-600 text-white rounded-tr-none shadow-red-100" 
-                            : "bg-white text-slate-800 rounded-tl-none border border-slate-100"
+                            : "bg-slate-100 border border-slate-200/90 text-slate-800 rounded-tl-none"
                         )}>
-                          {msg.text}
+                          {!isMe && (
+                            <div className="text-[10px] font-black text-slate-500 uppercase tracking-wider mb-1">
+                              {opponent?.displayName || opponent?.email || 'Interlocuteur'}
+                            </div>
+                          )}
+                          <p className="leading-relaxed">{msg.text}</p>
                         </div>
                         <div className="flex items-center gap-1 mt-1 px-1">
                           <span className="text-[9px] font-bold text-slate-400 uppercase">
-                            {new Date(msg.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                            {formatDate(msg.createdAt || (msg as any).created_at)}
                           </span>
                           {isMe && (
-                            msg.isRead ? <CheckCheck size={12} className="text-blue-500" /> : <Check size={12} className="text-slate-300" />
+                            (msg.isRead || (msg as any).is_read) ? <CheckCheck size={12} className="text-blue-500" /> : <Check size={12} className="text-slate-300" />
                           )}
                         </div>
                       </motion.div>

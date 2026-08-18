@@ -1296,16 +1296,13 @@ async function startServer() {
   app.post("/api/support/messages", authenticateToken, async (req: AuthRequest, res) => {
     try {
       const id = 'msg_' + Math.random().toString(36).substr(2, 9);
-      // user_id is the recipient/owner of the chat. If admin sends from admin panel, they pass user_id. 
-      // If admin tests from client widget, user_id is missing, so fallback to their own uid.
       let userId = req.user?.uid;
       let senderId = req.user?.uid;
       
-      if (req.user?.role === 'admin') {
-        if (req.body.user_id) {
-          userId = req.body.user_id;
-          senderId = 'admin';
-        }
+      // Admin replying to a user from the Admin Panel
+      if (req.user?.role === 'admin' && req.body.user_id) {
+        userId = req.body.user_id;
+        senderId = 'admin';
       }
       
       await executeSql(

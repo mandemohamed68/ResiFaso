@@ -3342,22 +3342,42 @@ export const OwnerDashboard: React.FC<{ isTestMode?: boolean; onBackToTraveler?:
 
                   {/* Messages list */}
                   <div className="flex-1 overflow-y-auto p-8 space-y-6 bg-slate-50/40">
-                    {messages.map((msg) => (
-                      <div key={msg.id} className={`flex ${msg.senderId === user.uid ? 'justify-end' : 'justify-start'}`}>
-                        <div className={`p-4 rounded-[24px] max-w-[85%] shadow-sm ${
-                          msg.senderId === user.uid 
-                            ? 'bg-red-600 text-white rounded-tr-none' 
-                            : 'bg-white border border-slate-100 text-slate-800 rounded-tl-none'
-                        }`}>
-                          <p className="text-sm font-bold leading-relaxed">{msg.text}</p>
-                          <span className={`block text-[9px] mt-2 font-black tracking-widest ${
-                            msg.senderId === user.uid ? 'text-white/60' : 'text-slate-400'
+                    {messages.map((msg) => {
+                      const sender = msg.senderId || (msg as any).sender_id;
+                      const isMe = sender === user.uid;
+                      const formatDate = (dateVal: any) => {
+                        if (!dateVal) return '';
+                        let d = new Date(dateVal);
+                        if (isNaN(d.getTime()) && typeof dateVal === 'string') {
+                          d = new Date(dateVal.replace(' ', 'T'));
+                        }
+                        if (isNaN(d.getTime())) return '';
+                        return d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+                      };
+
+                      return (
+                        <div key={msg.id} className={`flex ${isMe ? 'justify-end' : 'justify-start'}`}>
+                          <div className={`p-4 rounded-[24px] max-w-[85%] shadow-xs ${
+                            isMe 
+                              ? 'bg-red-600 text-white rounded-tr-none shadow-red-100' 
+                              : 'bg-slate-100 border border-slate-200/90 text-slate-800 rounded-tl-none'
                           }`}>
-                            {new Date(msg.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                          </span>
+                            {!isMe && (
+                              <div className="text-[10px] font-black text-slate-500 uppercase tracking-wider mb-1 flex items-center gap-1">
+                                <span className="w-1.5 h-1.5 rounded-full bg-slate-500"></span>
+                                <span>Voyageur</span>
+                              </div>
+                            )}
+                            <p className="text-sm font-bold leading-relaxed">{msg.text}</p>
+                            <span className={`block text-[9px] mt-2 font-black tracking-widest ${
+                              isMe ? 'text-white/60' : 'text-slate-400'
+                            }`}>
+                              {formatDate(msg.createdAt || (msg as any).created_at)}
+                            </span>
+                          </div>
                         </div>
-                      </div>
-                    ))}
+                      );
+                    })}
                   </div>
 
                   {/* Input area */}

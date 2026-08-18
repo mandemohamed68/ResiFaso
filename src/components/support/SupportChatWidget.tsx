@@ -153,7 +153,9 @@ export const SupportChatWidget: React.FC = () => {
                 </div>
               ) : (
                 messages.map((msg) => {
-                  const isAdmin = (msg.senderId || msg.sender_id) === 'admin';
+                  const sender = msg.senderId || msg.sender_id;
+                  const isSupportResponse = sender === 'admin';
+
                   const formatDate = (date: any) => {
                     if (!date) return '';
                     let d = new Date(date);
@@ -165,19 +167,20 @@ export const SupportChatWidget: React.FC = () => {
                   };
 
                   return (
-                    <div key={msg.id} className={`flex ${isAdmin ? 'justify-start' : 'justify-end'}`}>
-                      <div className={`max-w-[85%] rounded-2xl p-3 text-sm font-medium shadow-sm ${
-                        isAdmin 
-                          ? 'bg-slate-100 border border-slate-200 text-slate-800 rounded-tl-none' 
-                          : 'bg-red-600 text-white rounded-tr-none'
+                    <div key={msg.id} className={`flex ${isSupportResponse ? 'justify-start' : 'justify-end'}`}>
+                      <div className={`max-w-[85%] rounded-2xl p-3 text-sm font-medium shadow-xs ${
+                        isSupportResponse 
+                          ? 'bg-slate-100 border border-slate-200/90 text-slate-800 rounded-tl-none' 
+                          : 'bg-red-600 text-white rounded-tr-none shadow-red-100'
                       }`}>
-                        {isAdmin && (
-                          <div className="text-[10px] font-bold text-red-600 uppercase tracking-wider mb-1">
-                            Support ResiFaso
+                        {isSupportResponse && (
+                          <div className="flex items-center gap-1.5 text-[10px] font-black text-red-600 uppercase tracking-wider mb-1">
+                            <span className="w-1.5 h-1.5 rounded-full bg-red-600 animate-pulse"></span>
+                            <span>Support ResiFaso</span>
                           </div>
                         )}
-                        {msg.message}
-                        <div className={`text-[9px] mt-1 text-right ${isAdmin ? 'text-slate-400' : 'text-red-200'}`}>
+                        <p className="leading-relaxed font-medium text-sm">{msg.message}</p>
+                        <div className={`text-[9px] mt-1 text-right font-bold ${isSupportResponse ? 'text-slate-400' : 'text-red-200'}`}>
                           {formatDate(msg.createdAt || msg.created_at)}
                         </div>
                       </div>
