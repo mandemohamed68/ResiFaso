@@ -70,8 +70,8 @@ export const CustomSelect: React.FC<CustomSelectProps> = ({
           {label}
         </p>
         <div className={cn(
-          "flex items-center justify-between px-4 py-3 bg-white border-2 rounded-2xl transition-all duration-200",
-          isOpen ? "border-red-500 shadow-lg shadow-red-50" : "border-slate-50 hover:border-slate-200"
+          "flex items-center justify-between px-3.5 py-2.5 bg-white border rounded-lg transition-all duration-200",
+          isOpen ? "border-red-500 shadow-sm" : "border-slate-200 hover:border-slate-300"
         )}>
           <input
             type="text"
@@ -98,7 +98,7 @@ export const CustomSelect: React.FC<CustomSelectProps> = ({
       </div>
 
       {isOpen && (
-        <div className="absolute z-[1010] w-full mt-2 bg-white border border-slate-100 rounded-2xl shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+        <div className="absolute z-[1010] w-full mt-2 bg-white border border-slate-200 rounded-xl shadow-xl overflow-hidden animate-in fade-in zoom-in-95 duration-200">
           <div className="max-h-60 overflow-y-auto no-scrollbar">
             {filteredOptions.length > 0 ? (
               filteredOptions.map((option) => (
@@ -110,7 +110,7 @@ export const CustomSelect: React.FC<CustomSelectProps> = ({
                     setSearch('');
                   }}
                   className={cn(
-                    "flex items-center justify-between px-4 py-3 text-sm font-bold cursor-pointer transition-colors",
+                    "flex items-center justify-between px-3.5 py-2.5 text-xs font-bold cursor-pointer transition-colors",
                     value === option.id 
                       ? "bg-red-50 text-red-700" 
                       : "text-slate-600 hover:bg-slate-50"
@@ -127,10 +127,10 @@ export const CustomSelect: React.FC<CustomSelectProps> = ({
                   setIsOpen(false);
                   setSearch('');
                 }}
-                className="px-4 py-3 text-sm font-bold text-red-600 hover:bg-red-50 cursor-pointer flex items-center justify-between"
+                className="px-3.5 py-2.5 text-xs font-bold text-red-600 hover:bg-red-50 cursor-pointer flex items-center justify-between"
               >
                 <span>Utiliser "{search}"</span>
-                <span className="text-[10px] uppercase font-black bg-red-100 px-2 py-0.5 rounded">Nouveau</span>
+                <span className="text-[10px] uppercase font-black bg-red-100 px-2 py-0.5 rounded-sm">Nouveau</span>
               </div>
             ) : (
               <div className="px-4 py-8 text-center text-slate-400 text-xs font-bold uppercase tracking-widest">

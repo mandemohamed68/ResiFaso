@@ -199,17 +199,17 @@ export const Navbar: React.FC<{
             : undefined
         }}
       />
-      <div className="max-w-7xl mx-auto flex items-center justify-between px-4 py-3 mt-1">
+      <div className="max-w-7xl mx-auto flex items-center justify-between px-3 sm:px-4 py-2.5 sm:py-3 mt-1 gap-2 sm:gap-4">
         {/* Logo & Seasonal Badge */}
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2 sm:gap-3 min-w-0 shrink-0">
           <div 
             onClick={() => onNavigate('home')} 
-            className="flex items-center gap-3 cursor-pointer group select-none relative"
+            className="flex items-center gap-2 sm:gap-3 cursor-pointer group select-none relative min-w-0"
           >
-            <div className="w-16 h-16 sm:w-20 sm:h-20 md:w-22 md:h-22 flex-shrink-0 flex items-center justify-center overflow-hidden rounded-2xl bg-white border border-slate-200 shadow-sm relative group-hover:scale-105 transition-transform duration-200">
+            <div className="w-10 h-10 sm:w-12 sm:h-12 md:w-14 md:h-14 flex-shrink-0 flex items-center justify-center overflow-hidden rounded-xl sm:rounded-2xl bg-white border border-slate-200 shadow-xs relative group-hover:scale-105 transition-transform duration-200">
               {/* Christmas Santa Hat */}
               {isChristmas && (
-                <div className="absolute -top-1 -left-1 w-8 h-8 rotate-[-15deg] z-20 pointer-events-none drop-shadow-md select-none animate-bounce" style={{ animationDuration: '3s' }}>
+                <div className="absolute -top-1 -left-1 w-6 h-6 sm:w-8 sm:h-8 rotate-[-15deg] z-20 pointer-events-none drop-shadow-md select-none animate-bounce" style={{ animationDuration: '3s' }}>
                   <svg viewBox="0 0 50 50" className="w-full h-full">
                     <path d="M10 30 Q12 12 35 15 C38 16 40 22 35 25 Q20 28 10 30 Z" fill="#ef4444" />
                     <path d="M8 26 Q14 26 22 28 Q30 29 36 26 C38 30 32 34 22 34 Q10 34 8 26 Z" fill="#ffffff" />
@@ -219,44 +219,44 @@ export const Navbar: React.FC<{
               )}
               {/* New Year Gold Sparkle */}
               {isNewYear && (
-                <div className="absolute -top-1 -right-1 w-6 h-6 rotate-[15deg] z-20 pointer-events-none select-none animate-pulse">
-                  <span className="text-base">✨</span>
+                <div className="absolute -top-1 -right-1 w-5 h-5 rotate-[15deg] z-20 pointer-events-none select-none animate-pulse">
+                  <span className="text-xs sm:text-base">✨</span>
                 </div>
               )}
               {/* Valentines Heart Badge */}
               {isValentines && (
-                <div className="absolute -top-1 -right-1 w-6 h-6 rotate-[12deg] z-20 pointer-events-none select-none animate-bounce" style={{ animationDuration: '2s' }}>
-                  <span className="text-sm">💖</span>
+                <div className="absolute -top-1 -right-1 w-5 h-5 rotate-[12deg] z-20 pointer-events-none select-none animate-bounce" style={{ animationDuration: '2s' }}>
+                  <span className="text-xs sm:text-sm">💖</span>
                 </div>
               )}
               {/* Ramadan Moon */}
               {isRamadan && (
-                <div className="absolute -top-1 -right-1 w-6 h-6 rotate-[-10deg] z-20 pointer-events-none select-none animate-pulse">
-                  <span className="text-sm">🌙</span>
+                <div className="absolute -top-1 -right-1 w-5 h-5 rotate-[-10deg] z-20 pointer-events-none select-none animate-pulse">
+                  <span className="text-xs sm:text-sm">🌙</span>
                 </div>
               )}
               {/* Burkina Star Flag Ribbon */}
               {isBurkina && (
-                <div className="absolute -top-1 -left-1 w-5 h-5 z-20 pointer-events-none select-none flex items-center justify-center bg-red-600 rounded-full border border-amber-300 shadow-xs">
-                  <span className="text-[9px] text-amber-300 font-bold">★</span>
+                <div className="absolute -top-1 -left-1 w-4 h-4 sm:w-5 sm:h-5 z-20 pointer-events-none select-none flex items-center justify-center bg-red-600 rounded-full border border-amber-300 shadow-xs">
+                  <span className="text-[8px] sm:text-[9px] text-amber-300 font-bold">★</span>
                 </div>
               )}
               {/* Rainy Cloud */}
               {isRainy && (
-                <div className="absolute -top-1 -right-1 w-6 h-6 z-20 pointer-events-none select-none animate-pulse">
-                  <span className="text-sm">🌧️</span>
+                <div className="absolute -top-1 -right-1 w-5 h-5 z-20 pointer-events-none select-none animate-pulse">
+                  <span className="text-xs sm:text-sm">🌧️</span>
                 </div>
               )}
               {/* Harmattan Sun */}
               {isHarmattan && (
-                <div className="absolute -top-1 -right-1 w-6 h-6 z-20 pointer-events-none select-none animate-pulse">
-                  <span className="text-sm">🌪️</span>
+                <div className="absolute -top-1 -right-1 w-5 h-5 z-20 pointer-events-none select-none animate-pulse">
+                  <span className="text-xs sm:text-sm">🌪️</span>
                 </div>
               )}
               {/* Spring Blossom */}
               {isSpring && (
-                <div className="absolute -top-1 -right-1 w-6 h-6 z-20 pointer-events-none select-none animate-spin" style={{ animationDuration: '10s' }}>
-                  <span className="text-sm">🌸</span>
+                <div className="absolute -top-1 -right-1 w-5 h-5 z-20 pointer-events-none select-none animate-spin" style={{ animationDuration: '10s' }}>
+                  <span className="text-xs sm:text-sm">🌸</span>
                 </div>
               )}
 
@@ -271,12 +271,12 @@ export const Navbar: React.FC<{
                 }}
               />
             </div>
-            <div className="flex flex-col">
-              <span className="text-xl md:text-2xl font-black tracking-tighter leading-none select-none">
+            <div className="flex flex-col min-w-0">
+              <span className="text-lg sm:text-xl md:text-2xl font-black tracking-tighter leading-none select-none truncate">
                 <span className="text-brand-primary">{bName1}</span><span className="text-brand-secondary">{bName2}</span>
               </span>
               <span className={cn(
-                "text-[8px] md:text-[9px] font-bold uppercase tracking-[0.15em] mt-1.5 max-w-[150px] truncate md:max-w-none",
+                "text-[7.5px] sm:text-[8.5px] md:text-[9px] font-bold uppercase tracking-[0.12em] mt-0.5 sm:mt-1 truncate max-w-[110px] sm:max-w-[180px] md:max-w-none",
                 isDarkMode ? "text-slate-400" : "text-slate-500"
               )}>
                 {branding?.brandSlogan || "Résidences du Burkina"}
@@ -299,7 +299,7 @@ export const Navbar: React.FC<{
         {/* Role Switcher (Admin only) */}
         {canSwitch && (
           <div className={cn(
-            "flex items-center gap-1 p-1 rounded-full hidden lg:flex border",
+            "items-center gap-1 p-1 rounded-full hidden lg:flex border shrink-0",
             isDarkMode ? "bg-slate-800 border-slate-700" : "bg-slate-100 border-slate-200"
           )}>
             {(['client', 'owner', 'admin'] as UserRole[]).map((role) => (
@@ -312,7 +312,7 @@ export const Navbar: React.FC<{
                   else onNavigate('home');
                 }}
                 className={cn(
-                  "px-3 py-1 rounded-full text-xs font-medium transition-all cursor-pointer",
+                  "px-3 py-1 rounded-full text-xs font-medium transition-all cursor-pointer whitespace-nowrap",
                   currentRole === role 
                     ? (isDarkMode ? "bg-slate-900 text-brand-primary shadow-sm font-bold" : "bg-white text-brand-primary shadow-sm font-bold")
                     : (isDarkMode ? "text-slate-400 hover:text-slate-200" : "text-slate-500 hover:text-slate-900")
@@ -325,24 +325,25 @@ export const Navbar: React.FC<{
         )}
 
         {/* Mobile Actions */}
-        <div className="flex md:hidden items-center gap-2">
+        <div className="flex md:hidden items-center gap-1.5 sm:gap-2 shrink-0">
           {!user && (
             <button 
               onClick={() => setIsAuthOpen(true)}
-              className="bg-brand-primary hover:bg-brand-primary-dark text-white px-3 py-2 rounded-xl text-[10px] font-black uppercase tracking-tight transition-all shadow-sm cursor-pointer"
+              className="bg-brand-primary hover:bg-brand-primary-dark text-white px-3 py-2 rounded-lg text-[11px] font-extrabold uppercase tracking-wider transition-all shadow-sm cursor-pointer whitespace-nowrap flex items-center gap-1.5 active:scale-95"
             >
-              Connexion / Inscription
+              <User size={13} />
+              <span>Connexion</span>
             </button>
           )}
           <button
             onClick={onToggleDarkMode}
             className={cn(
-              "p-2.5 rounded-xl cursor-pointer transition-all flex items-center justify-center border",
+              "p-2 rounded-lg cursor-pointer transition-all flex items-center justify-center border shrink-0",
               isDarkMode ? "bg-slate-800 hover:bg-slate-700 text-amber-400 border-slate-700" : "bg-slate-100 hover:bg-slate-200 text-slate-700 border-slate-200"
             )}
             title={isDarkMode ? "Passer en mode Clair" : "Passer en mode Sombre"}
           >
-            {isDarkMode ? <Sun size={18} className="text-amber-400 animate-pulse" /> : <Moon size={18} className="text-slate-700" />}
+            {isDarkMode ? <Sun size={16} className="text-amber-400 animate-pulse" /> : <Moon size={16} className="text-slate-700" />}
           </button>
         </div>
 
@@ -352,7 +353,7 @@ export const Navbar: React.FC<{
           <button
             onClick={onToggleDarkMode}
             className={cn(
-              "p-2 mr-2 rounded-xl cursor-pointer transition-all flex items-center justify-center border",
+              "p-2 mr-2 rounded-lg cursor-pointer transition-all flex items-center justify-center border",
               isDarkMode ? "bg-slate-800 hover:bg-slate-700 text-amber-400 border-slate-700" : "bg-slate-100 hover:bg-slate-200 text-slate-700 border-slate-200"
             )}
             title={isDarkMode ? "Passer en mode Clair" : "Passer en mode Sombre"}
@@ -428,7 +429,7 @@ export const Navbar: React.FC<{
               <div className="relative mr-3">
                 <button
                   onClick={() => setIsNotifOpen(!isNotifOpen)}
-                  className="p-2 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-full cursor-pointer relative transition-all flex items-center justify-center"
+                  className="p-2 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-lg cursor-pointer relative transition-all flex items-center justify-center"
                   title="Notifications"
                 >
                   <Bell size={18} />
@@ -442,14 +443,14 @@ export const Navbar: React.FC<{
                 {isNotifOpen && (
                   <>
                     <div className="fixed inset-0 z-40" onClick={() => setIsNotifOpen(false)}></div>
-                    <div className="absolute right-0 top-full mt-3 w-96 bg-white rounded-3xl shadow-2xl border border-slate-100 py-4 px-4 z-50 flex flex-col max-h-[460px] animate-in fade-in slide-in-from-top-2 duration-200">
+                    <div className="absolute right-0 top-full mt-3 w-96 bg-white rounded-xl shadow-xl border border-slate-150 py-4 px-4 z-50 flex flex-col max-h-[460px] animate-in fade-in slide-in-from-top-2 duration-200">
                       
                       {/* Header */}
                       <div className="flex items-center justify-between border-b border-slate-100 pb-3 mb-3 shrink-0">
                         <div className="flex items-center gap-2">
                           <span className="text-sm font-extrabold text-slate-900 tracking-tight">Notifications</span>
                           {unreadCount > 0 && (
-                            <span className="px-2 py-0.5 bg-red-100 text-red-700 text-[10px] font-black rounded-full">
+                            <span className="px-2 py-0.5 bg-red-100 text-red-700 text-[10px] font-black rounded-md">
                               {unreadCount} nouvelle{unreadCount > 1 ? 's' : ''}
                             </span>
                           )}
@@ -468,8 +469,8 @@ export const Navbar: React.FC<{
                       <div className="overflow-y-auto no-scrollbar flex-1 space-y-3 pb-3 pr-0.5">
                         {notifications.length === 0 ? (
                           <div className="flex flex-col items-center justify-center py-12 px-4 text-center">
-                            <div className="w-14 h-14 rounded-full bg-slate-50 flex items-center justify-center text-slate-400 mb-3 shadow-inner">
-                              <Bell size={24} className="animate-wiggle" />
+                            <div className="w-12 h-12 rounded-lg bg-slate-50 flex items-center justify-center text-slate-400 mb-3 shadow-inner">
+                              <Bell size={22} className="animate-wiggle" />
                             </div>
                             <p className="text-xs font-extrabold text-slate-800 uppercase tracking-widest mb-1">Silence radio</p>
                             <p className="text-[11px] text-slate-400 font-medium leading-relaxed max-w-[200px]">
@@ -506,13 +507,13 @@ export const Navbar: React.FC<{
                                   setIsNotifOpen(false);
                                 }}
                                 className={cn(
-                                  "p-3 rounded-2xl border transition-all cursor-pointer flex items-start gap-3 relative group",
+                                  "p-3 rounded-lg border transition-all cursor-pointer flex items-start gap-3 relative group",
                                   isRead 
                                     ? "bg-white hover:bg-slate-50/80 border-slate-100 opacity-70 hover:opacity-100" 
                                     : cn("bg-slate-50/50 hover:bg-slate-100/60 shadow-xs", unreadBorder)
                                 )}
                               >
-                                <div className={cn("w-8 h-8 rounded-xl flex items-center justify-center shrink-0 mt-0.5", bgColor, iconColor)}>
+                                <div className={cn("w-8 h-8 rounded-lg flex items-center justify-center shrink-0 mt-0.5", bgColor, iconColor)}>
                                   <Icon size={16} />
                                 </div>
                                 <div className="flex-1 min-w-0">
@@ -545,12 +546,12 @@ export const Navbar: React.FC<{
               <div className="relative">
                 <button
                   onClick={() => setIsUserMenuOpen(!isUserMenuOpen)}
-                  className="flex items-center gap-2 p-1.5 pl-3 bg-slate-100 hover:bg-slate-200 rounded-full transition-all cursor-pointer"
+                  className="flex items-center gap-2 p-1.5 pl-3 bg-slate-100 hover:bg-slate-200 rounded-lg transition-all cursor-pointer"
                 >
                   <span className="text-xs font-bold text-slate-800 truncate max-w-[120px]">
                     {profile?.displayName || user.email?.split('@')[0]}
                   </span>
-                  <div className="w-8 h-8 rounded-full bg-brand-primary text-white flex items-center justify-center text-xs font-bold shadow-xs">
+                  <div className="w-7 h-7 rounded-md bg-brand-primary text-white flex items-center justify-center text-xs font-bold shadow-2xs">
                     {(profile?.displayName?.[0] || user.email?.[0] || 'U').toUpperCase()}
                   </div>
                 </button>
@@ -558,7 +559,7 @@ export const Navbar: React.FC<{
                 {isUserMenuOpen && (
                   <>
                     <div className="fixed inset-0 z-40" onClick={() => setIsUserMenuOpen(false)}></div>
-                    <div className="absolute right-0 top-full mt-2 w-56 bg-white rounded-2xl shadow-2xl border border-slate-100 py-2 z-50 animate-in fade-in slide-in-from-top-2 duration-200">
+                    <div className="absolute right-0 top-full mt-2 w-56 bg-white rounded-xl shadow-xl border border-slate-100 py-2 z-50 animate-in fade-in slide-in-from-top-2 duration-200">
                       <div className="px-4 py-2 border-b border-slate-100">
                         <p className="text-xs font-bold text-slate-900 truncate">{profile?.displayName || user.email}</p>
                         <p className="text-[10px] text-slate-500 truncate">{user.email}</p>
@@ -593,7 +594,7 @@ export const Navbar: React.FC<{
           ) : (
             <button
               onClick={() => setIsAuthOpen(true)}
-              className="bg-brand-primary hover:bg-brand-primary-dark text-white px-5 py-2.5 rounded-full text-xs font-extrabold uppercase tracking-wider transition-all shadow-md hover:shadow-lg cursor-pointer"
+              className="bg-brand-primary hover:bg-brand-primary-dark text-white px-4.5 py-2 rounded-lg text-xs font-extrabold uppercase tracking-wider transition-all shadow-sm hover:shadow-md cursor-pointer"
             >
               Connexion
             </button>

@@ -59,8 +59,8 @@ export const CustomDatePicker = ({
         showMonthDropdown
         dropdownMode="select"
         className="bg-transparent border-none outline-none w-full font-bold text-slate-900 text-sm p-0 cursor-pointer"
-        calendarClassName="!font-sans !border-none !shadow-xl !rounded-2xl overflow-hidden p-2"
-        dayClassName={(date) => "!rounded-full hover:!bg-red-50 hover:!text-red-600 transition-colors"}
+        calendarClassName="!font-sans !border-none !shadow-xl !rounded-xl overflow-hidden p-2"
+        dayClassName={(date) => "!rounded-md hover:!bg-red-50 hover:!text-red-600 transition-colors"}
         yearDropdownItemNumber={100}
         scrollableYearDropdown
       />

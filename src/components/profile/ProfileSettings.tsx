@@ -23,6 +23,7 @@ const PRESET_AVATARS = [
 
 import { useToast } from '../../contexts/ToastContext';
 import { requestNotificationPermission, showNotification } from '../../lib/notifications';
+import { DocumentPhotoUploader } from '../common/DocumentPhotoUploader';
 
 export const ProfileSettings: React.FC = () => {
   const { profile, user, refreshProfile, logOut } = useAuth();
@@ -960,140 +961,15 @@ export const ProfileSettings: React.FC = () => {
                         </div>
                       </div>
 
-                      {/* Segmented Controller for Capture Method */}
+                      {/* Document Photo Uploader */}
                       <div className="space-y-3 pt-3">
-                        <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest font-bold">Document d'identité (Scan, Photo ou Capture)</label>
-                        
-                        <div className="flex bg-slate-100/80 p-1 rounded-2xl gap-1 max-w-sm border border-slate-200/40">
-                          <button
-                            type="button"
-                            onClick={() => { stopCamera(); setUseCamera(false); }}
-                            className={`flex-1 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-wider text-center transition duration-300 cursor-pointer ${
-                              !useCamera ? "bg-white text-slate-900 shadow-sm" : "text-slate-500 hover:text-slate-800"
-                            }`}
-                          >
-                            Téléverser document
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => startCamera()}
-                            className={`flex-1 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-wider text-center transition duration-300 cursor-pointer ${
-                              useCamera ? "bg-white text-slate-900 shadow-sm" : "text-slate-500 hover:text-slate-800"
-                            }`}
-                          >
-                            Prendre photo (Caméra)
-                          </button>
-                        </div>
-
-                        {/* Camera capturing view */}
-                        {useCamera ? (
-                          <div className="border border-slate-800 rounded-3xl overflow-hidden bg-slate-950 relative shadow-2xl animate-in fade-in duration-300 max-w-lg">
-                            {/* Scanning Radar Line Overlay */}
-                            <div className="absolute inset-x-0 h-0.5 bg-gradient-to-r from-transparent via-red-500 to-transparent top-0 animate-bounce z-20 pointer-events-none shadow-[0_0_10px_rgba(239,43,45,0.8)]" />
-                            
-                            {/* Scanning crosshairs overlay */}
-                            <div className="absolute inset-8 border border-white/20 rounded-2xl pointer-events-none z-10 flex items-center justify-center">
-                              <div className="w-12 h-0.5 bg-white/30" />
-                              <div className="h-12 w-0.5 bg-white/30 absolute" />
-                            </div>
-
-                            <video 
-                              id="id-card-capture-video" 
-                              autoPlay 
-                              playsInline 
-                              className="w-full h-auto max-h-[260px] object-cover mx-auto opacity-90"
-                            />
-
-                            <div className="p-4 bg-slate-900/95 border-t border-slate-800/80 flex items-center justify-between gap-3 relative z-30">
-                              <button
-                                type="button"
-                                onClick={capturePhoto}
-                                className="px-5 py-2.5 bg-[#EF2B2D] hover:bg-red-700 text-white rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all duration-300 flex items-center gap-2 cursor-pointer shadow-md shadow-red-950"
-                              >
-                                <Camera size={14} className="stroke-[2]" />
-                                Capturer CNIB/Passeport
-                              </button>
-                              <button
-                                type="button"
-                                onClick={stopCamera}
-                                className="px-5 py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-2xl text-[10px] font-black uppercase tracking-wider transition-all duration-300 cursor-pointer"
-                              >
-                                Arrêter
-                              </button>
-                            </div>
-                            {cameraError && (
-                              <div className="absolute inset-0 bg-slate-950/95 flex flex-col items-center justify-center p-6 text-center text-red-400 z-40">
-                                <AlertTriangle size={24} className="mb-2" />
-                                <p className="text-xs font-bold leading-normal">{cameraError}</p>
-                              </div>
-                            )}
-                          </div>
-                        ) : (
-                          /* Standard folder upload box */
-                          <div 
-                            id="identity-file-upload-simulated-box"
-                            className="border-2 border-dashed border-slate-200 rounded-3xl p-8 text-center bg-white hover:border-[#EF2B2D] transition-all duration-300 relative cursor-pointer group"
-                            onClick={() => {
-                              const fileInput = document.getElementById('id-doc-file-raw-input');
-                              if (fileInput) fileInput.click();
-                            }}
-                          >
-                            <input 
-                              type="file" 
-                              id="id-doc-file-raw-input"
-                              onClick={(e) => e.stopPropagation()}
-                              accept="image/*"
-                              className="hidden" 
-                              onChange={handleIdentityFileChange}
-                            />
-                            <input 
-                              type="file" 
-                              id="id-doc-camera-raw-input"
-                              onClick={(e) => e.stopPropagation()}
-                              accept="image/*"
-                              capture="environment"
-                              className="hidden" 
-                              onChange={handleIdentityFileChange}
-                            />
-                            <div className="p-3 bg-slate-50 rounded-2xl inline-block mb-3 border border-slate-100 group-hover:scale-110 transition duration-300 text-slate-400 group-hover:text-[#EF2B2D] group-hover:bg-red-50">
-                              <Upload size={22} className="stroke-[2.2]" />
-                            </div>
-                            <span className="block text-xs font-black text-slate-700">Sélectionnez le scan ou photo de votre document</span>
-                            <span className="block text-[10px] text-slate-400 font-bold mt-1.5 uppercase tracking-wider">Formats JPG, PNG, WEBP acceptés (Max 5 Mo)</span>
-                            {uploadProgress && (
-                              <div className="absolute inset-0 bg-white/95 backdrop-blur-xs flex items-center justify-center gap-2.5 font-black text-xs text-[#EF2B2D] font-sans">
-                                <RefreshCw className="animate-spin text-[#EF2B2D]" size={14} /> 
-                                <span>{uploadProgress}</span>
-                              </div>
-                            )}
-                          </div>
-                        )}
-
-                        {/* Real image previewer showing captured or uploaded content */}
-                        {capturedImage && (
-                          <div className="p-4 bg-slate-100/50 border border-slate-200/60 rounded-3xl space-y-3 max-w-md animate-in slide-in-from-top-2 duration-300">
-                            <div className="flex items-center justify-between">
-                              <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest font-bold">Aperçu du document préparé :</span>
-                              <button
-                                type="button"
-                                onClick={() => setCapturedImage(null)}
-                                className="text-[#EF2B2D] hover:underline text-[10px] font-black uppercase tracking-wider cursor-pointer"
-                              >
-                                Réinitialiser
-                              </button>
-                            </div>
-                            <div className="relative border border-slate-200/80 rounded-2xl overflow-hidden aspect-video bg-slate-200/50">
-                              <img 
-                                src={capturedImage} 
-                                alt="ID capture" 
-                                className="w-full h-full object-contain"
-                              />
-                              <div className="absolute bottom-3 left-3 bg-slate-900/80 backdrop-blur-xs px-2.5 py-1 rounded-xl text-[9px] font-black text-white uppercase tracking-widest">
-                                {capturedImage.startsWith('data:image') ? '📷 Capture Locale' : '🌐 Document Actuel'}
-                              </div>
-                            </div>
-                          </div>
-                        )}
+                        <DocumentPhotoUploader
+                          label="Document d'identité (Scan, Photo ou Capture)"
+                          sublabel="CNIB, Passeport, Permis de conduire"
+                          value={capturedImage || ''}
+                          onChange={(dataUrl) => setCapturedImage(dataUrl)}
+                          placeholderText="Sélectionnez un fichier ou prenez en photo votre CNIB/Passeport"
+                        />
                       </div>
 
                       <button 

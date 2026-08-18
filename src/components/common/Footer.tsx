@@ -24,66 +24,64 @@ export const Footer: React.FC<FooterProps> = ({ onNavigate }) => {
   }, []);
 
   return (
-    <footer className="bg-slate-900 text-slate-400 py-6 px-4 text-center border-t border-slate-800 mt-auto">
-      <div className="max-w-7xl mx-auto flex flex-col items-center justify-center gap-3">
-        <div className="flex flex-wrap justify-center gap-x-6 gap-y-2 text-[10px] font-black uppercase tracking-[0.2em] text-slate-500">
+    <footer className="bg-slate-950 text-white py-8 px-4 text-center border-t border-slate-800/80 mt-auto select-none">
+      <div className="max-w-7xl mx-auto flex flex-col items-center justify-center gap-4">
+        {/* Navigation Links - Unified Pure White */}
+        <div className="flex flex-wrap justify-center items-center gap-x-6 sm:gap-x-8 gap-y-2.5 text-xs font-bold uppercase tracking-wider text-white">
           <a 
             href="/accueil" 
             onClick={(e) => { e.preventDefault(); onNavigate?.('showcase'); }} 
-            className="hover:text-red-500 transition-colors cursor-pointer text-white font-black"
+            className="text-white hover:text-white/75 transition-colors cursor-pointer"
           >
-            Présentation <span className="text-emerald-500">Resi</span><span className="text-red-500">Faso</span>
+            Présentation ResiFaso
           </a>
           <a 
             href="/" 
             onClick={(e) => { e.preventDefault(); onNavigate?.('home'); }} 
-            className="hover:text-red-500 transition-colors cursor-pointer"
+            className="text-white hover:text-white/75 transition-colors cursor-pointer"
           >
             Trouver un Logement
           </a>
           <a 
             href="https://www.resifaso.net/Conditions_Generales" 
             onClick={(e) => { e.preventDefault(); onNavigate?.('tos'); }} 
-            className="hover:text-red-500 transition-colors cursor-pointer"
+            className="text-white hover:text-white/75 transition-colors cursor-pointer"
           >
             Conditions Générales
           </a>
           <a 
             href="https://www.resifaso.net/Politique_de_Confidentialite" 
             onClick={(e) => { e.preventDefault(); onNavigate?.('privacy'); }} 
-            className="hover:text-red-500 transition-colors cursor-pointer"
+            className="text-white hover:text-white/75 transition-colors cursor-pointer"
           >
             Politique de Confidentialité
           </a>
           <a 
             href="/faq" 
             onClick={(e) => { e.preventDefault(); onNavigate?.('faq'); }} 
-            className="hover:text-red-500 transition-colors cursor-pointer"
+            className="text-white hover:text-white/75 transition-colors cursor-pointer"
           >
             FAQ
           </a>
           <a 
             href="/contact" 
             onClick={(e) => { e.preventDefault(); onNavigate?.('contact'); }} 
-            className="hover:text-red-500 transition-colors cursor-pointer text-[#EF2B2D] font-extrabold"
+            className="text-white hover:text-white/75 transition-colors cursor-pointer"
           >
             Contact
           </a>
         </div>
         
-        <div className="flex flex-col items-center gap-1">
-          <div className="flex items-center gap-2">
-            <span className="w-8 h-px bg-slate-800"></span>
-            <p className="font-bold text-slate-300 tracking-wide text-xs">
-              {footerContent === "© 2026 ResiFaso. Tous droits réservés." ? (
-                <>
-                  © 2026 <span className="text-emerald-500">Resi</span><span className="text-red-500 font-extrabold">Faso</span>. Tous droits réservés.
-                </>
-              ) : footerContent}
-            </p>
-            <span className="w-8 h-px bg-slate-800"></span>
-          </div>
-          <p className="text-[9px] text-slate-600 font-medium">Plateforme sécurisée pour séjours de courte durée au Burkina Faso</p>
+        {/* Divider & Copyright */}
+        <div className="flex flex-col items-center gap-2 pt-2 border-t border-slate-800/60 w-full max-w-2xl">
+          <p className="font-semibold text-white tracking-wide text-xs sm:text-sm">
+            {footerContent === "© 2026 ResiFaso. Tous droits réservés." ? (
+              "© 2026 ResiFaso. Tous droits réservés."
+            ) : footerContent}
+          </p>
+          <p className="text-[11px] sm:text-xs text-white/80 font-normal">
+            Plateforme sécurisée pour séjours et résidences meublées au Burkina Faso
+          </p>
         </div>
       </div>
     </footer>

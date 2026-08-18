@@ -8,6 +8,7 @@ import {
   ChevronLeft, ChevronRight, RefreshCw, KeyRound, Shield, Compass, Zap, Sliders, Smartphone, Link, ExternalLink
 } from 'lucide-react';
 import { CustomSelect } from '../common/CustomSelect';
+import { DocumentPhotoUploader } from '../common/DocumentPhotoUploader';
 import { Residence, UserProfile, UserRole, Booking, Review, BookingStatus, PaymentStatus, Advertisement, PromoPopupConfig, WithdrawalRequest, WithdrawalStatus, FAQItem, ContactMessage, ContactSettings } from '../../types';
 import { PromoPopupModal } from '../common/PromoPopupModal';
 import { BURKINA_LOCATIONS } from '../../constants/locations';
@@ -6265,29 +6266,15 @@ export const AdminDashboard: React.FC<{ onBackToTraveler?: () => void }> = ({ on
                     </p>
 
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-5 items-start">
-                      {/* Drag & Drop File Upload Box */}
+                      {/* Document Photo Uploader for Ad */}
                       <div className="space-y-2">
-                        <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest font-bold">Uploader une image locale</label>
-                        <div className="p-5 border-2 border-dashed border-slate-200 hover:border-[#EF2B2D] bg-slate-50 rounded-2xl text-center relative hover:bg-slate-50/50 transition duration-200">
-                          <input
-                            type="file"
-                            accept="image/png, image/jpeg, image/jpg, image/webp"
-                            onChange={handleAdImageUpload}
-                            disabled={isUploadingAd}
-                            className="absolute inset-0 w-full h-full opacity-0 cursor-pointer disabled:cursor-not-allowed"
-                          />
-                          <Upload size={20} className="mx-auto text-[#EF2B2D] mb-1.5" />
-                          <p className="text-[11px] font-extrabold text-slate-700">
-                            {isUploadingAd ? "Optimisation de l'image..." : "Cliquez ou glissez l'affiche ici"}
-                          </p>
-                          
-                          {/* Format and Size instruction guidelines */}
-                          <div className="mt-2 space-y-1 text-[9px] text-slate-400 font-bold leading-tight">
-                            <p>📁 Formats certifiés : <span className="text-slate-600 font-black">PNG, JPG, JPEG, WEBP</span></p>
-                            <p>⚖️ Taille maximale acceptée : <span className="text-slate-600 font-black">5 Mo max</span></p>
-                            <p>📐 Dimension conseillée : <span className="text-[#EF2B2D] font-black">Ratio 16:9 (ex: 1920x1080px ou 1200x675px)</span></p>
-                          </div>
-                        </div>
+                        <DocumentPhotoUploader
+                          label="Image de la publicité"
+                          sublabel="Ratio 16:9 recommandé"
+                          value={newAdImageUrl}
+                          onChange={(val) => setNewAdImageUrl(val)}
+                          placeholderText="Séléctionnez une image publicitaire ou prenez une photo"
+                        />
                       </div>
 
                       {/* Manual URL Input Option & Preview Column */}
@@ -6637,21 +6624,12 @@ export const AdminDashboard: React.FC<{ onBackToTraveler?: () => void }> = ({ on
                     {/* Upload Box & Drag Drop */}
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                       <div className="space-y-2">
-                        <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest">Uploader une image locale</label>
-                        <div className="p-6 border-2 border-dashed border-slate-200 hover:border-red-500 bg-slate-50/80 rounded-2xl text-center relative transition duration-200 group">
-                          <input
-                            type="file"
-                            accept="image/png, image/jpeg, image/jpg, image/webp"
-                            onChange={handlePromoPopupImageUpload}
-                            disabled={isUploadingAd}
-                            className="absolute inset-0 w-full h-full opacity-0 cursor-pointer disabled:cursor-not-allowed z-10"
-                          />
-                          <Upload size={24} className="mx-auto text-red-500 mb-2 group-hover:scale-110 transition-transform" />
-                          <p className="text-xs font-extrabold text-slate-700">
-                            {isUploadingAd ? "Optimisation..." : "Glissez votre image de promo"}
-                          </p>
-                          <p className="text-[10px] text-slate-400 font-medium mt-1">PNG, JPG, WEBP jusqu'à 5Mo</p>
-                        </div>
+                        <DocumentPhotoUploader
+                          label="Image du Popup Promo"
+                          value={promoPopupConfig.imageUrl}
+                          onChange={(val) => setPromoPopupConfig(prev => ({ ...prev, imageUrl: val }))}
+                          placeholderText="Sélectionnez ou prenez en photo l'affiche promo"
+                        />
                       </div>
 
                       <div className="space-y-3">
@@ -7490,20 +7468,11 @@ export const AdminDashboard: React.FC<{ onBackToTraveler?: () => void }> = ({ on
                     />
                   </div>
                   <div>
-                    <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1.5">Logo du Partenaire</label>
-                    <input
-                      type="file"
-                      required
-                      accept="image/*"
-                      onChange={e => {
-                        const file = e.target.files?.[0];
-                        if (file) {
-                          const reader = new FileReader();
-                          reader.onloadend = () => setNewPartnerLogo(reader.result as string);
-                          reader.readAsDataURL(file);
-                        }
-                      }}
-                      className="w-full bg-slate-50 border border-slate-100 rounded-xl px-4 py-3 text-xs font-bold outline-none focus:ring-2 focus:ring-red-500 transition file:mr-4 file:py-1 file:px-4 file:rounded-full file:border-0 file:text-xs file:font-semibold file:bg-red-50 file:text-red-700 hover:file:bg-red-100"
+                    <DocumentPhotoUploader
+                      label="Logo du Partenaire"
+                      value={newPartnerLogo}
+                      onChange={(val) => setNewPartnerLogo(val)}
+                      placeholderText="Téléverser ou prendre en photo le logo"
                     />
                   </div>
                   <div>

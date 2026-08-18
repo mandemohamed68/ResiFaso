@@ -10,6 +10,7 @@ import {
 } from 'lucide-react';
 import { UserRole } from '../../types';
 import { cn } from '../../lib/utils';
+import { DocumentPhotoUploader } from './DocumentPhotoUploader';
 
 interface AuthModalProps {
   isOpen: boolean;
@@ -582,48 +583,20 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onNavigat
                       <span className="text-[9px] font-bold text-slate-400">CNIB ou Passeport</span>
                     </div>
                     <div className="grid grid-cols-2 gap-2">
-                      <div className="space-y-1">
-                        <label className="text-[9px] font-bold text-slate-500 block">Recto</label>
-                        <input 
-                          type="file" 
-                          accept="image/*"
-                          onChange={(e) => {
-                            const file = e.target.files?.[0];
-                            if (file) {
-                              const reader = new FileReader();
-                              reader.onloadend = () => setIdentityDocumentFront(reader.result as string);
-                              reader.readAsDataURL(file);
-                            }
-                          }}
-                          className="text-[9px] w-full file:mr-2 file:py-1 file:px-2 file:rounded-lg file:border-0 file:text-[9px] file:font-black file:bg-brand-primary/10 file:text-brand-primary hover:file:bg-brand-primary/20 cursor-pointer"
-                        />
-                        {identityDocumentFront && (
-                          <div className="h-10 w-full rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 overflow-hidden mt-1">
-                            <img src={identityDocumentFront} className="w-full h-full object-cover" alt="ID Recto" />
-                          </div>
-                        )}
-                      </div>
-                      <div className="space-y-1">
-                        <label className="text-[9px] font-bold text-slate-500 block">Verso</label>
-                        <input 
-                          type="file" 
-                          accept="image/*"
-                          onChange={(e) => {
-                            const file = e.target.files?.[0];
-                            if (file) {
-                              const reader = new FileReader();
-                              reader.onloadend = () => setIdentityDocumentBack(reader.result as string);
-                              reader.readAsDataURL(file);
-                            }
-                          }}
-                          className="text-[9px] w-full file:mr-2 file:py-1 file:px-2 file:rounded-lg file:border-0 file:text-[9px] file:font-black file:bg-brand-primary/10 file:text-brand-primary hover:file:bg-brand-primary/20 cursor-pointer"
-                        />
-                        {identityDocumentBack && (
-                          <div className="h-10 w-full rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 overflow-hidden mt-1">
-                            <img src={identityDocumentBack} className="w-full h-full object-cover" alt="ID Verso" />
-                          </div>
-                        )}
-                      </div>
+                      <DocumentPhotoUploader
+                        label="Recto"
+                        compact={true}
+                        value={identityDocumentFront}
+                        onChange={(val) => setIdentityDocumentFront(val)}
+                        placeholderText="CNIB / Passeport Recto"
+                      />
+                      <DocumentPhotoUploader
+                        label="Verso"
+                        compact={true}
+                        value={identityDocumentBack}
+                        onChange={(val) => setIdentityDocumentBack(val)}
+                        placeholderText="CNIB / Passeport Verso"
+                      />
                     </div>
                   </div>
                 </>

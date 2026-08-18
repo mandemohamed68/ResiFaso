@@ -33,6 +33,7 @@ import {
   markAllNotificationsAsRead
 } from '../../lib/db';
 import { CustomSelect } from '../common/CustomSelect';
+import { DocumentPhotoUploader } from '../common/DocumentPhotoUploader';
 import { Message, Conversation, Residence, Booking, WithdrawalRequest, MobileMoneyProvider } from '../../types';
 import { BURKINA_LOCATIONS } from '../../constants/locations';
 import { useLocations } from '../../hooks/useLocations';
@@ -3846,39 +3847,14 @@ export const OwnerDashboard: React.FC<{ isTestMode?: boolean; onBackToTraveler?:
                 {step === 3 && (
                   <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} className="space-y-4">
                     <div>
-                      <label className="block text-xs font-black text-slate-400 uppercase tracking-wider mb-2">Photos de la résidence</label>
-                      <div className="p-6 border-2 border-dashed border-slate-200 bg-slate-50 rounded-2xl text-center relative hover:bg-slate-100 transition-colors">
-                        <input
-                          type="file"
-                          multiple
-                          accept="image/jpeg, image/png, image/webp"
-                          onChange={handleImageUpload}
-                          disabled={isUploading}
-                          className="absolute inset-0 w-full h-full opacity-0 cursor-pointer disabled:cursor-not-allowed"
-                        />
-                        <Upload size={24} className="mx-auto text-red-500 mb-2" />
-                        <p className="text-sm font-bold text-slate-600">
-                          {isUploading ? "Compression de l'image en cours..." : "Cliquez ou glissez vos photos ici"}
-                        </p>
-                        <p className="text-xs font-medium text-slate-400 mt-1">JPG, PNG (max 5 Mo). Multiple autorisée.</p>
-                      </div>
-
-                      {images.length > 0 && (
-                        <div className="flex gap-3 mt-4 overflow-x-auto pb-2">
-                          {images.map((img, idx) => (
-                            <div key={idx} className="relative w-20 h-20 shrink-0 rounded-xl overflow-hidden shadow-sm group">
-                              <img src={img} className="w-full h-full object-cover" />
-                              <button
-                                type="button"
-                                onClick={() => setImages(prev => prev.filter((_, i) => i !== idx))}
-                                className="absolute inset-0 bg-red-900/60 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center text-white cursor-pointer"
-                              >
-                                <Trash2 size={14} />
-                              </button>
-                            </div>
-                          ))}
-                        </div>
-                      )}
+                      <DocumentPhotoUploader
+                        label="Photos de la résidence"
+                        sublabel="Salles, chambres, salon, cuisine, extérieur"
+                        value={images}
+                        multiple={true}
+                        onMultipleChange={(vals) => setImages(vals)}
+                        placeholderText="Sélectionnez des photos ou prenez en photo la résidence"
+                      />
                     </div>
 
                     <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
