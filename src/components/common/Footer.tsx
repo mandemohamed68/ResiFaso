@@ -28,7 +28,7 @@ export const Footer: React.FC<FooterProps> = ({ onNavigate }) => {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         
         {/* Links and copyright row */}
-        <div className="flex flex-wrap items-center justify-center md:justify-between gap-x-8 gap-y-3 pb-8">
+        <div className="flex flex-col items-center justify-center gap-y-4 pb-8 text-center">
           <span className="font-semibold text-slate-900 dark:text-white">
             {footerContent === "© 2026 ResiFaso. Tous droits réservés." ? "© 2026 ResiFaso" : footerContent}
           </span>
@@ -80,7 +80,7 @@ export const Footer: React.FC<FooterProps> = ({ onNavigate }) => {
         </div>
 
         {/* Trust features section as clean plain text without card borders or backgrounds */}
-        <div className="pt-6 border-t border-slate-100 dark:border-slate-800/80 grid grid-cols-1 md:grid-cols-3 gap-6 text-center md:text-left">
+        <div className="pt-6 border-t border-slate-100 dark:border-slate-800/80 grid grid-cols-1 md:grid-cols-3 gap-6 text-center">
           <div>
             <h4 className="text-xs font-black uppercase tracking-wider text-slate-900 dark:text-white mb-1">
               Sécurité Garantie
