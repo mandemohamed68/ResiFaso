@@ -53,9 +53,9 @@ export const useBrandingSettings = () => {
   return useQuery({
     queryKey: ['branding-settings'],
     queryFn: getBrandingSettings,
-    refetchInterval: 8000,
-    staleTime: 4000,
-    refetchOnWindowFocus: true
+    staleTime: 1000 * 60 * 10, // 10 minutes
+    gcTime: 1000 * 60 * 30, // 30 minutes
+    refetchOnWindowFocus: false
   });
 };
 

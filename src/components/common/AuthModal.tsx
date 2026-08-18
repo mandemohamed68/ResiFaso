@@ -184,27 +184,6 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onNavigat
         transition={{ duration: 0.25, ease: [0.16, 1, 0.3, 1] }}
         className="relative w-full max-w-[460px] bg-white dark:bg-slate-900 rounded-[28px] border border-slate-100 dark:border-slate-800 shadow-2xl shadow-slate-950/20 overflow-hidden z-10 my-auto max-h-[92vh] flex flex-col"
       >
-        {/* Dynamic Festive / Brand Top Ribbon */}
-        <div 
-          className={cn(
-            "h-1.5 w-full transition-all duration-500",
-            isChristmas ? "bg-gradient-to-r from-red-600 via-amber-300 to-emerald-600 shadow-[0_0_10px_rgba(239,68,68,0.5)]" :
-            isNewYear ? "bg-gradient-to-r from-blue-900 via-amber-400 to-indigo-900 shadow-[0_0_10px_rgba(251,191,36,0.5)]" :
-            isValentines ? "bg-gradient-to-r from-pink-500 via-rose-400 to-red-600 shadow-[0_0_10px_rgba(236,72,153,0.5)]" :
-            isRamadan ? "bg-gradient-to-r from-emerald-700 via-amber-400 to-emerald-900 shadow-[0_0_10px_rgba(16,185,129,0.5)]" :
-            isBurkina ? "bg-gradient-to-r from-emerald-600 via-amber-400 to-red-600 shadow-[0_0_10px_rgba(22,163,74,0.5)]" :
-            isRainy ? "bg-gradient-to-r from-sky-600 via-blue-400 to-teal-500 shadow-[0_0_10px_rgba(2,132,199,0.5)]" :
-            isHarmattan ? "bg-gradient-to-r from-amber-600 via-yellow-500 to-amber-700 shadow-[0_0_10px_rgba(217,119,6,0.5)]" :
-            isSpring ? "bg-gradient-to-r from-pink-400 via-emerald-400 to-rose-300 shadow-[0_0_10px_rgba(244,114,182,0.5)]" :
-            "bg-gradient-to-r from-brand-primary via-amber-400 to-brand-secondary"
-          )}
-          style={{
-            background: (!isChristmas && !isNewYear && !isValentines && !isRamadan && !isBurkina && !isRainy && !isHarmattan && !isSpring)
-              ? `linear-gradient(to right, var(--brand-primary, #10b981), #fbbf24, var(--brand-secondary, #ef4444))`
-              : undefined
-          }}
-        />
-
         {/* Close Button */}
         <button 
           onClick={onClose}

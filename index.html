@@ -6,6 +6,28 @@
     <link rel="icon" type="image/png" href="/logoresifasoORG.png" />
     <link rel="shortcut icon" href="/logoresifasoORG.png" />
     <title>ResiFaso</title>
+    <script>
+      // Suppress benign development HMR websocket connection errors in AI Studio sandboxed preview
+      window.addEventListener('unhandledrejection', function(event) {
+        if (event.reason && (
+          String(event.reason.message || '').includes('WebSocket') || 
+          String(event.reason.stack || '').includes('websocket') ||
+          String(event.reason || '').includes('WebSocket')
+        )) {
+          event.preventDefault();
+          event.stopPropagation();
+        }
+      });
+      window.addEventListener('error', function(event) {
+        if (event.message && (
+          String(event.message).includes('WebSocket') || 
+          String(event.filename || '').includes('websocket')
+        )) {
+          event.preventDefault();
+          event.stopPropagation();
+        }
+      }, true);
+    </script>
   </head>
   <body>
     <div id="root"></div>

@@ -179,27 +179,7 @@ export const Navbar: React.FC<{
       "sticky top-0 z-50 border-b shadow-xs transition-colors duration-300",
       isDarkMode ? "bg-slate-900 border-slate-800" : "bg-white border-gray-100"
     )}>
-      {/* Dynamic theme brand accent bar */}
-      <div 
-        className={cn(
-          "h-1 w-full absolute top-0 left-0 transition-all duration-500",
-          isChristmas ? "bg-gradient-to-r from-red-600 via-amber-300 to-emerald-600 shadow-[0_0_8px_rgba(239,68,68,0.5)]" :
-          isNewYear ? "bg-gradient-to-r from-blue-900 via-amber-400 to-indigo-900 shadow-[0_0_8px_rgba(251,191,36,0.5)]" :
-          isValentines ? "bg-gradient-to-r from-pink-500 via-rose-400 to-red-600 shadow-[0_0_8px_rgba(236,72,153,0.5)]" :
-          isRamadan ? "bg-gradient-to-r from-emerald-700 via-amber-400 to-emerald-900 shadow-[0_0_8px_rgba(16,185,129,0.5)]" :
-          isBurkina ? "bg-gradient-to-r from-emerald-600 via-amber-400 to-red-600 shadow-[0_0_8px_rgba(22,163,74,0.5)]" :
-          isRainy ? "bg-gradient-to-r from-sky-600 via-blue-400 to-teal-500 shadow-[0_0_8px_rgba(2,132,199,0.5)]" :
-          isHarmattan ? "bg-gradient-to-r from-amber-600 via-yellow-500 to-amber-700 shadow-[0_0_8px_rgba(217,119,6,0.5)]" :
-          isSpring ? "bg-gradient-to-r from-pink-400 via-emerald-400 to-rose-300 shadow-[0_0_8px_rgba(244,114,182,0.5)]" :
-          "bg-gradient-to-r from-brand-primary via-amber-400 to-brand-secondary"
-        )}
-        style={{
-          background: (!isChristmas && !isNewYear && !isValentines && !isRamadan && !isBurkina && !isRainy && !isHarmattan && !isSpring)
-            ? `linear-gradient(to right, var(--brand-primary, #10b981), #fbbf24, var(--brand-secondary, #ef4444))`
-            : undefined
-        }}
-      />
-      <div className="max-w-7xl mx-auto flex items-center justify-between px-3 sm:px-4 py-2.5 sm:py-3 mt-1 gap-2 sm:gap-4">
+      <div className="max-w-7xl mx-auto flex items-center justify-between px-3 sm:px-4 py-2.5 sm:py-3 gap-2 sm:gap-4">
         {/* Logo & Seasonal Badge */}
         <div className="flex items-center gap-2 sm:gap-3 min-w-0 shrink-0">
           <div 
