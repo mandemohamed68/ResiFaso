@@ -1470,10 +1470,23 @@ export const OwnerDashboard: React.FC<{ isTestMode?: boolean; onBackToTraveler?:
   }, [selectedConversationId]);
 
   // Selected conversation information computed properties
+  const sanitizeDisplayName = (rawName?: string, rawEmail?: string, fallbackId?: string) => {
+    if (rawName && typeof rawName === 'string') {
+      const cleaned = rawName.trim();
+      if (cleaned.startsWith('[') || cleaned.startsWith('{') || cleaned.includes('admin_')) {
+        if (cleaned.toLowerCase().includes('admin')) return 'Support Admin ResiFaso';
+        return 'Voyageur';
+      }
+      return cleaned;
+    }
+    if (rawEmail) return rawEmail.split('@')[0];
+    return fallbackId ? `Voyageur #${fallbackId.slice(0, 6)}` : 'Voyageur';
+  };
+
   const activeSelectedConv = conversations.find(c => c.id === selectedConversationId);
   const activeOpponentId = activeSelectedConv ? (Array.isArray(activeSelectedConv.participants) ? activeSelectedConv.participants.find(p => p !== user?.uid) : null) : null;
   const activeOpponentProfile = activeOpponentId ? participantsInfo[activeOpponentId] : null;
-  const activeOpponentName = activeOpponentProfile?.displayName || activeOpponentProfile?.email || 'Voyageur';
+  const activeOpponentName = sanitizeDisplayName(activeOpponentProfile?.displayName, activeOpponentProfile?.email, activeOpponentId || undefined);
   const activeOpponentInitials = activeOpponentName.split(' ').map((n: string) => n[0]).join('').slice(0, 2).toUpperCase();
 
   // Group bookings by time in local timezone
@@ -2389,8 +2402,8 @@ export const OwnerDashboard: React.FC<{ isTestMode?: boolean; onBackToTraveler?:
         </div>
       </div>
 
-      {/* Tabs list */}
-      <div className="flex border-b border-slate-200/80 gap-6 mb-8 overflow-x-auto no-scrollbar">
+      {/* Executive Segmented Navigation Bar */}
+      <div className="bg-slate-100/80 p-1.5 rounded-2xl border border-slate-200/80 mb-8 overflow-x-auto no-scrollbar flex items-center gap-1">
         {[
           { id: 'stats', label: 'Tableau de bord', icon: BarChart3 },
           { id: 'listings', label: 'Mes résidences', icon: Home, count: residences.length },
@@ -2403,16 +2416,20 @@ export const OwnerDashboard: React.FC<{ isTestMode?: boolean; onBackToTraveler?:
           <button
             key={tab.id}
             onClick={() => setActiveTab(tab.id as any)}
-            className={`pb-4 text-xs sm:text-sm font-semibold flex items-center gap-2 border-b-2 transition-all cursor-pointer whitespace-nowrap ${
+            className={cn(
+              "px-4 py-2.5 rounded-xl text-xs sm:text-sm font-bold flex items-center gap-2 transition-all cursor-pointer whitespace-nowrap select-none",
               activeTab === tab.id
-                ? 'border-slate-900 text-slate-900'
-                : 'border-transparent text-slate-500 hover:text-slate-800'
-            }`}
+                ? "bg-white text-slate-900 shadow-sm border border-slate-200/60 font-black"
+                : "text-slate-600 hover:text-slate-900 hover:bg-white/50"
+            )}
           >
-            <tab.icon size={15} />
+            <tab.icon size={16} className={activeTab === tab.id ? "text-red-600" : "text-slate-500"} />
             <span>{tab.label}</span>
             {tab.count !== undefined && tab.count > 0 && (
-              <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${activeTab === tab.id ? 'bg-slate-100 text-slate-900' : 'bg-slate-100 text-slate-600'}`}>
+              <span className={cn(
+                "px-2 py-0.5 rounded-full text-[10px] font-black",
+                activeTab === tab.id ? "bg-red-600 text-white" : "bg-slate-200 text-slate-700"
+              )}>
                 {tab.count}
               </span>
             )}
@@ -2509,166 +2526,175 @@ export const OwnerDashboard: React.FC<{ isTestMode?: boolean; onBackToTraveler?:
                 <p className="text-slate-400 font-bold text-sm">Vous n'avez pas encore d'hébergements enregistrés.</p>
               </div>
             ) : (
-              <div className="overflow-x-auto bg-white border border-slate-100 rounded-3xl">
+              <div className="overflow-x-auto bg-white border border-slate-200/80 rounded-3xl shadow-sm">
                 <table className="w-full text-left border-collapse">
                   <thead>
-                    <tr className="border-b border-slate-50 text-[10px] font-black text-slate-400 uppercase tracking-widest bg-slate-50/40">
-                      <th className="py-5 px-6">Hébergement</th>
-                      <th className="py-5 px-6">Localisation</th>
-                      <th className="py-5 px-6">Tarif nuit</th>
-                      <th className="py-5 px-6">Statut Modérateur</th>
-                      <th className="py-5 px-6 text-center">Visibilité</th>
-                      <th className="py-5 px-6 text-center">Actions</th>
+                    <tr className="border-b border-slate-150 text-[10px] font-black text-slate-400 uppercase tracking-widest bg-slate-50/60">
+                      <th className="py-4 px-6">Hébergement</th>
+                      <th className="py-4 px-6">Localisation</th>
+                      <th className="py-4 px-6">Tarif nuit</th>
+                      <th className="py-4 px-6">Statut & Disponibilité</th>
+                      <th className="py-4 px-6 text-center">Visibilité</th>
+                      <th className="py-4 px-6 text-center">Actions</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-slate-50 text-sm font-bold text-slate-700">
-                    {residences.slice((listingsPage - 1) * 50, listingsPage * 50).map(res => (
-                      <tr key={res.id}>
-                        <td className="py-4 px-6 flex items-center gap-3">
-                          <img src={res.images?.[0]} className="w-12 h-10 object-cover rounded-md shadow-sm shrink-0" />
-                          <div>
-                            <span className="block font-black text-slate-900 leading-tight">{res.title}</span>
-                            <span className="text-[10px] text-slate-400 capitalize">{res.type} &bull; max {res.capacity} pers.</span>
-                          </div>
-                        </td>
-                        <td className="py-4 px-6 font-medium text-slate-500">
-                          {res.address?.neighborhood || res.neighborhood}, {res.address?.city || res.city}
-                        </td>
-                        <td className="py-4 px-6">
-                          <div className="flex flex-col gap-1">
-                            <span className="font-black text-slate-950">
-                              {formatCurrency(res.pricePerNight)} F CFA
-                            </span>
-                            {res.promoPrice && (
-                              <span className="text-[10px] bg-yellow-400 text-slate-900 px-1.5 py-0.5 rounded font-black w-fit animate-pulse">
-                                FLASH: {formatCurrency(res.promoPrice)} F
-                              </span>
-                            )}
-                          </div>
-                        </td>
-                        <td className="py-4 px-6">
-                          <div className="flex flex-col gap-1">
-                            {res.status === 'pending' && <span className="px-2.5 py-1 bg-amber-50 text-amber-700 rounded-full text-[9px] font-black uppercase w-fit">En Attente de Revue</span>}
-                            {res.status === 'published' && <span className="px-2.5 py-1 bg-green-50 text-green-700 rounded-full text-[9px] font-black uppercase w-fit">En Ligne (Approuvé)</span>}
-                            {res.status === 'hidden' && <span className="px-2.5 py-1 bg-slate-100 text-slate-500 rounded-full text-[9px] font-black uppercase w-fit">Désactivé par vous</span>}
-                            
-                            {/* Occupancy Indicator */}
-                            {res.status === 'published' && (
-                              isResidenceOccupied(res.id) ? (
-                                <span className="px-2.5 py-1 bg-red-50 text-red-700 rounded-full text-[9px] font-black uppercase w-fit">Occupé</span>
-                              ) : (
-                                <span className="px-2.5 py-1 bg-green-50 text-green-700 rounded-full text-[9px] font-black uppercase w-fit">Disponible</span>
-                              )
-                            )}
-                          </div>
-                        </td>
-                        <td className="py-4 px-6 text-center">
-                          <button
-                            onClick={() => handleActiveToggle(res)}
-                            disabled={res.status === 'pending'}
-                            className={`px-3 py-1.5 rounded-xl text-xs font-black uppercase cursor-pointer disabled:opacity-40 select-none ${
-                              res.status === 'published'
-                                ? 'bg-red-50 hover:bg-red-100 text-red-700 border border-red-200'
-                                : 'bg-slate-50 hover:bg-slate-100 text-slate-500 border border-slate-200'
-                            }`}
-                          >
-                            {res.status === 'published' ? 'Masquer' : 'Afficher'}
-                          </button>
-                        </td>
-                        <td className="py-4 px-6 text-center flex items-center justify-center gap-1">
-                          <button
-                            onClick={() => setSelectedHistoryResidenceId(res.id)}
-                            className="p-2 text-slate-400 hover:text-indigo-500 hover:bg-indigo-50 rounded-xl transition-all"
-                            title="Historique des réservations"
-                          >
-                            <History size={16} />
-                          </button>
-                          <button
-                            onClick={() => handlePromoteToggle(res)}
-                            className={`p-2 rounded-xl transition-all ${res.promoted ? 'text-yellow-500 bg-yellow-50' : 'text-slate-400 hover:text-yellow-500 hover:bg-yellow-50'}`}
-                            title={res.promoted ? "Retirer de la mise en avant" : "Mettre en avant (Promotion)"}
-                          >
-                            <Star size={16} fill={res.promoted ? "currentColor" : "none"} />
-                          </button>
-                          <button
-                            onClick={() => {
-                              handleEditClick(res);
-                              setStep(3); // Go to Price & Promo step
-                            }}
-                            className="p-2 text-slate-400 hover:text-green-500 hover:bg-green-50 rounded-xl transition-all"
-                            title="Gérer les prix et promotions"
-                          >
-                            <Percent size={16} />
-                          </button>
-                          <button
-                            onClick={() => handleEditClick(res)}
-                            className="p-2 text-slate-400 hover:text-blue-500 hover:bg-blue-50 rounded-xl transition-all"
-                            title="Modifier"
-                          >
-                            <Pencil size={16} />
-                          </button>
-                          {confirmDeleteId === res.id ? (
-                            <div className="flex items-center gap-1">
-                              <button
-                                onClick={async () => {
-                                  await deleteResidence(res.id);
-                                  setConfirmDeleteId(null);
-                                  await fetchData();
-      refreshData();
-                                }}
-                                className="px-2 py-1 bg-red-600 text-white hover:bg-red-700 rounded text-[10px] font-bold"
-                              >
-                                Oui
-                              </button>
-                              <button
-                                onClick={() => setConfirmDeleteId(null)}
-                                className="px-2 py-1 bg-slate-200 text-slate-700 hover:bg-slate-300 rounded text-[10px] font-bold"
-                              >
-                                Non
-                              </button>
-                            </div>
-                          ) : (
-                            <div className="flex flex-col items-center gap-2">
-                              <div className="relative group">
-                                <select
-                                  value={res.availabilityStatus || 'available'}
-                                  onChange={(e) => handleStatusUpdate(res.id, e.target.value as any)}
-                                  disabled={isUpdatingStatus === res.id}
-                                  className={cn(
-                                    "text-[10px] font-black uppercase px-3 py-1.5 border rounded-xl appearance-none pr-8 cursor-pointer transition-all",
-                                    res.availabilityStatus === 'available' ? "bg-green-50 text-green-700 border-green-200" :
-                                    res.availabilityStatus === 'occupied' ? "bg-red-50 text-red-700 border-red-200" :
-                                    "bg-amber-50 text-amber-700 border-amber-200"
-                                  )}
-                                >
-                                  <option value="available">En ligne / Dispo</option>
-                                  <option value="occupied">Occupé (Manuel)</option>
-                                  <option value="maintenance">Maintenance</option>
-                                </select>
-                                <div className="absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400">
-                                  {isUpdatingStatus === res.id ? <RefreshCw size={10} className="animate-spin" /> : <Layers size={10} />}
-                                </div>
+                  <tbody className="divide-y divide-slate-100 text-sm font-bold text-slate-700">
+                    {residences.slice((listingsPage - 1) * 50, listingsPage * 50).map(res => {
+                      const isOccupied = isResidenceOccupied(res.id);
+                      const isPublished = res.status === 'published';
+
+                      return (
+                        <tr key={res.id} className="hover:bg-slate-50/50 transition-colors">
+                          <td className="py-4 px-6">
+                            <div className="flex items-center gap-3">
+                              <img src={res.images?.[0]} className="w-14 h-11 object-cover rounded-xl shadow-xs border border-slate-100 shrink-0" />
+                              <div>
+                                <span className="block font-black text-slate-900 leading-tight">{res.title}</span>
+                                <span className="text-[11px] text-slate-500 capitalize font-medium">{res.type} &bull; max {res.capacity} pers.</span>
                               </div>
-                              
-                              {/* Auto-detected status badge */}
-                              {res.status === 'published' && isResidenceOccupied(res.id) && res.availabilityStatus === 'available' && (
-                                <span className="flex items-center gap-1.5 text-[8px] font-black text-red-600 bg-red-50 px-2 py-0.5 rounded animate-pulse">
-                                  <Clock size={8} /> OCCUPÉ DÉTECTÉ
+                            </div>
+                          </td>
+                          <td className="py-4 px-6 font-semibold text-slate-600 text-xs">
+                            {res.address?.neighborhood || res.neighborhood}, {res.address?.city || res.city}
+                          </td>
+                          <td className="py-4 px-6">
+                            <div className="flex flex-col gap-0.5">
+                              <span className="font-black text-slate-950 text-sm">
+                                {formatCurrency(res.pricePerNight)} F CFA
+                              </span>
+                              {res.promoPrice && (
+                                <span className="text-[9px] bg-yellow-400 text-slate-950 px-1.5 py-0.5 rounded-md font-black w-fit">
+                                  FLASH: {formatCurrency(res.promoPrice)} F
+                                </span>
+                              )}
+                            </div>
+                          </td>
+                          <td className="py-4 px-6">
+                            <div className="flex flex-col gap-1.5 items-start">
+                              {res.status === 'pending' && (
+                                <span className="px-2.5 py-1 bg-amber-50 text-amber-800 border border-amber-200/60 rounded-lg text-[10px] font-black uppercase inline-flex items-center gap-1">
+                                  <Clock size={11} className="text-amber-600" />
+                                  En Attente
+                                </span>
+                              )}
+                              {res.status === 'published' && (
+                                <span className="px-2.5 py-1 bg-emerald-50 text-emerald-800 border border-emerald-200/60 rounded-lg text-[10px] font-black uppercase inline-flex items-center gap-1">
+                                  <Check size={11} className="text-emerald-600" />
+                                  Approuvé
+                                </span>
+                              )}
+                              {res.status === 'hidden' && (
+                                <span className="px-2.5 py-1 bg-slate-100 text-slate-600 border border-slate-200 rounded-lg text-[10px] font-black uppercase inline-flex items-center gap-1">
+                                  <Eye size={11} className="text-slate-400" />
+                                  Masqué
                                 </span>
                               )}
                               
-                              <button
-                                onClick={() => setConfirmDeleteId(res.id)}
-                                className="p-2 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-xl transition-all"
-                                title="Supprimer"
-                              >
-                                <Trash2 size={16} />
-                              </button>
+                              {/* Occupancy Indicator */}
+                              {res.status === 'published' && (
+                                isOccupied ? (
+                                  <span className="px-2 py-0.5 bg-rose-50 text-rose-700 rounded-md text-[9px] font-black uppercase inline-flex items-center gap-1 border border-rose-200/60">
+                                    <span className="w-1.5 h-1.5 rounded-full bg-rose-500" />
+                                    Occupé
+                                  </span>
+                                ) : (
+                                  <span className="px-2 py-0.5 bg-emerald-50 text-emerald-700 rounded-md text-[9px] font-black uppercase inline-flex items-center gap-1 border border-emerald-200/60">
+                                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+                                    Libre
+                                  </span>
+                                )
+                              )}
                             </div>
-                          )}
-                        </td>
+                          </td>
+                          <td className="py-4 px-6 text-center">
+                            <button
+                              onClick={() => handleActiveToggle(res)}
+                              disabled={res.status === 'pending'}
+                              className={cn(
+                                "relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none disabled:opacity-40",
+                                isPublished ? "bg-emerald-500" : "bg-slate-300"
+                              )}
+                              title={isPublished ? "Desactiver la visibilité" : "Activer la visibilité"}
+                            >
+                              <span
+                                className={cn(
+                                  "pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out",
+                                  isPublished ? "translate-x-5" : "translate-x-0"
+                                )}
+                              />
+                            </button>
+                          </td>
+                          <td className="py-4 px-6 text-center">
+                            <div className="flex items-center justify-center gap-1.5 flex-wrap">
+                              <button
+                                onClick={() => setSelectedHistoryResidenceId(res.id)}
+                                className="p-2 text-slate-500 hover:text-indigo-600 hover:bg-indigo-50 rounded-xl transition-all cursor-pointer"
+                                title="Historique des réservations"
+                              >
+                                <History size={16} />
+                              </button>
+
+                              <button
+                                onClick={() => handlePromoteToggle(res)}
+                                className={`p-2 rounded-xl transition-all cursor-pointer ${res.promoted ? 'text-amber-500 bg-amber-50' : 'text-slate-500 hover:text-amber-500 hover:bg-amber-50'}`}
+                                title={res.promoted ? "Retirer la promotion" : "Mettre en avant"}
+                              >
+                                <Star size={16} fill={res.promoted ? "currentColor" : "none"} />
+                              </button>
+
+                              <button
+                                onClick={() => {
+                                  handleEditClick(res);
+                                  setStep(3);
+                                }}
+                                className="p-2 text-slate-500 hover:text-emerald-600 hover:bg-emerald-50 rounded-xl transition-all cursor-pointer"
+                                title="Modifier le prix et promotions"
+                              >
+                                <Percent size={16} />
+                              </button>
+
+                              <button
+                                onClick={() => handleEditClick(res)}
+                                className="p-2 text-slate-500 hover:text-blue-600 hover:bg-blue-50 rounded-xl transition-all cursor-pointer"
+                                title="Modifier la fiche"
+                              >
+                                <Pencil size={16} />
+                              </button>
+
+                              {confirmDeleteId === res.id ? (
+                                <div className="flex items-center gap-1">
+                                  <button
+                                    onClick={async () => {
+                                      await deleteResidence(res.id);
+                                      setConfirmDeleteId(null);
+                                      await fetchData();
+                                      refreshData();
+                                    }}
+                                    className="px-2 py-1 bg-red-600 text-white hover:bg-red-700 rounded text-[10px] font-bold cursor-pointer"
+                                  >
+                                    Oui
+                                  </button>
+                                  <button
+                                    onClick={() => setConfirmDeleteId(null)}
+                                    className="px-2 py-1 bg-slate-200 text-slate-700 hover:bg-slate-300 rounded text-[10px] font-bold cursor-pointer"
+                                  >
+                                    Non
+                                  </button>
+                                </div>
+                              ) : (
+                                <button
+                                  onClick={() => setConfirmDeleteId(res.id)}
+                                  className="p-2 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-xl transition-all cursor-pointer"
+                                  title="Supprimer"
+                                >
+                                  <Trash2 size={16} />
+                                </button>
+                              )}
+                            </div>
+                          </td>
                       </tr>
-                    ))}
+                    );
+                  })}
                   </tbody>
                 </table>
 
@@ -3266,7 +3292,7 @@ export const OwnerDashboard: React.FC<{ isTestMode?: boolean; onBackToTraveler?:
                 {conversations.length > 0 ? conversations.map((conv) => {
                   const opponentId = Array.isArray(conv.participants) ? conv.participants.find(p => p !== user.uid) : null;
                   const opponentProfile = opponentId ? participantsInfo[opponentId] : null;
-                  const opponentName = opponentProfile?.displayName || opponentProfile?.email || (opponentId ? `${opponentId.slice(0, 8)}...` : 'Utilisateur');
+                  const opponentName = sanitizeDisplayName(opponentProfile?.displayName, opponentProfile?.email, opponentId || undefined);
                   const isSelected = selectedConversationId === conv.id;
                   
                   // Generate visual initials

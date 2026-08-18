@@ -12,6 +12,8 @@ interface Props {
 
 const MapContainerAny = MapContainer as any;
 const TileLayerAny = TileLayer as any;
+const MarkerComp = Marker as any;
+const PopupComp = Popup as any;
 
 // Coordinate lookup for Burkina cities & neighborhoods
 const CITY_COORDS: Record<string, [number, number]> = {
@@ -154,12 +156,12 @@ export const MapView: React.FC<Props> = ({ residences, onResidenceClick }) => {
           const customIcon = createPriceIcon(price, res.promoted || res.recommended);
 
           return (
-            <Marker 
+            <MarkerComp 
               key={res.id} 
               position={[res.resolvedLat, res.resolvedLng]}
               icon={customIcon}
             >
-              <Popup className="custom-leaflet-popup">
+              <PopupComp className="custom-leaflet-popup">
                 <div className="p-1 min-w-[220px] max-w-[260px]">
                   <div className="relative rounded-xl overflow-hidden mb-2 bg-slate-100 aspect-video">
                     <img 
@@ -192,8 +194,8 @@ export const MapView: React.FC<Props> = ({ residences, onResidenceClick }) => {
                     Réserver maintenant
                   </button>
                 </div>
-              </Popup>
-            </Marker>
+              </PopupComp>
+            </MarkerComp>
           );
         })}
       </MapContainerAny>

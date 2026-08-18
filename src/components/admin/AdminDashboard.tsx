@@ -6271,8 +6271,8 @@ export const AdminDashboard: React.FC<{ onBackToTraveler?: () => void }> = ({ on
                         <DocumentPhotoUploader
                           label="Image de la publicité"
                           sublabel="Ratio 16:9 recommandé"
-                          value={newAdImageUrl}
-                          onChange={(val) => setNewAdImageUrl(val)}
+                          value={adImageUrl}
+                          onChange={(val) => setAdImageUrl(val)}
                           placeholderText="Séléctionnez une image publicitaire ou prenez une photo"
                         />
                       </div>
