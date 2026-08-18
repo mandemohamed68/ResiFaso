@@ -68,8 +68,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
       // For other errors (like 500 or network issues), we keep the current state 
       // and wait for the next attempt or a manual refresh.
-    } catch (err) {
-      console.error("Auth fetch error:", err);
+    } catch (err: any) {
+      if (err.name !== 'AbortError' && !err.message?.includes('aborted')) {
+        console.error("Auth fetch error:", err);
+      }
     } finally {
       setLoading(false);
     }

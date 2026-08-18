@@ -108,7 +108,6 @@ export async function apiFetch(path: string, options: RequestInit = {}): Promise
   const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
 
   try {
-    console.log(`[apiFetch] Fetching: ${fullUrl}`);
     const res = await fetch(fullUrl, {
       ...options,
       headers,
@@ -116,9 +115,11 @@ export async function apiFetch(path: string, options: RequestInit = {}): Promise
     });
     clearTimeout(timeoutId);
     return res;
-  } catch (err) {
+  } catch (err: any) {
     clearTimeout(timeoutId);
-    console.error(`[apiFetch] Network error for ${fullUrl}:`, err);
+    if (err.name !== 'AbortError' && !err.message?.includes('aborted')) {
+      console.error(`[apiFetch] Network error for ${fullUrl}:`, err);
+    }
     throw err;
   }
 }

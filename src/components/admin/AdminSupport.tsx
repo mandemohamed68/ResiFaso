@@ -20,8 +20,10 @@ export const AdminSupport: React.FC = () => {
       if (usersRes.ok) {
         setUsers(await usersRes.json());
       }
-    } catch (e) {
-      console.error(e);
+    } catch (e: any) {
+      if (e.name !== 'AbortError' && !e.message?.includes('aborted')) {
+        console.error(e);
+      }
     }
   };
 

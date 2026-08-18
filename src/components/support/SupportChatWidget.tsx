@@ -26,9 +26,10 @@ export const SupportChatWidget: React.FC = () => {
   useEffect(() => {
     if (!user) return;
     fetchMessages();
-    const interval = setInterval(fetchMessages, 5000);
+    const delay = isOpen ? 5000 : 30000;
+    const interval = setInterval(fetchMessages, delay);
     return () => clearInterval(interval);
-  }, [user]);
+  }, [user, isOpen]);
 
   useEffect(() => {
     if (isOpen && user) {
@@ -49,8 +50,10 @@ export const SupportChatWidget: React.FC = () => {
         const data = await res.json();
         setMessages(data || []);
       }
-    } catch (e) {
-      console.error(e);
+    } catch (e: any) {
+      if (e.name !== 'AbortError' && !e.message?.includes('aborted')) {
+        console.error(e);
+      }
     }
   };
 

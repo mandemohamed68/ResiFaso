@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import heroBg from '../../assets/images/rond_point_martyrs_bg_1780477317904.png';
+import heroBg from '../../assets/images/monument_heros.jpg';
 import { Advertisement } from '../../types';
 import { apiFetch } from '../../lib/api';
 import { useBrandingSettings } from '../../hooks/useQueries';
