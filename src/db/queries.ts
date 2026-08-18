@@ -9,7 +9,7 @@ const cleanSecteur = (val: string | any): string | any => {
 export const getUserProfile = async (uid: string) => {
   const users = await executeSql(`
     SELECT 
-      uid, email, display_name as displayName, role, photo_url as photoUrl, 
+      uid, email, display_name as displayName, role, photo_url as photoUrl, photo_url as photoURL, 
       is_verified as isVerified, created_at as createdAt, is_suspended as isSuspended, 
       permissions, identity_document_front as identityDocumentFront, 
       identity_document_back as identityDocumentBack, id_number as idNumber, 
@@ -34,7 +34,7 @@ export const getUserProfile = async (uid: string) => {
 export const getAllUsers = async () => {
   return await executeSql(`
     SELECT 
-      uid, email, display_name as displayName, role, photo_url as photoUrl, 
+      uid, email, display_name as displayName, role, photo_url as photoUrl, photo_url as photoURL, 
       is_verified as isVerified, created_at as createdAt, is_suspended as isSuspended, 
       permissions, identity_document_front as identityDocumentFront, 
       identity_document_back as identityDocumentBack, id_number as idNumber, 
@@ -802,7 +802,7 @@ export const updateUserProfile = async (uid: string, updates: any) => {
     let targetKey: string | null = null;
     
     if (k === 'displayName') targetKey = 'display_name';
-    else if (k === 'photoUrl') targetKey = 'photo_url';
+    else if (k === 'photoUrl' || k === 'photoURL') targetKey = 'photo_url';
     else if (k === 'isVerified') targetKey = 'is_verified';
     else if (k === 'isSuspended') targetKey = 'is_suspended';
     else if (k === 'phoneNumber') targetKey = 'phone_number';
