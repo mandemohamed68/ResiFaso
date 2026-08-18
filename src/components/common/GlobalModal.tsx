@@ -50,16 +50,16 @@ export const GlobalModal: React.FC<GlobalModalProps> = ({
 
             <div className="flex flex-col items-center text-center">
               <div className={cn(
-                "w-12 h-12 rounded-2xl flex items-center justify-center mb-4",
+                "w-10 h-10 rounded-xl flex items-center justify-center mb-3.5 border border-slate-200/60 dark:border-slate-800",
                 type === 'success' && "bg-emerald-50 text-emerald-600 dark:bg-emerald-500/10 dark:text-emerald-400",
                 type === 'confirm' && "bg-slate-100 text-slate-800 dark:bg-slate-800 dark:text-slate-200",
                 type === 'error' && "bg-red-50 text-red-600 dark:bg-red-500/10 dark:text-red-400",
                 type === 'info' && "bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300"
               )}>
-                {type === 'success' && <CheckCircle2 size={24} />}
-                {type === 'confirm' && <HelpCircle size={24} />}
-                {type === 'error' && <AlertCircle size={24} />}
-                {type === 'info' && <Info size={24} />}
+                {type === 'success' && <CheckCircle2 size={20} />}
+                {type === 'confirm' && <HelpCircle size={20} />}
+                {type === 'error' && <AlertCircle size={20} />}
+                {type === 'info' && <Info size={20} />}
               </div>
 
               <span className="text-xs font-semibold text-slate-500 dark:text-slate-400 mb-1">

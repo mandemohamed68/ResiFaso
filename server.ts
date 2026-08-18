@@ -8,7 +8,7 @@ import cors from "cors";
 import helmet from "helmet";
 import rateLimit from "express-rate-limit";
 import nodemailer from "nodemailer";
-import { executeSql } from './src/db/index';
+import { executeSql, getDbType } from './src/db/index';
 import { initDatabase } from './src/db/init';
 import { formatSqlValue } from './src/db/queries';
 import { authenticateToken, AuthRequest } from './src/lib/auth-middleware';
@@ -18,7 +18,7 @@ import { registerDeviceToken, unregisterDeviceToken, sendPushNotification, sendP
 dotenv.config();
 
 const JWT_SECRET = process.env.JWT_SECRET || 'super-secret-key-change-me';
-const DB_TYPE = (process.env.DB_TYPE || (process.env.NODE_ENV === 'production' ? 'mariadb' : 'sqlite')).toLowerCase().trim(); // 'mariadb' ou 'sqlite'
+const DB_TYPE = getDbType();
 
 // ---------- SAPPAY CONFIGURATION ----------
 // IDs des opérateurs (à adapter selon votre base Sappay)
@@ -216,60 +216,63 @@ async function performSappayPayout(amount: number, phone: string, provider: stri
 
 // ---------- SERVEUR EXPRESS ----------
 async function startServer() {
-  if (DB_TYPE !== 'firebase') {
-    await initDatabase().catch(err => console.error("Init DB error:", err));
-    // Safe addition of columns if initDatabase missed them
-    try {
-      if (DB_TYPE === 'sqlite') {
-        const uCols: any = await executeSql("PRAGMA table_info(users)");
-        if (Array.isArray(uCols) && !uCols.some((c: any) => String(c.name || '').toLowerCase() === 'has_accepted_terms')) {
-          await executeSql("ALTER TABLE users ADD COLUMN has_accepted_terms BOOLEAN DEFAULT 0");
-        }
-        const wCols: any = await executeSql("PRAGMA table_info(withdrawals)");
-        if (Array.isArray(wCols)) {
-          if (!wCols.some((c: any) => String(c.name || '').toLowerCase() === 'transaction_id')) {
-            await executeSql("ALTER TABLE withdrawals ADD COLUMN transaction_id VARCHAR(255)");
-          }
-          if (!wCols.some((c: any) => String(c.name || '').toLowerCase() === 'rejection_reason')) {
-            await executeSql("ALTER TABLE withdrawals ADD COLUMN rejection_reason TEXT");
-          }
-        }
-      } else {
-        try { await executeSql("ALTER TABLE users ADD COLUMN has_accepted_terms BOOLEAN DEFAULT 0"); } catch (e) {}
-        try { await executeSql("ALTER TABLE withdrawals ADD COLUMN transaction_id VARCHAR(255)"); } catch (e) {}
-        try { await executeSql("ALTER TABLE withdrawals ADD COLUMN rejection_reason TEXT"); } catch (e) {}
-      }
-    } catch (e) {}
-    try {
-      if (DB_TYPE === 'mariadb') {
-        await executeSql(`
-          CREATE TABLE IF NOT EXISTS user_push_tokens (
-            user_id VARCHAR(128) NOT NULL,
-            token VARCHAR(255) NOT NULL,
-            device_type VARCHAR(50),
-            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-            PRIMARY KEY (user_id, token)
-          ) ENGINE=InnoDB
-        `);
-      } else {
-        await executeSql(`
-          CREATE TABLE IF NOT EXISTS user_push_tokens (
-            user_id TEXT NOT NULL,
-            token TEXT NOT NULL,
-            device_type TEXT,
-            updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-            PRIMARY KEY (user_id, token)
-          )
-        `);
-      }
-    } catch (e) {
-      console.error("Error creating user_push_tokens table:", e);
-    }
-  }
-
   const app = express();
   app.set('trust proxy', 1);
   const PORT = 3000;
+
+  if (DB_TYPE !== 'firebase') {
+    (async () => {
+      try {
+        await initDatabase();
+        if (DB_TYPE === 'sqlite') {
+          const uCols: any = await executeSql("PRAGMA table_info(users)");
+          if (Array.isArray(uCols) && !uCols.some((c: any) => String(c.name || '').toLowerCase() === 'has_accepted_terms')) {
+            await executeSql("ALTER TABLE users ADD COLUMN has_accepted_terms BOOLEAN DEFAULT 0");
+          }
+          const wCols: any = await executeSql("PRAGMA table_info(withdrawals)");
+          if (Array.isArray(wCols)) {
+            if (!wCols.some((c: any) => String(c.name || '').toLowerCase() === 'transaction_id')) {
+              await executeSql("ALTER TABLE withdrawals ADD COLUMN transaction_id VARCHAR(255)");
+            }
+            if (!wCols.some((c: any) => String(c.name || '').toLowerCase() === 'rejection_reason')) {
+              await executeSql("ALTER TABLE withdrawals ADD COLUMN rejection_reason TEXT");
+            }
+          }
+        } else {
+          try { await executeSql("ALTER TABLE users ADD COLUMN has_accepted_terms BOOLEAN DEFAULT 0"); } catch (e) {}
+          try { await executeSql("ALTER TABLE withdrawals ADD COLUMN transaction_id VARCHAR(255)"); } catch (e) {}
+          try { await executeSql("ALTER TABLE withdrawals ADD COLUMN rejection_reason TEXT"); } catch (e) {}
+        }
+        try {
+          if (DB_TYPE === 'mariadb') {
+            await executeSql(`
+              CREATE TABLE IF NOT EXISTS user_push_tokens (
+                user_id VARCHAR(128) NOT NULL,
+                token VARCHAR(255) NOT NULL,
+                device_type VARCHAR(50),
+                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+                PRIMARY KEY (user_id, token)
+              ) ENGINE=InnoDB
+            `);
+          } else {
+            await executeSql(`
+              CREATE TABLE IF NOT EXISTS user_push_tokens (
+                user_id TEXT NOT NULL,
+                token TEXT NOT NULL,
+                device_type TEXT,
+                updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                PRIMARY KEY (user_id, token)
+              )
+            `);
+          }
+        } catch (e) {
+          console.error("Error creating user_push_tokens table:", e);
+        }
+      } catch (err) {
+        console.error("Init DB error:", err);
+      }
+    })();
+  }
 
   // Security Headers (Helmet)
   app.use(helmet({

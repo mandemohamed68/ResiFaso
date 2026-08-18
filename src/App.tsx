@@ -159,16 +159,13 @@ function AppContent() {
     return [];
   });
 
-  const [loading, setLoading] = useState<boolean>(() => {
-    if (residences.length > 0) return false;
-    return resLoading;
-  });
+  const [loading, setLoading] = useState<boolean>(false);
 
-  // Guaranteed safety dismissal: The splash screen will NEVER block the user for more than 1.8s
+  // Guaranteed safety dismissal: The splash screen will NEVER block the user for more than 600ms
   useEffect(() => {
     const safetyTimer = setTimeout(() => {
       setLoading(false);
-    }, 1800);
+    }, 600);
     return () => clearTimeout(safetyTimer);
   }, []);
 
@@ -1237,7 +1234,6 @@ function AppContent() {
               </div>
 
               <Partners />
-              <Features />
             </motion.div>
           )}
 

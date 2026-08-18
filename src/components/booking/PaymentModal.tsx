@@ -889,8 +889,8 @@ export const PaymentModal: React.FC<Props> = ({ isOpen, onClose, amount, residen
                 animate={{ opacity: 1, scale: 1 }}
                 className="text-center py-6"
               >
-                <div className="w-16 h-16 bg-emerald-50 text-emerald-600 rounded-2xl flex items-center justify-center mx-auto mb-4 border border-emerald-100">
-                  <CheckCircle size={36} />
+                <div className="w-12 h-12 bg-emerald-50 text-emerald-600 rounded-xl flex items-center justify-center mx-auto mb-3 border border-emerald-200/60">
+                  <CheckCircle size={24} />
                 </div>
                 <h4 className="text-xl font-bold text-slate-900 mb-1">Paiement reçu</h4>
                 <p className="text-slate-600 font-normal text-sm mb-2">Votre réservation est confirmée.</p>

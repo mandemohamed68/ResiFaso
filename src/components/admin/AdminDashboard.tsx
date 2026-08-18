@@ -506,7 +506,7 @@ export const AdminDashboard: React.FC<{ onBackToTraveler?: () => void }> = ({ on
 
   useEffect(() => {
     if (user) {
-      reloadData();
+      queryClient.invalidateQueries({ queryKey: ['admin-data'] });
     }
   }, [dbType, user, lastRefresh]);
 
@@ -8309,8 +8309,8 @@ export const AdminDashboard: React.FC<{ onBackToTraveler?: () => void }> = ({ on
             {resetStep === 1 ? (
               <form onSubmit={handleVerifyResetPassword} className="space-y-6">
                 <div className="text-center">
-                  <div className="inline-flex p-4 bg-red-50 text-red-600 rounded-2xl mb-4">
-                    <ShieldAlert size={32} className="animate-pulse" />
+                  <div className="inline-flex p-3 bg-white border border-slate-200/80 text-slate-800 shadow-xs rounded-xl mb-3">
+                    <ShieldAlert size={22} />
                   </div>
                   <h3 className="text-xl font-black text-slate-900 leading-tight">Confirmation requise</h3>
                   <p className="text-xs text-slate-500 font-medium mt-1 leading-relaxed">

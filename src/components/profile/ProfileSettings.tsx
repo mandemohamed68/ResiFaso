@@ -388,6 +388,29 @@ export const ProfileSettings: React.FC = () => {
     }
   };
 
+  // Upload custom photo from file
+  const handleProfilePhotoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (!file.type.startsWith('image/')) {
+      addToast('Veuillez sélectionner un fichier image valide (JPG, PNG).', 'error');
+      return;
+    }
+
+    try {
+      setIsSaving(true);
+      const resized = await resizeImage(file, 500);
+      setSelectedPhotoURL(resized);
+      addToast('Photo importée ! Cliquez sur "Enregistrer la photo de profil" pour valider.', 'success');
+    } catch (err) {
+      console.error("Profile photo upload failed:", err);
+      addToast('Échec du traitement de la photo.', 'error');
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
   // Mobile Money preference saving
   const handleSavePaymentPreferences = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -1003,7 +1026,7 @@ export const ProfileSettings: React.FC = () => {
               <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 border-b border-slate-100 pb-5">
                 <div className="space-y-1">
                   <h2 className="text-xl font-bold text-slate-900 leading-none">Photo de profil</h2>
-                  <p className="text-xs text-slate-400 font-medium">Ajoutez un visage authentique pour rassurer les hôtes et renforcer la confiance.</p>
+                  <p className="text-xs text-slate-400 font-medium">Téléversez une vraie photo ou choisissez un avatar pour rassurer vos hôtes.</p>
                 </div>
               </div>
               
@@ -1024,24 +1047,41 @@ export const ProfileSettings: React.FC = () => {
                   )}
                 </div>
 
-                <div className="space-y-2 text-center sm:text-left">
-                  <h4 className="font-extrabold text-slate-950 text-sm">Choisissez ou remplacez votre avatar</h4>
-                  <p className="text-xs text-slate-500 font-medium leading-relaxed max-w-sm">Un visage authentique rassure les hôtes du réseau ResiFaso Burkina.</p>
+                <div className="space-y-3 text-center sm:text-left">
+                  <div>
+                    <h4 className="font-extrabold text-slate-950 text-sm">Votre photo personnelle</h4>
+                    <p className="text-xs text-slate-500 font-medium leading-relaxed max-w-sm">Choisissez une photo claire de votre visage depuis votre téléphone ou ordinateur.</p>
+                  </div>
                   
-                  {profile?.photoURL && (
-                    <button 
-                      onClick={handleDeletePhoto}
-                      className="text-[#EF2B2D] hover:text-red-700 text-xs font-black uppercase tracking-wider block mt-3 cursor-pointer hover:underline transition"
-                    >
-                      Supprimer la photo actuelle
-                    </button>
-                  )}
+                  <div className="flex flex-wrap items-center justify-center sm:justify-start gap-3 pt-1">
+                    <label className="bg-[#EF2B2D] hover:bg-red-600 text-white px-5 py-2.5 rounded-2xl text-xs font-black uppercase tracking-wider transition duration-200 flex items-center gap-2 cursor-pointer shadow-md shadow-red-200">
+                      <Upload size={15} />
+                      <span>Téléverser une photo</span>
+                      <input 
+                        type="file" 
+                        accept="image/*" 
+                        onChange={handleProfilePhotoUpload} 
+                        className="hidden" 
+                        id="user-profile-photo-input"
+                      />
+                    </label>
+
+                    {profile?.photoURL && (
+                      <button 
+                        onClick={handleDeletePhoto}
+                        className="text-slate-600 hover:text-red-600 text-xs font-bold px-4 py-2.5 rounded-2xl border border-slate-200 hover:border-red-200 bg-white transition cursor-pointer flex items-center gap-1.5"
+                      >
+                        <Trash2 size={14} />
+                        <span>Supprimer</span>
+                      </button>
+                    )}
+                  </div>
                 </div>
               </div>
 
               {/* Presets Selection catalog */}
-              <div className="space-y-4">
-                <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-widest font-bold">Sélectionnez un avatar de notre catalogue</h3>
+              <div className="space-y-4 pt-2">
+                <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-widest font-bold">Ou choisissez un avatar de notre catalogue</h3>
                 
                 <div className="grid grid-cols-4 gap-4 max-w-sm">
                   {PRESET_AVATARS.map((avatar, idx) => {

@@ -5,8 +5,13 @@ import { dbQuery as sqliteQuery } from './sqlite';
 import { dbQuery as mariadbQuery } from './mariadb';
 
 export const getDbType = (): string => {
-  const dt = process.env.DB_TYPE || (process.env.NODE_ENV === 'production' ? 'mariadb' : 'sqlite');
-  return dt.toLowerCase().trim();
+  if (process.env.DB_TYPE) {
+    return process.env.DB_TYPE.toLowerCase().trim();
+  }
+  if (process.env.DB_HOST) {
+    return 'mariadb';
+  }
+  return 'sqlite';
 };
 
 export let queryDatabase = async (query: string, params?: any[]): Promise<any> => {

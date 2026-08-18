@@ -31,8 +31,8 @@ export const FAQPage: React.FC = () => {
     <div className="max-w-4xl mx-auto px-6 py-12">
       <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
         <header className="mb-12 text-center">
-          <div className="w-16 h-16 bg-red-50 text-red-600 rounded-2xl flex items-center justify-center mx-auto mb-6">
-            <MessageSquare size={32} className="stroke-[2.5]" />
+          <div className="w-12 h-12 bg-white border border-slate-200/80 shadow-xs text-slate-800 rounded-xl flex items-center justify-center mx-auto mb-4">
+            <MessageSquare size={22} />
           </div>
           <h1 className="text-4xl font-black text-slate-900 mb-4 tracking-tighter">Foire Aux Questions</h1>
           <p className="text-slate-500 font-medium max-w-xl mx-auto">

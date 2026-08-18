@@ -1,8 +1,8 @@
-import { executeSql } from './index';
+import { executeSql, getDbType } from './index';
 import bcrypt from 'bcrypt';
 
 export const initDatabase = async () => {
-  const dbType = process.env.DB_TYPE || (process.env.NODE_ENV === 'production' ? 'mariadb' : 'sqlite');
+  const dbType = getDbType();
   console.log(`Initializing local SQL database tables (Dialect: ${dbType})...`);
   
   // Helper for safe column addition

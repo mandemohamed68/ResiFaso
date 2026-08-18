@@ -45,8 +45,8 @@ export const TermsGuideModal: React.FC = () => {
             </div>
           )}
           <div className="flex items-center gap-3.5 mb-1">
-            <div className="w-10 h-10 bg-slate-100 text-slate-800 rounded-xl flex items-center justify-center shrink-0">
-              <ShieldCheck size={20} />
+            <div className="w-9 h-9 bg-white border border-slate-200/80 text-slate-700 rounded-xl shadow-xs flex items-center justify-center shrink-0">
+              <ShieldCheck size={18} />
             </div>
             <div>
               <h2 className="text-xl font-bold text-slate-900 leading-tight">Bienvenue sur ResiFaso</h2>

@@ -903,16 +903,16 @@ export const MyBookings: React.FC<{ onContactHost: (ownerId: string, resId: stri
             <Compass size={16} className="text-red-600 animate-pulse" />
             Guide de Prise en Main
           </button>
-          <div className="w-12 h-12 bg-red-50 text-red-600 rounded-2xl flex items-center justify-center shrink-0">
-            <Calendar size={20} />
+          <div className="w-9 h-9 bg-white border border-slate-200/80 text-slate-700 rounded-xl shadow-xs flex items-center justify-center shrink-0">
+            <Calendar size={18} />
           </div>
         </div>
       </div>
 
       {bookings.length === 0 ? (
-        <div className="bg-slate-50 border border-slate-100 rounded-[32px] p-12 text-center max-w-lg mx-auto">
-          <div className="w-16 h-16 bg-white shadow-md rounded-2xl flex items-center justify-center text-slate-400 mx-auto mb-6">
-            <Compass size={28} />
+        <div className="bg-slate-50 border border-slate-100 rounded-3xl p-10 text-center max-w-lg mx-auto">
+          <div className="w-12 h-12 bg-white border border-slate-200/80 shadow-xs rounded-xl flex items-center justify-center text-slate-600 mx-auto mb-4">
+            <Compass size={22} />
           </div>
           <h3 className="text-xl font-bold text-slate-800 mb-2">Aucun voyage pour le moment</h3>
           <p className="text-slate-500 text-xs font-medium leading-relaxed mb-6">Explorez notre catalogue de résidences d'exception à Ouagadougou, Bobo-Dioulasso et Koudougou.</p>

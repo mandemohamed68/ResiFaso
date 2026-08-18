@@ -15,7 +15,8 @@ const pool = mariadb.createPool({
   password: process.env.DB_PASSWORD || '',
   database: dbName,
   connectionLimit: 20,
-  acquireTimeout: 20000
+  acquireTimeout: 5000,
+  connectTimeout: 5000
 });
 
 export const dbQuery = async (query: string, params?: any[]) => {

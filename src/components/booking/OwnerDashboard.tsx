@@ -195,8 +195,8 @@ const ResidenceHistoryModal: React.FC<ResidenceHistoryModalProps> = ({ residence
                 <div key={b.id} className="flex flex-col md:flex-row items-center justify-between p-5 border border-slate-100 rounded-2xl bg-white hover:border-red-100 transition-all gap-4">
                   <div className="flex items-center gap-4 w-full md:w-auto">
                     <div className={cn(
-                      "w-12 h-12 rounded-xl flex items-center justify-center shrink-0",
-                      new Date(b.checkOut) < new Date() ? "bg-slate-50 text-slate-400" : "bg-red-50 text-red-600"
+                      "w-10 h-10 rounded-xl flex items-center justify-center shrink-0 border border-slate-200/60",
+                      new Date(b.checkOut) < new Date() ? "bg-slate-50 text-slate-400" : "bg-white text-slate-800 shadow-xs"
                     )}>
                       <CalendarCheck size={20} />
                     </div>
@@ -2451,7 +2451,7 @@ export const OwnerDashboard: React.FC<{ isTestMode?: boolean; onBackToTraveler?:
             <div className="grid grid-cols-1 md:grid-cols-4 gap-5">
               
               <div className="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-sm flex items-center gap-4">
-                <div className="w-11 h-11 bg-slate-100 text-slate-800 rounded-xl flex items-center justify-center shrink-0">
+                <div className="w-9 h-9 bg-white border border-slate-200/80 text-slate-700 rounded-xl shadow-xs flex items-center justify-center shrink-0">
                   <Wallet size={18} />
                 </div>
                 <div>
@@ -2461,7 +2461,7 @@ export const OwnerDashboard: React.FC<{ isTestMode?: boolean; onBackToTraveler?:
               </div>
 
               <div className="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-sm flex items-center gap-4">
-                <div className="w-11 h-11 bg-emerald-50 text-emerald-700 rounded-xl flex items-center justify-center shrink-0">
+                <div className="w-9 h-9 bg-white border border-slate-200/80 text-slate-700 rounded-xl shadow-xs flex items-center justify-center shrink-0">
                   <Home size={18} />
                 </div>
                 <div>
@@ -2471,7 +2471,7 @@ export const OwnerDashboard: React.FC<{ isTestMode?: boolean; onBackToTraveler?:
               </div>
 
               <div className="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-sm flex items-center gap-4">
-                <div className="w-11 h-11 bg-amber-50 text-amber-700 rounded-xl flex items-center justify-center shrink-0">
+                <div className="w-9 h-9 bg-white border border-slate-200/80 text-slate-700 rounded-xl shadow-xs flex items-center justify-center shrink-0">
                   <CalendarCheck size={18} />
                 </div>
                 <div>
@@ -2481,7 +2481,7 @@ export const OwnerDashboard: React.FC<{ isTestMode?: boolean; onBackToTraveler?:
               </div>
 
               <div className="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-sm flex items-center gap-4">
-                <div className="w-11 h-11 bg-blue-50 text-blue-700 rounded-xl flex items-center justify-center shrink-0">
+                <div className="w-9 h-9 bg-white border border-slate-200/80 text-slate-700 rounded-xl shadow-xs flex items-center justify-center shrink-0">
                   <Eye size={18} />
                 </div>
                 <div>
@@ -2495,7 +2495,7 @@ export const OwnerDashboard: React.FC<{ isTestMode?: boolean; onBackToTraveler?:
             {/* Burkina local context notifications */}
             <div className="bg-slate-50 border border-slate-200/80 rounded-2xl p-5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
               <div className="flex gap-3.5">
-                <div className="w-9 h-9 bg-slate-200 text-slate-700 rounded-xl flex items-center justify-center shrink-0">
+                <div className="w-9 h-9 bg-white border border-slate-200/80 text-slate-700 rounded-xl shadow-xs flex items-center justify-center shrink-0">
                   <ShieldAlert size={18} />
                 </div>
                 <div>
