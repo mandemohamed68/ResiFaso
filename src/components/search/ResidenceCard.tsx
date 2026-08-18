@@ -311,33 +311,33 @@ export const ResidenceCard: React.FC<Props> = ({
         </div>
 
         {/* Price & Action Row */}
-        <div className="pt-3 border-t border-slate-100 flex items-center justify-between gap-2">
+        <div className="pt-2.5 border-t border-slate-100 flex flex-wrap items-center justify-between gap-2 min-w-0">
           {/* Price */}
-          <div className="min-w-0 shrink-0">
+          <div className="min-w-0 flex-1">
             <span className="text-[9px] text-slate-400 font-bold uppercase tracking-wider block leading-none mb-0.5">Tarif</span>
             <div className="flex items-baseline gap-1 truncate">
-              <span className="text-base sm:text-lg font-black text-slate-900 whitespace-nowrap">
+              <span className="text-sm sm:text-base font-black text-slate-900 whitespace-nowrap">
                 {formatFCFA(currentPrice)}
               </span>
-              <span className="text-xs text-slate-500 font-semibold whitespace-nowrap">/ nuit</span>
+              <span className="text-[10px] text-slate-500 font-semibold whitespace-nowrap">/ nuit</span>
             </div>
             {originalPrice && (
-              <span className="text-[11px] text-slate-400 line-through block leading-none">
+              <span className="text-[10px] text-slate-400 line-through block leading-none">
                 {formatFCFA(originalPrice)}
               </span>
             )}
           </div>
 
           {/* Action Buttons: Phone, WhatsApp, and Reserve */}
-          <div className="flex items-center gap-1.5 shrink-0">
+          <div className="flex items-center gap-1 shrink-0">
             {enablePhoneCalls && (
               <a 
                 href={`tel:${ownerPhone}`}
                 onClick={(e) => e.stopPropagation()}
-                className="p-2 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 hover:text-slate-900 border border-slate-200/80 transition-colors flex items-center justify-center cursor-pointer active:scale-95"
-                title={`Appeler le propriétaire (${ownerPhone})`}
+                className="p-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 hover:text-slate-900 border border-slate-200/80 transition-colors flex items-center justify-center cursor-pointer active:scale-95"
+                title={`Appeler (${ownerPhone})`}
               >
-                <Phone size={14} />
+                <Phone size={13} />
               </a>
             )}
 
@@ -347,10 +347,10 @@ export const ResidenceCard: React.FC<Props> = ({
                 target="_blank"
                 rel="noopener noreferrer"
                 onClick={(e) => e.stopPropagation()}
-                className="p-2 rounded-lg bg-emerald-500 hover:bg-emerald-600 text-white shadow-xs transition-colors flex items-center justify-center cursor-pointer active:scale-95"
-                title={`Contacter sur WhatsApp (${ownerPhone})`}
+                className="p-1.5 rounded-lg bg-emerald-500 hover:bg-emerald-600 text-white shadow-xs transition-colors flex items-center justify-center cursor-pointer active:scale-95"
+                title={`WhatsApp (${ownerPhone})`}
               >
-                <MessageSquare size={14} />
+                <MessageSquare size={13} />
               </a>
             )}
 
@@ -360,7 +360,7 @@ export const ResidenceCard: React.FC<Props> = ({
                 e.stopPropagation();
                 onClick(residence);
               }}
-              className="px-3.5 sm:px-4 py-2 rounded-lg bg-slate-900 hover:bg-red-600 text-white text-xs font-black uppercase tracking-wider transition-all duration-200 shadow-sm cursor-pointer whitespace-nowrap active:scale-95"
+              className="px-2.5 py-1.5 rounded-lg bg-slate-900 hover:bg-red-600 text-white text-[11px] font-black uppercase tracking-wider transition-all duration-200 shadow-sm cursor-pointer whitespace-nowrap active:scale-95"
             >
               Réserver
             </button>

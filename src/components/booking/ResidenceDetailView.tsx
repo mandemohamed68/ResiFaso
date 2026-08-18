@@ -837,7 +837,7 @@ export const ResidenceDetailView: React.FC<ResidenceDetailViewProps> = ({
               <span>Autres logements recommandés à {residence.address?.city || residence.city || 'proximité'}</span>
             </h2>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
               {allResidences
                 .filter(r => r.id !== residence.id && (r.type === residence.type || (r.address?.city || r.city) === (residence.address?.city || residence.city)))
                 .slice(0, 3)
