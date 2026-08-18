@@ -216,9 +216,9 @@ export const ResidenceCard: React.FC<Props> = ({
           </div>
         </div>
 
-        {/* 14-Day Calendar Matrix Section (Compact & Aerated) */}
+        {/* 14-Day Calendar Matrix Section (Clean & Optional Dropdown) */}
         <div className="pt-2 border-t border-slate-100 space-y-2">
-          {/* 14-Day Toggle Header & Mini Micro-Strip */}
+          {/* 14-Day Toggle Header */}
           <div className="flex items-center justify-between gap-2">
             <button
               type="button"
@@ -240,27 +240,6 @@ export const ResidenceCard: React.FC<Props> = ({
             )}>
               {freeDaysCount}/14j libres
             </span>
-          </div>
-
-          {/* Mini 14-day Bar Strip (Always visible for quick glance) */}
-          <div 
-            className="flex items-center gap-1 p-1 bg-slate-50/80 rounded-md border border-slate-150/70 overflow-hidden cursor-pointer"
-            onClick={(e) => {
-              e.stopPropagation();
-              setShow14DayMatrix(!show14DayMatrix);
-            }}
-            title="Aperçu des 14 prochains jours : cliquez pour détailler"
-          >
-            {days14.map((day, idx) => (
-              <div 
-                key={idx}
-                className={cn(
-                  "flex-1 h-2 rounded-xs transition-transform hover:scale-125",
-                  day.isAvailable ? "bg-emerald-500" : "bg-red-400"
-                )}
-                title={`${day.dayName} ${day.dayNum} ${day.monthName}: ${day.isAvailable ? 'Libre' : 'Occupé'}`}
-              />
-            ))}
           </div>
 
           {/* Detailed 14-Day Calendar Matrix Dropdown */}
