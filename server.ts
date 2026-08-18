@@ -2430,35 +2430,66 @@ async function startServer() {
       await executeSql("INSERT INTO password_resets (email, token, expires_at) VALUES (?, ?, ?)", [email, token, expiresAtStr]);
 
       let emailSent = false;
-      if (process.env.SMTP_HOST && process.env.SMTP_USER && process.env.SMTP_PASS) {
+      
+      // Load SMTP settings from DB or environment variables
+      let smtpConfig: any = null;
+      try {
+        const dbEmailSettings = await queries.getSettings('emailSettings');
+        if (dbEmailSettings && dbEmailSettings.smtpHost && dbEmailSettings.smtpUser) {
+          smtpConfig = dbEmailSettings;
+        }
+      } catch (errDb) {
+        console.warn("[PASSWORD RESET] Could not read emailSettings from database:", errDb);
+      }
+
+      const host = smtpConfig?.smtpHost || process.env.SMTP_HOST;
+      const user = smtpConfig?.smtpUser || process.env.SMTP_USER;
+      const pass = smtpConfig?.smtpPass || process.env.SMTP_PASS;
+      const rawPort = smtpConfig?.smtpPort || process.env.SMTP_PORT || 587;
+      const port = Number(rawPort);
+
+      // Port 465 uses direct SSL/TLS (secure: true).
+      // Port 587 or 25 uses STARTTLS (secure: false).
+      // If secure is true on port 587, nodemailer expects immediate TLS handshake and causes "Greeting never received" error.
+      const secure = port === 465;
+
+      const fromName = smtpConfig?.fromName || "ResiFaso";
+      const fromEmail = smtpConfig?.fromEmail || user || "support@resifaso.net";
+
+      if (host && user && pass) {
         try {
           const transporter = nodemailer.createTransport({
-            host: process.env.SMTP_HOST,
-            port: Number(process.env.SMTP_PORT || 587),
-            secure: process.env.SMTP_SECURE === 'true',
+            host: host,
+            port: port,
+            secure: secure,
             auth: {
-              user: process.env.SMTP_USER,
-              pass: process.env.SMTP_PASS,
+              user: user,
+              pass: pass,
             },
+            connectionTimeout: 10000,
+            greetingTimeout: 10000,
+            socketTimeout: 15000,
             tls: {
-              rejectUnauthorized: true
+              rejectUnauthorized: false
             }
           });
 
           await transporter.sendMail({
-            from: process.env.SMTP_FROM || `"ResiFaso" <${process.env.SMTP_USER}>`,
+            from: `"${fromName}" <${fromEmail}>`,
             to: email,
             subject: "ResiFaso - Code de réinitialisation de votre mot de passe",
             html: `
-              <div style="font-family: sans-serif; max-width: 500px; margin: 0 auto; padding: 20px; border: 1px solid #e2e8f0; border-radius: 12px;">
-                <h2 style="color: #dc2626; margin-top: 0;">ResiFaso</h2>
-                <p>Bonjour,</p>
-                <p>Voici votre code de réinitialisation de mot de passe :</p>
-                <div style="background-color: #f8fafc; border: 1px dashed #cbd5e1; padding: 15px; border-radius: 8px; text-align: center; margin: 20px 0;">
-                  <span style="font-size: 28px; font-weight: bold; letter-spacing: 5px; color: #0f172a;">${token}</span>
+              <div style="font-family: sans-serif; max-width: 500px; margin: 0 auto; padding: 20px; border: 1px solid #e2e8f0; border-radius: 12px; background-color: #ffffff;">
+                <h2 style="color: #dc2626; margin-top: 0; font-size: 24px;">ResiFaso</h2>
+                <p style="color: #334155; font-size: 15px;">Bonjour,</p>
+                <p style="color: #334155; font-size: 15px;">Voici votre code de réinitialisation de mot de passe :</p>
+                <div style="background-color: #f8fafc; border: 2px dashed #cbd5e1; padding: 18px; border-radius: 8px; text-align: center; margin: 20px 0;">
+                  <span style="font-size: 32px; font-weight: 800; letter-spacing: 6px; color: #dc2626;">${token}</span>
                 </div>
-                <p style="font-size: 13px; color: #64748b;">Ce code est valable pendant 1 heure.</p>
-                <p style="font-size: 13px; color: #64748b;">Si vous n'avez pas demandé de réinitialisation, veuillez ignorer cet email.</p>
+                <p style="font-size: 13px; color: #64748b; margin-top: 15px;">Ce code de sécurité est valable pendant <strong>1 heure</strong>.</p>
+                <p style="font-size: 13px; color: #64748b;">Si vous n'êtes pas à l'origine de cette demande, vous pouvez ignorer cet email en toute sécurité.</p>
+                <hr style="border: none; border-top: 1px solid #e2e8f0; margin: 20px 0;" />
+                <p style="font-size: 11px; color: #94a3b8; text-align: center;">© ${new Date().getFullYear()} ResiFaso - Plateforme de Réservation de Résidences Meublées</p>
               </div>
             `
           });

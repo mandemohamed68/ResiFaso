@@ -100,23 +100,19 @@ export const Navbar: React.FC<{
         });
 
         if (isFirstLoadRef.current) {
-          // On first load, just record the existing unread IDs to avoid spamming
           const initialSet = new Set<string>();
           unreadItems.forEach((n: any) => initialSet.add(String(n.id)));
           prevUnreadIdsRef.current = initialSet;
           isFirstLoadRef.current = false;
         } else {
-          // Identify any new unread item that we haven't seen in this session
           for (const item of unreadItems) {
             const idStr = String(item.id);
             if (!prevUnreadIdsRef.current.has(idStr)) {
               prevUnreadIdsRef.current.add(idStr);
-              // Determine routing payload based on type
               let redirectUrl = 'notifications';
               if (item.type === 'message') redirectUrl = 'chat';
               if (item.type === 'booking') redirectUrl = 'bookings';
 
-              // Show native notification with custom WhatsApp sound & alert chimes!
               showNotification(
                 item.id,
                 item.title || "ResiFaso",
@@ -134,7 +130,6 @@ export const Navbar: React.FC<{
 
   useEffect(() => {
     fetchNotifications();
-    // Poll every 30 seconds for new notifications
     const interval = setInterval(fetchNotifications, 30000);
     return () => clearInterval(interval);
   }, [user]);
@@ -499,256 +494,114 @@ export const Navbar: React.FC<{
                               iconColor = "text-red-600";
                               bgColor = "bg-red-50/60";
                               unreadBorder = "border-red-200 ring-1 ring-red-50/50";
-                            } else if (notif.type === 'warning') {
-                              Icon = AlertTriangle;
-                              iconColor = "text-amber-600";
-                              bgColor = "bg-amber-50/60";
-                              unreadBorder = "border-amber-200 ring-1 ring-amber-50/50";
-                            } else if (notif.type === 'success') {
-                              Icon = CheckCircle2;
-                              iconColor = "text-emerald-600";
-                              bgColor = "bg-emerald-50/60";
-                              unreadBorder = "border-emerald-200 ring-1 ring-emerald-50/50";
                             }
-
-                            const cleanTitle = (notif.title || '')
-                              .replace(/[\u{1F300}-\u{1F9FF}]|[\u{2600}-\u{26FF}]|[\u{2700}-\u{27BF}]|❌|🚪|⚡|💰|🛡️|⚠️|✅|👍|📦/gu, '')
-                              .replace(/\s+/g, ' ')
-                              .trim();
-                            const cleanMessage = (notif.message || '')
-                              .replace(/[\u{1F300}-\u{1F9FF}]|[\u{2600}-\u{26FF}]|[\u{2700}-\u{27BF}]|❌|🚪|⚡|💰|🛡️|⚠️|✅|👍|📦/gu, '')
-                              .replace(/\s+/g, ' ')
-                              .trim();
 
                             return (
                               <div
                                 key={notif.id}
                                 onClick={() => {
                                   handleMarkAsRead(notif.id);
-                                  if (notif.type === 'booking') {
-                                    if (currentRole === 'owner') onNavigate('owner-dashboard');
-                                    else onNavigate('bookings');
-                                    
-                                    if (notif.referenceId) {
-                                      setTimeout(() => {
-                                        window.dispatchEvent(new CustomEvent('openBookingDetails', { detail: notif.referenceId }));
-                                      }, 100);
-                                    }
-                                  }
+                                  if (notif.type === 'message') onNavigate('messaging');
+                                  else if (notif.type === 'booking') onNavigate('bookings');
                                   setIsNotifOpen(false);
                                 }}
                                 className={cn(
-                                  "group relative p-3.5 rounded-2xl border transition-all duration-300 cursor-pointer flex gap-3.5 hover:bg-slate-50/60 hover:shadow-xs",
+                                  "p-3 rounded-2xl border transition-all cursor-pointer flex items-start gap-3 relative group",
                                   isRead 
-                                    ? "bg-white border-slate-100/80 opacity-75 hover:opacity-100" 
-                                    : cn("bg-white border-slate-200/90 shadow-2xs", unreadBorder)
+                                    ? "bg-white hover:bg-slate-50/80 border-slate-100 opacity-70 hover:opacity-100" 
+                                    : cn("bg-slate-50/50 hover:bg-slate-100/60 shadow-xs", unreadBorder)
                                 )}
                               >
-                                {/* Unread dot badge indicator */}
-                                {!isRead && (
-                                  <div className="absolute top-3.5 right-3.5 w-2 h-2 bg-red-500 rounded-full animate-pulse" />
-                                )}
-                                
-                                <div className={cn(
-                                  "w-9 h-9 rounded-xl flex items-center justify-center shrink-0 transition-transform group-hover:scale-105",
-                                  bgColor,
-                                  iconColor
-                                )}>
-                                  <Icon size={16} className="stroke-[2.2]" />
+                                <div className={cn("w-8 h-8 rounded-xl flex items-center justify-center shrink-0 mt-0.5", bgColor, iconColor)}>
+                                  <Icon size={16} />
                                 </div>
-
-                                <div className="flex-1 min-w-0 pr-2">
-                                  <div className="flex items-center justify-between mb-0.5">
-                                    <span className={cn(
-                                      "text-xs font-bold tracking-tight truncate",
-                                      isRead ? "text-slate-600" : "text-slate-900"
-                                    )}>
-                                      {cleanTitle || notif.title}
-                                    </span>
+                                <div className="flex-1 min-w-0">
+                                  <div className="flex items-center justify-between gap-1">
+                                    <p className={cn("text-xs leading-tight truncate", isRead ? "font-bold text-slate-700" : "font-extrabold text-slate-900")}>
+                                      {notif.title || "Notification"}
+                                    </p>
+                                    {!isRead && (
+                                      <span className="w-2 h-2 rounded-full bg-red-600 shrink-0"></span>
+                                    )}
                                   </div>
-                                  <p className={cn(
-                                    "text-[11px] leading-relaxed font-medium line-clamp-2",
-                                    isRead ? "text-slate-400" : "text-slate-600"
-                                  )}>
-                                    {cleanMessage || notif.message}
+                                  <p className="text-[11px] text-slate-500 font-medium leading-relaxed mt-0.5 line-clamp-2">
+                                    {notif.message || notif.body}
                                   </p>
-                                  <div className="flex items-center gap-2 mt-2">
-                                    <Clock size={11} className="text-slate-300 stroke-[2.5]" />
-                                    <span className="text-[9px] font-bold text-slate-400 font-mono uppercase tracking-wider">
-                                      {new Date(notif.createdAt).toLocaleDateString('fr-FR', {
-                                        day: 'numeric',
-                                        month: 'short',
-                                        hour: '2-digit',
-                                        minute: '2-digit'
-                                      })}
-                                    </span>
-                                  </div>
+                                  <span className="text-[9px] text-slate-400 font-bold block mt-1">
+                                    {notif.createdAt ? new Date(notif.createdAt).toLocaleDateString('fr-FR', { hour: '2-digit', minute: '2-digit' }) : ''}
+                                  </span>
                                 </div>
                               </div>
                             );
                           })
                         )}
                       </div>
-
-                      {/* Footer Actions */}
-                      <div className="border-t border-slate-100 pt-2 shrink-0 mt-1">
-                        <button
-                          onClick={() => {
-                            if (currentRole === 'owner') onNavigate('owner-dashboard');
-                            else onNavigate('bookings');
-                            setIsNotifOpen(false);
-                          }}
-                          className="w-full text-center py-2 bg-slate-50 hover:bg-slate-100 text-slate-700 font-bold text-xs rounded-xl transition duration-200 uppercase tracking-widest cursor-pointer"
-                        >
-                          Voir toutes les alertes
-                        </button>
-                      </div>
                     </div>
                   </>
                 )}
               </div>
 
+              {/* User Dropdown */}
               <div className="relative">
-                <button 
+                <button
                   onClick={() => setIsUserMenuOpen(!isUserMenuOpen)}
-                  className="flex items-center gap-2 p-1.5 pr-4 border border-slate-200 rounded-full hover:shadow-md transition-shadow cursor-pointer bg-white"
+                  className="flex items-center gap-2 p-1.5 pl-3 bg-slate-100 hover:bg-slate-200 rounded-full transition-all cursor-pointer"
                 >
-                  <div className="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center text-slate-500">
-                    <User size={18} />
-                  </div>
-                  <div className="text-left hidden sm:block">
-                    <p className="text-[11px] font-black text-slate-900 leading-tight">{profile?.displayName?.split(' ')[0]}</p>
+                  <span className="text-xs font-bold text-slate-800 truncate max-w-[120px]">
+                    {profile?.displayName || user.email?.split('@')[0]}
+                  </span>
+                  <div className="w-8 h-8 rounded-full bg-brand-primary text-white flex items-center justify-center text-xs font-bold shadow-xs">
+                    {(profile?.displayName?.[0] || user.email?.[0] || 'U').toUpperCase()}
                   </div>
                 </button>
 
-              {isUserMenuOpen && (
-                <>
-                  <div className="fixed inset-0 z-40" onClick={() => setIsUserMenuOpen(false)}></div>
-                  <div className="absolute right-0 top-full mt-2 w-64 bg-white rounded-2xl shadow-xl border border-slate-100 py-3 z-50">
-                    {currentRole === 'client' && (
-                      <>
-                        <button onClick={() => { setIsUserMenuOpen(false); onNavigate('bookings'); }} className="w-full text-left px-5 py-2.5 hover:bg-slate-50 font-bold text-sm text-slate-700">Mes réservations</button>
-                        <button onClick={() => { setIsUserMenuOpen(false); onNavigate('favorites'); }} className="w-full text-left px-5 py-2.5 hover:bg-slate-50 font-bold text-sm text-slate-700">Mes favoris</button>
-                        <button onClick={() => { setIsUserMenuOpen(false); onNavigate('messages'); }} className="w-full text-left px-5 py-2.5 hover:bg-slate-50 font-bold text-sm text-slate-700 flex justify-between items-center">
-                          Messagerie <span className="bg-green-600 text-white text-[10px] px-1.5 py-0.5 rounded-full">Pro</span>
-                        </button>
-                        <div className="h-px bg-slate-100 my-2"></div>
-                        <button onClick={() => { setIsUserMenuOpen(false); onNavigate('favorites'); }} className="w-full text-left px-5 py-2.5 hover:bg-slate-50 text-sm font-medium text-slate-600">Mes Favoris</button>
-                        <button onClick={() => { setIsUserMenuOpen(false); onNavigate('profile'); }} className="w-full text-left px-5 py-2.5 hover:bg-slate-50 text-sm font-medium text-slate-600">Profil & Paramètres</button>
-                        <button onClick={() => { setIsUserMenuOpen(false); addToast("Centre d'aide", 'info'); }} className="w-full text-left px-5 py-2.5 hover:bg-slate-50 text-sm font-medium text-slate-600">Centre d'aide</button>
-                      </>
-                    )}
-                    {currentRole === 'owner' && (
-                      <>
-                        <button onClick={() => { setIsUserMenuOpen(false); addToast('Profil public', "error"); }} className="w-full text-left px-5 py-2.5 hover:bg-slate-50 font-bold text-sm text-slate-700">Profil public</button>
-                        <button onClick={() => { setIsUserMenuOpen(false); onNavigate('profile'); }} className="w-full text-left px-5 py-2.5 hover:bg-slate-50 font-bold text-sm text-slate-700">Paramètres du compte</button>
-                        <div className="h-px bg-slate-100 my-2"></div>
-                      </>
-                    )}
-                    {currentRole === 'admin' && (
-                      <>
-                        <button onClick={() => { setIsUserMenuOpen(false); addToast('Profil personnel à venir', "error"); }} className="w-full text-left px-5 py-2.5 hover:bg-slate-50 font-bold text-sm text-slate-700">Profil personnel</button>
-                        <div className="h-px bg-slate-100 my-2"></div>
-                      </>
-                    )}
-                    <button onClick={() => { logOut(); setIsUserMenuOpen(false); onNavigate('home'); }} className="w-full text-left px-5 py-2.5 hover:bg-slate-50 text-sm font-bold text-red-600">Déconnexion</button>
-                  </div>
-                </>
-              )}
+                {isUserMenuOpen && (
+                  <>
+                    <div className="fixed inset-0 z-40" onClick={() => setIsUserMenuOpen(false)}></div>
+                    <div className="absolute right-0 top-full mt-2 w-56 bg-white rounded-2xl shadow-2xl border border-slate-100 py-2 z-50 animate-in fade-in slide-in-from-top-2 duration-200">
+                      <div className="px-4 py-2 border-b border-slate-100">
+                        <p className="text-xs font-bold text-slate-900 truncate">{profile?.displayName || user.email}</p>
+                        <p className="text-[10px] text-slate-500 truncate">{user.email}</p>
+                      </div>
+
+                      <button
+                        onClick={() => {
+                          setIsUserMenuOpen(false);
+                          onNavigate('profile');
+                        }}
+                        className="w-full px-4 py-2 text-left text-xs font-semibold text-slate-700 hover:bg-slate-50 flex items-center gap-2"
+                      >
+                        <User size={14} />
+                        Mon Profil
+                      </button>
+
+                      <button
+                        onClick={() => {
+                          setIsUserMenuOpen(false);
+                          logOut();
+                        }}
+                        className="w-full px-4 py-2 text-left text-xs font-semibold text-red-600 hover:bg-red-50 flex items-center gap-2"
+                      >
+                        <LogOut size={14} />
+                        Déconnexion
+                      </button>
+                    </div>
+                  </>
+                )}
+              </div>
             </div>
-          </div>
           ) : (
-            <button 
+            <button
               onClick={() => setIsAuthOpen(true)}
-              className="bg-brand-primary hover:bg-brand-primary-dark text-white px-5 py-2 rounded-xl font-bold transition-all shadow-sm cursor-pointer"
+              className="bg-brand-primary hover:bg-brand-primary-dark text-white px-5 py-2.5 rounded-full text-xs font-extrabold uppercase tracking-wider transition-all shadow-md hover:shadow-lg cursor-pointer"
             >
-              Connexion / Inscription
+              Connexion
             </button>
           )}
         </div>
       </div>
 
-      {/* Mobile Bottom Nav */}
-      <div className={cn(
-        "md:hidden fixed bottom-0 left-0 right-0 border-t px-6 py-2.5 flex justify-between items-center z-40 shadow-[0_-2px_10px_rgba(0,0,0,0.05)] transition-colors",
-        isDarkMode ? "bg-slate-900 border-slate-800" : "bg-white border-slate-100"
-      )}>
-        <button 
-          onClick={() => onNavigate('home')} 
-          className={cn(
-            "flex flex-col items-center gap-1 transition-all cursor-pointer",
-            activeView === 'home' ? "text-brand-primary scale-110 font-bold" : (isDarkMode ? "text-slate-400 hover:text-slate-200" : "text-slate-500 hover:text-slate-900")
-          )}
-        >
-          <Home size={20} />
-          <span className="text-[9px] font-bold uppercase tracking-wider">Accueil</span>
-        </button>
-        
-        {user && currentRole === 'client' && (
-          <button 
-            onClick={() => onNavigate('bookings')} 
-            className={cn(
-              "flex flex-col items-center gap-1 transition-all cursor-pointer",
-              activeView === 'bookings' ? "text-brand-primary scale-110 font-bold" : (isDarkMode ? "text-slate-400 hover:text-slate-200" : "text-slate-500 hover:text-slate-900")
-            )}
-          >
-            <Search size={20} />
-            <span className="text-[9px] font-bold uppercase tracking-wider">Réservations</span>
-          </button>
-        )}
-
-        {(currentRole === 'owner' || currentRole === 'admin') && (
-          <button 
-            onClick={() => onNavigate('owner-dashboard')} 
-            className={cn(
-              "flex flex-col items-center gap-1 transition-all cursor-pointer",
-              activeView === 'owner-dashboard' ? "text-brand-primary scale-110 font-bold" : (isDarkMode ? "text-slate-400 hover:text-slate-200" : "text-slate-500 hover:text-slate-900")
-            )}
-          >
-            <LayoutDashboard size={20} />
-            <span className="text-[9px] font-bold uppercase tracking-wider">Hôte</span>
-          </button>
-        )}
-
-        {currentRole === 'admin' && (
-          <button 
-            onClick={() => onNavigate('admin')} 
-            className={cn(
-              "flex flex-col items-center gap-1 transition-all cursor-pointer",
-              activeView === 'admin' ? "text-brand-primary scale-110 font-bold" : (isDarkMode ? "text-slate-400 hover:text-slate-200" : "text-slate-500 hover:text-slate-900")
-            )}
-          >
-            <Shield size={20} />
-            <span className="text-[9px] font-bold uppercase tracking-wider">Admin</span>
-          </button>
-        )}
-
-        <button 
-          onClick={() => onNavigate('contact')} 
-          className={cn(
-            "flex flex-col items-center gap-1 transition-all cursor-pointer",
-            activeView === 'contact' ? "text-brand-primary scale-110 font-bold" : (isDarkMode ? "text-slate-400 hover:text-slate-200" : "text-slate-500 hover:text-slate-900")
-          )}
-        >
-          <HelpCircle size={20} />
-          <span className="text-[9px] font-bold uppercase tracking-wider">Support</span>
-        </button>
-
-        {user && (
-          <button 
-            onClick={() => onNavigate('profile')} 
-            className={cn(
-              "flex flex-col items-center gap-1 transition-all cursor-pointer",
-              activeView === 'profile' ? "text-brand-primary scale-110 font-bold" : (isDarkMode ? "text-slate-400 hover:text-slate-200" : "text-slate-500 hover:text-slate-900")
-            )}
-          >
-            <User size={20} />
-            <span className="text-[9px] font-bold uppercase tracking-wider">Profil</span>
-          </button>
-        )}
-      </div>
-
-      <AuthModal isOpen={isAuthOpen} onClose={() => setIsAuthOpen(false)} onNavigate={onNavigate} />
+      <AuthModal isOpen={isAuthOpen} onClose={() => setIsAuthOpen(false)} />
     </nav>
   );
 };

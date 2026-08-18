@@ -163,6 +163,14 @@ function AppContent() {
     return resLoading;
   });
 
+  // Guaranteed safety dismissal: The splash screen will NEVER block the user for more than 1.8s
+  useEffect(() => {
+    const safetyTimer = setTimeout(() => {
+      setLoading(false);
+    }, 1800);
+    return () => clearTimeout(safetyTimer);
+  }, []);
+
   useEffect(() => {
     if (resData && Array.isArray(resData) && resData.length > 0) {
       setResidences(resData);
@@ -177,8 +185,8 @@ function AppContent() {
       setLoading(false);
     } else if (residences.length > 0) {
       setLoading(false);
-    } else {
-      setLoading(resLoading);
+    } else if (!resLoading) {
+      setLoading(false);
     }
   }, [resData, resLoading, residences.length]);
 
@@ -963,7 +971,7 @@ function AppContent() {
       {branding.christmasLights && <ChristmasLights />}
 
       <AnimatePresence mode="wait">
-        {loading && <LoadingScreen key="loading-screen" />}
+        {loading && <LoadingScreen key="loading-screen" onDismiss={() => setLoading(false)} />}
       </AnimatePresence>
 
       {announcements && announcements.filter(a => a.active).length > 0 && !isAnnouncementDismissed && (
@@ -980,7 +988,6 @@ function AppContent() {
           {/* Marquee Wrapper */}
           <div className="w-full overflow-hidden flex items-center h-8 ml-8 md:ml-32 pr-12">
             <div className="animate-marquee hover:[animation-play-state:paused] flex items-center gap-16 py-1">
-              {/* Duplicate list to make infinite continuous marquee scroll without cutoffs */}
               {[...announcements.filter(a => a.active), ...announcements.filter(a => a.active)].map((ann, idx) => {
                 const badgeColors: Record<string, string> = {
                   info: 'bg-blue-500/10 text-blue-400 border border-blue-500/20',

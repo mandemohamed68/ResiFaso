@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
 import { Search, MapPin, Building2, Users, Wifi, Wind, Car, HelpCircle, Check, MapPinIcon, ShieldCheck, Utensils, Trees, Zap, Droplet, Filter, X, ChevronDown } from 'lucide-react';
-import { BURKINA_LOCATIONS } from '../../constants/locations';
 import { useLocations } from '../../hooks/useLocations';
 import { cn } from '../../lib/utils';
 import { CustomSelect } from '../common/CustomSelect';

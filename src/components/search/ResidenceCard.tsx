@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
-import { Star, MapPin, Wifi, AirVent, ShieldCheck, Heart, Phone, MessageCircle, LayoutGrid, Calendar as CalendarIcon, Droplets, Zap, Sparkles } from 'lucide-react';
+import { Star, MapPin, Heart, Sparkles, Droplets, Zap } from 'lucide-react';
 import { Residence } from '../../types';
 import { motion } from 'motion/react';
-import { formatFCFA, cn, formatDateFr } from '../../lib/utils';
+import { formatFCFA, cn } from '../../lib/utils';
 
 interface Props {
   residence: Residence;
@@ -15,9 +15,7 @@ interface Props {
 export const ResidenceCard: React.FC<Props> = ({
   residence,
   onClick,
-  onFavoriteToggle,
-  enablePhoneCalls = true,
-  enableWhatsApp = true
+  onFavoriteToggle
 }) => {
   const [isWishlist, setIsWishlist] = useState<boolean>(() => {
     try {
@@ -36,9 +34,7 @@ export const ResidenceCard: React.FC<Props> = ({
       let favs: string[] = [];
       try {
         favs = JSON.parse(favsRaw);
-        if (!Array.isArray(favs)) {
-          favs = [];
-        }
+        if (!Array.isArray(favs)) favs = [];
       } catch (_) {
         favs = [];
       }
@@ -52,194 +48,145 @@ export const ResidenceCard: React.FC<Props> = ({
         setIsWishlist(true);
       }
       localStorage.setItem('resifaso_favorites', JSON.stringify(nextFavs));
-      if (onFavoriteToggle) {
-        onFavoriteToggle();
-      }
+      if (onFavoriteToggle) onFavoriteToggle();
     } catch (err) {
-      console.error("Failed to update favoris", err);
+      console.error("Failed to update favorites", err);
     }
   };
 
+  const discount = residence.monthlyDiscount || residence.weeklyDiscount || residence.weekly_discount || residence.monthly_discount;
+  const currentPrice = residence.promoPrice || residence.promo_price || residence.pricePerNight || residence.price_per_night;
+  const originalPrice = (residence.promoPrice || residence.promo_price) ? (residence.pricePerNight || residence.price_per_night) : null;
+
   return (
     <motion.div 
-      whileHover={{ y: -4 }}
-      className="bg-white rounded-2xl overflow-hidden shadow-sm hover:shadow-xl transition-all cursor-pointer border border-slate-100 flex flex-col h-full group"
+      whileHover={{ y: -5 }}
+      transition={{ duration: 0.25, ease: "easeOut" }}
+      className="bg-white rounded-2xl overflow-hidden border border-slate-150/80 shadow-sm hover:shadow-xl hover:border-slate-300 transition-all duration-300 cursor-pointer flex flex-col h-full group"
       onClick={() => onClick(residence.id)}
     >
-      {/* Image Gallery Mock */}
-      <div className="relative aspect-[4/3] overflow-hidden">
+      {/* Photo Container */}
+      <div className="relative aspect-[4/3] overflow-hidden bg-slate-100">
         <img 
           src={residence.images[0] || "https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?auto=format&fit=crop&q=80&w=800"} 
           alt={residence.title}
-          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500 ease-out"
+          loading="lazy"
         />
-        <div className="absolute top-3 left-3 flex flex-wrap gap-1 max-w-[85%] z-10 pointer-events-none">
-          <div className="bg-slate-900/80 backdrop-blur-md text-white px-2 py-0.5 rounded-full text-[9px] font-bold tracking-wide">
-            {residence.type}
-          </div>
+
+        {/* Top Badges */}
+        <div className="absolute top-3 left-3 flex flex-wrap items-center gap-1.5 z-10 pointer-events-none">
+          <span className="bg-slate-900/80 backdrop-blur-md text-white text-[10px] font-bold px-2.5 py-1 rounded-full uppercase tracking-wider shadow-sm">
+            {residence.type || 'Résidence'}
+          </span>
+
           {!!residence.promoted && (
-            <div className="bg-red-600/90 text-white px-2 py-0.5 rounded-full text-[9px] font-bold tracking-wide backdrop-blur-sm flex items-center gap-1 shadow-sm">
-              <Sparkles size={9} /> Coup de cœur
-            </div>
+            <span className="bg-red-600/90 backdrop-blur-md text-white text-[10px] font-bold px-2.5 py-1 rounded-full flex items-center gap-1 shadow-sm">
+              <Sparkles size={11} className="text-amber-300" />
+              Coup de cœur
+            </span>
           )}
-          {!!(residence.weeklyDiscount || residence.monthlyDiscount || residence.weekly_discount || residence.monthly_discount) && (
-            <div className="bg-emerald-600/90 text-white px-2 py-0.5 rounded-full text-[9px] font-bold tracking-wide backdrop-blur-sm shadow-sm whitespace-nowrap">
-              -{residence.monthlyDiscount || residence.weeklyDiscount}% Séjour
-            </div>
-          )}
-          {!!(residence.promoPrice || residence.promo_price) && (
-            <div className="bg-amber-400 text-slate-950 px-2 py-0.5 rounded-full text-[9px] font-extrabold tracking-wide flex items-center gap-1 shadow-sm whitespace-nowrap">
-              <Zap size={9} /> Offre spéciale
-            </div>
+
+          {!!discount && (
+            <span className="bg-emerald-600/90 backdrop-blur-md text-white text-[10px] font-bold px-2 py-1 rounded-full shadow-sm">
+              -{discount}% Séjour
+            </span>
           )}
         </div>
+
+        {/* Favorite Heart Button */}
         <button 
           type="button"
           onClick={handleWishlist}
-          className="absolute top-3 right-3 p-2 bg-white/70 backdrop-blur-md rounded-full text-slate-400 hover:text-red-500 transition-colors z-10 pointer-events-auto"
+          className="absolute top-3 right-3 p-2 bg-white/80 hover:bg-white backdrop-blur-md rounded-full text-slate-500 hover:text-red-500 shadow-sm transition-all duration-200 z-10 cursor-pointer active:scale-90"
+          title={isWishlist ? "Retirer des favoris" : "Ajouter aux favoris"}
         >
-          <Heart size={18} fill={isWishlist ? "currentColor" : "none"} className={isWishlist ? "text-red-500" : ""} />
+          <Heart 
+            size={18} 
+            fill={isWishlist ? "currentColor" : "none"} 
+            className={cn("transition-colors", isWishlist ? "text-red-500" : "")} 
+          />
         </button>
+
+        {/* Subtle Bottom Availability Pill */}
+        <div className="absolute bottom-3 left-3 z-10 pointer-events-none">
+          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-black/60 backdrop-blur-md text-white text-[10px] font-semibold">
+            <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+            <span>Disponible</span>
+          </span>
+        </div>
       </div>
 
-      {/* Content */}
-      <div className="p-3 sm:p-3.5 flex flex-col flex-1">
-        <div className="flex items-start justify-between mb-1 gap-1.5">
-          <h3 className="font-extrabold text-slate-900 group-hover:text-red-600 transition-colors uppercase text-[11px] sm:text-[12px] leading-tight flex-1 line-clamp-1">{residence.title}</h3>
-          <div className="flex items-center gap-1 text-[11px] sm:text-xs font-bold text-slate-800 shrink-0">
-            <Star size={12} className={cn("text-amber-400", residence.rating ? "fill-amber-400" : "fill-none")} />
-            <span>{residence.rating ? residence.rating : "Nouveau"}</span>
-          </div>
-        </div>
-        
-        <div className="flex items-center gap-1 text-slate-500 text-[11px] mb-2 font-medium">
-          <MapPin size={11} className="text-red-500 shrink-0" />
-          <span className="line-clamp-1">{residence.address?.neighborhood || residence.neighborhood}, {residence.address?.city || residence.city}</span>
-        </div>
-
-        <div className="flex flex-wrap items-center gap-1.5 mb-2.5">
-          <div className="flex items-center gap-1 text-slate-600 text-[10px] sm:text-xs font-semibold bg-slate-50 px-2 py-0.5 rounded-lg border border-slate-100">
-            <LayoutGrid size={11} className="text-slate-400" />
-            <span>{residence.rooms || 1} P.</span>
-          </div>
-          {(residence.utilitiesIncluded?.water || residence.utilitiesIncluded?.electricity) && (
-            <div className="flex items-center gap-1">
-              {residence.utilitiesIncluded?.water && (
-                <span className="text-[10px] font-bold text-blue-700 bg-blue-50 px-1.5 py-0.5 rounded-md flex items-center gap-0.5 border border-blue-100">
-                  <Droplets size={9} /> Eau
-                </span>
-              )}
-              {residence.utilitiesIncluded?.electricity && (
-                <span className="text-[10px] font-bold text-amber-800 bg-amber-50 px-1.5 py-0.5 rounded-md flex items-center gap-0.5 border border-amber-100">
-                  <Zap size={9} /> Élec.
-                </span>
-              )}
+      {/* Card Body */}
+      <div className="p-4 flex flex-col flex-1 justify-between">
+        <div className="space-y-1.5">
+          {/* Location & Rating Header */}
+          <div className="flex items-center justify-between text-xs text-slate-500 font-medium">
+            <div className="flex items-center gap-1 line-clamp-1">
+              <MapPin size={13} className="text-red-600 shrink-0" />
+              <span className="truncate">{residence.address?.neighborhood || residence.neighborhood || "Ouaga"}, {residence.address?.city || residence.city || "Burkina"}</span>
             </div>
-          )}
-        </div>
 
-        {/* Availability 14-Day Numbered Matrix */}
-        <div className="mb-2.5 bg-slate-50/80 p-1.5 rounded-xl border border-slate-200/60">
-          <div className="flex items-center justify-between mb-1 px-0.5">
-            <span className="text-[8px] sm:text-[9px] font-extrabold uppercase text-slate-500 tracking-wider flex items-center gap-1">
-              <CalendarIcon size={10} className="text-slate-400" /> DISPO. (14J)
+            <div className="flex items-center gap-1 text-slate-800 font-bold shrink-0 ml-2">
+              <Star size={13} className="text-amber-500 fill-amber-500" />
+              <span>{residence.rating ? Number(residence.rating).toFixed(1) : "Nouveau"}</span>
+            </div>
+          </div>
+
+          {/* Residence Title */}
+          <h3 className="font-bold text-slate-900 group-hover:text-red-600 transition-colors text-sm sm:text-base leading-snug line-clamp-1">
+            {residence.title}
+          </h3>
+
+          {/* Amenities & Utilities */}
+          <div className="flex flex-wrap items-center gap-1.5 pt-1 text-[11px] text-slate-600 font-medium">
+            <span className="bg-slate-100/80 px-2 py-0.5 rounded-md text-slate-700">
+              {residence.rooms || 1} {Number(residence.rooms) > 1 ? 'pièces' : 'pièce'}
             </span>
-          </div>
-          <div className="grid grid-cols-7 gap-0.5 text-center">
-            {Array.from({ length: 14 }).map((_, i) => {
-              const d = new Date();
-              d.setDate(d.getDate() + i);
-              const dayNum = d.getDate();
-              const dateStr = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
-              const isBooked = residence.occupiedDates?.some((occ: any) => {
-                const status = (occ.status || occ.bookingStatus || occ.booking_status || '').toLowerCase();
-                const payStatus = (occ.paymentStatus || occ.payment_status || '').toLowerCase();
-                if (['cancelled', 'declined', 'annulee', 'annulé', 'refusee', 'refusé', 'expired', 'canceled'].includes(status)) {
-                  return false;
-                }
-                if (payStatus && !['paid', 'advance_paid', 'partial_paid', 'partiel', 'fully_paid', 'paye', 'payé'].includes(payStatus)) {
-                  return false;
-                }
-                const dFrom = (occ.from || occ.check_in || '').split('T')[0];
-                const dTo = (occ.to || occ.check_out || '').split('T')[0];
-                return dFrom && dTo && dateStr >= dFrom && dateStr <= dTo;
-              });
 
-              return (
-                <div 
-                  key={dateStr}
-                  title={`${formatDateFr(dateStr)}: ${isBooked ? "Occupé" : "Disponible"}`}
-                  className={cn(
-                    "text-[9px] font-bold py-0.5 rounded border transition-colors select-none cursor-help",
-                    isBooked 
-                      ? "bg-rose-50 text-rose-600 border-rose-200/80 line-through opacity-60" 
-                      : "bg-emerald-50/90 text-emerald-800 border-emerald-200/80 hover:bg-emerald-100"
-                  )}
-                >
-                  {dayNum}
-                </div>
-              );
-            })}
+            {residence.utilitiesIncluded?.water && (
+              <span className="bg-sky-50 text-sky-800 px-2 py-0.5 rounded-md flex items-center gap-1 border border-sky-100">
+                <Droplets size={11} className="text-sky-600" />
+                Eau incluse
+              </span>
+            )}
+
+            {residence.utilitiesIncluded?.electricity && (
+              <span className="bg-amber-50 text-amber-900 px-2 py-0.5 rounded-md flex items-center gap-1 border border-amber-100">
+                <Zap size={11} className="text-amber-600" />
+                Élec. incluse
+              </span>
+            )}
           </div>
         </div>
 
-        <div className="mt-auto space-y-2">
-          {/* Quick Contact Actions (Mobile focus) */}
-          {(enablePhoneCalls || enableWhatsApp) && (
-            <div className={cn(
-              "grid gap-1.5",
-              enablePhoneCalls && enableWhatsApp ? "grid-cols-2" : "grid-cols-1"
-            )}>
-              {enablePhoneCalls && (
-                <a 
-                  href={`tel:${residence.ownerPhone || '70000000'}`}
-                  onClick={(e) => e.stopPropagation()}
-                  className="flex items-center justify-center gap-1 py-1 bg-slate-50 hover:bg-slate-100 rounded-lg text-[10px] font-bold text-slate-700 transition-all border border-slate-200/80"
-                >
-                  <Phone size={11} className="text-slate-500" />
-                  Appeler
-                </a>
-              )}
-              {enableWhatsApp && (
-                <a 
-                  href={`https://wa.me/${(residence.ownerPhone || '70000000').replace(/\s+/g, '')}`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  onClick={(e) => e.stopPropagation()}
-                  className="flex items-center justify-center gap-1 py-1 bg-emerald-50 hover:bg-emerald-100/80 rounded-lg text-[10px] font-bold text-emerald-800 transition-all border border-emerald-200/80"
-                >
-                  <MessageCircle size={11} className="text-emerald-600" />
-                  WhatsApp
-                </a>
+        {/* Price & Action Row */}
+        <div className="mt-4 pt-3 border-t border-slate-100 flex items-center justify-between">
+          <div>
+            <span className="text-[10px] text-slate-400 font-semibold uppercase tracking-wider block">Tarif</span>
+            <div className="flex items-baseline gap-1">
+              <span className="text-base sm:text-lg font-black text-slate-900">
+                {formatFCFA(currentPrice)}
+              </span>
+              <span className="text-xs text-slate-500 font-medium">/ nuit</span>
+              {originalPrice && (
+                <span className="text-xs text-slate-400 line-through ml-1">
+                  {formatFCFA(originalPrice)}
+                </span>
               )}
             </div>
-          )}
-
-          <div className="flex items-center justify-between border-t border-slate-100 pt-2 gap-1 min-w-0">
-            <div className="flex flex-col min-w-0 flex-1">
-              <span className="text-[8px] sm:text-[9px] text-slate-400 font-extrabold uppercase tracking-wider truncate">Par nuit</span>
-              <div className="flex items-baseline gap-0.5 min-w-0 flex-wrap">
-                {(residence.promoPrice || residence.promo_price) ? (
-                  <>
-                    <span className="text-[11px] sm:text-xs xl:text-[11px] 2xl:text-xs font-black text-slate-900 whitespace-nowrap">{formatFCFA(residence.promoPrice || residence.promo_price)}</span>
-                    <span className="text-[8px] text-slate-400 font-medium line-through shrink-0">{(residence.pricePerNight || residence.price_per_night)}</span>
-                  </>
-                ) : (
-                  <span className="text-[11px] sm:text-xs xl:text-[11px] 2xl:text-xs font-black text-slate-900 whitespace-nowrap">{formatFCFA(residence.pricePerNight || residence.price_per_night)}</span>
-                )}
-              </div>
-            </div>
-            <button 
-              type="button"
-              onClick={(e) => {
-                e.stopPropagation();
-                onClick(residence.id);
-              }}
-              className="bg-slate-900 hover:bg-red-600 text-white px-2 py-1 rounded-lg text-[9px] sm:text-[10px] font-black uppercase tracking-wider transition-colors shrink-0 cursor-pointer shadow-sm whitespace-nowrap"
-            >
-              DÉTAILS
-            </button>
           </div>
+
+          <button 
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              onClick(residence.id);
+            }}
+            className="px-3.5 py-1.5 rounded-xl bg-slate-900 hover:bg-red-600 text-white text-xs font-bold transition-colors shadow-sm cursor-pointer"
+          >
+            Réserver
+          </button>
         </div>
       </div>
     </motion.div>
