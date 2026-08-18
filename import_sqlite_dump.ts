@@ -6,34 +6,7 @@ import dotenv from 'dotenv';
 dotenv.config();
 
 function splitSqlStatements(sql: string): string[] {
-  const statements: string[] = [];
-  let current = '';
-  let inString = false;
-  
-  for (let i = 0; i < sql.length; i++) {
-    const char = sql[i];
-    if (char === "'") {
-      // Handle escaped single quotes '' or \'
-      if (i > 0 && (sql[i - 1] === "\\" || sql[i - 1] === "'")) {
-        // Escaped quote, do not toggle string mode
-        current += char;
-      } else {
-        inString = !inString;
-        current += char;
-      }
-    } else if (char === ';' && !inString) {
-      statements.push(current.trim());
-      current = '';
-    } else {
-      current += char;
-    }
-  }
-  
-  if (current.trim()) {
-    statements.push(current.trim());
-  }
-  
-  return statements;
+  return sql.split(/;\r?\n/).map(s => s.trim()).filter(s => s.length > 0);
 }
 
 async function runImport() {
@@ -57,11 +30,30 @@ async function runImport() {
         }
         // Convert MySQL \' to SQLite ''
         sql = sql.replace(/\\'/g, "''");
+        // Convert users(id) to users(uid)
+        sql = sql.replace(/\bINSERT\s+OR\s+IGNORE\s+INTO\s+users\s*\(\s*id\s*,/i, 'INSERT OR IGNORE INTO users (uid,');
+        sql = sql.replace(/\bINSERT\s+INTO\s+users\s*\(\s*id\s*,/i, 'INSERT INTO users (uid,');
         statements.push(sql);
       }
     }
     
     console.log(`Extracted and converted ${statements.length} INSERT statements for SQLite.`);
+
+    // Clear existing data to ensure a clean import state
+    try {
+      await executeSql("PRAGMA foreign_keys = OFF");
+      await executeSql("DELETE FROM residence_amenities");
+      await executeSql("DELETE FROM residence_images");
+      await executeSql("DELETE FROM bookings");
+      await executeSql("DELETE FROM reviews");
+      await executeSql("DELETE FROM withdrawals");
+      await executeSql("DELETE FROM advertisements");
+      await executeSql("DELETE FROM residences");
+      await executeSql("DELETE FROM users");
+      console.log("Successfully cleared previous table data for a fresh import.");
+    } catch (e: any) {
+      console.warn("Could not clear tables, proceeding anyway:", e.message);
+    }
     
     // Add columns if they are missing in SQLite
     try {
