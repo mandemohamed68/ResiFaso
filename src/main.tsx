@@ -1,5 +1,6 @@
-import {StrictMode} from 'react';
-import {createRoot} from 'react-dom/client';
+import React, { Component, ErrorInfo, ReactNode } from 'react';
+import { StrictMode } from 'react';
+import { createRoot } from 'react-dom/client';
 import { QueryClientProvider } from '@tanstack/react-query';
 import { queryClient } from './lib/queryClient';
 import App from './App';
@@ -30,13 +31,38 @@ try {
   console.error("API Proxy initialization failed:", e);
 }
 
+class ErrorBoundary extends Component<{children: ReactNode}, {hasError: boolean, error: Error | null}> {
+  constructor(props: {children: ReactNode}) {
+    super(props);
+    this.state = { hasError: false, error: null };
+  }
+  static getDerivedStateFromError(error: Error) {
+    return { hasError: true, error };
+  }
+  componentDidCatch(error: Error, errorInfo: ErrorInfo) {
+    console.error("ErrorBoundary caught an error", error, errorInfo);
+  }
+  render() {
+    if (this.state.hasError) {
+      return <div style={{padding: 20, color: 'red', background: 'white', zIndex: 9999, position: 'relative'}}>
+        <h1>Something went wrong.</h1>
+        <pre>{this.state.error?.message}</pre>
+        <pre>{this.state.error?.stack}</pre>
+      </div>;
+    }
+    return this.props.children;
+  }
+}
+
 const container = document.getElementById('root');
 if (container) {
   createRoot(container).render(
     <StrictMode>
-      <QueryClientProvider client={queryClient}>
-        <App />
-      </QueryClientProvider>
+      <ErrorBoundary>
+        <QueryClientProvider client={queryClient}>
+          <App />
+        </QueryClientProvider>
+      </ErrorBoundary>
     </StrictMode>,
   );
 }
