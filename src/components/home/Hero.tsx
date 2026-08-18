@@ -1,6 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import heroBg from '../../assets/images/monument_heros.jpg';
 import { Advertisement } from '../../types';
 import { apiFetch } from '../../lib/api';
 import { useBrandingSettings } from '../../hooks/useQueries';
@@ -58,7 +57,7 @@ export const Hero: React.FC = () => {
     const list: HeroSlide[] = [
       {
         isDefault: true,
-        imageUrl: heroBg,
+        imageUrl: '/rondpm.png',
         title: "L'art du séjour meublé au Burkina Faso",
         description: bSlogan,
         frequency: 12
