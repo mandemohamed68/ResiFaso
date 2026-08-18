@@ -411,6 +411,66 @@ async function startServer() {
     }
   });
 
+  // --- Unified Dashboard Data for Admin (Reduces 14 requests to 1 to avoid browser connection limits & aborts) ---
+  app.get("/api/admin/dashboard-data", authenticateToken, async (req: AuthRequest, res) => {
+    try {
+      if (req.user?.role !== 'admin') {
+        return res.status(403).json({ error: "Non autorisé" });
+      }
+
+      const [
+        resList,
+        userList,
+        bookingList,
+        reviewList,
+        settingsData,
+        adList,
+        withdrawalList,
+        faqList,
+        contactSettingsData,
+        messageList,
+        verifTypeList,
+        partnerList,
+        mobileAppSettingsData,
+        brandingSettingsData
+      ] = await Promise.all([
+        queries.getAllResidences().catch(() => []),
+        queries.getAllUsers().catch(() => []),
+        queries.getAllBookings({ isAdmin: true }).catch(() => []),
+        queries.getAllReviews().catch(() => []),
+        queries.getSettings('global').catch(() => ({})),
+        queries.getAllAds().catch(() => []),
+        queries.getAllWithdrawals().catch(() => []),
+        executeSql("SELECT * FROM faqs ORDER BY `order` ASC").catch(() => []),
+        queries.getSettings('contactSettings').catch(() => ({})),
+        queries.getAllContactMessages().catch(() => []),
+        executeSql("SELECT * FROM verification_types ORDER BY created_at ASC").catch(() => []),
+        executeSql("SELECT id, name, logo_url as logoUrl, is_active as isActive, website_url as websiteUrl FROM partners ORDER BY created_at DESC").catch(() => []),
+        queries.getSettings('mobile_app').catch(() => ({})),
+        queries.getSettings('branding').catch(() => ({}))
+      ]);
+
+      res.json({
+        residences: resList,
+        users: userList,
+        bookings: bookingList,
+        reviews: reviewList,
+        settings: settingsData,
+        ads: adList,
+        withdrawals: withdrawalList,
+        faqs: faqList,
+        contactSettings: contactSettingsData,
+        messages: messageList,
+        verificationTypes: verifTypeList,
+        partners: partnerList,
+        mobileAppSettings: mobileAppSettingsData,
+        brandingSettings: brandingSettingsData
+      });
+    } catch (err: any) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
   // --- Residences ---
   app.get("/api/residences", async (req, res) => {
     try {

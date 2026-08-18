@@ -163,53 +163,11 @@ export const useAdminData = (role: string | undefined) => {
   return useQuery({
     queryKey: ['admin-data'],
     queryFn: async () => {
-      const [
-        resList,
-        userList,
-        bookingList,
-        reviewList,
-        settingsData,
-        adList,
-        withdrawalList,
-        faqList,
-        contactSettingsData,
-        messageList,
-        verifTypeList,
-        partnerList,
-        mobileAppSettingsData,
-        brandingSettingsData
-      ] = await Promise.all([
-        getAllResidences().catch(() => []),
-        getAllUsers().catch(() => []),
-        getAllBookings().catch(() => []),
-        getAllReviews().catch(() => []),
-        getGlobalSettings().catch(() => ({})),
-        getAllAds().catch(() => []),
-        getAllWithdrawals().catch(() => []),
-        getAllFaqs().catch(() => []),
-        getContactSettings().catch(() => ({})),
-        getAllContactMessages().catch(() => []),
-        apiFetch('/api/admin/verification-types').then(r => r.ok ? r.json() : []).catch(() => []),
-        apiFetch('/api/partners').then(r => r.ok ? r.json() : []).catch(() => []),
-        getMobileAppSettings().catch(() => ({})),
-        getBrandingSettings().catch(() => ({}))
-      ]);
-      return {
-        residences: resList,
-        users: userList,
-        bookings: bookingList,
-        reviews: reviewList,
-        settings: settingsData,
-        ads: adList,
-        withdrawals: withdrawalList,
-        faqs: faqList,
-        contactSettings: contactSettingsData,
-        messages: messageList,
-        verificationTypes: verifTypeList,
-        partners: partnerList,
-        mobileAppSettings: mobileAppSettingsData,
-        brandingSettings: brandingSettingsData
-      };
+      const res = await apiFetch('/api/admin/dashboard-data');
+      if (!res.ok) {
+        throw new Error("Erreur de chargement des données du tableau de bord");
+      }
+      return res.json();
     },
     enabled: role === 'admin',
     refetchInterval: 60000, // Refresh every minute for admin
