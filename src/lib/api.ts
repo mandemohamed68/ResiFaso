@@ -95,7 +95,7 @@ export async function apiFetch(path: string, options: RequestInit = {}): Promise
 
   // Set up abort timeout if no signal provided
   const controller = new AbortController();
-  let timeoutMs = (options.method && options.method.toUpperCase() !== 'GET') ? 15000 : 7000;
+  let timeoutMs = (options.method && options.method.toUpperCase() !== 'GET') ? 30000 : 30000;
   
   // Increase timeout for payment or Sappay operations to 180 seconds (3 minutes)
   const customTimeout = (options as any).timeout;

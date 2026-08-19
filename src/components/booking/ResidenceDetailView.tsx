@@ -5,7 +5,7 @@ import {
   Droplets, Zap, ChevronRight, ChevronLeft, X, Maximize2, 
   Sparkles, Clock, AlertTriangle, Home, Bed, Bath, Users, 
   Tv, Wifi, Shield, Wind, Coffee, Car, Lock, Waves, 
-  CalendarDays, Info, Compass, ExternalLink, HelpCircle
+  CalendarDays, Info, Compass, ExternalLink, HelpCircle, CreditCard
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Residence } from '../../types';
@@ -1074,24 +1074,49 @@ export const ResidenceDetailView: React.FC<ResidenceDetailViewProps> = ({
             </div>
 
             {/* Mobile Money Badges */}
-            <div className="pt-1">
-              <p className="text-[10px] uppercase tracking-wider text-slate-400 font-bold text-center mb-2">
-                Moyens de paiement acceptés au Burkina
-              </p>
-              <div className="grid grid-cols-4 gap-1.5 text-center">
-                <div className="p-1.5 rounded-lg bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-[9px] font-black text-slate-700 dark:text-slate-300">
-                  🟠 Orange Money
-                </div>
-                <div className="p-1.5 rounded-lg bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-[9px] font-black text-slate-700 dark:text-slate-300">
-                  🔵 Moov Money
-                </div>
-                <div className="p-1.5 rounded-lg bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-[9px] font-black text-slate-700 dark:text-slate-300">
-                  🔴 Telecel
-                </div>
-                <div className="p-1.5 rounded-lg bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-[9px] font-black text-slate-700 dark:text-slate-300">
-                  🟢 Coris Money
-                </div>
+            <div className="pt-2 pb-1 space-y-2.5">
+              <div className="flex items-center justify-between">
+                <span className="text-[11px] font-black text-slate-700 dark:text-slate-200 uppercase tracking-wider flex items-center gap-1.5">
+                  <CreditCard size={13} className="text-brand-secondary" />
+                  Moyens de paiement acceptés
+                </span>
+                <span className="text-[10px] font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/50 px-2 py-0.5 rounded-full border border-emerald-200 dark:border-emerald-800/60">
+                  100% Sécurisé
+                </span>
               </div>
+              
+              <div className="grid grid-cols-4 gap-2">
+                {[
+                  { name: 'Orange Money', logo: '/orange.png', bg: 'hover:border-orange-300' },
+                  { name: 'Moov Money', logo: '/moov-1.png', bg: 'hover:border-blue-300' },
+                  { name: 'Telecel', logo: '/telecel.png', bg: 'hover:border-red-300' },
+                  { name: 'Coris Money', logo: '/coris.png', bg: 'hover:border-emerald-300' }
+                ].map((prov) => (
+                  <div 
+                    key={prov.name}
+                    className={cn(
+                      "p-2 rounded-xl bg-white dark:bg-slate-800/90 border border-slate-200/80 dark:border-slate-700/80 shadow-2xs flex flex-col items-center justify-center gap-1.5 transition-all group",
+                      prov.bg
+                    )}
+                  >
+                    <div className="w-8 h-8 rounded-lg flex items-center justify-center p-1 bg-slate-50 dark:bg-slate-700/50 border border-slate-100 dark:border-slate-600/50">
+                      <img 
+                        src={prov.logo} 
+                        alt={prov.name} 
+                        referrerPolicy="no-referrer"
+                        className="w-full h-full object-contain group-hover:scale-105 transition-transform" 
+                      />
+                    </div>
+                    <span className="text-[9px] font-extrabold text-slate-700 dark:text-slate-300 text-center leading-tight truncate w-full">
+                      {prov.name}
+                    </span>
+                  </div>
+                ))}
+              </div>
+
+              <p className="text-[9px] text-slate-400 dark:text-slate-500 text-center leading-tight">
+                Paiement instantané par Mobile Money avec confirmation par code OTP sécurisé.
+              </p>
             </div>
 
             {/* Confirmation CTA Button */}

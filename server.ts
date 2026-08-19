@@ -471,6 +471,38 @@ async function startServer() {
     }
   });
 
+  // --- Unified Dashboard Data for Owner (Reduces requests to avoid aborts) ---
+  app.get("/api/owner/dashboard-data", authenticateToken, async (req: AuthRequest, res) => {
+    try {
+      const uid = req.user?.uid;
+      if (!uid) return res.status(401).json({ error: "Non autorisé" });
+
+      const [
+        resList,
+        bookList,
+        withList,
+        settingsData,
+        profileData
+      ] = await Promise.all([
+        queries.getAllResidences(uid).catch(() => []),
+        queries.getAllBookings({ ownerId: uid }).catch(() => []),
+        queries.getAllWithdrawals(uid).catch(() => []),
+        queries.getSettings('global').catch(() => ({})),
+        queries.getUserProfile(uid).catch(() => ({}))
+      ]);
+
+      res.json({
+        residences: resList,
+        bookings: bookList,
+        withdrawals: withList,
+        settings: settingsData,
+        profile: profileData
+      });
+    } catch (err: any) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
   // --- Residences ---
   app.get("/api/residences", async (req, res) => {
     try {

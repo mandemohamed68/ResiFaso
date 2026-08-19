@@ -5,7 +5,7 @@ import { getClientBookings, updateBookingStatus, sendNotification, getBackendDbT
 import { Booking, Residence } from '../../types';
 import { MOCK_RESIDENCES } from '../../mockData';
 import { motion, AnimatePresence } from 'motion/react';
-import { Calendar, CreditCard, MessageSquare, Compass, Send, CheckCircle2, RefreshCw, X, AlertCircle, Star, Download, ChevronLeft, ChevronRight, Clock, MapPin, User, Check } from 'lucide-react';
+import { Calendar, CreditCard, MessageSquare, Compass, Send, CheckCircle2, RefreshCw, X, AlertCircle, Star, Download, ChevronLeft, ChevronRight, Clock, MapPin, User, Check, Building2, Copy, CalendarDays, ShieldCheck } from 'lucide-react';
 import { cn, formatDateFr } from '../../lib/utils';
 import { PaymentModal } from './PaymentModal';
 import { apiFetch } from '../../lib/api';
@@ -836,33 +836,78 @@ export const MyBookings: React.FC<{ onContactHost: (ownerId: string, resId: stri
     const isCheckOutPast = checkOutStr ? checkOutStr < todayStr : false;
 
     if (bStatus === 'pending' && (isCheckInPast || isCheckOutPast)) {
-      return <span className="px-3 py-1 bg-slate-100 border border-slate-200/80 text-slate-600 rounded-full text-xs font-semibold">Demande expirée</span>;
+      return (
+        <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-slate-100 border border-slate-200 text-slate-600 rounded-full text-xs font-bold shadow-2xs">
+          <span className="w-1.5 h-1.5 rounded-full bg-slate-400" />
+          Demande expirée
+        </span>
+      );
     }
 
     if (bStatus === 'completed' || (isCheckOutPast && (bStatus === 'confirmed' || pStatus === 'fully_paid' || pStatus === 'advance_paid'))) {
-      return <span className="px-3 py-1 bg-slate-100 border border-slate-200/80 text-slate-700 rounded-full text-xs font-semibold">Séjour terminé</span>;
+      return (
+        <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-slate-100 border border-slate-200 text-slate-700 rounded-full text-xs font-bold shadow-2xs">
+          <span className="w-1.5 h-1.5 rounded-full bg-slate-500" />
+          Séjour terminé
+        </span>
+      );
     }
 
     switch (bStatus) {
       case 'pending':
-        return <span className="px-3 py-1 bg-amber-50 border border-amber-200/80 text-amber-800 rounded-full text-xs font-semibold">En attente d'approbation</span>;
+        return (
+          <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-amber-50 border border-amber-200 text-amber-800 rounded-full text-xs font-bold shadow-2xs">
+            <span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse" />
+            En attente d'approbation
+          </span>
+        );
       case 'confirmed':
         const isFullyPaidObj = pStatus === 'fully_paid' || (pStatus === 'advance_paid' && bookingObj && bookingObj.advancePaid >= bookingObj.totalPrice);
         if (isFullyPaidObj) {
-          return <span className="px-3 py-1 bg-emerald-50 border border-emerald-200/80 text-emerald-800 rounded-full text-xs font-semibold">Séjour confirmé (Payé)</span>;
+          return (
+            <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-emerald-50 border border-emerald-200 text-emerald-800 rounded-full text-xs font-bold shadow-2xs">
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+              Séjour confirmé (Payé)
+            </span>
+          );
         } else if (pStatus === 'advance_paid') {
           const rest = bookingObj ? (bookingObj.totalPrice - bookingObj.advancePaid) : 0;
           if (rest <= 0) {
-            return <span className="px-3 py-1 bg-emerald-50 border border-emerald-200/80 text-emerald-800 rounded-full text-xs font-semibold">Séjour confirmé (Payé)</span>;
+            return (
+              <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-emerald-50 border border-emerald-200 text-emerald-800 rounded-full text-xs font-bold shadow-2xs">
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+                Séjour confirmé (Payé)
+              </span>
+            );
           }
-          return <span className="px-3 py-1 bg-blue-50 border border-blue-200/80 text-blue-800 rounded-full text-xs font-semibold">Acompte payé — Solde: {formatCurrency(rest)} F CFA</span>;
+          return (
+            <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-blue-50 border border-blue-200 text-blue-800 rounded-full text-xs font-bold shadow-2xs">
+              <span className="w-1.5 h-1.5 rounded-full bg-blue-500" />
+              Acompte payé • Reste : {formatCurrency(rest)} F CFA
+            </span>
+          );
         } else {
-          return <span className="px-3 py-1 bg-amber-50 border border-amber-200/80 text-amber-800 rounded-full text-xs font-semibold">Approuvée, en attente de paiement</span>;
+          return (
+            <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-amber-50 border border-amber-200 text-amber-800 rounded-full text-xs font-bold shadow-2xs">
+              <span className="w-1.5 h-1.5 rounded-full bg-amber-500" />
+              Approuvée • En attente d'acompte
+            </span>
+          );
         }
       case 'cancelled':
-        return <span className="px-3 py-1 bg-rose-50 border border-rose-200/80 text-rose-800 rounded-full text-xs font-semibold">Réservation annulée</span>;
+        return (
+          <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-rose-50 border border-rose-200 text-rose-800 rounded-full text-xs font-bold shadow-2xs">
+            <span className="w-1.5 h-1.5 rounded-full bg-rose-500" />
+            Réservation annulée
+          </span>
+        );
       case 'completed':
-        return <span className="px-3 py-1 bg-slate-100 border border-slate-200/80 text-slate-700 rounded-full text-xs font-semibold">Séjour terminé</span>;
+        return (
+          <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-slate-100 border border-slate-200 text-slate-700 rounded-full text-xs font-bold shadow-2xs">
+            <span className="w-1.5 h-1.5 rounded-full bg-slate-500" />
+            Séjour terminé
+          </span>
+        );
       default:
         return null;
     }
@@ -890,179 +935,214 @@ export const MyBookings: React.FC<{ onContactHost: (ownerId: string, resId: stri
     <div className="max-w-6xl mx-auto px-4 py-8 animate-in fade-in duration-500">
       <RoleGuide role="client" isOpen={isGuideOpen} onClose={() => setIsGuideOpen(false)} />
 
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-10">
+      {/* Page Header */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">
         <div>
-          <h2 className="text-3xl font-black text-slate-900 tracking-tight leading-none mb-2">Mes Réservations</h2>
-          <p className="text-slate-500 text-sm font-medium">Consultez et gérez vos 10 plus récentes réservations.</p>
+          <div className="flex items-center gap-2 mb-1">
+            <h2 className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight leading-none">
+              Mes Réservations
+            </h2>
+            {bookings.length > 0 && (
+              <span className="px-2.5 py-0.5 rounded-full bg-slate-100 border border-slate-200 text-slate-700 text-xs font-extrabold">
+                {bookings.length}
+              </span>
+            )}
+          </div>
+          <p className="text-slate-500 text-xs sm:text-sm font-medium">
+            Suivez l'état d'approbation, les acomptes réglés et la logistique de vos séjours.
+          </p>
         </div>
-        <div className="flex items-center gap-3">
+
+        <div className="flex items-center gap-2.5">
           <button 
             onClick={() => setIsGuideOpen(true)}
-            className="flex items-center gap-2 px-4 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 hover:text-slate-900 text-xs font-black uppercase tracking-wider rounded-xl transition-all cursor-pointer"
+            className="flex items-center gap-2 px-4 py-2.5 bg-white hover:bg-slate-50 text-slate-800 text-xs font-extrabold uppercase tracking-wider rounded-2xl border border-slate-200/80 shadow-2xs hover:shadow-xs transition-all cursor-pointer"
           >
-            <Compass size={16} className="text-red-600 animate-pulse" />
-            Guide de Prise en Main
+            <Compass size={15} className="text-red-600 animate-pulse" />
+            <span>Guide Voyageur</span>
           </button>
-          <div className="w-9 h-9 bg-white border border-slate-200/80 text-slate-700 rounded-xl shadow-xs flex items-center justify-center shrink-0">
-            <Calendar size={18} />
-          </div>
         </div>
       </div>
 
       {bookings.length === 0 ? (
-        <div className="bg-slate-50 border border-slate-100 rounded-3xl p-10 text-center max-w-lg mx-auto">
-          <div className="w-12 h-12 bg-white border border-slate-200/80 shadow-xs rounded-xl flex items-center justify-center text-slate-600 mx-auto mb-4">
-            <Compass size={22} />
+        <div className="bg-slate-50 border border-slate-200/70 rounded-3xl p-10 text-center max-w-lg mx-auto">
+          <div className="w-14 h-14 bg-white border border-slate-200/80 shadow-2xs rounded-2xl flex items-center justify-center text-slate-600 mx-auto mb-4">
+            <Compass size={24} className="text-red-500" />
           </div>
-          <h3 className="text-xl font-bold text-slate-800 mb-2">Aucun voyage pour le moment</h3>
-          <p className="text-slate-500 text-xs font-medium leading-relaxed mb-6">Explorez notre catalogue de résidences d'exception à Ouagadougou, Bobo-Dioulasso et Koudougou.</p>
+          <h3 className="text-lg font-black text-slate-800 mb-2">Aucun voyage pour le moment</h3>
+          <p className="text-slate-500 text-xs font-medium leading-relaxed mb-6">
+            Explorez notre catalogue de résidences d'exception à Ouagadougou, Bobo-Dioulasso et Koudougou.
+          </p>
           <button 
             onClick={() => window.location.reload()}
-            className="px-6 py-3.5 bg-red-600 text-white rounded-xl text-xs font-black uppercase tracking-wider hover:bg-red-700 transition-colors shadow-lg shadow-red-50"
+            className="px-6 py-3.5 bg-red-600 text-white rounded-2xl text-xs font-black uppercase tracking-wider hover:bg-red-700 transition-colors shadow-lg shadow-red-500/20 cursor-pointer"
           >
-            Commencez mes recherches
+            Commencer mes recherches
           </button>
         </div>
       ) : (
-        <div className="grid grid-cols-1 gap-6">
+        <div className="space-y-6">
           {bookings.slice((currentPage - 1) * 50, currentPage * 50).map((booking) => {
             const res = residencesMap[booking.residenceId];
             if (!res) return null;
+
+            // Calculate nights
+            const getNightsCount = (start: string, end: string) => {
+              if (!start || !end) return 1;
+              const s = new Date(start).getTime();
+              const e = new Date(end).getTime();
+              const diff = Math.ceil((e - s) / (1000 * 60 * 60 * 24));
+              return diff > 0 ? diff : 1;
+            };
+            const nights = getNightsCount(booking.checkIn, booking.checkOut);
+
+            const isAdvancePaid = booking.paymentStatus === 'fully_paid' || booking.paymentStatus === 'advance_paid';
+            const isFullyPaid = booking.paymentStatus === 'fully_paid' || (isAdvancePaid && booking.advancePaid >= booking.totalPrice);
+            const remainingToPay = isFullyPaid ? 0 : (booking.paymentStatus === 'advance_paid' ? Math.max(0, booking.totalPrice - booking.advancePaid) : booking.totalPrice);
 
             return (
               <motion.div 
                 id={`booking-card-${booking.id}`}
                 key={booking.id}
                 whileHover={{ y: -2 }}
-                className="bg-white border border-slate-100 rounded-[32px] overflow-hidden shadow-sm flex flex-col md:flex-row p-6 gap-6 relative group"
+                className="bg-white border border-slate-200/80 rounded-3xl overflow-hidden shadow-xs hover:shadow-md transition-all duration-300 flex flex-col md:flex-row p-5 sm:p-6 gap-5 sm:gap-6 relative group"
               >
-                {/* Residence Image */}
-                <div className="w-full md:w-56 aspect-[4/3] rounded-2xl overflow-hidden shrink-0 shadow-sm relative">
+                {/* Residence Image Thumbnail */}
+                <div className="w-full md:w-60 aspect-[16/10] md:aspect-[4/3] rounded-2xl overflow-hidden shrink-0 shadow-2xs relative bg-slate-100">
                   <img 
                     src={res.images?.[0] || 'https://images.unsplash.com/photo-1493809842364-78817add7ffb?auto=format&fit=crop&q=80&w=800'} 
                     alt={res.title} 
+                    referrerPolicy="no-referrer"
                     className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
                   />
-                  <div className="absolute top-3 left-3 bg-white/95 px-2 py-0.5 rounded text-[9px] font-black uppercase text-slate-800">
-                    {res.type}
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-black/20" />
+                  
+                  {/* Category Chip */}
+                  <div className="absolute top-3 left-3 bg-white/95 backdrop-blur-xs px-2.5 py-0.5 rounded-lg text-[9px] font-black uppercase text-slate-800 shadow-2xs border border-slate-200/40">
+                    {res.type === 'chambre' ? "Chambre d'hôte" : res.type === 'appartement' ? 'Appartement' : res.type === 'villa' ? 'Villa' : res.type}
+                  </div>
+
+                  {/* Locality Pill */}
+                  <div className="absolute bottom-3 left-3 right-3 flex items-center gap-1 text-white text-[11px] font-bold truncate">
+                    <MapPin size={12} className="text-red-400 shrink-0" />
+                    <span className="truncate">{res.address?.city || res.city || "Burkina Faso"}</span>
                   </div>
                 </div>
 
-                {/* Details */}
-                <div className="flex-1 flex flex-col justify-between py-1">
+                {/* Main Details Body */}
+                <div className="flex-1 flex flex-col justify-between py-0.5">
                   <div>
-                    <div className="flex flex-wrap items-center gap-3 mb-2">
-                      {getStatusBadge(booking.bookingStatus, booking.paymentStatus, booking)}
-                      <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">ID: {booking.id.slice(0, 8)}</span>
+                    {/* Header line: Status badge + ID tag */}
+                    <div className="flex flex-wrap items-center justify-between gap-2 mb-2.5">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        {getStatusBadge(booking.bookingStatus, booking.paymentStatus, booking)}
+                        <span className="px-2.5 py-0.5 bg-slate-100 text-slate-600 rounded-full text-[10px] font-mono font-bold flex items-center gap-1 border border-slate-200">
+                          #{booking.id.slice(0, 8).toUpperCase()}
+                        </span>
+                      </div>
+                      
+                      <span className="text-[10px] text-slate-400 font-mono">
+                        {booking.createdAt ? `Créé le ${new Date(booking.createdAt).toLocaleDateString('fr-FR')}` : ''}
+                      </span>
                     </div>
 
-                    <h3 className="text-xl font-bold text-slate-900 mb-2 leading-snug group-hover:text-slate-700 transition-colors">
+                    {/* Title */}
+                    <h3 className="text-lg sm:text-xl font-black text-slate-900 mb-1.5 leading-snug group-hover:text-red-600 transition-colors">
                       {res.title}
                     </h3>
                     
-                    <p className="text-xs text-slate-500 font-medium mb-2">
-                      {res.address?.street || res.street}, {res.address?.neighborhood || res.neighborhood}, {res.address?.city || res.city}
+                    {/* Address */}
+                    <p className="text-xs text-slate-500 font-medium mb-3 flex items-center gap-1.5">
+                      <MapPin size={13} className="text-slate-400 shrink-0" />
+                      <span>
+                        {res.address?.street || res.street ? `${res.address?.street || res.street}, ` : ''}
+                        {res.address?.neighborhood || res.neighborhood ? `${res.address?.neighborhood || res.neighborhood}, ` : ''}
+                        <strong className="text-slate-700 font-bold">{res.address?.city || res.city}</strong>
+                      </span>
                     </p>
                     
+                    {/* Host Name Pill */}
                     {res.ownerName && (
-                      <div className="text-[11px] text-slate-500 font-medium mb-4 border-l-2 border-slate-300 pl-2.5 py-0.5">
-                        Hôte : <span className="text-slate-800 font-semibold">{res.ownerName}</span>
+                      <div className="inline-flex items-center gap-2 bg-slate-50 border border-slate-200/80 px-2.5 py-1 rounded-xl text-xs text-slate-600 mb-3.5">
+                        <div className="w-5 h-5 rounded-full bg-slate-200 flex items-center justify-center text-[10px] font-black text-slate-700 uppercase">
+                          {res.ownerName.charAt(0)}
+                        </div>
+                        <span>Hôte : <strong className="text-slate-900 font-bold">{res.ownerName}</strong></span>
                       </div>
                     )}
 
-                    <div className="flex flex-wrap gap-x-6 gap-y-2 text-slate-600 text-xs">
-                      <div>Du <strong className="text-slate-900 font-bold">{formatDateFr(booking.checkIn)}</strong> au <strong className="text-slate-900 font-bold">{formatDateFr(booking.checkOut)}</strong></div>
-                      <div className="w-1 h-1 bg-slate-300 rounded-full self-center hidden md:block"></div>
-                      <div>Voyageurs : <strong className="text-slate-900 font-bold">{booking.guests} pers.</strong></div>
+                    {/* Dates Capsule */}
+                    <div className="flex flex-wrap items-center gap-2 text-xs">
+                      <div className="inline-flex items-center gap-2 bg-slate-50 border border-slate-200/80 px-3 py-1.5 rounded-xl font-medium text-slate-700">
+                        <CalendarDays size={14} className="text-red-500 shrink-0" />
+                        <span>Du <strong className="text-slate-900 font-extrabold">{formatDateFr(booking.checkIn)}</strong> au <strong className="text-slate-900 font-extrabold">{formatDateFr(booking.checkOut)}</strong></span>
+                      </div>
+                      <span className="px-2.5 py-1 bg-red-50 text-red-700 border border-red-100 rounded-xl text-xs font-black">
+                        {nights} {nights > 1 ? 'nuitées' : 'nuitée'}
+                      </span>
+                      <span className="px-2.5 py-1 bg-slate-100 text-slate-700 rounded-xl text-xs font-bold">
+                        {booking.guests} pers.
+                      </span>
                     </div>
 
+                    {/* Cancellation & Refund Alert */}
                     {booking.bookingStatus === 'cancelled' && (
-                      <div className="mt-4 p-4 rounded-2xl bg-rose-50/80 border border-rose-200/80 space-y-2.5">
+                      <div className="mt-3.5 p-4 rounded-2xl bg-rose-50/90 border border-rose-200 space-y-2">
                         <div className="flex items-center gap-2 text-rose-800 font-extrabold text-xs uppercase tracking-wide">
                           <AlertCircle size={15} className="text-rose-600 shrink-0" />
-                          <span>Séjour Annulé</span>
-                          <span className="normal-case font-semibold text-rose-700">(par {booking.cancelledBy === 'client' ? 'vous-même' : booking.cancelledBy === 'owner' ? "l'hôte" : "l'administration"})</span>
+                          <span>Séjour Annulé (par {booking.cancelledBy === 'client' ? 'vous-même' : booking.cancelledBy === 'owner' ? "l'hôte" : "l'administration"})</span>
                         </div>
                         {booking.cancellationReason && (
-                          <p className="text-xs text-slate-700 font-bold">
-                            Motif : <span className="italic font-normal text-slate-600">"{booking.cancellationReason}"</span>
+                          <p className="text-xs text-slate-700 font-medium">
+                            Motif : <span className="italic font-bold text-slate-800">"{booking.cancellationReason}"</span>
                           </p>
                         )}
                         {booking.refundStatus && booking.refundStatus !== 'none' && (
-                          <div className="pt-2 border-t border-rose-100 space-y-2">
-                            <span className="block text-[9px] font-bold text-slate-500 uppercase tracking-widest">Suivi de Remboursement & Politique</span>
-                            
-                            {/* Breakdown summary */}
-                            <div className="bg-white/80 p-2.5 rounded-xl border border-rose-100 space-y-1">
-                               <p className="text-[10px] text-slate-800 font-bold leading-tight">
-                                 {booking.refundAmount > 0 
-                                   ? `Remboursement de ${formatCurrency(booking.refundAmount)} F CFA calculé selon la politique d'annulation.`
-                                   : "Aucun remboursement applicable selon la politique d'annulation."}
-                               </p>
-                               <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-[9px] text-slate-500 font-medium italic">
-                                 {(booking.hostCancellationFee !== undefined || booking.refundAmount !== undefined) && (
-                                   <p>• Frais administratifs : <span className="text-rose-600">-{formatCurrency(booking.hostCancellationFee || 0)} F</span></p>
-                                 )}
-                                 {booking.nightsConsumed !== undefined && booking.nightsConsumed > 0 && (
-                                   <p>• Nuitées consommées : <span className="text-rose-600">-{formatCurrency(booking.costOfNightsSpent || 0)} F</span></p>
-                                 )}
-                               </div>
-                            </div>
-
-                            {booking.refundStatus === 'pending' && (
-                              <div className="flex items-center gap-2 text-xs text-amber-800 font-bold bg-amber-50 px-3 py-2 rounded-xl border border-amber-200/80 w-fit">
-                                <Clock size={13} className="text-amber-600 shrink-0" />
-                                <span>Remboursement de {formatCurrency(booking.refundAmount)} F CFA en cours via {booking.refundProvider?.toUpperCase()} (+226 {booking.refundPhone})</span>
-                              </div>
-                            )}
-                            {booking.refundStatus === 'refunded' && (
-                              <div className="flex items-center gap-2 text-xs text-emerald-800 font-bold bg-emerald-50 px-3 py-2 rounded-xl border border-emerald-200/80 w-fit">
-                                <CheckCircle2 size={13} className="text-emerald-600 shrink-0" />
-                                <span>Remboursement de {formatCurrency(booking.refundAmount)} F CFA crédité le {booking.refundProcessedAt ? formatDateFr(booking.refundProcessedAt) : ''} via {booking.refundProvider?.toUpperCase()} (+226 {booking.refundPhone})</span>
-                              </div>
-                            )}
+                          <div className="pt-2 border-t border-rose-200/60 flex flex-wrap items-center justify-between gap-2 text-xs">
+                            <span className="font-bold text-rose-900">
+                              Remboursement ({booking.refundProvider?.toUpperCase()} {booking.refundPhone}) : <strong>{formatCurrency(booking.refundAmount)} F CFA</strong>
+                            </span>
+                            <span className="px-2.5 py-0.5 bg-rose-200 text-rose-900 rounded-md font-black text-[10px] uppercase">
+                              {booking.refundStatus === 'refunded' ? 'Soldé' : 'En traitement'}
+                            </span>
                           </div>
                         )}
                       </div>
                     )}
                   </div>
 
-                  <div className="flex flex-wrap items-center justify-between gap-4 mt-6 pt-4 border-t border-slate-50">
-                    {/* Price structure */}
-                    <div className="grid grid-cols-2 md:flex md:flex-wrap gap-x-6 gap-y-4">
-                      <div>
-                        <span className="block text-[10px] font-semibold text-slate-500 uppercase tracking-wider">Nuitée Résidence</span>
-                        <span className="text-sm font-bold text-slate-900">{formatCurrency(res.pricePerNight)} F CFA</span>
+                  {/* Bottom Financial Stats Ribbon & Action Buttons */}
+                  <div className="mt-5 pt-4 border-t border-slate-100 flex flex-col lg:flex-row items-stretch lg:items-center justify-between gap-4">
+                    
+                    {/* 4-column Financial Stats Ribbon */}
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 bg-slate-50/80 p-2.5 rounded-2xl border border-slate-200/60">
+                      <div className="px-2 py-1">
+                        <span className="block text-[9px] font-bold text-slate-400 uppercase">Nuitée</span>
+                        <span className="text-xs font-black text-slate-900">{formatCurrency(res.pricePerNight)} F</span>
                       </div>
-                      <div className="border-l border-slate-150 pl-4">
-                        <span className="block text-[10px] font-semibold text-slate-500 uppercase tracking-wider">Montant Total</span>
-                        <span className="text-sm font-bold text-slate-900">{formatCurrency(booking.totalPrice)} F CFA</span>
+                      <div className="px-2 py-1 border-l border-slate-200/60">
+                        <span className="block text-[9px] font-bold text-slate-400 uppercase">Total Séjour</span>
+                        <span className="text-xs font-black text-slate-900">{formatCurrency(booking.totalPrice)} F</span>
                       </div>
-                      <div className="border-l border-slate-150 pl-4">
-                        <span className="block text-[10px] font-semibold text-slate-500 uppercase tracking-wider">Acompte Payé</span>
-                        <span className="text-sm font-bold text-emerald-700">
-                          {booking.paymentStatus === 'fully_paid' || booking.paymentStatus === 'advance_paid' 
-                            ? `${formatCurrency(booking.advancePaid)} F CFA` 
-                            : '0 F CFA'}
+                      <div className="px-2 py-1 border-l border-slate-200/60">
+                        <span className="block text-[9px] font-bold text-slate-400 uppercase">Acompte Versé</span>
+                        <span className="text-xs font-black text-emerald-600">
+                          {isAdvancePaid ? `${formatCurrency(booking.advancePaid)} F` : '0 F'}
                         </span>
                       </div>
-                      <div className="border-l border-slate-150 pl-4">
-                        <span className="block text-[10px] font-semibold text-slate-500 uppercase tracking-wider">Reste à Payer</span>
-                        <span className="text-sm font-bold text-slate-900">
-                          {booking.paymentStatus === 'fully_paid' || (booking.paymentStatus === 'advance_paid' && booking.advancePaid >= booking.totalPrice)
-                            ? '0 F CFA' 
-                            : booking.paymentStatus === 'advance_paid'
-                            ? `${formatCurrency(Math.max(0, booking.totalPrice - booking.advancePaid))} F CFA`
-                            : `${formatCurrency(booking.totalPrice)} F CFA`}
+                      <div className="px-2 py-1 border-l border-slate-200/60">
+                        <span className="block text-[9px] font-bold text-slate-400 uppercase">Reste à Payer</span>
+                        <span className={cn("text-xs font-black", remainingToPay > 0 ? "text-amber-600" : "text-slate-700")}>
+                          {formatCurrency(remainingToPay)} F
                         </span>
                       </div>
                     </div>
 
-                    {/* Action Panel */}
-                    <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 w-full lg:w-auto">
+                    {/* Action Buttons Panel */}
+                    <div className="flex flex-wrap items-center gap-2 justify-end">
                       <button 
                         onClick={() => setSelectedBookingForDetail(booking)}
-                        className="w-full sm:w-auto justify-center px-3.5 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-800 rounded-xl font-semibold text-xs transition-colors flex items-center gap-1.5 cursor-pointer text-center"
+                        className="px-3.5 py-2 bg-slate-100 hover:bg-slate-200 text-slate-800 rounded-xl font-bold text-xs transition-colors flex items-center gap-1.5 cursor-pointer"
                       >
                         <Clock size={14} className="text-slate-600 shrink-0" />
                         <span>Détails & Suivi</span>
@@ -1070,36 +1150,36 @@ export const MyBookings: React.FC<{ onContactHost: (ownerId: string, resId: stri
 
                       <button 
                         onClick={() => onContactHost(booking.ownerId, booking.residenceId)}
-                        className="w-full sm:w-auto justify-center px-3.5 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-800 rounded-xl font-semibold text-xs transition-colors flex items-center gap-1.5 cursor-pointer text-center"
+                        className="px-3.5 py-2 bg-slate-100 hover:bg-slate-200 text-slate-800 rounded-xl font-bold text-xs transition-colors flex items-center gap-1.5 cursor-pointer"
                       >
                         <MessageSquare size={14} className="text-slate-600 shrink-0" />
-                        <span>Discuter avec l'hôte</span>
+                        <span>Discuter</span>
                       </button>
 
                       {booking.bookingStatus === 'completed' && (
                         <button 
                           onClick={() => setSelectedBookingForReview(booking)}
-                          className="w-full sm:w-auto justify-center px-3.5 py-2.5 bg-amber-50 hover:bg-amber-100 border border-amber-200/80 text-amber-800 rounded-xl font-semibold text-xs transition-colors flex items-center gap-1.5 cursor-pointer text-center"
+                          className="px-3.5 py-2 bg-amber-50 hover:bg-amber-100 border border-amber-200 text-amber-800 rounded-xl font-bold text-xs transition-colors flex items-center gap-1.5 cursor-pointer"
                         >
                           <Star size={14} className="fill-amber-500 text-amber-500 shrink-0" />
-                          <span>Laisser un avis</span>
+                          <span>Avis</span>
                         </button>
                       )}
 
                       {booking.bookingStatus === 'confirmed' && booking.paymentStatus === 'pending' && (
                         <button 
                           onClick={() => setSelectedBookingForPayment(booking)}
-                          className="w-full sm:w-auto justify-center px-4 py-2.5 bg-slate-900 hover:bg-slate-800 text-white rounded-xl font-semibold text-xs shadow-sm flex items-center gap-1.5 text-center cursor-pointer"
+                          className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-xl font-black text-xs shadow-sm flex items-center gap-1.5 cursor-pointer transition-colors"
                         >
                           <CreditCard size={14} className="shrink-0" />
-                          <span>{booking.advancePaid >= booking.totalPrice ? 'Payer la totalité' : 'Payer l\'acompte'}</span>
+                          <span>Payer l'acompte</span>
                         </button>
                       )}
 
                       {booking.paymentStatus === 'advance_paid' && booking.bookingStatus === 'confirmed' && (booking.totalPrice - booking.advancePaid) > 0 && (
                         <button 
                           onClick={() => setSelectedBookingForPayment(booking)}
-                          className="w-full sm:w-auto justify-center px-4 py-2.5 bg-emerald-700 hover:bg-emerald-800 text-white rounded-xl font-semibold text-xs shadow-sm flex items-center gap-1.5 text-center cursor-pointer"
+                          className="px-4 py-2 bg-emerald-700 hover:bg-emerald-800 text-white rounded-xl font-black text-xs shadow-sm flex items-center gap-1.5 cursor-pointer transition-colors"
                         >
                           <CreditCard size={14} className="shrink-0" />
                           <span>Solder le séjour</span>
@@ -1109,9 +1189,9 @@ export const MyBookings: React.FC<{ onContactHost: (ownerId: string, resId: stri
                       {(booking.paymentStatus === 'advance_paid' || booking.paymentStatus === 'fully_paid') && booking.bookingStatus !== 'cancelled' && (
                         <button 
                           onClick={() => setSelectedBookingForInvoice(booking)}
-                          className="w-full sm:w-auto justify-center px-4 py-2.5 bg-slate-900 hover:bg-slate-800 text-white rounded-xl font-semibold text-xs shadow-sm flex items-center gap-1.5 text-center cursor-pointer"
+                          className="px-3.5 py-2 bg-slate-900 hover:bg-slate-800 text-white rounded-xl font-bold text-xs shadow-xs flex items-center gap-1.5 cursor-pointer transition-colors"
                         >
-                          <Download size={14} className="shrink-0" />
+                          <Download size={13} className="shrink-0" />
                           <span>Reçu</span>
                         </button>
                       )}
@@ -1119,13 +1199,14 @@ export const MyBookings: React.FC<{ onContactHost: (ownerId: string, resId: stri
                       {(booking.bookingStatus === 'pending' || booking.bookingStatus === 'confirmed') && (
                         <button 
                           onClick={() => setSelectedBookingForCancel(booking)}
-                          className="w-full sm:w-auto justify-center px-3.5 py-2.5 bg-slate-50 hover:bg-slate-100 border border-slate-200 text-slate-600 rounded-xl font-semibold text-xs flex items-center gap-1.5 cursor-pointer transition-all text-center"
+                          className="px-3 py-2 bg-white hover:bg-rose-50 border border-slate-200 hover:border-rose-200 text-slate-600 hover:text-rose-700 rounded-xl font-bold text-xs flex items-center gap-1 cursor-pointer transition-colors"
                         >
-                          <X size={14} className="text-slate-500 shrink-0" />
+                          <X size={13} className="shrink-0" />
                           <span>Annuler</span>
                         </button>
                       )}
                     </div>
+
                   </div>
                 </div>
               </motion.div>

@@ -43,7 +43,9 @@ import {
   BarChart3, Plus, Home, CalendarCheck, Wallet, ArrowRight, ArrowLeft, 
   Upload, Trash2, Eye, ShieldAlert, ShieldCheck, Check, X, RefreshCw, Layers, Pencil,
   MessageSquare, Send, Star, Percent, History, Clock, Filter, Download,
-  ChevronLeft, ChevronRight, Compass
+  ChevronLeft, ChevronRight, Compass, Building2, MapPin, User, Calendar, 
+  CalendarDays, CheckCircle2, AlertCircle, CreditCard, Copy, FileText, Phone, 
+  Shield, DoorOpen, Key, CheckCheck, Sparkles
 } from 'lucide-react';
 import { resizeImage } from '../../lib/imageResize';
 import { InvoiceModal } from './InvoiceModal';
@@ -272,6 +274,7 @@ const BookingTable: React.FC<BookingTableProps> = ({
   onUpdateBooking
 }) => {
   const { user } = useAuth();
+  const { addToast } = useToast();
   const [selectedBookingForDetails, setSelectedBookingForDetails] = useState<Booking | null>(null);
   const [selectedBookingForVerifications, setSelectedBookingForVerifications] = useState<Booking | null>(null);
   const [selectedBookingForInvoice, setSelectedBookingForInvoice] = useState<Booking | null>(null);
@@ -729,251 +732,376 @@ const BookingTable: React.FC<BookingTableProps> = ({
       {/* Complete Booking Details Bento Modal */}
       {selectedBookingForDetails && (() => {
         const currentRes = residences.find(r => r.id === selectedBookingForDetails.residenceId);
+        
+        // Calculate nights
+        const getNightsCount = (start: string, end: string) => {
+          if (!start || !end) return 1;
+          const s = new Date(start).getTime();
+          const e = new Date(end).getTime();
+          const diff = Math.ceil((e - s) / (1000 * 60 * 60 * 24));
+          return diff > 0 ? diff : 1;
+        };
+        const nights = getNightsCount(selectedBookingForDetails.checkIn, selectedBookingForDetails.checkOut);
+
+        const isAdvancePaid = selectedBookingForDetails.paymentStatus === 'advance_paid' || selectedBookingForDetails.paymentStatus === 'fully_paid';
+        const isFullyPaid = selectedBookingForDetails.paymentStatus === 'fully_paid' || (isAdvancePaid && (selectedBookingForDetails.advancePaid || 0) >= (selectedBookingForDetails.totalPrice || 0));
+        const advanceAmount = isAdvancePaid ? (selectedBookingForDetails.advancePaid || 0) : 0;
+        const remainingAmount = isFullyPaid ? 0 : Math.max(0, (selectedBookingForDetails.totalPrice || 0) - advanceAmount);
+
         return (
           <div className="fixed inset-0 z-[150] flex items-start justify-center p-3 sm:p-6 pt-4 sm:pt-8 pb-10 overflow-y-auto">
-            <div className="absolute inset-0 bg-black/60 backdrop-blur-sm animate-fade-in" onClick={() => setSelectedBookingForDetails(null)} />
-            <div className="relative w-full max-w-2xl my-auto sm:my-0 bg-white rounded-3xl shadow-2xl overflow-hidden animate-in fade-in zoom-in duration-200 text-slate-800 font-sans max-h-[88vh] flex flex-col">
+            <div 
+              className="fixed inset-0 bg-slate-950/70 backdrop-blur-md transition-opacity animate-fade-in" 
+              onClick={() => setSelectedBookingForDetails(null)} 
+            />
+            
+            <div className="relative w-full max-w-3xl my-auto sm:my-0 bg-white rounded-3xl shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-200 text-slate-800 font-sans max-h-[90vh] flex flex-col border border-slate-150">
               
               {/* Header */}
-              <div className="p-6 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
-                <div>
-                  <span className="px-2.5 py-0.5 bg-red-100 text-red-700 rounded text-[9px] font-black uppercase tracking-widest">DÉTAILS COMPLETS DE RÉSERVATION</span>
-                  <h4 className="text-lg font-black text-slate-900 uppercase tracking-tight mt-1">Voyage ID: #{selectedBookingForDetails.id.slice(0, 10).toUpperCase()}</h4>
+              <div className="px-6 py-5 border-b border-slate-100 flex items-center justify-between bg-gradient-to-r from-slate-50/80 via-white to-slate-50/80 shrink-0">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-2xl bg-red-50 border border-red-100 flex items-center justify-center text-red-600 shrink-0">
+                    <Building2 size={20} />
+                  </div>
+                  <div>
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <span className="text-[10px] font-black uppercase tracking-wider text-slate-400">
+                        Dossier Réservation
+                      </span>
+                      <span className={cn(
+                        "px-2.5 py-0.5 rounded-full text-[10px] font-extrabold tracking-wide uppercase flex items-center gap-1",
+                        selectedBookingForDetails.bookingStatus === 'confirmed' 
+                          ? (isFullyPaid ? "bg-emerald-50 text-emerald-700 border border-emerald-200" : "bg-blue-50 text-blue-700 border border-blue-200")
+                          : selectedBookingForDetails.bookingStatus === 'cancelled'
+                            ? "bg-rose-50 text-rose-700 border border-rose-200"
+                            : selectedBookingForDetails.bookingStatus === 'completed'
+                              ? "bg-slate-100 text-slate-700 border border-slate-200"
+                              : "bg-amber-50 text-amber-700 border border-amber-200"
+                      )}>
+                        <span className={cn(
+                          "w-1.5 h-1.5 rounded-full",
+                          selectedBookingForDetails.bookingStatus === 'confirmed' ? "bg-emerald-500" : selectedBookingForDetails.bookingStatus === 'cancelled' ? "bg-rose-500" : "bg-amber-500"
+                        )} />
+                        {selectedBookingForDetails.bookingStatus === 'confirmed' 
+                          ? (isFullyPaid ? "Confirmé (Soldé)" : "Acompte Reçu")
+                          : selectedBookingForDetails.bookingStatus === 'cancelled'
+                            ? "Annulé"
+                            : selectedBookingForDetails.bookingStatus === 'completed'
+                              ? "Séjour Terminé"
+                              : "En attente"}
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-2 mt-0.5">
+                      <h4 className="text-base font-extrabold text-slate-900 tracking-tight">
+                        ID: <span className="font-mono">#{selectedBookingForDetails.id.slice(0, 10).toUpperCase()}</span>
+                      </h4>
+                      <button
+                        onClick={() => {
+                          navigator.clipboard?.writeText(selectedBookingForDetails.id);
+                          addToast("ID copié dans le presse-papier !", "info");
+                        }}
+                        title="Copier l'identifiant"
+                        className="text-slate-400 hover:text-slate-700 transition-colors p-1 rounded-md hover:bg-slate-100"
+                      >
+                        <Copy size={13} />
+                      </button>
+                    </div>
+                  </div>
                 </div>
+
                 <button 
                   type="button"
                   onClick={() => setSelectedBookingForDetails(null)}
-                  className="p-2 hover:bg-slate-100 rounded-full text-slate-400 hover:text-slate-700 transition-colors cursor-pointer"
+                  className="w-9 h-9 flex items-center justify-center rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-500 hover:text-slate-900 transition-colors cursor-pointer"
                 >
-                  <X size={20} />
+                  <X size={18} />
                 </button>
               </div>
 
               {/* Content */}
-              <div className="p-6 overflow-y-auto max-h-[70vh] space-y-6">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="p-6 overflow-y-auto max-h-[72vh] space-y-5">
+                
+                {/* Bento Grid Top: Residence & Stay Info */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   
-                  {/* Sec 1: Residence Locality information */}
-                  <div className="space-y-3">
-                    <span className="block text-[10px] font-black text-slate-400 uppercase tracking-widest border-b pb-1">🏡 Hébergement & Localité</span>
-                    <div className="space-y-1">
-                      <span className="text-base font-extrabold text-slate-900 block">{currentRes?.title || "Logement Supprimé"}</span>
-                      <p className="text-xs text-slate-500 font-bold leading-normal">
-                        {currentRes?.address?.street && `${currentRes.address.street === 'Secteur non configuré' ? 'Secteur non précisé' : currentRes.address.street}, `}
-                        {currentRes?.address?.neighborhood && `${currentRes.address.neighborhood}, `}
-                        <strong className="text-slate-800 font-bold">{currentRes?.address?.city || "Burkina Faso"}</strong>
-                      </p>
-                      {currentRes?.address?.coordinates && (
-                        <div className="inline-flex items-center gap-1 px-2.5 py-1 bg-slate-50 border border-slate-200 rounded-md text-[9px] font-mono font-bold text-slate-500 mt-1">
-                          📍 Lat: {currentRes.address.coordinates.lat.toFixed(5)} / Lng: {currentRes.address.coordinates.lng.toFixed(5)}
-                        </div>
-                      )}
-                    </div>
-                  </div>
+                  {/* Card 1: Residence & Location */}
+                  <div className="bg-slate-50/70 border border-slate-200/70 rounded-2xl p-4.5 space-y-3 flex flex-col justify-between">
+                    <div>
+                      <div className="flex items-center justify-between gap-2 mb-2">
+                        <span className="text-[10px] font-black uppercase tracking-wider text-slate-400 flex items-center gap-1.5">
+                          <Home size={13} className="text-red-500" />
+                          Hébergement
+                        </span>
+                        {currentRes?.type && (
+                          <span className="px-2 py-0.5 bg-white border border-slate-200 rounded text-[9px] font-extrabold uppercase text-slate-700 shadow-2xs">
+                            {currentRes.type === 'chambre' ? "Chambre d'hôte" : currentRes.type === 'appartement' ? 'Appartement' : currentRes.type === 'villa' ? 'Villa' : currentRes.type}
+                          </span>
+                        )}
+                      </div>
 
-                  {/* Sec 2: Travelers & Stay Dates info */}
-                  <div className="space-y-3">
-                    <span className="block text-[10px] font-black text-slate-400 uppercase tracking-widest border-b pb-1">📅 Séjour et Logistique</span>
-                    <div className="space-y-2 text-xs">
-                      <div className="flex items-center gap-2">
-                        <span className="text-slate-400 font-bold">Arrivée :</span>
-                        <strong className="text-slate-900 font-extrabold">{formatDateFr(selectedBookingForDetails.checkIn)}</strong>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <span className="text-slate-400 font-bold">Départ :</span>
-                        <strong className="text-slate-900 font-extrabold">{formatDateFr(selectedBookingForDetails.checkOut)}</strong>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <span className="text-slate-400 font-bold">Voyageurs :</span>
-                        <strong className="text-slate-900 font-extrabold">{selectedBookingForDetails.guests || 2} personnes</strong>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <span className="text-slate-400 font-bold">Voyageur :</span>
-                        <strong className="text-red-600 font-extrabold">{selectedBookingForDetails.clientName || `ID: ${selectedBookingForDetails.clientId?.substring(0,8)}`}</strong>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <span className="text-slate-400 font-bold">Créée le :</span>
-                        <span className="text-slate-700 font-bold">{selectedBookingForDetails.createdAt ? new Date(selectedBookingForDetails.createdAt).toLocaleString('fr-FR') : "N/A"}</span>
-                      </div>
-                    </div>
-                  </div>
+                      <h5 className="text-base font-black text-slate-900 leading-snug">
+                        {currentRes?.title || "Hébergement"}
+                      </h5>
 
-                  {/* Sec 3: Finance structural audit */}
-                  <div className="space-y-3 md:col-span-2 bg-slate-50 p-4 rounded-2xl border border-slate-100">
-                    <span className="block text-[10px] font-black text-slate-400 uppercase tracking-widest border-b pb-1 mb-2">💰 Structure Financière & Répartition des Gains</span>
-                    <div className="grid grid-cols-2 md:grid-cols-3 gap-4 text-xs font-sans">
-                      <div>
-                        <span className="text-slate-400 block pb-0.5 font-bold uppercase text-[9px]">Tarif Total Location</span>
-                        <strong className="text-base font-mono font-black text-slate-950">{formatCurrency(selectedBookingForDetails.totalPrice)} F CFA</strong>
-                      </div>
-                      <div>
-                        <span className="text-slate-400 block pb-0.5 font-bold uppercase text-[9px]">Acompte Versé</span>
-                        <strong className="text-base font-mono font-black text-green-600">
-                          {selectedBookingForDetails.paymentStatus === 'advance_paid' || selectedBookingForDetails.paymentStatus === 'fully_paid'
-                            ? `${formatCurrency(selectedBookingForDetails.advancePaid)} F CFA`
-                            : '0 F CFA (En attente)'}
-                        </strong>
-                      </div>
-                      <div>
-                        <span className="text-slate-400 block pb-0.5 font-bold uppercase text-[9px]">Solde Restant</span>
-                        <strong className="text-base font-mono font-black text-red-600">
-                          {selectedBookingForDetails.paymentStatus === 'fully_paid' || (selectedBookingForDetails.paymentStatus === 'advance_paid' && selectedBookingForDetails.advancePaid >= selectedBookingForDetails.totalPrice)
-                            ? '0 F CFA'
-                            : selectedBookingForDetails.paymentStatus === 'advance_paid'
-                            ? `${formatCurrency(Math.max(0, (selectedBookingForDetails.totalPrice || 0) - (selectedBookingForDetails.advancePaid || 0)))} F CFA`
-                            : `${formatCurrency(selectedBookingForDetails.totalPrice || 0)} F CFA`}
-                        </strong>
+                      <div className="flex items-start gap-1.5 mt-2 text-xs text-slate-600 font-medium">
+                        <MapPin size={14} className="text-slate-400 shrink-0 mt-0.5" />
+                        <span>
+                          {currentRes?.address?.street && currentRes.address.street !== 'Secteur non configuré' && `${currentRes.address.street}, `}
+                          {currentRes?.address?.neighborhood && `${currentRes.address.neighborhood}, `}
+                          <strong className="text-slate-800 font-bold">{currentRes?.address?.city || "Burkina Faso"}</strong>
+                        </span>
                       </div>
                     </div>
 
-                    {/* Net Earnings & Demarcheur Earnings Breakdown */}
-                    {(selectedBookingForDetails.ownerNetEarnings !== undefined || selectedBookingForDetails.demarcheurEarnings !== undefined) && (
-                      <div className="mt-2 pt-2 border-t border-slate-200/60 grid grid-cols-1 sm:grid-cols-3 gap-3 bg-white p-3 rounded-xl border border-slate-200/80">
-                        <div>
-                          <span className="text-slate-500 block text-[10px] font-bold uppercase">Commission Plateforme (10%)</span>
-                          <span className="text-xs font-black text-red-600">
-                            -{formatCurrency(selectedBookingForDetails.platformCommission || Math.round((selectedBookingForDetails.totalPrice || 0) * 0.1))} F CFA
-                          </span>
-                        </div>
-                        <div>
-                          <span className="text-slate-500 block text-[10px] font-bold uppercase">Net Hôte Propriétaire</span>
-                          <span className="text-xs font-black text-emerald-700">
-                            {formatCurrency(selectedBookingForDetails.ownerNetEarnings || Math.round((selectedBookingForDetails.totalPrice || 0) * 0.9))} F CFA
-                          </span>
-                        </div>
-                        <div>
-                          <span className="text-slate-500 block text-[10px] font-bold uppercase">Part Démarcheur / Mandataire</span>
-                          <span className="text-xs font-black text-amber-700">
-                            +{formatCurrency(selectedBookingForDetails.demarcheurEarnings || 0)} F CFA
-                          </span>
-                        </div>
+                    {currentRes?.address?.coordinates && (
+                      <div className="pt-2 border-t border-slate-200/50 flex items-center justify-between text-[10px] text-slate-400 font-mono">
+                        <span>Lat: {currentRes.address.coordinates.lat.toFixed(4)}</span>
+                        <span>Lng: {currentRes.address.coordinates.lng.toFixed(4)}</span>
                       </div>
                     )}
-                    
-                    <div className="mt-3 pt-3 border-t border-slate-205 border-slate-200/50 flex flex-wrap gap-x-6 gap-y-1.5 text-xs text-slate-500 font-medium items-center justify-between">
-                      <div className="flex gap-x-6 gap-y-1.5 flex-wrap">
-                        <div>Statut Paiement : <span className="text-slate-800 font-black uppercase text-xs bg-slate-200/55 px-2 py-0.5 rounded-md">{formatPaymentStatus(selectedBookingForDetails.paymentStatus)}</span></div>
-                        {selectedBookingForDetails.transactionId && (
-                          <div>Transaction ID : <span className="font-mono text-slate-800 font-bold">{selectedBookingForDetails.transactionId}</span></div>
-                        )}
-                      </div>
-                      
-                      {(selectedBookingForDetails.paymentStatus === 'advance_paid' || selectedBookingForDetails.paymentStatus === 'fully_paid') && selectedBookingForDetails.bookingStatus !== 'cancelled' && (
-                        <button 
-                          onClick={() => setSelectedBookingForInvoice(selectedBookingForDetails)}
-                          className="px-4 py-2 bg-slate-800 hover:bg-slate-900 text-white rounded-xl font-bold text-[10px] uppercase shadow-sm flex items-center gap-1.5 transition-colors"
-                        >
-                          <Download size={12} />
-                          Télécharger Reçu
-                        </button>
-                      )}
-                    </div>
                   </div>
 
-                  {/* Verification Section */}
-                  <div className="md:col-span-2 space-y-4">
-                    <div className="bg-amber-50 border border-amber-200 rounded-2xl p-4.5 flex gap-3.5 items-start">
-                      <div className="bg-amber-500 text-white p-2 rounded-xl shrink-0 mt-0.5">
-                        <ShieldAlert size={18} strokeWidth={2.5} />
+                  {/* Card 2: Stay Logistics & Traveler */}
+                  <div className="bg-slate-50/70 border border-slate-200/70 rounded-2xl p-4.5 space-y-3 flex flex-col justify-between">
+                    <div>
+                      <div className="flex items-center justify-between gap-2 mb-2">
+                        <span className="text-[10px] font-black uppercase tracking-wider text-slate-400 flex items-center gap-1.5">
+                          <CalendarDays size={13} className="text-red-500" />
+                          Logistique du Séjour
+                        </span>
+                        <span className="px-2 py-0.5 bg-red-50 border border-red-100 rounded text-[9px] font-black uppercase text-red-600">
+                          {nights} {nights > 1 ? 'Nuitées' : 'Nuitée'}
+                        </span>
                       </div>
-                      <div className="space-y-1">
-                        <span className="block text-xs font-black uppercase text-amber-950 tracking-wider">⚠️ Directive Étatique & Sécurité Hôte</span>
-                        <p className="text-[11px] font-bold text-amber-900 leading-normal">
-                          <strong>IMPORTANT :</strong> En tant qu'hôte, l'État vous impose d'effectuer rigoureusement toutes les vérifications réglementaires en vigueur (comparaison de la pièce d'identité physique du voyageur avec les détails ci-dessous) <strong>avant de lui remettre formellement les clés</strong> de l'hébergement.
-                        </p>
-                      </div>
-                    </div>
 
-                    <BookingVerificationSection 
-                      bookingId={selectedBookingForDetails.id}
-                      clientId={selectedBookingForDetails.clientId}
-                      isPast={isPast || selectedBookingForDetails.bookingStatus === 'completed'}
-                      canEdit={user?.uid === selectedBookingForDetails.ownerId || user?.role === 'admin'}
-                      onStatusChange={(newStatus) => {
-                        const serialized = JSON.stringify(newStatus);
-                        const updatedBk = { ...selectedBookingForDetails, verificationsStatus: serialized };
-                        setSelectedBookingForDetails(prev => prev && prev.id === selectedBookingForDetails.id ? updatedBk : prev);
-                        if (onUpdateBooking) {
-                          onUpdateBooking(updatedBk);
-                        }
-                      }}
-                    />
-                  </div>
-
-                  {/* Sec 4: Tracking cancellation and refund if applicable */}
-                  {selectedBookingForDetails.bookingStatus === 'cancelled' && (
-                    <div className="space-y-3 md:col-span-2 p-4 bg-red-50 border border-red-200/50 rounded-2xl">
-                      <span className="block text-[10px] font-black text-red-700 uppercase tracking-widest border-b border-red-100 pb-1">❌ Journal d'Annulation & Remboursement</span>
-                      <div className="space-y-2 text-xs">
-                        <div className="flex flex-wrap gap-4 text-slate-500">
-                          <div>Annulé par : <strong className="text-slate-900 uppercase font-extrabold">{selectedBookingForDetails.cancelledBy === 'client' ? 'Voyageur' : selectedBookingForDetails.cancelledBy === 'owner' ? 'Hôte' : 'Administrateur'}</strong></div>
-                          {selectedBookingForDetails.cancelledAt && (
-                            <div>Date : <strong className="text-slate-900">{new Date(selectedBookingForDetails.cancelledAt).toLocaleString('fr-FR')}</strong></div>
-                          )}
+                      {/* Dates Pills */}
+                      <div className="grid grid-cols-2 gap-2 mt-2">
+                        <div className="bg-white p-2.5 rounded-xl border border-slate-200/80 shadow-2xs">
+                          <span className="text-[9px] font-bold text-slate-400 uppercase block">Arrivée</span>
+                          <span className="text-xs font-black text-slate-900 block mt-0.5">
+                            {formatDateFr(selectedBookingForDetails.checkIn)}
+                          </span>
                         </div>
-                        {selectedBookingForDetails.cancellationReason && (
-                          <p className="text-slate-700 font-bold italic">
-                            Motif : <span className="font-normal text-slate-600">"{selectedBookingForDetails.cancellationReason}"</span>
-                          </p>
-                        )}
-                        {selectedBookingForDetails.refundStatus && selectedBookingForDetails.refundStatus !== 'none' && (
-                          <div className="pt-2 border-t border-red-100 space-y-2">
-                            <span className="block text-[9px] font-black text-slate-450 uppercase tracking-widest">Sûreté de remboursement Mobile Money</span>
-                            <div className="flex flex-wrap items-center gap-3">
-                              <div className="px-2.5 py-1 bg-white border rounded">
-                                Opérateur : <strong className="text-red-650 text-red-600 font-black uppercase">{selectedBookingForDetails.refundProvider}</strong>
-                              </div>
-                              <div className="px-2.5 py-1 bg-white border rounded">
-                                Téléphone : <strong className="font-mono text-slate-900 font-bold">{selectedBookingForDetails.refundPhone}</strong>
-                              </div>
-                              <div className="px-2.5 py-1 bg-white border rounded">
-                                Montant net : <strong className="text-slate-900 font-black">{formatCurrency(selectedBookingForDetails.refundAmount)} F CFA</strong>
-                              </div>
-                            </div>
-                            <div className="inline-flex items-center gap-1.5 text-xs font-bold px-3 py-1.5 rounded bg-amber-105 bg-amber-100 text-amber-800 border border-amber-200 uppercase tracking-wide">
-                              Statut Remboursement : {selectedBookingForDetails.refundStatus === 'refunded' ? '✅ EFFECTUÉ (SOLDÉ)' : '⏳ EN ATTENTE DE TRANSACTION'}
-                            </div>
-                          </div>
-                        )}
+                        <div className="bg-white p-2.5 rounded-xl border border-slate-200/80 shadow-2xs">
+                          <span className="text-[9px] font-bold text-slate-400 uppercase block">Départ</span>
+                          <span className="text-xs font-black text-slate-900 block mt-0.5">
+                            {formatDateFr(selectedBookingForDetails.checkOut)}
+                          </span>
+                        </div>
                       </div>
                     </div>
-                  )}
 
-                  {/* Sec 5: Checkin checkout timestamps timeline */}
-                  <div className="space-y-3 md:col-span-2">
-                    <span className="block text-[10px] font-black text-slate-400 uppercase tracking-widest border-b pb-1">⏲️ Journal & Horodatage du Séjour</span>
-                    <div className="grid grid-cols-2 gap-4 text-xs font-medium text-slate-500">
-                      <div className="p-3 bg-slate-50 rounded-xl border border-slate-100">
-                        <span className="text-[9px] font-black text-slate-400 uppercase block pb-1">🔑 Arrivée EFFECTIVE (Check-In)</span>
-                        {selectedBookingForDetails.checkedInAt ? (
-                          <strong className="text-slate-900 text-xs font-extrabold">{new Date(selectedBookingForDetails.checkedInAt).toLocaleString('fr-FR')}</strong>
-                        ) : (
-                          <span className="text-slate-400 italic">Non encore enregistré</span>
-                        )}
+                    {/* Traveler Info */}
+                    <div className="pt-2 border-t border-slate-200/50 flex items-center justify-between text-xs">
+                      <div className="flex items-center gap-2">
+                        <div className="w-7 h-7 rounded-full bg-slate-200/80 flex items-center justify-center text-[10px] font-black text-slate-700 uppercase">
+                          {(selectedBookingForDetails.clientName || 'V').charAt(0)}
+                        </div>
+                        <div>
+                          <span className="font-extrabold text-slate-900 block text-xs leading-none">
+                            {selectedBookingForDetails.clientName || `Client #${selectedBookingForDetails.clientId?.substring(0,6)}`}
+                          </span>
+                          <span className="text-[10px] text-slate-500 font-medium">
+                            {selectedBookingForDetails.guests || 1} voyageur(s)
+                          </span>
+                        </div>
                       </div>
-                      <div className="p-3 bg-slate-50 rounded-xl border border-slate-100">
-                        <span className="text-[9px] font-black text-slate-400 uppercase block pb-1">🚪 Départ EFFECTIF (Check-Out)</span>
-                        {selectedBookingForDetails.checkedOutAt ? (
-                          <strong className="text-slate-900 text-xs font-bold font-extrabold">{new Date(selectedBookingForDetails.checkedOutAt).toLocaleString('fr-FR')}</strong>
-                        ) : (
-                          <span className="text-slate-400 italic">Non encore enregistré</span>
-                        )}
-                      </div>
+                      <span className="text-[10px] text-slate-400 font-mono">
+                        Créé le {selectedBookingForDetails.createdAt ? new Date(selectedBookingForDetails.createdAt).toLocaleDateString('fr-FR') : 'N/A'}
+                      </span>
                     </div>
                   </div>
 
                 </div>
+
+                {/* Section 2: Financial Structure & Earnings Breakdown */}
+                <div className="bg-gradient-to-br from-slate-900 to-slate-950 text-white rounded-3xl p-5 shadow-lg space-y-4">
+                  <div className="flex items-center justify-between border-b border-slate-800 pb-3">
+                    <span className="text-[10px] font-black uppercase tracking-widest text-slate-400 flex items-center gap-1.5">
+                      <CreditCard size={14} className="text-red-400" />
+                      Structure Financière & Répartition
+                    </span>
+                    <span className="px-2.5 py-0.5 rounded-full text-[9px] font-black uppercase bg-slate-800 text-slate-300 border border-slate-700">
+                      Statut : {formatPaymentStatus(selectedBookingForDetails.paymentStatus)}
+                    </span>
+                  </div>
+
+                  {/* 3 Main Metrics */}
+                  <div className="grid grid-cols-3 gap-3">
+                    <div className="bg-white/5 border border-white/10 rounded-2xl p-3.5">
+                      <span className="text-[9px] font-bold uppercase tracking-wider text-slate-400 block mb-1">
+                        Montant Total
+                      </span>
+                      <span className="text-base sm:text-lg font-black text-white tracking-tight">
+                        {formatCurrency(selectedBookingForDetails.totalPrice)} <span className="text-xs font-normal text-slate-400">F CFA</span>
+                      </span>
+                    </div>
+
+                    <div className="bg-emerald-500/10 border border-emerald-500/20 rounded-2xl p-3.5">
+                      <span className="text-[9px] font-bold uppercase tracking-wider text-emerald-400 block mb-1">
+                        Acompte Versé
+                      </span>
+                      <span className="text-base sm:text-lg font-black text-emerald-400 tracking-tight">
+                        {formatCurrency(advanceAmount)} <span className="text-xs font-normal text-emerald-300/70">F CFA</span>
+                      </span>
+                    </div>
+
+                    <div className="bg-white/5 border border-white/10 rounded-2xl p-3.5">
+                      <span className="text-[9px] font-bold uppercase tracking-wider text-slate-400 block mb-1">
+                        Solde Restant
+                      </span>
+                      <span className={cn("text-base sm:text-lg font-black tracking-tight", remainingAmount > 0 ? "text-amber-400" : "text-slate-300")}>
+                        {formatCurrency(remainingAmount)} <span className="text-xs font-normal text-slate-400">F CFA</span>
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Net Earnings & Demarcheur Breakdown */}
+                  {(selectedBookingForDetails.ownerNetEarnings !== undefined || selectedBookingForDetails.demarcheurEarnings !== undefined) && (
+                    <div className="pt-3 border-t border-slate-800/80 grid grid-cols-1 sm:grid-cols-3 gap-2.5">
+                      <div className="bg-white/5 p-2.5 rounded-xl border border-white/5">
+                        <span className="text-[9px] text-slate-400 font-bold uppercase block">Commission Plateforme (10%)</span>
+                        <span className="text-xs font-extrabold text-red-400 mt-0.5 block">
+                          -{formatCurrency(selectedBookingForDetails.platformCommission || Math.round((selectedBookingForDetails.totalPrice || 0) * 0.1))} F CFA
+                        </span>
+                      </div>
+                      <div className="bg-emerald-500/10 p-2.5 rounded-xl border border-emerald-500/15">
+                        <span className="text-[9px] text-emerald-300 font-bold uppercase block">Net Hôte Propriétaire</span>
+                        <span className="text-xs font-black text-emerald-300 mt-0.5 block">
+                          {formatCurrency(selectedBookingForDetails.ownerNetEarnings || Math.round((selectedBookingForDetails.totalPrice || 0) * 0.9))} F CFA
+                        </span>
+                      </div>
+                      <div className="bg-amber-500/10 p-2.5 rounded-xl border border-amber-500/15">
+                        <span className="text-[9px] text-amber-300 font-bold uppercase block">Part Mandataire / Démarcheur</span>
+                        <span className="text-xs font-black text-amber-300 mt-0.5 block">
+                          +{formatCurrency(selectedBookingForDetails.demarcheurEarnings || 0)} F CFA
+                        </span>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Bottom bar of finance section */}
+                  <div className="pt-2 flex flex-wrap items-center justify-between gap-3 text-xs text-slate-400">
+                    <div className="flex items-center gap-3 flex-wrap">
+                      {selectedBookingForDetails.transactionId && (
+                        <span className="font-mono text-[11px] text-slate-300 bg-white/5 px-2.5 py-1 rounded-lg border border-white/10">
+                          TX: {selectedBookingForDetails.transactionId}
+                        </span>
+                      )}
+                    </div>
+
+                    {(selectedBookingForDetails.paymentStatus === 'advance_paid' || selectedBookingForDetails.paymentStatus === 'fully_paid') && selectedBookingForDetails.bookingStatus !== 'cancelled' && (
+                      <button 
+                        onClick={() => setSelectedBookingForInvoice(selectedBookingForDetails)}
+                        className="px-3.5 py-1.5 bg-white hover:bg-slate-100 text-slate-900 rounded-xl font-bold text-xs shadow-sm flex items-center gap-1.5 transition-colors cursor-pointer ml-auto"
+                      >
+                        <Download size={13} className="text-slate-900" />
+                        <span>Télécharger le Reçu</span>
+                      </button>
+                    )}
+                  </div>
+                </div>
+
+                {/* Section 3: Official State Directive & Verification */}
+                <div className="space-y-3">
+                  <div className="bg-amber-500/10 border border-amber-500/25 rounded-2xl p-4 flex gap-3.5 items-start">
+                    <div className="w-8 h-8 rounded-xl bg-amber-500 text-white flex items-center justify-center shrink-0 shadow-xs">
+                      <ShieldCheck size={18} />
+                    </div>
+                    <div className="space-y-0.5">
+                      <span className="text-xs font-black uppercase text-amber-950 tracking-wide block">
+                        Directive Réglementaire & Sécurité Hôte
+                      </span>
+                      <p className="text-xs font-medium text-amber-900/90 leading-relaxed">
+                        En tant qu'hôte responsable, l'État vous impose d'effectuer rigoureusement les vérifications d'identité (comparaison de la pièce physique du voyageur avec les documents enregistrés) <strong>avant toute remise formelle des clés</strong>.
+                      </p>
+                    </div>
+                  </div>
+
+                  <BookingVerificationSection 
+                    bookingId={selectedBookingForDetails.id}
+                    clientId={selectedBookingForDetails.clientId}
+                    isPast={isPast || selectedBookingForDetails.bookingStatus === 'completed'}
+                    canEdit={user?.uid === selectedBookingForDetails.ownerId || user?.role === 'admin'}
+                    onStatusChange={(newStatus) => {
+                      const serialized = JSON.stringify(newStatus);
+                      const updatedBk = { ...selectedBookingForDetails, verificationsStatus: serialized };
+                      setSelectedBookingForDetails(prev => prev && prev.id === selectedBookingForDetails.id ? updatedBk : prev);
+                      if (onUpdateBooking) {
+                        onUpdateBooking(updatedBk);
+                      }
+                    }}
+                  />
+                </div>
+
+                {/* Section 4: Cancellation Journal if applicable */}
+                {selectedBookingForDetails.bookingStatus === 'cancelled' && (
+                  <div className="p-4 bg-rose-50 border border-rose-200/80 rounded-2xl space-y-2.5">
+                    <div className="flex items-center gap-2 text-rose-800 font-black text-xs uppercase tracking-wide">
+                      <AlertCircle size={15} className="text-rose-600 shrink-0" />
+                      <span>Séjour Annulé (par {selectedBookingForDetails.cancelledBy === 'client' ? 'le Voyageur' : selectedBookingForDetails.cancelledBy === 'owner' ? "l'Hôte" : "l'Administration"})</span>
+                    </div>
+                    {selectedBookingForDetails.cancellationReason && (
+                      <p className="text-xs text-slate-700 font-medium">
+                        Motif : <span className="font-bold italic">"{selectedBookingForDetails.cancellationReason}"</span>
+                      </p>
+                    )}
+                    {selectedBookingForDetails.refundStatus && selectedBookingForDetails.refundStatus !== 'none' && (
+                      <div className="pt-2 border-t border-rose-200/60 flex flex-wrap items-center justify-between gap-2 text-xs">
+                        <span className="font-bold text-rose-900">
+                          Remboursement ({selectedBookingForDetails.refundProvider?.toUpperCase()} {selectedBookingForDetails.refundPhone}) : <strong>{formatCurrency(selectedBookingForDetails.refundAmount)} F CFA</strong>
+                        </span>
+                        <span className="px-2.5 py-0.5 bg-rose-200/70 text-rose-900 rounded-md font-black text-[10px] uppercase">
+                          {selectedBookingForDetails.refundStatus === 'refunded' ? 'Soldé' : 'En traitement'}
+                        </span>
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {/* Section 5: Check-in / Check-out Timestamps */}
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="p-3.5 bg-slate-50 border border-slate-200/70 rounded-2xl flex items-center gap-3">
+                    <div className="w-8 h-8 rounded-xl bg-slate-200/70 flex items-center justify-center text-slate-600 shrink-0">
+                      <Key size={15} />
+                    </div>
+                    <div>
+                      <span className="text-[9px] font-bold text-slate-400 uppercase block">Check-in Effectif</span>
+                      <span className="text-xs font-extrabold text-slate-800 block mt-0.5">
+                        {selectedBookingForDetails.checkedInAt ? new Date(selectedBookingForDetails.checkedInAt).toLocaleString('fr-FR') : "Non enregistré"}
+                      </span>
+                    </div>
+                  </div>
+
+                  <div className="p-3.5 bg-slate-50 border border-slate-200/70 rounded-2xl flex items-center gap-3">
+                    <div className="w-8 h-8 rounded-xl bg-slate-200/70 flex items-center justify-center text-slate-600 shrink-0">
+                      <DoorOpen size={15} />
+                    </div>
+                    <div>
+                      <span className="text-[9px] font-bold text-slate-400 uppercase block">Check-out Effectif</span>
+                      <span className="text-xs font-extrabold text-slate-800 block mt-0.5">
+                        {selectedBookingForDetails.checkedOutAt ? new Date(selectedBookingForDetails.checkedOutAt).toLocaleString('fr-FR') : "Non enregistré"}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+
               </div>
 
               {/* Footer */}
-              <div className="p-4 bg-slate-50 border-t border-slate-100 flex items-center justify-end">
-                <button 
-                  type="button"
-                  onClick={() => setSelectedBookingForDetails(null)}
-                  className="px-5 py-2.5 bg-slate-900 hover:bg-red-600 text-white rounded-xl font-bold text-xs uppercase tracking-wider transition-colors cursor-pointer"
-                >
-                  Fermer l'aperçu
-                </button>
+              <div className="px-6 py-4 bg-slate-50/80 border-t border-slate-100 flex items-center justify-between shrink-0">
+                <span className="text-xs text-slate-400 font-medium hidden sm:inline">
+                  ResiFaso • Système de Réservation Garanti
+                </span>
+                <div className="flex items-center gap-2.5 w-full sm:w-auto justify-end">
+                  <button 
+                    type="button"
+                    onClick={() => setSelectedBookingForDetails(null)}
+                    className="w-full sm:w-auto px-6 py-2.5 bg-slate-900 hover:bg-slate-800 text-white rounded-xl font-bold text-xs uppercase tracking-wider transition-all shadow-sm cursor-pointer"
+                  >
+                    Fermer l'aperçu
+                  </button>
+                </div>
               </div>
 
             </div>
@@ -1255,45 +1383,42 @@ export const OwnerDashboard: React.FC<{ isTestMode?: boolean; onBackToTraveler?:
       const type = await getBackendDbType();
       setDbType(type);
       
-      const [resList, bookList, withList, settingsData] = await Promise.all([
-        getOwnerResidences(user.uid),
-        getOwnerBookings(user.uid),
-        getOwnerWithdrawals(user.uid),
-        getGlobalSettings()
-      ]);
-      
-      if (resList) {
-        const sortedRes = (resList || []).sort((a, b) => 
-          new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime()
-        );
-        setResidences(sortedRes);
-      }
-      
-      if (bookList) {
-        const sortedBookings = (bookList || []).sort((a, b) => 
-          new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime()
-        );
-        setBookings(sortedBookings);
-      }
-
-      if (withList) {
-        setWithdrawals(withList);
-      }
-
-      if (settingsData && settingsData.commissionRate !== undefined) {
-        setCommissionRate(settingsData.commissionRate);
-      }
-
-      // Fetch user profile for policy
-      const response = await apiFetch(`/api/users/${user.uid}`);
+      const response = await apiFetch('/api/owner/dashboard-data');
       if (response.ok) {
-        const profile = await response.json();
-        if (profile.hostCancellationFee !== undefined) {
-          setHostCancellationFee(Number(profile.hostCancellationFee));
+        const data = await response.json();
+        
+        if (data.residences) {
+          const sortedRes = (data.residences || []).sort((a: any, b: any) => 
+            new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime()
+          );
+          setResidences(sortedRes);
         }
-        if (profile.hostCancellationRulesText !== undefined) {
-          setHostCancellationRulesText(profile.hostCancellationRulesText);
+        
+        if (data.bookings) {
+          const sortedBookings = (data.bookings || []).sort((a: any, b: any) => 
+            new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime()
+          );
+          setBookings(sortedBookings);
         }
+
+        if (data.withdrawals) {
+          setWithdrawals(data.withdrawals);
+        }
+
+        if (data.settings && data.settings.commissionRate !== undefined) {
+          setCommissionRate(data.settings.commissionRate);
+        }
+
+        if (data.profile) {
+          if (data.profile.hostCancellationFee !== undefined) {
+            setHostCancellationFee(Number(data.profile.hostCancellationFee));
+          }
+          if (data.profile.hostCancellationRulesText !== undefined) {
+            setHostCancellationRulesText(data.profile.hostCancellationRulesText);
+          }
+        }
+      } else {
+        throw new Error("Erreur de chargement des données");
       }
 
     } catch (err) {

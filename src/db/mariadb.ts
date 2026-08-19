@@ -2,7 +2,8 @@ import mariadb from 'mariadb';
 import dotenv from 'dotenv';
 dotenv.config();
 
-const dbHost = process.env.DB_HOST || 'localhost';
+const rawHost = process.env.DB_HOST || 'localhost';
+const dbHost = rawHost === 'localhost' ? '127.0.0.1' : rawHost;
 const dbPort = process.env.DB_PORT ? Number(process.env.DB_PORT) : 3306;
 const dbName = process.env.DB_NAME || 'resifaso_db';
 
