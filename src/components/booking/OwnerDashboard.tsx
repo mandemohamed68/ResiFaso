@@ -45,7 +45,7 @@ import {
   MessageSquare, Send, Star, Percent, History, Clock, Filter, Download,
   ChevronLeft, ChevronRight, Compass, Building2, MapPin, User, Calendar, 
   CalendarDays, CheckCircle2, AlertCircle, CreditCard, Copy, FileText, Phone, 
-  Shield, DoorOpen, Key, CheckCheck, Sparkles
+  Shield, DoorOpen, Key, CheckCheck, Sparkles, Users, BedDouble, Bath, Tag, Info, Navigation, CheckCircle
 } from 'lucide-react';
 import { resizeImage } from '../../lib/imageResize';
 import { InvoiceModal } from './InvoiceModal';
@@ -3776,18 +3776,6 @@ export const OwnerDashboard: React.FC<{ isTestMode?: boolean; onBackToTraveler?:
         )}
       </AnimatePresence>
 
-      {/* Residence History Modal */}
-      <AnimatePresence>
-        {selectedHistoryResidenceId && (
-          <ResidenceHistoryModal 
-            residenceId={selectedHistoryResidenceId}
-            residences={residences}
-            bookings={bookings}
-            onClose={() => setSelectedHistoryResidenceId(null)}
-          />
-        )}
-      </AnimatePresence>
-
       {/* Multistage Form modal overlay */}
       <AnimatePresence>
         {isAddOpen && (
@@ -3796,29 +3784,82 @@ export const OwnerDashboard: React.FC<{ isTestMode?: boolean; onBackToTraveler?:
             
             <motion.div
               ref={modalContentRef}
-              initial={{ opacity: 0, scale: 0.95, y: 20 }}
+              initial={{ opacity: 0, scale: 0.96, y: 15 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.95, y: 20 }}
-              className="relative w-full max-w-2xl my-auto sm:my-0 bg-white rounded-3xl border border-slate-100 shadow-2xl p-8 max-h-[88vh] overflow-y-auto z-10"
+              exit={{ opacity: 0, scale: 0.96, y: 15 }}
+              transition={{ duration: 0.2 }}
+              className="relative w-full max-w-2xl my-auto sm:my-0 bg-white rounded-2xl border border-slate-200/90 shadow-2xl p-6 sm:p-8 max-h-[90vh] overflow-y-auto z-10"
             >
               <button 
                 onClick={handleCloseAddModal}
-                className="absolute top-6 right-6 p-2 rounded-xl text-slate-400 hover:bg-slate-50 transition-colors"
+                className="absolute top-5 right-5 p-2 rounded-xl text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-colors cursor-pointer"
+                title="Fermer"
               >
                 <X size={18} />
               </button>
 
-              <div className="mb-6 flex items-center justify-between">
-                <div>
-                  <h3 className="text-2xl font-black text-slate-900 tracking-tight leading-none">
-                    {editingResidenceId ? 'Modifier le Logement' : 'Nouveau Logement'}
+              {/* Modal Header */}
+              <div className="mb-6 space-y-4">
+                <div className="pr-8">
+                  <div className="flex items-center gap-2 mb-1">
+                    <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-md text-[10px] font-black uppercase tracking-wider bg-red-50 text-[#EF2B2D] border border-red-100">
+                      {editingResidenceId ? 'Édition' : 'Nouvelle Annonce'}
+                    </span>
+                    <span className="text-[11px] text-slate-400 font-bold">
+                      Étape {step} sur 4
+                    </span>
+                  </div>
+                  <h3 className="text-2xl font-black text-slate-900 tracking-tight leading-tight">
+                    {editingResidenceId ? 'Modifier le Logement' : 'Créer une Nouvelle Résidence'}
                   </h3>
-                  <p className="text-slate-400 text-xs font-semibold mt-1">Étape {step} sur 4 &bull; {editingResidenceId ? 'Mise à jour sécurisée' : 'Soumission sécurisée'}</p>
+                  <p className="text-slate-500 text-xs font-medium mt-0.5">
+                    {editingResidenceId ? 'Mettez à jour vos détails, photos et conditions tarifaires.' : 'Remplissez les informations certifiées pour publier votre hébergement.'}
+                  </p>
                 </div>
-                <div className="flex gap-1.5">
-                  {[1, 2, 3, 4].map(s => (
-                    <span key={s} className={`w-2.5 h-2.5 rounded-full transition-all ${s === step ? 'bg-red-600 scale-125' : 'bg-slate-100'}`} />
-                  ))}
+
+                {/* Modern Stepper Navigation Bar */}
+                <div className="grid grid-cols-4 gap-2 pt-1 border-t border-slate-100">
+                  {[
+                    { s: 1, label: 'Général', icon: FileText },
+                    { s: 2, label: 'Localisation', icon: MapPin },
+                    { s: 3, label: 'Photos & Pièces', icon: Home },
+                    { s: 4, label: 'Tarifs & Acompte', icon: Tag },
+                  ].map(({ s, label, icon: StepIcon }) => {
+                    const isActive = s === step;
+                    const isCompleted = s < step;
+                    return (
+                      <button
+                        key={s}
+                        type="button"
+                        onClick={() => {
+                          if (isCompleted || editingResidenceId) {
+                            setStep(s);
+                          }
+                        }}
+                        disabled={!isCompleted && !editingResidenceId && !isActive}
+                        className={cn(
+                          "flex items-center gap-1.5 p-2 rounded-xl text-left transition-all text-xs border cursor-pointer",
+                          isActive 
+                            ? "bg-red-50/80 border-[#EF2B2D]/40 text-[#EF2B2D] font-black shadow-xs ring-1 ring-[#EF2B2D]/20"
+                            : isCompleted
+                            ? "bg-slate-50 border-slate-200 text-slate-700 font-bold hover:bg-slate-100"
+                            : "bg-slate-50/40 border-transparent text-slate-400 font-medium cursor-not-allowed"
+                        )}
+                      >
+                        <div className={cn(
+                          "w-5 h-5 rounded-lg flex items-center justify-center text-[10px] shrink-0 font-bold",
+                          isActive
+                            ? "bg-[#EF2B2D] text-white"
+                            : isCompleted
+                            ? "bg-emerald-500 text-white"
+                            : "bg-slate-200 text-slate-500"
+                        )}>
+                          {isCompleted ? <Check size={11} className="stroke-[3]" /> : s}
+                        </div>
+                        <span className="truncate hidden sm:inline text-[11px]">{label}</span>
+                      </button>
+                    );
+                  })}
                 </div>
               </div>
 
@@ -3829,33 +3870,41 @@ export const OwnerDashboard: React.FC<{ isTestMode?: boolean; onBackToTraveler?:
                 
                 {/* STEP 1: Basic logic inputs */}
                 {step === 1 && (
-                  <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }} className="space-y-4">
+                  <motion.div initial={{ opacity: 0, x: 10 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -10 }} className="space-y-4">
                     <div>
-                      <label className="block text-xs font-black text-slate-400 uppercase tracking-wider mb-2">Titre du logement *</label>
+                      <label className="block text-xs font-black text-slate-700 uppercase tracking-wider mb-1.5">
+                        Titre du logement <span className="text-[#EF2B2D]">*</span>
+                      </label>
                       <input
                         type="text"
                         required
                         value={title}
                         onChange={(e) => setTitle(e.target.value)}
                         placeholder="Ex: Villa d'Hôte Lumineuse avec Forage - Patte d'Oie"
-                        className="w-full bg-slate-50 border border-slate-100 focus:bg-white focus:border-red-500 rounded-2xl py-3.5 px-4 outline-none text-sm font-bold transition-all"
+                        className="w-full bg-slate-50/70 border border-slate-200 focus:bg-white focus:border-[#EF2B2D] focus:ring-1 focus:ring-red-100 rounded-xl py-3 px-3.5 outline-none text-sm font-bold text-slate-900 transition-all placeholder:text-slate-400"
                       />
+                      <p className="text-[11px] text-slate-400 font-medium mt-1">Donnez un titre clair et attractif mentionnant la ville ou le quartier.</p>
                     </div>
 
                     <div>
-                      <label className="block text-xs font-black text-slate-400 uppercase tracking-wider mb-2">Description détaillée *</label>
+                      <label className="block text-xs font-black text-slate-700 uppercase tracking-wider mb-1.5">
+                        Description détaillée <span className="text-[#EF2B2D]">*</span>
+                      </label>
                       <textarea
                         required
                         rows={4}
                         value={description}
                         onChange={(e) => setDescription(e.target.value)}
-                        placeholder="Fournissez un descriptif des pièces, de l'état du forage ou générateur, et de la proximité avec le goudron..."
-                        className="w-full bg-slate-50 border border-slate-100 focus:bg-white focus:border-red-500 rounded-2xl py-3.5 px-4 outline-none text-sm font-bold transition-all resize-none"
+                        placeholder="Fournissez un descriptif des pièces, de l'état du forage ou groupe électrogène, et de la proximité avec le goudron..."
+                        className="w-full bg-slate-50/70 border border-slate-200 focus:bg-white focus:border-[#EF2B2D] focus:ring-1 focus:ring-red-100 rounded-xl py-3 px-3.5 outline-none text-sm font-medium text-slate-800 transition-all resize-none placeholder:text-slate-400 leading-relaxed"
                       />
+                      <p className="text-[11px] text-slate-400 font-medium mt-1">Mettez en avant les points forts : sécurité, calme, équipements d'autonomie (eau/électricité).</p>
                     </div>
 
                     <div>
-                      <label className="block text-xs font-black text-slate-400 uppercase tracking-wider mb-2">Type de bâtiment / logement</label>
+                      <label className="block text-xs font-black text-slate-700 uppercase tracking-wider mb-1.5">
+                        Type de bâtiment / logement
+                      </label>
                       <select
                         value={PREDEFINED_TYPES.includes(type) ? type : (type === '' ? '' : 'Autre')}
                         onChange={(e) => {
@@ -3866,7 +3915,7 @@ export const OwnerDashboard: React.FC<{ isTestMode?: boolean; onBackToTraveler?:
                             setType(val);
                           }
                         }}
-                        className="w-full bg-slate-50 border border-slate-100 focus:bg-white focus:border-red-500 rounded-2xl py-3.5 px-4 outline-none text-sm font-bold transition-all"
+                        className="w-full bg-slate-50/70 border border-slate-200 focus:bg-white focus:border-[#EF2B2D] focus:ring-1 focus:ring-red-100 rounded-xl py-3 px-3.5 outline-none text-sm font-bold text-slate-900 transition-all cursor-pointer"
                       >
                         <option value="">-- Sélectionnez un type --</option>
                         {PREDEFINED_TYPES.map((t) => (
@@ -3876,14 +3925,14 @@ export const OwnerDashboard: React.FC<{ isTestMode?: boolean; onBackToTraveler?:
                       </select>
 
                       {(!PREDEFINED_TYPES.includes(type) || type === '') && (
-                        <div className="mt-3">
-                          <label className="block text-xs font-black text-slate-400 uppercase tracking-wider mb-1.5">Saisir le type personnalisé</label>
+                        <div className="mt-2.5">
+                          <label className="block text-[11px] font-bold text-slate-500 mb-1">Précisez le type personnalisé</label>
                           <input 
                             type="text"
                             value={type}
                             onChange={(e) => setType(e.target.value)}
-                            placeholder="Ex: Yourte, Conteneur aménagé, etc."
-                            className="w-full bg-slate-50 border border-slate-100 focus:bg-white focus:border-red-500 rounded-2xl py-3.5 px-4 outline-none text-sm font-bold transition-all"
+                            placeholder="Ex: Yourte, Conteneur aménagé, Loft moderne..."
+                            className="w-full bg-white border border-slate-200 focus:border-[#EF2B2D] rounded-xl py-2.5 px-3.5 outline-none text-xs font-bold text-slate-800 transition-all"
                             required
                           />
                         </div>
@@ -3891,60 +3940,75 @@ export const OwnerDashboard: React.FC<{ isTestMode?: boolean; onBackToTraveler?:
                     </div>
 
                     <div>
-                      <label className="block text-xs font-black text-slate-400 uppercase tracking-wider mb-2">Numéro WhatsApp / Contact *</label>
-                      <input
-                        type="tel"
-                        required
-                        value={ownerPhone}
-                        onChange={(e) => setOwnerPhone(e.target.value)}
-                        placeholder="Ex: +226 70 00 00 00"
-                        className="w-full bg-slate-50 border border-slate-100 focus:bg-white focus:border-red-500 rounded-2xl py-3.5 px-4 outline-none text-sm font-bold transition-all"
-                      />
+                      <label className="block text-xs font-black text-slate-700 uppercase tracking-wider mb-1.5">
+                        Numéro WhatsApp / Contact de l'Hôte <span className="text-[#EF2B2D]">*</span>
+                      </label>
+                      <div className="relative">
+                        <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400 font-bold text-xs">
+                          <Phone size={14} className="mr-1 text-slate-400" />
+                          <span className="text-slate-600 font-mono">🇧🇫 +226</span>
+                        </div>
+                        <input
+                          type="tel"
+                          required
+                          value={ownerPhone}
+                          onChange={(e) => setOwnerPhone(e.target.value)}
+                          placeholder="70 00 00 00"
+                          className="w-full bg-slate-50/70 border border-slate-200 focus:bg-white focus:border-[#EF2B2D] focus:ring-1 focus:ring-red-100 rounded-xl py-3 pl-24 pr-3.5 outline-none text-sm font-bold font-mono text-slate-900 transition-all placeholder:text-slate-400"
+                        />
+                      </div>
+                      <p className="text-[11px] text-slate-400 font-medium mt-1">Utilisé pour les alertes directes et confirmations de réservation par SMS/WhatsApp.</p>
                     </div>
                   </motion.div>
                 )}
 
                 {/* STEP 2: Location logic inputs */}
                 {step === 2 && (
-                  <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} className="space-y-4 relative z-[100]">
+                  <motion.div initial={{ opacity: 0, x: 10 }} animate={{ opacity: 1, x: 0 }} className="space-y-4 relative z-[100]">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                       <div className="relative z-[200]">
-                      <CustomSelect
-                        label="Ville (Burkina Faso) *"
-                        placeholder="Sélectionnez ou tapez la ville"
-                        options={allLocations.map(c => ({ id: c.id, name: c.name }))}
-                        value={selectedCityId}
-                        onChange={(val) => {
-                          setSelectedCityId(val);
-                          setSelectedNeighborhoodId('');
-                        }}
-                      />
-                    </div>
+                        <CustomSelect
+                          label="Ville (Burkina Faso) *"
+                          placeholder="Sélectionnez la ville"
+                          options={allLocations.map(c => ({ id: c.id, name: c.name }))}
+                          value={selectedCityId}
+                          onChange={(val) => {
+                            setSelectedCityId(val);
+                            setSelectedNeighborhoodId('');
+                          }}
+                        />
+                      </div>
 
-                    <div className="relative z-[150]">
-                      <CustomSelect
-                        label="Quartier / Zone *"
-                        placeholder="Sélectionnez ou tapez le quartier"
-                        options={currentCity?.neighborhoods.map(nb => ({ id: nb.id, name: nb.name }))}
-                        value={selectedNeighborhoodId}
-                        onChange={(val) => setSelectedNeighborhoodId(val)}
-                      />
+                      <div className="relative z-[150]">
+                        <CustomSelect
+                          label="Quartier / Zone *"
+                          placeholder="Sélectionnez le quartier"
+                          options={currentCity?.neighborhoods.map(nb => ({ id: nb.id, name: nb.name }))}
+                          value={selectedNeighborhoodId}
+                          onChange={(val) => setSelectedNeighborhoodId(val)}
+                        />
+                      </div>
                     </div>
 
                     <div className="relative z-10">
-                      <label className="block text-xs font-black text-slate-400 uppercase tracking-wider mb-2">Rue / Indication d'adresse</label>
+                      <label className="block text-xs font-black text-slate-700 uppercase tracking-wider mb-1.5">
+                        Rue / Indication d'adresse précise
+                      </label>
                       <input
                         type="text"
                         value={street}
                         onChange={(e) => setStreet(e.target.value)}
                         placeholder="Ex: Rue 15.28, face à l'école Saint-Jean"
-                        className="w-full bg-slate-50 border border-slate-100 focus:bg-white focus:border-red-500 rounded-2xl py-3.5 px-4 outline-none text-sm font-bold transition-all"
+                        className="w-full bg-slate-50/70 border border-slate-200 focus:bg-white focus:border-[#EF2B2D] focus:ring-1 focus:ring-red-100 rounded-xl py-3 px-3.5 outline-none text-sm font-bold text-slate-900 transition-all"
                       />
                     </div>
 
-                    <div className="space-y-3">
-                      <div className="flex items-center justify-between">
-                        <label className="block text-xs font-black text-slate-400 uppercase tracking-wider">Position sur la carte *</label>
-                        <div className="flex gap-2">
+                    <div className="space-y-2 pt-2">
+                      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+                        <label className="block text-xs font-black text-slate-700 uppercase tracking-wider">
+                          Position GPS sur la carte <span className="text-[#EF2B2D]">*</span>
+                        </label>
+                        <div className="flex items-center gap-2">
                           <button 
                             type="button"
                             onClick={() => {
@@ -3973,14 +4037,18 @@ export const OwnerDashboard: React.FC<{ isTestMode?: boolean; onBackToTraveler?:
                                 addToast("Votre navigateur ne supporte pas la géolocalisation.", "error");
                               }
                             }}
-                            className="text-[10px] bg-slate-900 text-white px-2 py-1 rounded-lg font-black uppercase tracking-wider hover:bg-red-600 transition-colors"
+                            className="inline-flex items-center gap-1.5 text-xs bg-slate-900 text-white hover:bg-[#EF2B2D] px-3 py-1.5 rounded-lg font-bold transition-colors cursor-pointer"
                           >
-                            📍 Ma position
+                            <Navigation size={12} className="stroke-[2.5]" />
+                            Détecter ma position
                           </button>
-                          <span className="text-[10px] text-red-600 font-bold bg-red-50 px-2 py-0.5 rounded italic">OU cliquez sur la carte</span>
+                          <span className="text-[10px] text-slate-500 font-medium hidden sm:inline">
+                            ou cliquez sur la carte
+                          </span>
                         </div>
                       </div>
-                      <div className="h-[250px] rounded-2xl overflow-hidden border border-slate-100 shadow-inner z-0 relative">
+
+                      <div className="h-[240px] rounded-xl overflow-hidden border border-slate-200 shadow-inner z-0 relative">
                         <MapContainerAny center={[coordinates.lat, coordinates.lng]} zoom={13} style={{ height: '100%', width: '100%' }}>
                           <TileLayerAny
                             attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>'
@@ -3989,14 +4057,19 @@ export const OwnerDashboard: React.FC<{ isTestMode?: boolean; onBackToTraveler?:
                           <LocationMarker position={coordinates} onChange={handleLocationPick} />
                         </MapContainerAny>
                       </div>
-                      <p className="text-[9px] text-slate-400 font-medium italic">Latitude: {coordinates.lat.toFixed(6)}, Longitude: {coordinates.lng.toFixed(6)}</p>
+
+                      <div className="flex items-center justify-between text-[11px] text-slate-500 font-mono bg-slate-50 px-3 py-1.5 rounded-lg border border-slate-200/80">
+                        <span>Coordonnées exactes :</span>
+                        <span className="font-bold text-slate-800">Lat: {coordinates.lat.toFixed(6)}, Lng: {coordinates.lng.toFixed(6)}</span>
+                      </div>
                     </div>
                   </motion.div>
                 )}
 
                 {/* STEP 3: Images upload, specs and equipments */}
                 {step === 3 && (
-                  <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} className="space-y-4">
+                  <motion.div initial={{ opacity: 0, x: 10 }} animate={{ opacity: 1, x: 0 }} className="space-y-6">
+                    {/* Photos */}
                     <div>
                       <DocumentPhotoUploader
                         label="Photos de la résidence"
@@ -4008,131 +4081,178 @@ export const OwnerDashboard: React.FC<{ isTestMode?: boolean; onBackToTraveler?:
                       />
                     </div>
 
-                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                      <div className="md:col-span-2">
-                        <h4 className="text-xs font-black text-red-600 uppercase tracking-[0.2em] mb-4">Informations Structurelles</h4>
+                    {/* Structural Information Card */}
+                    <div className="p-4 sm:p-5 bg-slate-50/70 rounded-xl border border-slate-200/80 space-y-4">
+                      <div className="flex items-center gap-2 border-b border-slate-200/80 pb-2.5">
+                        <Users size={16} className="text-slate-700" />
+                        <h4 className="text-xs font-black text-slate-900 uppercase tracking-wider">Capacité d'accueil & Pièces</h4>
                       </div>
-                      <div>
-                        <label className="block text-[9px] font-black text-slate-400 uppercase tracking-wider mb-2">Max Voyageurs</label>
-                        <input
-                          type="number"
-                          value={capacity}
-                          onChange={(e) => setCapacity(e.target.value)}
-                          className="w-full bg-slate-50 border border-slate-100 rounded-xl py-3 px-3 outline-none text-sm font-bold"
-                        />
-                      </div>
-                      <div>
-                        <label className="block text-[9px] font-black text-slate-400 uppercase tracking-wider mb-2">Chambres</label>
-                        <input
-                          type="number"
-                          value={bedrooms}
-                          onChange={(e) => setBedrooms(e.target.value)}
-                          className="w-full bg-slate-50 border border-slate-100 rounded-xl py-3 px-3 outline-none text-sm font-bold"
-                        />
-                      </div>
-                      <div>
-                        <label className="block text-[9px] font-black text-slate-400 uppercase tracking-wider mb-2">Pièces Totales</label>
-                        <input
-                          type="number"
-                          value={rooms}
-                          onChange={(e) => setRooms(e.target.value)}
-                          className="w-full bg-slate-50 border border-slate-100 rounded-xl py-3 px-3 outline-none text-sm font-bold"
-                        />
-                      </div>
-                      <div>
-                        <label className="block text-[9px] font-black text-slate-400 uppercase tracking-wider mb-2">Lits</label>
-                        <input
-                          type="number"
-                          value={beds}
-                          onChange={(e) => setBeds(e.target.value)}
-                          className="w-full bg-slate-50 border border-slate-100 rounded-xl py-3 px-3 outline-none text-sm font-bold"
-                        />
-                      </div>
-                      <div>
-                        <label className="block text-[9px] font-black text-slate-400 uppercase tracking-wider mb-2">Douches</label>
-                        <input
-                          type="number"
-                          value={bathrooms}
-                          onChange={(e) => setBathrooms(e.target.value)}
-                          className="w-full bg-slate-50 border border-slate-100 rounded-xl py-3 px-3 outline-none text-sm font-bold"
-                        />
+
+                      <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
+                        <div>
+                          <label className="block text-[10px] font-black text-slate-500 uppercase tracking-wider mb-1.5 truncate">Max Voyageurs</label>
+                          <input
+                            type="number"
+                            min="1"
+                            value={capacity}
+                            onChange={(e) => setCapacity(e.target.value)}
+                            className="w-full bg-white border border-slate-200 focus:border-[#EF2B2D] rounded-xl py-2.5 px-3 outline-none text-sm font-bold text-slate-900 text-center"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-[10px] font-black text-slate-500 uppercase tracking-wider mb-1.5 truncate">Chambres</label>
+                          <input
+                            type="number"
+                            min="0"
+                            value={bedrooms}
+                            onChange={(e) => setBedrooms(e.target.value)}
+                            className="w-full bg-white border border-slate-200 focus:border-[#EF2B2D] rounded-xl py-2.5 px-3 outline-none text-sm font-bold text-slate-900 text-center"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-[10px] font-black text-slate-500 uppercase tracking-wider mb-1.5 truncate">Pièces Totales</label>
+                          <input
+                            type="number"
+                            min="1"
+                            value={rooms}
+                            onChange={(e) => setRooms(e.target.value)}
+                            className="w-full bg-white border border-slate-200 focus:border-[#EF2B2D] rounded-xl py-2.5 px-3 outline-none text-sm font-bold text-slate-900 text-center"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-[10px] font-black text-slate-500 uppercase tracking-wider mb-1.5 truncate">Lits</label>
+                          <input
+                            type="number"
+                            min="1"
+                            value={beds}
+                            onChange={(e) => setBeds(e.target.value)}
+                            className="w-full bg-white border border-slate-200 focus:border-[#EF2B2D] rounded-xl py-2.5 px-3 outline-none text-sm font-bold text-slate-900 text-center"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-[10px] font-black text-slate-500 uppercase tracking-wider mb-1.5 truncate">Douches</label>
+                          <input
+                            type="number"
+                            min="1"
+                            value={bathrooms}
+                            onChange={(e) => setBathrooms(e.target.value)}
+                            className="w-full bg-white border border-slate-200 focus:border-[#EF2B2D] rounded-xl py-2.5 px-3 outline-none text-sm font-bold text-slate-900 text-center"
+                          />
+                        </div>
                       </div>
                     </div>
 
-                    <div className="grid grid-cols-2 gap-3 mt-6">
-                      <div className="col-span-2">
-                         <h4 className="text-xs font-black text-red-600 uppercase tracking-[0.2em] mb-4">Charges & Tarifs</h4>
+                    {/* Utilities & Amenities Card */}
+                    <div className="p-4 sm:p-5 bg-slate-50/70 rounded-xl border border-slate-200/80 space-y-4">
+                      <div className="flex items-center gap-2 border-b border-slate-200/80 pb-2.5">
+                        <Home size={16} className="text-slate-700" />
+                        <h4 className="text-xs font-black text-slate-900 uppercase tracking-wider">Charges Incluses & Équipements</h4>
                       </div>
-                      <div className="col-span-2">
-                        <label className="block text-xs font-black text-slate-400 uppercase tracking-wider mb-2">Inclus dans le prix</label>
-                        <div className="flex gap-6">
-                          <label className="flex items-center gap-3 cursor-pointer group">
-                             <input 
-                               type="checkbox" 
-                               checked={utilitiesIncluded.water} 
-                               onChange={(e) => setUtilitiesIncluded(prev => ({...prev, water: e.target.checked}))} 
-                               className="w-5 h-5 rounded-lg border-slate-300 text-red-600 focus:ring-red-500 transition-all cursor-pointer"
-                             />
-                             <span className="text-sm font-semibold text-slate-800 group-hover:text-red-600 transition-colors">Eau (Inclus)</span>
+
+                      <div className="space-y-2">
+                        <label className="block text-xs font-bold text-slate-700">Charges comprises dans le tarif</label>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                          <label className={cn(
+                            "flex items-center gap-3 p-3 rounded-xl border transition-all cursor-pointer",
+                            utilitiesIncluded.water 
+                              ? "bg-white border-[#EF2B2D] text-slate-900 shadow-xs" 
+                              : "bg-white/60 border-slate-200 text-slate-600 hover:bg-white"
+                          )}>
+                            <input 
+                              type="checkbox" 
+                              checked={utilitiesIncluded.water} 
+                              onChange={(e) => setUtilitiesIncluded(prev => ({...prev, water: e.target.checked}))} 
+                              className="w-4 h-4 rounded text-[#EF2B2D] focus:ring-red-500 cursor-pointer"
+                            />
+                            <div>
+                              <span className="text-xs font-bold block">Eau courante (Inclus)</span>
+                              <span className="text-[10px] text-slate-400 font-medium">Inclus dans la nuitée sans supplément</span>
+                            </div>
                           </label>
-                          <label className="flex items-center gap-3 cursor-pointer group">
-                             <input 
-                               type="checkbox" 
-                               checked={utilitiesIncluded.electricity} 
-                               onChange={(e) => setUtilitiesIncluded(prev => ({...prev, electricity: e.target.checked}))} 
-                               className="w-5 h-5 rounded-lg border-slate-300 text-red-600 focus:ring-red-500 transition-all cursor-pointer"
-                             />
-                             <span className="text-sm font-semibold text-slate-800 group-hover:text-red-600 transition-colors">Électricité (Inclus)</span>
+
+                          <label className={cn(
+                            "flex items-center gap-3 p-3 rounded-xl border transition-all cursor-pointer",
+                            utilitiesIncluded.electricity 
+                              ? "bg-white border-[#EF2B2D] text-slate-900 shadow-xs" 
+                              : "bg-white/60 border-slate-200 text-slate-600 hover:bg-white"
+                          )}>
+                            <input 
+                              type="checkbox" 
+                              checked={utilitiesIncluded.electricity} 
+                              onChange={(e) => setUtilitiesIncluded(prev => ({...prev, electricity: e.target.checked}))} 
+                              className="w-4 h-4 rounded text-[#EF2B2D] focus:ring-red-500 cursor-pointer"
+                            />
+                            <div>
+                              <span className="text-xs font-bold block">Électricité (Inclus)</span>
+                              <span className="text-[10px] text-slate-400 font-medium">Inclus dans la nuitée sans supplément</span>
+                            </div>
                           </label>
                         </div>
-                        <p className="mt-3 text-[10px] text-slate-500 italic font-bold bg-slate-50 p-2 rounded-lg border border-slate-100">
-                           💡 Cochez si ces charges sont <span className="text-red-600">comprises dans le prix de la nuitée</span>. Si décoché, le voyageur devra payer sa consommation sur place.
-                        </p>
                       </div>
-                      <div className="col-span-2">
-                         <label className="block text-xs font-black text-slate-400 uppercase tracking-wider mb-2">Paliers de prix dégressifs (par nombre de nuitées)</label>
-                         {pricingTiers.map((tier, index) => (
-                           <div key={index} className="flex gap-2 mb-2 items-center">
-                             <input 
-                               type="number" 
-                               placeholder="Min nuitées" 
-                               value={tier.minNights} 
-                               onChange={(e) => setPricingTiers(prev => prev.map((t, i) => i === index ? {...t, minNights: parseInt(e.target.value) || 0} : t))} 
-                               className="w-1/2 bg-slate-50 border border-slate-100 rounded-xl py-2 px-3 outline-none text-sm font-bold" 
-                             />
-                             <input 
-                               type="number" 
-                               placeholder="Prix par nuit" 
-                               value={tier.pricePerNight} 
-                               onChange={(e) => setPricingTiers(prev => prev.map((t, i) => i === index ? {...t, pricePerNight: parseInt(e.target.value) || 0} : t))} 
-                               className="w-1/2 bg-slate-50 border border-slate-100 rounded-xl py-2 px-3 outline-none text-sm font-bold" 
-                             />
-                             <button type="button" onClick={() => setPricingTiers(prev => prev.filter((_, i) => i !== index))} className="text-red-500 font-bold text-xs">Retirer</button>
-                           </div>
-                         ))}
-                         <button type="button" onClick={() => setPricingTiers(prev => [...prev, { minNights: 0, pricePerNight: 0 }])} className="text-blue-600 font-bold text-xs">+ Ajouter un palier</button>
-                      </div>
-                    </div>
 
-                    <div>
-                      <label className="block text-xs font-black text-slate-400 uppercase tracking-wider mb-2">Équipements inclus</label>
-                      <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-                        {availableAmenities.map(item => {
-                          const hasAm = amenities.includes(item);
-                          return (
-                            <button
-                              key={item}
-                              type="button"
-                              onClick={() => handleAmenityToggle(item)}
-                              className={`p-3 rounded-xl text-left border text-xs font-bold transition-all relative ${
-                                hasAm ? 'bg-red-50 border-red-300 text-red-800' : 'bg-slate-50 border-slate-100 text-slate-600'
-                              }`}
+                      {/* Amenities grid */}
+                      <div className="space-y-2 pt-2">
+                        <label className="block text-xs font-bold text-slate-700">Équipements et commodités disponibles</label>
+                        <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                          {availableAmenities.map(item => {
+                            const hasAm = amenities.includes(item);
+                            return (
+                              <button
+                                key={item}
+                                type="button"
+                                onClick={() => handleAmenityToggle(item)}
+                                className={cn(
+                                  "p-2.5 rounded-xl text-left border text-xs font-bold transition-all relative flex items-center justify-between cursor-pointer",
+                                  hasAm 
+                                    ? "bg-red-50 border-[#EF2B2D]/40 text-[#EF2B2D] shadow-xs" 
+                                    : "bg-white border-slate-200 text-slate-600 hover:bg-slate-100/60"
+                                )}
+                              >
+                                <span className="truncate pr-4">{item}</span>
+                                {hasAm && <Check size={13} className="text-[#EF2B2D] shrink-0 stroke-[3]" />}
+                              </button>
+                            );
+                          })}
+                        </div>
+                      </div>
+
+                      {/* Pricing Tiers */}
+                      <div className="space-y-2 pt-2 border-t border-slate-200/80">
+                        <div className="flex items-center justify-between">
+                          <label className="block text-xs font-bold text-slate-700">Paliers de prix dégressifs (Optionnel)</label>
+                          <button 
+                            type="button" 
+                            onClick={() => setPricingTiers(prev => [...prev, { minNights: 0, pricePerNight: 0 }])} 
+                            className="text-[#EF2B2D] hover:underline font-bold text-xs cursor-pointer"
+                          >
+                            + Ajouter un palier
+                          </button>
+                        </div>
+                        {pricingTiers.map((tier, index) => (
+                          <div key={index} className="flex gap-2 items-center">
+                            <input 
+                              type="number" 
+                              placeholder="Min nuitées (ex: 7)" 
+                              value={tier.minNights} 
+                              onChange={(e) => setPricingTiers(prev => prev.map((t, i) => i === index ? {...t, minNights: parseInt(e.target.value) || 0} : t))} 
+                              className="w-1/2 bg-white border border-slate-200 rounded-xl py-2 px-3 outline-none text-xs font-bold" 
+                            />
+                            <input 
+                              type="number" 
+                              placeholder="Prix par nuit (FCFA)" 
+                              value={tier.pricePerNight} 
+                              onChange={(e) => setPricingTiers(prev => prev.map((t, i) => i === index ? {...t, pricePerNight: parseInt(e.target.value) || 0} : t))} 
+                              className="w-1/2 bg-white border border-slate-200 rounded-xl py-2 px-3 outline-none text-xs font-bold" 
+                            />
+                            <button 
+                              type="button" 
+                              onClick={() => setPricingTiers(prev => prev.filter((_, i) => i !== index))} 
+                              className="text-red-500 hover:text-red-700 font-bold text-xs p-2"
                             >
-                              {item}
-                              {hasAm && <Check size={12} className="absolute right-3 top-3 text-red-600" />}
+                              Retirer
                             </button>
-                          );
-                        })}
+                          </div>
+                        ))}
                       </div>
                     </div>
                   </motion.div>
@@ -4140,68 +4260,81 @@ export const OwnerDashboard: React.FC<{ isTestMode?: boolean; onBackToTraveler?:
 
                 {/* STEP 4: Tarifs per night, advance % selector */}
                 {step === 4 && (
-                  <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} className="space-y-4 font-bold">
-                    <div className="grid grid-cols-2 gap-4">
+                  <motion.div initial={{ opacity: 0, x: 10 }} animate={{ opacity: 1, x: 0 }} className="space-y-5">
+                    {/* Main Pricing Inputs */}
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                       <div>
-                        <label className="block text-xs font-black text-slate-400 uppercase tracking-wider mb-2">Tarif par nuit (F CFA) *</label>
+                        <label className="block text-xs font-black text-slate-700 uppercase tracking-wider mb-1.5">
+                          Tarif par nuit (F CFA) <span className="text-[#EF2B2D]">*</span>
+                        </label>
                         <input
                           type="number"
                           required
                           value={pricePerNight}
                           onChange={(e) => setPricePerNight(e.target.value)}
                           placeholder="Ex: 45000"
-                          className="w-full bg-slate-50 border border-slate-100 focus:bg-white focus:border-red-500 rounded-2xl py-3.5 px-4 outline-none text-sm transition-all"
+                          className="w-full bg-slate-50/70 border border-slate-200 focus:bg-white focus:border-[#EF2B2D] focus:ring-1 focus:ring-red-100 rounded-xl py-3 px-3.5 outline-none text-base font-black text-slate-900 transition-all"
                         />
                       </div>
                       <div>
-                        <label className="block text-xs font-black text-slate-400 uppercase tracking-wider mb-2">Frais de ménage (F CFA)</label>
+                        <label className="block text-xs font-black text-slate-700 uppercase tracking-wider mb-1.5">
+                          Frais de ménage (F CFA)
+                        </label>
                         <input
                           type="number"
                           value={cleaningFee}
                           onChange={(e) => setCleaningFee(e.target.value)}
-                          placeholder="Ex: 5000"
-                          className="w-full bg-slate-50 border border-slate-100 focus:bg-white focus:border-red-500 rounded-2xl py-3.5 px-4 outline-none text-sm transition-all"
+                          placeholder="Ex: 5000 (Optionnel)"
+                          className="w-full bg-slate-50/70 border border-slate-200 focus:bg-white focus:border-[#EF2B2D] focus:ring-1 focus:ring-red-100 rounded-xl py-3 px-3.5 outline-none text-sm font-bold text-slate-900 transition-all"
                         />
                       </div>
                     </div>
 
-                    <div className="p-5 bg-slate-50 rounded-2xl border border-slate-100">
-                      <div className="flex items-center justify-between mb-4">
+                    {/* Additional Service Fee Toggle Card */}
+                    <div className="p-4 bg-slate-50/70 rounded-xl border border-slate-200/80">
+                      <div className="flex items-center justify-between">
                         <div>
-                          <label className="block text-xs font-black text-slate-900 uppercase tracking-wider">Frais de service Additionnel</label>
-                          <p className="text-[10px] text-slate-400 font-bold italic">Activez pour facturer des frais fixes (ex: électricité, entretien spécial).</p>
+                          <label className="block text-xs font-black text-slate-800 uppercase tracking-wider">Frais de service additionnels</label>
+                          <p className="text-[11px] text-slate-500 font-medium">Facturer des frais fixes (ex: forfait climatisation, entretien).</p>
                         </div>
                         <button 
                           type="button"
                           onClick={() => setUseServiceFee(!useServiceFee)}
-                          className={`w-12 h-6 rounded-full transition-all relative ${useServiceFee ? 'bg-red-600' : 'bg-slate-300'}`}
+                          className={cn(
+                            "w-11 h-6 rounded-full transition-colors relative cursor-pointer",
+                            useServiceFee ? "bg-[#EF2B2D]" : "bg-slate-300"
+                          )}
                         >
-                          <div className={`absolute top-1 w-4 h-4 rounded-full bg-white transition-all ${useServiceFee ? 'left-7' : 'left-1'}`} />
+                          <div className={cn(
+                            "absolute top-1 w-4 h-4 rounded-full bg-white transition-all shadow-xs",
+                            useServiceFee ? "left-6" : "left-1"
+                          )} />
                         </button>
                       </div>
                       
                       {useServiceFee && (
-                        <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }}>
+                        <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} className="pt-3">
                           <input
                             type="number"
                             value={serviceFee}
                             onChange={(e) => setServiceFee(e.target.value)}
                             placeholder="Montant en F CFA (ex: 2000)"
-                            className="w-full bg-white border border-red-100 focus:border-red-500 rounded-xl py-3 px-4 outline-none text-sm font-black text-red-600"
+                            className="w-full bg-white border border-slate-200 focus:border-[#EF2B2D] rounded-xl py-2.5 px-3.5 outline-none text-sm font-bold text-slate-900"
                           />
                         </motion.div>
                       )}
                     </div>
 
                     {/* Gestion Mandataire / Démarcheur UI Block */}
-                    <div className="p-5 bg-amber-50/60 rounded-2xl border border-amber-200/80 space-y-4">
+                    <div className="p-4 sm:p-5 bg-amber-50/50 rounded-xl border border-amber-200 space-y-4">
                       <div className="flex items-center justify-between">
                         <div>
                           <label className="block text-xs font-black text-amber-900 uppercase tracking-wider flex items-center gap-1.5">
-                            🤝 Gestion par un Mandataire / Démarcheur
+                            <span>🤝</span>
+                            <span>Gestion par un Mandataire / Démarcheur</span>
                           </label>
-                          <p className="text-[10px] text-amber-700 font-bold italic">
-                            Activez si cette résidence est gérée par un démarcheur ou si le prix net de l'hôte diffère du prix public.
+                          <p className="text-[11px] text-amber-800/80 font-medium">
+                            Activez si la résidence est gérée par un démarcheur ou si le prix net hôte diffère du prix public.
                           </p>
                         </div>
                         <button 
@@ -4222,17 +4355,23 @@ export const OwnerDashboard: React.FC<{ isTestMode?: boolean; onBackToTraveler?:
                               }
                             }
                           }}
-                          className={`w-12 h-6 rounded-full transition-all relative ${isManagedByDemarcheur ? 'bg-amber-600' : 'bg-slate-300'}`}
+                          className={cn(
+                            "w-11 h-6 rounded-full transition-colors relative cursor-pointer shrink-0 ml-3",
+                            isManagedByDemarcheur ? "bg-amber-600" : "bg-slate-300"
+                          )}
                         >
-                          <div className={`absolute top-1 w-4 h-4 rounded-full bg-white transition-all ${isManagedByDemarcheur ? 'left-7' : 'left-1'}`} />
+                          <div className={cn(
+                            "absolute top-1 w-4 h-4 rounded-full bg-white transition-all shadow-xs",
+                            isManagedByDemarcheur ? "left-6" : "left-1"
+                          )} />
                         </button>
                       </div>
 
                       {isManagedByDemarcheur && (
-                        <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} className="space-y-4 pt-2 border-t border-amber-200/50">
-                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} className="space-y-4 pt-3 border-t border-amber-200/60">
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                             <div>
-                              <label className="block text-xs font-black text-slate-700 uppercase tracking-wider mb-1">
+                              <label className="block text-xs font-bold text-slate-700 mb-1">
                                 Net Propriétaire / Nuit (F CFA)
                               </label>
                               <input
@@ -4248,12 +4387,12 @@ export const OwnerDashboard: React.FC<{ isTestMode?: boolean; onBackToTraveler?:
                                   }
                                 }}
                                 placeholder="Ex: 15000"
-                                className="w-full bg-white border border-slate-200 focus:border-amber-500 rounded-xl py-3 px-3.5 outline-none text-sm font-bold"
+                                className="w-full bg-white border border-amber-200 focus:border-amber-500 rounded-xl py-2.5 px-3 outline-none text-xs font-bold text-slate-900"
                               />
                             </div>
                             <div>
-                              <label className="block text-xs font-black text-slate-700 uppercase tracking-wider mb-1">
-                                Part / Gain Démarcheur / Nuit (F CFA)
+                              <label className="block text-xs font-bold text-slate-700 mb-1">
+                                Part Démarcheur / Nuit (F CFA)
                               </label>
                               <input
                                 type="number"
@@ -4268,26 +4407,26 @@ export const OwnerDashboard: React.FC<{ isTestMode?: boolean; onBackToTraveler?:
                                   }
                                 }}
                                 placeholder="Ex: 5000"
-                                className="w-full bg-white border border-slate-200 focus:border-amber-500 rounded-xl py-3 px-3.5 outline-none text-sm font-bold text-amber-800"
+                                className="w-full bg-white border border-amber-200 focus:border-amber-500 rounded-xl py-2.5 px-3 outline-none text-xs font-bold text-amber-900"
                               />
                             </div>
                           </div>
 
-                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                             <div>
-                              <label className="block text-xs font-black text-slate-700 uppercase tracking-wider mb-1">
-                                Nom du Démarcheur / Mandataire (Optionnel)
+                              <label className="block text-[11px] font-bold text-slate-600 mb-1">
+                                Nom du Démarcheur (Optionnel)
                               </label>
                               <input
                                 type="text"
                                 value={demarcheurName}
                                 onChange={(e) => setDemarcheurName(e.target.value)}
                                 placeholder="Ex: Ibrahim Sawadogo"
-                                className="w-full bg-white border border-slate-200 focus:border-amber-500 rounded-xl py-2.5 px-3.5 outline-none text-xs font-medium"
+                                className="w-full bg-white border border-amber-200 focus:border-amber-500 rounded-xl py-2 px-3 outline-none text-xs"
                               />
                             </div>
                             <div>
-                              <label className="block text-xs font-black text-slate-700 uppercase tracking-wider mb-1">
+                              <label className="block text-[11px] font-bold text-slate-600 mb-1">
                                 Téléphone Démarcheur (Optionnel)
                               </label>
                               <input
@@ -4295,69 +4434,57 @@ export const OwnerDashboard: React.FC<{ isTestMode?: boolean; onBackToTraveler?:
                                 value={demarcheurPhone}
                                 onChange={(e) => setDemarcheurPhone(e.target.value)}
                                 placeholder="Ex: +226 70 00 00 00"
-                                className="w-full bg-white border border-slate-200 focus:border-amber-500 rounded-xl py-2.5 px-3.5 outline-none text-xs font-medium"
+                                className="w-full bg-white border border-amber-200 focus:border-amber-500 rounded-xl py-2 px-3 outline-none text-xs"
                               />
                             </div>
                           </div>
 
                           {/* Platform Fee Payer Selector */}
                           <div className="space-y-2 pt-2 border-t border-amber-200/50">
-                            <label className="block text-xs font-black text-slate-800 uppercase tracking-wider">
+                            <label className="block text-xs font-bold text-slate-800">
                               Qui supporte les frais de plateforme (10%) ?
                             </label>
-                            <p className="text-[11px] text-slate-500 font-medium">
-                              Choisissez la partie qui prend en charge la commission de 10% appliquée sur le tarif total de location.
-                            </p>
-                            <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 pt-1">
+                            <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
                               <button
                                 type="button"
                                 onClick={() => setCommissionPayer('owner')}
                                 className={cn(
-                                  "p-3 rounded-xl border text-left transition-all cursor-pointer flex flex-col justify-between",
+                                  "p-2.5 rounded-xl border text-left transition-all cursor-pointer",
                                   commissionPayer === 'owner'
-                                    ? "bg-amber-50 border-amber-500 ring-2 ring-amber-500/20 text-amber-950 font-bold shadow-xs"
-                                    : "bg-white border-slate-200 text-slate-600 hover:bg-slate-50"
+                                    ? "bg-amber-100/70 border-amber-500 text-amber-950 font-bold shadow-xs"
+                                    : "bg-white border-amber-200 text-slate-600 hover:bg-amber-50/50"
                                 )}
                               >
-                                <div className="flex items-center gap-1.5 font-black text-xs">
-                                  <span>🏢</span>
-                                  <span>Propriétaire</span>
-                                </div>
-                                <span className="text-[10px] text-slate-500 font-semibold mt-1">10% déduits du propriétaire</span>
+                                <span className="text-xs font-bold block">🏢 Propriétaire</span>
+                                <span className="text-[10px] text-slate-500">10% sur part hôte</span>
                               </button>
 
                               <button
                                 type="button"
                                 onClick={() => setCommissionPayer('demarcheur')}
                                 className={cn(
-                                  "p-3 rounded-xl border text-left transition-all cursor-pointer flex flex-col justify-between",
+                                  "p-2.5 rounded-xl border text-left transition-all cursor-pointer",
                                   commissionPayer === 'demarcheur'
-                                    ? "bg-amber-50 border-amber-500 ring-2 ring-amber-500/20 text-amber-950 font-bold shadow-xs"
-                                    : "bg-white border-slate-200 text-slate-600 hover:bg-slate-50"
+                                    ? "bg-amber-100/70 border-amber-500 text-amber-950 font-bold shadow-xs"
+                                    : "bg-white border-amber-200 text-slate-600 hover:bg-amber-50/50"
                                 )}
                               >
-                                <div className="flex items-center gap-1.5 font-black text-xs">
-                                  <span>🤝</span>
-                                  <span>Démarcheur</span>
-                                </div>
-                                <span className="text-[10px] text-slate-500 font-semibold mt-1">10% déduits du démarcheur</span>
+                                <span className="text-xs font-bold block">🤝 Démarcheur</span>
+                                <span className="text-[10px] text-slate-500">10% sur démarcheur</span>
                               </button>
 
                               <button
                                 type="button"
                                 onClick={() => setCommissionPayer('shared')}
                                 className={cn(
-                                  "p-3 rounded-xl border text-left transition-all cursor-pointer flex flex-col justify-between",
+                                  "p-2.5 rounded-xl border text-left transition-all cursor-pointer",
                                   commissionPayer === 'shared'
-                                    ? "bg-amber-50 border-amber-500 ring-2 ring-amber-500/20 text-amber-950 font-bold shadow-xs"
-                                    : "bg-white border-slate-200 text-slate-600 hover:bg-slate-50"
+                                    ? "bg-amber-100/70 border-amber-500 text-amber-950 font-bold shadow-xs"
+                                    : "bg-white border-amber-200 text-slate-600 hover:bg-amber-50/50"
                                 )}
                               >
-                                <div className="flex items-center gap-1.5 font-black text-xs">
-                                  <span>⚖️</span>
-                                  <span>Partagée (Prorata)</span>
-                                </div>
-                                <span className="text-[10px] text-slate-500 font-semibold mt-1">-10% sur chaque part</span>
+                                <span className="text-xs font-bold block">⚖️ Partagée</span>
+                                <span className="text-[10px] text-slate-500">Au prorata (-10%)</span>
                               </button>
                             </div>
                           </div>
@@ -4383,39 +4510,29 @@ export const OwnerDashboard: React.FC<{ isTestMode?: boolean; onBackToTraveler?:
                             }
 
                             return (
-                              <div className="bg-white p-4 rounded-2xl border border-amber-200/90 text-xs space-y-2.5 shadow-sm">
-                                <span className="font-black text-amber-900 uppercase block tracking-wider text-[11px] border-b border-amber-100 pb-1.5">
-                                  📊 Simulation de Répartition Financière par Nuit (10% Commission)
+                              <div className="bg-white p-3.5 rounded-xl border border-amber-200 text-xs space-y-2 shadow-xs">
+                                <span className="font-bold text-amber-950 text-[11px] block border-b border-amber-100 pb-1">
+                                  Simulation de répartition par nuit (10% Plateforme)
                                 </span>
                                 
-                                <div className="space-y-1.5 p-3 bg-amber-50/70 rounded-xl border border-amber-200/60 font-sans">
-                                  <div className="flex justify-between items-center text-slate-700">
+                                <div className="space-y-1 text-xs">
+                                  <div className="flex justify-between text-slate-600">
                                     <span>Prix Total Public Client :</span>
-                                    <span className="font-black text-red-600 text-sm">{formatCurrency(tot)} F CFA</span>
+                                    <span className="font-black text-[#EF2B2D]">{formatCurrency(tot)} F CFA</span>
                                   </div>
-                                  <div className="flex justify-between items-center text-red-600 font-semibold text-[11px]">
-                                    <span>Commission Plateforme (10%) :</span>
-                                    <span className="font-extrabold">-{formatCurrency(comm)} F CFA</span>
+                                  <div className="flex justify-between text-[#EF2B2D] font-medium">
+                                    <span>Commission ResiFaso (10%) :</span>
+                                    <span className="font-bold">-{formatCurrency(comm)} F CFA</span>
                                   </div>
-                                  <div className="flex justify-between items-center text-slate-800 font-bold pt-1 border-t border-amber-200/50">
-                                    <span>💰 Gain Net Propriétaire Hôte :</span>
-                                    <span className="font-black text-slate-900 text-sm">{formatCurrency(simOwn)} F CFA</span>
+                                  <div className="flex justify-between text-slate-800 font-bold pt-1 border-t border-slate-100">
+                                    <span>Gain Net Propriétaire :</span>
+                                    <span className="font-black text-slate-900">{formatCurrency(simOwn)} F CFA</span>
                                   </div>
-                                  <div className="flex justify-between items-center text-amber-900 font-bold">
-                                    <span>🤝 Gain Net Démarcheur / Mandataire :</span>
-                                    <span className="font-black text-amber-800 text-sm">+{formatCurrency(simDem)} F CFA</span>
+                                  <div className="flex justify-between text-amber-900 font-bold">
+                                    <span>Part Nette Démarcheur :</span>
+                                    <span className="font-black text-amber-800">+{formatCurrency(simDem)} F CFA</span>
                                   </div>
                                 </div>
-
-                                <p className="text-[10px] text-slate-600 font-medium italic leading-relaxed bg-amber-50/40 p-2 rounded-lg border border-amber-100">
-                                  💡 <strong>Répartition configurée :</strong> {
-                                    commissionPayer === 'owner' 
-                                      ? `La commission de 10% (${formatCurrency(comm)} F CFA) est entièrement supportée par le Propriétaire. Le Démarcheur perçoit l'intégralité de sa part (${formatCurrency(simDem)} F CFA).`
-                                      : commissionPayer === 'demarcheur'
-                                      ? `La commission de 10% (${formatCurrency(comm)} F CFA) est entièrement supportée par le Démarcheur. Le Propriétaire perçoit l'intégralité de son net (${formatCurrency(simOwn)} F CFA).`
-                                      : `La commission de 10% est répartie au prorata (-10% sur la part propriétaire et -10% sur la part démarcheur).`
-                                  }
-                                </p>
                               </div>
                             );
                           })()}
@@ -4423,78 +4540,94 @@ export const OwnerDashboard: React.FC<{ isTestMode?: boolean; onBackToTraveler?:
                       )}
                     </div>
 
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6 p-6 bg-red-50/30 rounded-[32px] border border-red-100/50">
-                      <div className="md:col-span-2">
-                        <h4 className="text-xs font-black text-red-600 uppercase tracking-[0.2em] mb-4">Promotions & Réductions Durée</h4>
+                    {/* Promotions Card */}
+                    <div className="p-4 sm:p-5 bg-slate-50/70 rounded-xl border border-slate-200/80 space-y-4">
+                      <div className="flex items-center gap-2 border-b border-slate-200/80 pb-2.5">
+                        <Tag size={16} className="text-slate-700" />
+                        <h4 className="text-xs font-black text-slate-900 uppercase tracking-wider">Promotions & Réductions de Durée</h4>
                       </div>
+
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        <div>
+                          <label className="block text-xs font-bold text-slate-700 mb-1">Remise Hebdomadaire (%)</label>
+                          <input
+                            type="number"
+                            value={weeklyDiscount}
+                            onChange={(e) => setWeeklyDiscount(e.target.value)}
+                            placeholder="Ex: 10"
+                            className="w-full bg-white border border-slate-200 focus:border-[#EF2B2D] rounded-xl py-2.5 px-3.5 outline-none text-xs font-bold text-slate-900"
+                          />
+                          <p className="mt-1 text-[10px] text-slate-400 font-medium">Séjours de 7 nuits ou plus.</p>
+                        </div>
+                        <div>
+                          <label className="block text-xs font-bold text-slate-700 mb-1">Remise Mensuelle (%)</label>
+                          <input
+                            type="number"
+                            value={monthlyDiscount}
+                            onChange={(e) => setMonthlyDiscount(e.target.value)}
+                            placeholder="Ex: 25"
+                            className="w-full bg-white border border-slate-200 focus:border-[#EF2B2D] rounded-xl py-2.5 px-3.5 outline-none text-xs font-bold text-slate-900"
+                          />
+                          <p className="mt-1 text-[10px] text-slate-400 font-medium">Séjours de 28 nuits ou plus.</p>
+                        </div>
+                      </div>
+
                       <div>
-                        <label className="block text-xs font-black text-slate-400 uppercase tracking-wider mb-2">Remise Hebdomadaire (%)</label>
-                        <input
-                          type="number"
-                          value={weeklyDiscount}
-                          onChange={(e) => setWeeklyDiscount(e.target.value)}
-                          placeholder="Ex: 10"
-                          className="w-full bg-white border border-slate-100 focus:border-red-500 rounded-2xl py-3.5 px-4 outline-none text-sm transition-all"
-                        />
-                        <p className="mt-2 text-[10px] text-slate-400 font-bold">Pour les séjours de 7 nuits ou plus.</p>
-                      </div>
-                      <div>
-                        <label className="block text-xs font-black text-slate-400 uppercase tracking-wider mb-2">Remise Mensuelle (%)</label>
-                        <input
-                          type="number"
-                          value={monthlyDiscount}
-                          onChange={(e) => setMonthlyDiscount(e.target.value)}
-                          placeholder="Ex: 25"
-                          className="w-full bg-white border border-slate-100 focus:border-red-500 rounded-2xl py-3.5 px-4 outline-none text-sm transition-all"
-                        />
-                        <p className="mt-2 text-[10px] text-slate-400 font-bold">Pour les séjours de 28 nuits ou plus.</p>
-                      </div>
-                      <div className="md:col-span-2">
-                        <label className="block text-xs font-black text-slate-400 uppercase tracking-wider mb-2">Prix Promotionnel par nuit (F CFA)</label>
+                        <label className="block text-xs font-bold text-slate-700 mb-1">Prix Promotionnel par nuit (F CFA)</label>
                         <input
                           type="number"
                           value={promoPrice}
                           onChange={(e) => setPromoPrice(e.target.value)}
                           placeholder="Laisser vide pour utiliser le prix normal"
-                          className="w-full bg-white border border-slate-100 focus:border-red-500 rounded-2xl py-3.5 px-4 outline-none text-sm transition-all font-black text-red-600 placeholder:font-normal placeholder:text-slate-300"
+                          className="w-full bg-white border border-slate-200 focus:border-[#EF2B2D] rounded-xl py-2.5 px-3.5 outline-none text-xs font-bold text-[#EF2B2D] placeholder:text-slate-400 placeholder:font-normal"
                         />
-                        <p className="mt-2 text-[10px] text-slate-400 font-bold italic">Si défini, ce prix remplacera le prix normal (ex: offre Flash).</p>
+                        <p className="mt-1 text-[10px] text-slate-400 font-medium italic">Si défini, ce tarif prioritaire s'appliquera directement sur l'annonce.</p>
                       </div>
                     </div>
 
-                    <div>
-                      <label className="block text-xs font-black text-slate-400 uppercase tracking-wider mb-2">Pourcentage d\'acompte exigé</label>
-                      <div className="grid grid-cols-3 gap-3">
-                        {[30, 50, 100].map(pct => (
+                    {/* Deposit Percentage */}
+                    <div className="space-y-2">
+                      <label className="block text-xs font-black text-slate-700 uppercase tracking-wider">
+                        Pourcentage d'acompte exigé à la réservation
+                      </label>
+                      <div className="grid grid-cols-3 gap-2.5">
+                        {[
+                          { pct: 30, label: 'Acompte standard' },
+                          { pct: 50, label: 'Acompte recommandé' },
+                          { pct: 100, label: 'Séjour complet' }
+                        ].map(({ pct, label }) => (
                           <button
                             key={pct}
                             type="button"
                             onClick={() => setAdvancePercentage(pct)}
-                            className={`py-3.5 rounded-2xl border text-xs font-black tracking-wider transition-all ${
+                            className={cn(
+                              "py-3 px-2 rounded-xl border text-center transition-all cursor-pointer flex flex-col items-center justify-center gap-0.5",
                               advancePercentage === pct 
-                                ? 'bg-red-50 border-red-500 text-red-700 shadow-sm'
-                                : 'bg-slate-50 border-slate-100 text-slate-500'
-                            }`}
+                                ? "bg-red-50/80 border-[#EF2B2D] text-[#EF2B2D] font-bold shadow-xs ring-1 ring-[#EF2B2D]/20"
+                                : "bg-slate-50/60 border-slate-200 text-slate-600 hover:bg-slate-100"
+                            )}
                           >
-                            {pct}% {pct === 100 ? '(Séjour Complet)' : '(Acompte standard)'}
+                            <span className="text-sm font-black">{pct}%</span>
+                            <span className="text-[10px] text-slate-500 truncate w-full">{label}</span>
                           </button>
                         ))}
                       </div>
                     </div>
 
-                    <div className="bg-slate-50 border border-slate-100 rounded-2xl p-4 text-xs font-semibold leading-relaxed text-slate-500">
-                      Un frais de transaction de <strong className="text-red-700">10%</strong> sera prélevé par la plateforme sur chaque nuitée pour le fonctionnement des APIs Mobile Money SMS de ResiFaso. Les fonds restants (90%) sont versés en continu sur votre compte Orange Money, Moov Money, Telecel Money ou Coris Money.
+                    {/* Platform Fee Notice */}
+                    <div className="bg-slate-50 border border-slate-200 rounded-xl p-3.5 text-xs font-medium leading-relaxed text-slate-600">
+                      Un frais de transaction de <strong className="text-slate-900 font-bold">10%</strong> est prélevé par la plateforme sur chaque réservation pour la maintenance, la sécurisation des dépôts et les passerelles Mobile Money. Les 90% restants sont reversés sur votre compte Orange Money, Moov Money, Telecel Money ou Coris Money.
                     </div>
                   </motion.div>
                 )}
 
-                {/* Wizard navigation bar buttons */}
-                <div className="flex justify-between items-center pt-4 border-t border-slate-100">
+                {/* Wizard Navigation Footer */}
+                <div className="flex items-center justify-between pt-4 border-t border-slate-100">
                   {step > 1 ? (
                     <button
                       type="button"
                       onClick={() => setStep(prev => prev - 1)}
-                      className="px-5 py-3 rounded-xl border border-slate-205 text-slate-600 hover:bg-slate-50 transition-colors font-bold text-xs uppercase tracking-wider flex items-center gap-2"
+                      className="px-4 py-2.5 rounded-xl border border-slate-200 text-slate-700 hover:bg-slate-100 transition-colors font-bold text-xs uppercase tracking-wider flex items-center gap-1.5 cursor-pointer"
                     >
                       <ArrowLeft size={14} />
                       Précédent
@@ -4504,20 +4637,19 @@ export const OwnerDashboard: React.FC<{ isTestMode?: boolean; onBackToTraveler?:
                   )}
 
                   {step < 4 ? (
-                    <div className="flex gap-2">
+                    <div className="flex items-center gap-2">
                        {editingResidenceId && (
                          <button
                            type="button"
                            disabled={isSubmitting}
                            onClick={() => {
-                             // Force validation for essential fields regardless of step
                              if (!title || !description || !selectedCityId || !selectedNeighborhoodId || !ownerPhone || !pricePerNight) {
                                addToast("Veuillez remplir au moins les informations de base (Titre, Description, Contact, Ville, Quartier et Prix) avant d'enregistrer.", "error");
                                return;
                              }
                              handleAddResidenceSubmit(undefined, true);
                            }}
-                           className="px-5 py-3 border border-slate-200 text-slate-600 hover:bg-slate-50 rounded-xl font-bold text-xs uppercase tracking-wider transition-all"
+                           className="px-4 py-2.5 border border-slate-200 text-slate-700 hover:bg-slate-50 rounded-xl font-bold text-xs uppercase tracking-wider transition-all cursor-pointer"
                          >
                            {isSubmitting ? '...' : 'Enregistrer Directement'}
                          </button>
@@ -4525,7 +4657,7 @@ export const OwnerDashboard: React.FC<{ isTestMode?: boolean; onBackToTraveler?:
                       <button
                         type="button"
                         onClick={handleNextStep}
-                        className="px-5 py-3 bg-red-600 hover:bg-red-700 text-white rounded-xl font-bold text-xs uppercase tracking-wider flex items-center gap-2 shadow-lg shadow-red-100"
+                        className="px-5 py-2.5 bg-[#EF2B2D] hover:bg-red-700 text-white rounded-xl font-bold text-xs uppercase tracking-wider flex items-center gap-1.5 shadow-xs transition-all cursor-pointer"
                       >
                         Suivant
                         <ArrowRight size={14} />
@@ -4535,7 +4667,7 @@ export const OwnerDashboard: React.FC<{ isTestMode?: boolean; onBackToTraveler?:
                     <button
                       type="submit"
                       disabled={isSubmitting}
-                      className="px-6 py-3.5 bg-red-600 hover:bg-red-700 text-white rounded-xl font-black text-xs uppercase tracking-[0.1em] shadow-lg shadow-red-50 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                      className="px-6 py-3 bg-[#EF2B2D] hover:bg-red-700 text-white rounded-xl font-black text-xs uppercase tracking-wider shadow-sm disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 cursor-pointer transition-all"
                     >
                       {isSubmitting ? (
                         <>
@@ -4571,16 +4703,19 @@ export const OwnerDashboard: React.FC<{ isTestMode?: boolean; onBackToTraveler?:
           <div className="fixed inset-0 z-[100] flex items-start justify-center p-3 sm:p-6 pt-4 sm:pt-8 pb-10 overflow-y-auto">
             <div className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm" onClick={() => setBookingToDecline(null)} />
             <motion.div
-              initial={{ opacity: 0, scale: 0.95, y: 10 }}
+              initial={{ opacity: 0, scale: 0.96, y: 10 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.95, y: 10 }}
-              className="bg-white rounded-3xl w-full max-w-lg my-auto sm:my-0 overflow-hidden relative shadow-2xl flex flex-col max-h-[88vh]"
+              exit={{ opacity: 0, scale: 0.96, y: 10 }}
+              className="bg-white rounded-2xl border border-slate-200/90 w-full max-w-lg my-auto sm:my-0 overflow-hidden relative shadow-2xl flex flex-col max-h-[88vh]"
             >
-              <div className="p-4 border-b border-slate-100 flex items-center justify-between sticky top-0 bg-white z-10">
-                <h3 className="font-black text-slate-900 truncate">Décliner la réservation</h3>
+              <div className="p-4 sm:p-5 border-b border-slate-100 flex items-center justify-between sticky top-0 bg-white z-10">
+                <div>
+                  <h3 className="text-base font-black text-slate-900 truncate">Décliner la réservation</h3>
+                  <p className="text-xs text-slate-500 font-medium">Indiquez le motif qui sera notifié au voyageur.</p>
+                </div>
                 <button 
                   onClick={() => setBookingToDecline(null)}
-                  className="w-8 h-8 flex items-center justify-center rounded-full bg-slate-50 text-slate-500 hover:bg-red-50 hover:text-red-600 transition"
+                  className="p-2 rounded-xl text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-colors"
                 >
                   <X size={16} />
                 </button>

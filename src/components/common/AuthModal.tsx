@@ -182,12 +182,12 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onNavigat
         animate={{ opacity: 1, scale: 1, y: 0 }}
         exit={{ opacity: 0, scale: 0.96, y: 16 }}
         transition={{ duration: 0.25, ease: [0.16, 1, 0.3, 1] }}
-        className="relative w-full max-w-[460px] bg-white dark:bg-slate-900 rounded-[28px] border border-slate-100 dark:border-slate-800 shadow-2xl shadow-slate-950/20 overflow-hidden z-10 my-auto max-h-[92vh] flex flex-col"
+        className="relative w-full max-w-[460px] bg-white dark:bg-slate-900 rounded-2xl border border-slate-200/80 dark:border-slate-800 shadow-2xl shadow-slate-950/20 overflow-hidden z-10 my-auto max-h-[92vh] flex flex-col"
       >
         {/* Close Button */}
         <button 
           onClick={onClose}
-          className="absolute top-4 right-4 p-2 rounded-full text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition-all cursor-pointer z-20"
+          className="absolute top-4 right-4 p-2 rounded-xl text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition-all cursor-pointer z-20"
           aria-label="Fermer"
         >
           <X size={18} />
@@ -199,7 +199,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onNavigat
           {/* Brand Header */}
           <div className="text-center select-none pt-1">
             <div className="inline-flex items-center gap-3.5 justify-center mb-3">
-              <div className="w-14 h-14 sm:w-16 sm:h-16 flex-shrink-0 flex items-center justify-center overflow-hidden rounded-2xl bg-white border border-slate-200/80 dark:border-slate-700 shadow-sm p-1">
+              <div className="w-14 h-14 sm:w-16 sm:h-16 flex-shrink-0 flex items-center justify-center overflow-hidden rounded-xl bg-white border border-slate-200/80 dark:border-slate-700 shadow-sm p-1">
                 <img 
                   src="/logoresifaso_new.jpg" 
                   alt="ResiFaso logo" 
@@ -239,7 +239,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onNavigat
 
           {/* Segmented Tab Switcher (Connexion / Inscription) */}
           {!isForgotPassword && (
-            <div className="grid grid-cols-2 p-1 bg-slate-100 dark:bg-slate-800/90 rounded-2xl border border-slate-200/60 dark:border-slate-700/60">
+            <div className="grid grid-cols-2 p-1 bg-slate-100 dark:bg-slate-800/90 rounded-xl border border-slate-200/60 dark:border-slate-700/60">
               <button
                 type="button"
                 onClick={() => {
@@ -248,7 +248,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onNavigat
                   setSuccess(null);
                 }}
                 className={cn(
-                  "py-2.5 px-3 rounded-xl text-xs font-black uppercase tracking-wider transition-all duration-200 cursor-pointer relative",
+                  "py-2.5 px-3 rounded-lg text-xs font-black uppercase tracking-wider transition-all duration-200 cursor-pointer relative",
                   !isSignUp 
                     ? "bg-white dark:bg-slate-900 text-brand-primary shadow-sm" 
                     : "text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200"
@@ -264,7 +264,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onNavigat
                   setSuccess(null);
                 }}
                 className={cn(
-                  "py-2.5 px-3 rounded-xl text-xs font-black uppercase tracking-wider transition-all duration-200 cursor-pointer relative",
+                  "py-2.5 px-3 rounded-lg text-xs font-black uppercase tracking-wider transition-all duration-200 cursor-pointer relative",
                   isSignUp 
                     ? "bg-white dark:bg-slate-900 text-brand-primary shadow-sm" 
                     : "text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200"
@@ -282,7 +282,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onNavigat
                 initial={{ opacity: 0, y: -8 }}
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: -8 }}
-                className="flex items-start gap-3 p-3.5 bg-red-50 dark:bg-red-950/40 border border-red-200 dark:border-red-800/60 rounded-2xl text-red-700 dark:text-red-300 text-xs font-semibold"
+                className="flex items-start gap-3 p-3.5 bg-red-50 dark:bg-red-950/40 border border-red-200 dark:border-red-800/60 rounded-xl text-red-700 dark:text-red-300 text-xs font-semibold"
               >
                 <AlertCircle size={17} className="shrink-0 mt-0.5 text-red-600 dark:text-red-400" />
                 <div className="flex-1 leading-relaxed">{error}</div>
@@ -294,7 +294,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onNavigat
                 initial={{ opacity: 0, y: -8 }}
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: -8 }}
-                className="flex items-start gap-3 p-3.5 bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800/60 rounded-2xl text-emerald-800 dark:text-emerald-300 text-xs font-semibold"
+                className="flex items-start gap-3 p-3.5 bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800/60 rounded-xl text-emerald-800 dark:text-emerald-300 text-xs font-semibold"
               >
                 <CheckCircle2 size={17} className="shrink-0 mt-0.5 text-emerald-600 dark:text-emerald-400" />
                 <div className="flex-1 leading-relaxed">{success}</div>
@@ -319,7 +319,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onNavigat
                         value={email}
                         onChange={(e) => setEmail(e.target.value)}
                         placeholder="exemple@email.com"
-                        className="w-full bg-slate-50 dark:bg-slate-800/70 border border-slate-200 dark:border-slate-700 hover:border-slate-300 dark:hover:border-slate-600 focus:bg-white dark:focus:bg-slate-800 focus:border-brand-primary focus:ring-4 focus:ring-brand-primary/10 rounded-2xl py-3.5 pl-11 pr-4 outline-none text-sm font-semibold text-slate-900 dark:text-white transition-all placeholder:text-slate-400 shadow-xs"
+                        className="w-full bg-slate-50 dark:bg-slate-800/70 border border-slate-200 dark:border-slate-700 hover:border-slate-300 dark:hover:border-slate-600 focus:bg-white dark:focus:bg-slate-800 focus:border-brand-primary focus:ring-4 focus:ring-brand-primary/10 rounded-xl py-3 pl-11 pr-4 outline-none text-sm font-semibold text-slate-900 dark:text-white transition-all placeholder:text-slate-400 shadow-xs"
                       />
                     </div>
                   </div>
@@ -327,7 +327,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onNavigat
                   <button
                     type="submit"
                     disabled={loading}
-                    className="w-full bg-brand-primary hover:bg-brand-primary-dark text-white rounded-2xl py-3.5 text-xs font-black uppercase tracking-[0.15em] shadow-lg shadow-brand-primary/20 hover:shadow-xl transition-all cursor-pointer disabled:opacity-50 flex items-center justify-center gap-2"
+                    className="w-full bg-brand-primary hover:bg-brand-primary-dark text-white rounded-xl py-3.5 text-xs font-black uppercase tracking-[0.15em] shadow-sm hover:shadow-md transition-all cursor-pointer disabled:opacity-50 flex items-center justify-center gap-2"
                   >
                     {loading ? (
                       <>
@@ -354,7 +354,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onNavigat
                         type="email"
                         disabled
                         value={email}
-                        className="w-full bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl py-3.5 pl-11 pr-4 text-sm font-semibold text-slate-500 opacity-80"
+                        className="w-full bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl py-3 pl-11 pr-4 text-sm font-semibold text-slate-500 opacity-80"
                       />
                     </div>
                   </div>
@@ -379,7 +379,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onNavigat
                         value={resetCode}
                         onChange={(e) => setResetCode(e.target.value)}
                         placeholder="123456"
-                        className="w-full bg-slate-50 dark:bg-slate-800/70 border border-slate-200 dark:border-slate-700 focus:bg-white dark:focus:bg-slate-800 focus:border-brand-primary focus:ring-4 focus:ring-brand-primary/10 rounded-2xl py-3.5 pl-11 pr-4 outline-none text-sm font-mono font-bold tracking-widest text-slate-900 dark:text-white transition-all placeholder:text-slate-400 shadow-xs"
+                        className="w-full bg-slate-50 dark:bg-slate-800/70 border border-slate-200 dark:border-slate-700 focus:bg-white dark:focus:bg-slate-800 focus:border-brand-primary focus:ring-4 focus:ring-brand-primary/10 rounded-xl py-3 pl-11 pr-4 outline-none text-sm font-mono font-bold tracking-widest text-slate-900 dark:text-white transition-all placeholder:text-slate-400 shadow-xs"
                       />
                     </div>
                   </div>
@@ -396,7 +396,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onNavigat
                         value={newPassword}
                         onChange={(e) => setNewPassword(e.target.value)}
                         placeholder="Au moins 6 caractères"
-                        className="w-full bg-slate-50 dark:bg-slate-800/70 border border-slate-200 dark:border-slate-700 focus:bg-white dark:focus:bg-slate-800 focus:border-brand-primary focus:ring-4 focus:ring-brand-primary/10 rounded-2xl py-3.5 pl-11 pr-11 outline-none text-sm font-semibold text-slate-900 dark:text-white transition-all placeholder:text-slate-400 shadow-xs"
+                        className="w-full bg-slate-50 dark:bg-slate-800/70 border border-slate-200 dark:border-slate-700 focus:bg-white dark:focus:bg-slate-800 focus:border-brand-primary focus:ring-4 focus:ring-brand-primary/10 rounded-xl py-3 pl-11 pr-11 outline-none text-sm font-semibold text-slate-900 dark:text-white transition-all placeholder:text-slate-400 shadow-xs"
                       />
                       <button
                         type="button"
@@ -479,7 +479,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onNavigat
                         value={displayName}
                         onChange={(e) => setDisplayName(e.target.value)}
                         placeholder="Ex: Abdoulaye Sawadogo"
-                        className="w-full bg-slate-50 dark:bg-slate-800/70 border border-slate-200 dark:border-slate-700 hover:border-slate-300 dark:hover:border-slate-600 focus:bg-white dark:focus:bg-slate-800 focus:border-brand-primary focus:ring-4 focus:ring-brand-primary/10 rounded-2xl py-3.5 pl-11 pr-4 outline-none text-sm font-semibold text-slate-900 dark:text-white transition-all placeholder:text-slate-400 shadow-xs"
+                        className="w-full bg-slate-50 dark:bg-slate-800/70 border border-slate-200 dark:border-slate-700 hover:border-slate-300 dark:hover:border-slate-600 focus:bg-white dark:focus:bg-slate-800 focus:border-brand-primary focus:ring-4 focus:ring-brand-primary/10 rounded-xl py-3 pl-11 pr-4 outline-none text-sm font-semibold text-slate-900 dark:text-white transition-all placeholder:text-slate-400 shadow-xs"
                       />
                     </div>
                   </div>
@@ -496,7 +496,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onNavigat
                         value={phoneNumber}
                         onChange={(e) => setPhoneNumber(e.target.value)}
                         placeholder="+226 70 00 00 00"
-                        className="w-full bg-slate-50 dark:bg-slate-800/70 border border-slate-200 dark:border-slate-700 hover:border-slate-300 dark:hover:border-slate-600 focus:bg-white dark:focus:bg-slate-800 focus:border-brand-primary focus:ring-4 focus:ring-brand-primary/10 rounded-2xl py-3.5 pl-11 pr-4 outline-none text-sm font-semibold text-slate-900 dark:text-white transition-all placeholder:text-slate-400 shadow-xs"
+                        className="w-full bg-slate-50 dark:bg-slate-800/70 border border-slate-200 dark:border-slate-700 hover:border-slate-300 dark:hover:border-slate-600 focus:bg-white dark:focus:bg-slate-800 focus:border-brand-primary focus:ring-4 focus:ring-brand-primary/10 rounded-xl py-3 pl-11 pr-4 outline-none text-sm font-semibold text-slate-900 dark:text-white transition-all placeholder:text-slate-400 shadow-xs"
                       />
                     </div>
                   </div>
@@ -511,7 +511,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onNavigat
                         type="button"
                         onClick={() => setSelectedRole('client')}
                         className={cn(
-                          "p-3 rounded-2xl border-2 text-left transition-all duration-200 cursor-pointer flex flex-col gap-1",
+                          "p-3 rounded-xl border-2 text-left transition-all duration-200 cursor-pointer flex flex-col gap-1",
                           selectedRole === 'client'
                             ? "border-brand-primary bg-brand-primary/5 dark:bg-brand-primary/10"
                             : "border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800/50 hover:border-slate-300"
@@ -533,7 +533,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onNavigat
                         type="button"
                         onClick={() => setSelectedRole('owner')}
                         className={cn(
-                          "p-3 rounded-2xl border-2 text-left transition-all duration-200 cursor-pointer flex flex-col gap-1",
+                          "p-3 rounded-xl border-2 text-left transition-all duration-200 cursor-pointer flex flex-col gap-1",
                           selectedRole === 'owner'
                             ? "border-brand-primary bg-brand-primary/5 dark:bg-brand-primary/10"
                             : "border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800/50 hover:border-slate-300"
@@ -554,7 +554,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onNavigat
                   </div>
 
                   {/* ID Document Upload Dropzone (Optional) */}
-                  <div className="p-3.5 bg-slate-50 dark:bg-slate-800/60 rounded-2xl border border-dashed border-slate-200 dark:border-slate-700 space-y-2">
+                  <div className="p-3.5 bg-slate-50 dark:bg-slate-800/60 rounded-xl border border-dashed border-slate-200 dark:border-slate-700 space-y-2">
                     <div className="flex items-center justify-between">
                       <span className="text-[10px] font-black uppercase tracking-wider text-slate-500 dark:text-slate-400">
                         Pièce d'Identité (Optionnel)
@@ -594,7 +594,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onNavigat
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     placeholder="exemple@email.com"
-                    className="w-full bg-slate-50 dark:bg-slate-800/70 border border-slate-200 dark:border-slate-700 hover:border-slate-300 dark:hover:border-slate-600 focus:bg-white dark:focus:bg-slate-800 focus:border-brand-primary focus:ring-4 focus:ring-brand-primary/10 rounded-2xl py-3.5 pl-11 pr-4 outline-none text-sm font-semibold text-slate-900 dark:text-white transition-all placeholder:text-slate-400 shadow-xs"
+                    className="w-full bg-slate-50 dark:bg-slate-800/70 border border-slate-200 dark:border-slate-700 hover:border-slate-300 dark:hover:border-slate-600 focus:bg-white dark:focus:bg-slate-800 focus:border-brand-primary focus:ring-4 focus:ring-brand-primary/10 rounded-xl py-3 pl-11 pr-4 outline-none text-sm font-semibold text-slate-900 dark:text-white transition-all placeholder:text-slate-400 shadow-xs"
                   />
                 </div>
               </div>
@@ -627,7 +627,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onNavigat
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     placeholder="••••••••"
-                    className="w-full bg-slate-50 dark:bg-slate-800/70 border border-slate-200 dark:border-slate-700 hover:border-slate-300 dark:hover:border-slate-600 focus:bg-white dark:focus:bg-slate-800 focus:border-brand-primary focus:ring-4 focus:ring-brand-primary/10 rounded-2xl py-3.5 pl-11 pr-11 outline-none text-sm font-semibold text-slate-900 dark:text-white transition-all placeholder:text-slate-400 shadow-xs"
+                    className="w-full bg-slate-50 dark:bg-slate-800/70 border border-slate-200 dark:border-slate-700 hover:border-slate-300 dark:hover:border-slate-600 focus:bg-white dark:focus:bg-slate-800 focus:border-brand-primary focus:ring-4 focus:ring-brand-primary/10 rounded-xl py-3 pl-11 pr-11 outline-none text-sm font-semibold text-slate-900 dark:text-white transition-all placeholder:text-slate-400 shadow-xs"
                   />
                   <button
                     type="button"
@@ -660,7 +660,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onNavigat
               <button
                 type="submit"
                 disabled={loading}
-                className="w-full bg-brand-primary hover:bg-brand-primary-dark text-white rounded-2xl py-4 text-xs font-black uppercase tracking-[0.18em] shadow-lg shadow-brand-primary/25 hover:shadow-xl hover:scale-[1.01] active:scale-[0.99] transition-all cursor-pointer disabled:opacity-50 flex items-center justify-center gap-2 mt-3"
+                className="w-full bg-brand-primary hover:bg-brand-primary-dark text-white rounded-xl py-3.5 text-xs font-black uppercase tracking-[0.18em] shadow-sm hover:shadow-md hover:scale-[1.005] active:scale-[0.995] transition-all cursor-pointer disabled:opacity-50 flex items-center justify-center gap-2 mt-3"
               >
                 {loading ? (
                   <>

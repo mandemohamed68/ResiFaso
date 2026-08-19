@@ -46,15 +46,30 @@ export const ProfileSettings: React.FC = () => {
   const [idExpiry, setIdExpiry] = useState('');
   const [idFileSimulated, setIdFileSimulated] = useState<boolean>(false);
   
-  // Real Camera & Image Capture States
+  // Real Camera & Image Capture States (For Identity Verification)
   const [useCamera, setUseCamera] = useState<boolean>(false);
   const [capturedImage, setCapturedImage] = useState<string | null>(null);
   const [cameraStream, setCameraStream] = useState<MediaStream | null>(null);
   const [cameraError, setCameraError] = useState<string | null>(null);
   const [uploadProgress, setUploadProgress] = useState<string | null>(null);
 
-  // Profile Photo State
+  // Profile Photo State & Live Camera
   const [selectedPhotoURL, setSelectedPhotoURL] = useState('');
+  const [isPhotoCameraOpen, setIsPhotoCameraOpen] = useState(false);
+  const [photoFacingMode, setPhotoFacingMode] = useState<'user' | 'environment'>('user');
+  const [photoCameraError, setPhotoCameraError] = useState<string | null>(null);
+  const [isCapturingPhoto, setIsCapturingPhoto] = useState(false);
+  const [photoPreviewModal, setPhotoPreviewModal] = useState<string | null>(null);
+  const [isPhotoDirty, setIsPhotoDirty] = useState(false);
+
+  const photoVideoRef = React.useRef<HTMLVideoElement | null>(null);
+  const photoMediaStreamRef = React.useRef<MediaStream | null>(null);
+  const photoFileInputRef = React.useRef<HTMLInputElement | null>(null);
+  const photoNativeCameraInputRef = React.useRef<HTMLInputElement | null>(null);
+
+  // Refs to prevent periodic polling from wiping unsaved draft form values
+  const hasInitializedProfileRef = React.useRef(false);
+  const lastProfileUidRef = React.useRef<string | null>(null);
 
   // Preferences States (Local draft state to avoid instant/confusing auto-saves)
   const [notifications, setNotifications] = useState({ messages: true, promotions: false });
@@ -136,43 +151,254 @@ export const ProfileSettings: React.FC = () => {
     addToast("Serveur réinitialisé sur les paramètres par défaut.", "success");
   };
 
-  // Sync state with profile
+  // Sync state with profile safely without clobbering user's unsaved draft changes
   useEffect(() => {
-    console.log("Profile updated:", profile);
     if (profile) {
-      setDisplayName(profile.displayName || '');
-      setPhone(profile.phoneNumber || profile.phone || '');
-      setSelectedPhotoURL(profile.photoURL || '');
+      const isNewUser = lastProfileUidRef.current !== profile.uid;
       
-      if (profile.idType) {
-        setIdType(profile.idType as any);
-      }
-      if (profile.idNumber) {
-        setIdNumber(profile.idNumber);
-      }
-      if (profile.idExpiry) {
-        setIdExpiry(profile.idExpiry);
-      }
-      if (profile.idCardUrl) {
-        setIdFileSimulated(true);
-        setCapturedImage(profile.idCardUrl);
-      }
-      
-      if (profile.notifications) {
-        setNotifications(profile.notifications);
-      }
-      if (profile.privacy) {
-        setPrivacy(profile.privacy);
-      }
-      if (profile.paymentPreferences) {
-        setPaymentPrefs(profile.paymentPreferences);
+      if (!hasInitializedProfileRef.current || isNewUser) {
+        setDisplayName(profile.displayName || '');
+        setPhone(profile.phoneNumber || profile.phone || '');
+        setSelectedPhotoURL(profile.photoURL || '');
+        setIsPhotoDirty(false);
+        
+        if (profile.idType) setIdType(profile.idType as any);
+        if (profile.idNumber) setIdNumber(profile.idNumber);
+        if (profile.idExpiry) setIdExpiry(profile.idExpiry);
+        if (profile.idCardUrl) {
+          setIdFileSimulated(true);
+          setCapturedImage(profile.idCardUrl);
+        }
+        if (profile.notifications) setNotifications(profile.notifications);
+        if (profile.privacy) setPrivacy(profile.privacy);
+        if (profile.paymentPreferences) setPaymentPrefs(profile.paymentPreferences);
+
+        hasInitializedProfileRef.current = true;
+        lastProfileUidRef.current = profile.uid;
       }
     }
   }, [profile]);
 
+  // Clean up photo camera stream on unmount
+  useEffect(() => {
+    return () => {
+      if (photoMediaStreamRef.current) {
+        photoMediaStreamRef.current.getTracks().forEach(track => track.stop());
+        photoMediaStreamRef.current = null;
+      }
+    };
+  }, []);
+
   // Handle flash success message helper
   const triggerSuccess = (message: string) => {
     addToast(message, 'success');
+  };
+
+  // Profile Photo Live Camera Start
+  const startPhotoCamera = async (mode: 'user' | 'environment' = photoFacingMode) => {
+    setPhotoCameraError(null);
+    setIsPhotoCameraOpen(true);
+    setPhotoFacingMode(mode);
+
+    if (photoMediaStreamRef.current) {
+      photoMediaStreamRef.current.getTracks().forEach(track => track.stop());
+      photoMediaStreamRef.current = null;
+    }
+
+    try {
+      if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+        throw new Error("La caméra n'est pas supportée par ce navigateur.");
+      }
+
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: {
+          facingMode: mode,
+          width: { ideal: 720 },
+          height: { ideal: 720 }
+        },
+        audio: false
+      });
+
+      photoMediaStreamRef.current = stream;
+      if (photoVideoRef.current) {
+        photoVideoRef.current.srcObject = stream;
+        photoVideoRef.current.play().catch(() => {});
+      }
+    } catch (err: any) {
+      console.warn("Direct getUserMedia for profile photo failed, falling back to native file camera:", err);
+      stopPhotoCamera();
+      // Fallback: trigger native device camera capture input directly
+      if (photoNativeCameraInputRef.current) {
+        photoNativeCameraInputRef.current.click();
+      } else if (photoFileInputRef.current) {
+        photoFileInputRef.current.click();
+      } else {
+        setPhotoCameraError("Impossible d'accéder à la caméra. Veuillez accorder les permissions ou téléverser un fichier image.");
+      }
+    }
+  };
+
+  const stopPhotoCamera = () => {
+    if (photoMediaStreamRef.current) {
+      photoMediaStreamRef.current.getTracks().forEach(track => track.stop());
+      photoMediaStreamRef.current = null;
+    }
+    setIsPhotoCameraOpen(false);
+  };
+
+  const flipPhotoCamera = () => {
+    const nextMode = photoFacingMode === 'user' ? 'environment' : 'user';
+    startPhotoCamera(nextMode);
+  };
+
+  const captureProfilePhoto = () => {
+    const video = photoVideoRef.current;
+    if (!video) return;
+
+    try {
+      setIsCapturingPhoto(true);
+      const canvas = document.createElement('canvas');
+      const vWidth = video.videoWidth || 400;
+      const vHeight = video.videoHeight || 400;
+      const size = Math.min(vWidth, vHeight);
+
+      canvas.width = 400;
+      canvas.height = 400;
+
+      const ctx = canvas.getContext('2d');
+      if (ctx) {
+        const sx = (vWidth - size) / 2;
+        const sy = (vHeight - size) / 2;
+        ctx.imageSmoothingEnabled = true;
+        ctx.imageSmoothingQuality = 'high';
+        ctx.drawImage(video, sx, sy, size, size, 0, 0, 400, 400);
+
+        const dataUrl = canvas.toDataURL('image/jpeg', 0.82);
+        setSelectedPhotoURL(dataUrl);
+        setIsPhotoDirty(true);
+        stopPhotoCamera();
+        addToast("Photo de profil prise avec succès ! N'oubliez pas de l'enregistrer.", "success");
+      }
+    } catch (err) {
+      console.error("Profile photo capture failed:", err);
+      addToast("Erreur lors de la capture de la photo.", "error");
+    } finally {
+      setIsCapturingPhoto(false);
+    }
+  };
+
+  // Upload custom photo from file
+  const handleProfilePhotoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (file.type && !file.type.startsWith('image/') && !file.name.match(/\.(jpe?g|png|webp|heic|heif)$/i)) {
+      addToast('Veuillez sélectionner un fichier image valide (JPG, PNG, WEBP).', 'error');
+      return;
+    }
+
+    try {
+      setIsSaving(true);
+      const resized = await resizeImage(file, 450, 0.82);
+      setSelectedPhotoURL(resized);
+      setIsPhotoDirty(true);
+      addToast('Photo importée ! Cliquez sur "Enregistrer la photo de profil" pour confirmer.', 'success');
+    } catch (err) {
+      console.error("Profile photo upload failed:", err);
+      addToast('Échec du traitement de la photo. Veuillez réessayer.', 'error');
+    } finally {
+      setIsSaving(false);
+      e.target.value = '';
+    }
+  };
+
+  // Update profile photoURL (Explicit Save Button)
+  const handleSavePhotoChange = async (urlToSave?: string) => {
+    if (!user) return;
+    const targetUrl = urlToSave !== undefined ? urlToSave : selectedPhotoURL;
+    setIsSaving(true);
+    try {
+      const res = await apiFetch('/api/users/profile', {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('auth_token')}`
+        },
+        body: JSON.stringify({
+          photoURL: targetUrl
+        })
+      });
+
+      if (!res.ok) {
+        const errorData = await res.json().catch(() => ({}));
+        throw new Error(errorData.error || 'Erreur lors du changement de photo');
+      }
+
+      // Optimistic cache update in localStorage
+      try {
+        const cached = localStorage.getItem('resifaso_cached_user');
+        if (cached) {
+          const parsed = JSON.parse(cached);
+          parsed.photoURL = targetUrl;
+          parsed.photoUrl = targetUrl;
+          localStorage.setItem('resifaso_cached_user', JSON.stringify(parsed));
+        }
+      } catch (e) {}
+
+      setSelectedPhotoURL(targetUrl);
+      setIsPhotoDirty(false);
+      await refreshProfile();
+      triggerSuccess('Photo de profil mise à jour avec succès !');
+    } catch (e: any) {
+      console.error(e);
+      addToast(e.message || 'Erreur lors du changement de photo.', "error");
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  // Delete profile photoURL
+  const handleDeletePhoto = async () => {
+    if (!user) return;
+    if (!window.confirm("Êtes-vous sûr de vouloir supprimer votre photo de profil ?")) return;
+    setIsSaving(true);
+    try {
+      const res = await apiFetch('/api/users/profile', {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('auth_token')}`
+        },
+        body: JSON.stringify({
+          photoURL: ''
+        })
+      });
+
+      if (!res.ok) {
+        const errorData = await res.json().catch(() => ({}));
+        throw new Error(errorData.error || 'Erreur lors de la suppression de la photo');
+      }
+
+      try {
+        const cached = localStorage.getItem('resifaso_cached_user');
+        if (cached) {
+          const parsed = JSON.parse(cached);
+          parsed.photoURL = '';
+          parsed.photoUrl = '';
+          localStorage.setItem('resifaso_cached_user', JSON.stringify(parsed));
+        }
+      } catch (e) {}
+
+      setSelectedPhotoURL('');
+      setIsPhotoDirty(false);
+      await refreshProfile();
+      triggerSuccess('Photo de profil supprimée.');
+    } catch (e) {
+      console.error(e);
+      addToast('Erreur lors de la suppression de la photo.', "error");
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   // Save personal informations
@@ -332,80 +558,6 @@ export const ProfileSettings: React.FC = () => {
     } catch (e) {
       console.error(e);
       addToast('Erreur lors de la soumission de la pièce d\'identité : ' + (e instanceof Error ? e.message : String(e)), "error");
-    } finally {
-      setIsSaving(false);
-    }
-  };
-
-  // Update profile photoURL (Explicit Save Button)
-  const handleSavePhotoChange = async () => {
-    if (!user) return;
-    setIsSaving(true);
-    try {
-      
-      const res = await apiFetch('/api/users/profile', { method: 'PUT', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${localStorage.getItem('auth_token')}` }, body: JSON.stringify({
-        photoURL: selectedPhotoURL
-      }) });
-
-      if (!res.ok) {
-        const errorData = await res.json();
-        throw new Error(errorData.error || 'Erreur lors du changement de photo');
-      }
-
-      await refreshProfile();
-      triggerSuccess('Photo de profil mise à jour avec succès !');
-    } catch (e) {
-      console.error(e);
-      addToast('Erreur lors du changement de photo.', "error");
-    } finally {
-      setIsSaving(false);
-    }
-  };
-
-  // Delete profile photoURL
-  const handleDeletePhoto = async () => {
-    if (!user) return;
-    setIsSaving(true);
-    try {
-      
-      const res = await apiFetch('/api/users/profile', { method: 'PUT', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${localStorage.getItem('auth_token')}` }, body: JSON.stringify({
-        photoURL: ''
-      }) });
-
-      if (!res.ok) {
-        const errorData = await res.json();
-        throw new Error(errorData.error || 'Erreur lors de la suppression de la photo');
-      }
-
-      setSelectedPhotoURL('');
-      await refreshProfile();
-      triggerSuccess('Photo de profil supprimée.');
-    } catch (e) {
-      console.error(e);
-      addToast('Erreur.', "error");
-    } finally {
-      setIsSaving(false);
-    }
-  };
-
-  // Upload custom photo from file
-  const handleProfilePhotoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    if (!file.type.startsWith('image/')) {
-      addToast('Veuillez sélectionner un fichier image valide (JPG, PNG).', 'error');
-      return;
-    }
-
-    try {
-      setIsSaving(true);
-      const resized = await resizeImage(file, 500);
-      setSelectedPhotoURL(resized);
-      addToast('Photo importée ! Cliquez sur "Enregistrer la photo de profil" pour valider.', 'success');
-    } catch (err) {
-      console.error("Profile photo upload failed:", err);
-      addToast('Échec du traitement de la photo.', 'error');
     } finally {
       setIsSaving(false);
     }
@@ -670,24 +822,24 @@ export const ProfileSettings: React.FC = () => {
         {/* Navigation verticale */}
         <div className="w-full lg:w-72 shrink-0 space-y-6">
           {/* Profile Card Header Component (Human Connection) */}
-          <div className="bg-slate-50/75 border border-slate-100 rounded-3xl p-6 flex flex-col items-center text-center relative overflow-hidden shadow-xs">
-            <div className="absolute top-0 inset-x-0 h-24 bg-gradient-to-r from-red-500/5 via-orange-500/5 to-amber-500/5 pointer-events-none" />
+          <div className="bg-slate-50/80 border border-slate-200/80 rounded-2xl p-6 flex flex-col items-center text-center relative overflow-hidden shadow-xs">
+            <div className="absolute top-0 inset-x-0 h-20 bg-gradient-to-r from-red-500/5 via-orange-500/5 to-amber-500/5 pointer-events-none" />
             
-            <div className="relative mt-4 mb-3.5 group">
+            <div className="relative mt-2 mb-3.5 group">
               {profile?.photoURL ? (
-                <div className="relative p-1 bg-white rounded-full border border-slate-200/80 shadow-sm">
+                <div className="relative p-1 bg-white rounded-2xl border border-slate-200 shadow-sm">
                   <img 
                     src={profile.photoURL} 
                     alt={profile.displayName || 'Utilisateur'} 
-                    className="w-20 h-20 rounded-full object-cover relative z-10 transition-transform duration-300 group-hover:scale-105"
+                    className="w-20 h-20 rounded-xl object-cover relative z-10 transition-transform duration-300 group-hover:scale-105"
                   />
                 </div>
               ) : (
-                <div className="w-20 h-20 bg-[#EF2B2D]/10 text-[#EF2B2D] rounded-full flex items-center justify-center text-2xl font-black border-4 border-white shadow-md relative z-10">
+                <div className="w-20 h-20 bg-[#EF2B2D]/10 text-[#EF2B2D] rounded-2xl flex items-center justify-center text-2xl font-black border-2 border-white shadow-md relative z-10">
                   {profile?.displayName?.trim().charAt(0).toUpperCase() || profile?.email?.charAt(0).toUpperCase() || 'U'}
                 </div>
               )}
-              {profile?.isVerified && (
+              {Boolean(profile?.isVerified) && (
                 <span className="absolute bottom-1 right-1 bg-emerald-500 text-white p-1 rounded-full border-2 border-white z-20 shadow-md flex items-center justify-center" title="Compte Vérifié">
                   <Check size={10} className="stroke-[3.5]" />
                 </span>
@@ -703,25 +855,25 @@ export const ProfileSettings: React.FC = () => {
             
             {/* Verification Status Small Tag */}
             <div className="mt-4 w-full">
-              {profile?.isVerified ? (
-                <div className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-[10px] font-extrabold uppercase bg-emerald-50 text-emerald-700 border border-emerald-100">
+              {Boolean(profile?.isVerified) ? (
+                <div className="inline-flex items-center gap-1 px-3 py-1 rounded-xl text-[10px] font-extrabold uppercase bg-emerald-50 text-emerald-700 border border-emerald-100">
                   <CheckCircle size={11} className="text-emerald-600 stroke-[2.5]" />
                   Profil Certifié
                 </div>
               ) : profile?.verificationStatus === 'pending' ? (
-                <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] font-extrabold uppercase bg-amber-50 text-amber-700 border border-amber-250 animate-pulse">
+                <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-xl text-[10px] font-extrabold uppercase bg-amber-50 text-amber-700 border border-amber-250 animate-pulse">
                   <RefreshCw size={11} className="animate-spin" />
                   Modération en cours
                 </div>
               ) : (
-                <div className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-[10px] font-extrabold uppercase bg-slate-100 text-slate-500 border border-slate-200">
+                <div className="inline-flex items-center gap-1 px-3 py-1 rounded-xl text-[10px] font-extrabold uppercase bg-slate-100 text-slate-500 border border-slate-200">
                   Non certifié
                 </div>
               )}
             </div>
           </div>
 
-          <nav className="flex flex-col gap-1.5 bg-slate-50/40 border border-slate-100 p-2 rounded-3xl">
+          <nav className="flex flex-col gap-1.5 bg-slate-50/60 border border-slate-200/80 p-2 rounded-2xl">
             {tabs.map((tab) => {
               const isActive = activeTab === tab.id;
               return (
@@ -732,20 +884,20 @@ export const ProfileSettings: React.FC = () => {
                     setActiveTab(tab.id as Tab);
                     setSaveSuccess(null);
                   }}
-                  className={`group flex items-center justify-between px-4 py-3 rounded-2xl text-left text-xs font-black uppercase tracking-wider transition-all duration-300 relative cursor-pointer overflow-hidden ${
+                  className={`group flex items-center justify-between px-4 py-3 rounded-xl text-left text-xs font-black uppercase tracking-wider transition-all duration-200 relative cursor-pointer overflow-hidden ${
                     isActive
-                      ? 'bg-white text-[#EF2B2D] shadow-[0_4px_12px_rgba(239,43,45,0.06)] border border-slate-100/80'
+                      ? 'bg-white text-[#EF2B2D] shadow-xs border border-slate-200'
                       : tab.danger
                       ? 'text-red-500 hover:bg-red-50/50'
-                      : 'text-slate-600 hover:bg-slate-100/50 hover:text-slate-900'
+                      : 'text-slate-600 hover:bg-slate-100/60 hover:text-slate-900'
                   }`}
                 >
                   <div className="flex items-center gap-3 relative z-10">
                     <tab.icon size={15} className={cn(
-                      "transition-transform duration-300 group-hover:scale-110 stroke-[2.2]",
+                      "transition-transform duration-200 group-hover:scale-110 stroke-[2.2]",
                       isActive ? "text-[#EF2B2D]" : "text-slate-400"
                     )} />
-                    <span className="group-hover:translate-x-0.5 transition-transform duration-300">{tab.label}</span>
+                    <span className="group-hover:translate-x-0.5 transition-transform duration-200">{tab.label}</span>
                   </div>
                   
                   {isActive && (
@@ -753,7 +905,7 @@ export const ProfileSettings: React.FC = () => {
                   )}
                   
                   <ChevronRight size={14} className={cn(
-                    "opacity-0 group-hover:opacity-100 transition-all duration-300 group-hover:translate-x-0.5 stroke-[2.5]",
+                    "opacity-0 group-hover:opacity-100 transition-all duration-200 group-hover:translate-x-0.5 stroke-[2.5]",
                     isActive ? "text-[#EF2B2D] opacity-100" : "text-slate-400"
                   )} />
                 </button>
@@ -763,7 +915,7 @@ export const ProfileSettings: React.FC = () => {
         </div>
 
         {/* Content area */}
-        <div className="flex-1 w-full bg-white rounded-[2rem] p-6 sm:p-10 shadow-[0_12px_40px_rgba(0,0,0,0.02)] border border-slate-100 min-h-[550px]" id="settings-tab-content-area">
+        <div className="flex-1 w-full bg-white rounded-2xl p-6 sm:p-10 shadow-xs border border-slate-200/80 min-h-[550px]" id="settings-tab-content-area">
           
           {/* TAB 1: PERSONAL */}
           {activeTab === 'personal' && (
@@ -872,8 +1024,8 @@ export const ProfileSettings: React.FC = () => {
                 </div>
               </div>
               
-              { (profile?.isVerified || profile?.verificationStatus === 'verified') ? (
-                <div className="bg-emerald-50/60 border border-emerald-100 p-8 rounded-[2rem] flex flex-col sm:flex-row items-start gap-5 animate-in fade-in" id="identity-verified-container">
+              { (Boolean(profile?.isVerified) || profile?.verificationStatus === 'verified') ? (
+                <div className="bg-emerald-50/60 border border-emerald-100 p-6 sm:p-8 rounded-2xl flex flex-col sm:flex-row items-start gap-5 animate-in fade-in" id="identity-verified-container">
                   <div className="p-3 bg-emerald-500 rounded-2xl text-white shrink-0 shadow-sm shadow-emerald-200">
                     <ShieldCheck className="w-8 h-8 stroke-[2]" />
                   </div>
@@ -1023,55 +1175,111 @@ export const ProfileSettings: React.FC = () => {
           {/* TAB 3: PHOTO */}
           {activeTab === 'photo' && (
             <div className="space-y-8 animate-in fade-in duration-300" id="photo-tab-container">
+              {/* Hidden file inputs for max reliability on all devices */}
+              <input
+                type="file"
+                accept="image/jpeg,image/png,image/webp,image/heic,image/*"
+                ref={photoFileInputRef}
+                onChange={handleProfilePhotoUpload}
+                className="hidden"
+                id="profile-photo-file-selector"
+              />
+              <input
+                type="file"
+                accept="image/*"
+                capture="user"
+                ref={photoNativeCameraInputRef}
+                onChange={handleProfilePhotoUpload}
+                className="hidden"
+                id="profile-photo-native-camera-input"
+              />
+
               <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 border-b border-slate-100 pb-5">
                 <div className="space-y-1">
                   <h2 className="text-xl font-bold text-slate-900 leading-none">Photo de profil</h2>
-                  <p className="text-xs text-slate-400 font-medium">Téléversez une vraie photo ou choisissez un avatar pour rassurer vos hôtes.</p>
+                  <p className="text-xs text-slate-400 font-medium">Téléversez votre photo ou prenez un selfie en direct pour rassurer vos hôtes.</p>
                 </div>
+                {isPhotoDirty && (
+                  <span className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-amber-50 text-amber-800 text-xs font-bold rounded-xl border border-amber-200 animate-pulse">
+                    <AlertCircle size={14} />
+                    Modification non enregistrée
+                  </span>
+                )}
               </div>
               
-              <div className="flex flex-col sm:flex-row items-center gap-6 bg-slate-50/70 p-6 rounded-3xl border border-slate-100/80">
-                <div className="shrink-0 relative">
+              {/* Main Photo Card */}
+              <div className="bg-slate-50/80 p-6 sm:p-8 rounded-2xl border border-slate-200/80 flex flex-col md:flex-row items-center gap-8 shadow-xs">
+                <div className="shrink-0 relative group">
                   {selectedPhotoURL ? (
-                    <div className="relative p-1 bg-white rounded-full border border-slate-200 shadow-md">
+                    <div className="relative p-1.5 bg-white rounded-2xl border border-slate-200 shadow-md">
                       <img 
                         src={selectedPhotoURL} 
                         alt="Aperçu Profil" 
-                        className="w-24 h-24 rounded-full object-cover relative z-10 animate-in zoom-in-50 duration-200"
+                        className="w-28 h-28 sm:w-32 sm:h-32 rounded-xl object-cover"
                       />
+                      <button
+                        type="button"
+                        onClick={() => setPhotoPreviewModal(selectedPhotoURL)}
+                        className="absolute inset-0 bg-black/40 rounded-xl opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center text-white text-xs font-bold gap-1 cursor-pointer"
+                      >
+                        <Eye size={18} />
+                        <span>Agrandir</span>
+                      </button>
                     </div>
                   ) : (
-                    <div className="w-24 h-24 bg-red-100/80 text-[#EF2B2D] rounded-full flex items-center justify-center text-4xl font-black border-4 border-white shadow-md">
-                      {profile?.displayName?.trim().charAt(0).toUpperCase() || 'U'}
+                    <div className="w-28 h-28 sm:w-32 sm:h-32 bg-red-100/90 text-[#EF2B2D] rounded-2xl flex items-center justify-center text-4xl sm:text-5xl font-black border-2 border-white shadow-md">
+                      {profile?.displayName?.trim().charAt(0).toUpperCase() || profile?.email?.charAt(0).toUpperCase() || 'U'}
                     </div>
+                  )}
+                  {selectedPhotoURL && (
+                    <span className="absolute -top-2 -right-2 bg-emerald-500 text-white p-1 rounded-full border-2 border-white shadow-md">
+                      <Check size={12} className="stroke-[3.5]" />
+                    </span>
                   )}
                 </div>
 
-                <div className="space-y-3 text-center sm:text-left">
+                <div className="space-y-4 text-center md:text-left flex-1">
                   <div>
-                    <h4 className="font-extrabold text-slate-950 text-sm">Votre photo personnelle</h4>
-                    <p className="text-xs text-slate-500 font-medium leading-relaxed max-w-sm">Choisissez une photo claire de votre visage depuis votre téléphone ou ordinateur.</p>
+                    <h4 className="font-extrabold text-slate-900 text-base">Votre portrait ou avatar</h4>
+                    <p className="text-xs text-slate-500 font-medium leading-relaxed max-w-lg mt-1">
+                      Une photo nette de votre visage inspire confiance et accélère l'acceptation de vos réservations par les hôtes burkinabè.
+                    </p>
                   </div>
                   
-                  <div className="flex flex-wrap items-center justify-center sm:justify-start gap-3 pt-1">
-                    <label className="bg-[#EF2B2D] hover:bg-red-600 text-white px-5 py-2.5 rounded-2xl text-xs font-black uppercase tracking-wider transition duration-200 flex items-center gap-2 cursor-pointer shadow-md shadow-red-200">
-                      <Upload size={15} />
-                      <span>Téléverser une photo</span>
-                      <input 
-                        type="file" 
-                        accept="image/*" 
-                        onChange={handleProfilePhotoUpload} 
-                        className="hidden" 
-                        id="user-profile-photo-input"
-                      />
-                    </label>
+                  {/* Action buttons */}
+                  <div className="flex flex-wrap items-center justify-center md:justify-start gap-3 pt-1">
+                    {/* Camera Button */}
+                    <button
+                      type="button"
+                      id="btn-take-profile-photo"
+                      onClick={() => startPhotoCamera('user')}
+                      className="bg-[#EF2B2D] hover:bg-red-700 text-white px-4 py-2.5 rounded-xl text-xs font-bold uppercase tracking-wider transition-all duration-200 flex items-center gap-2 cursor-pointer shadow-sm shadow-red-200"
+                    >
+                      <Camera size={16} className="stroke-[2.5]" />
+                      <span>Prendre une photo</span>
+                    </button>
 
-                    {profile?.photoURL && (
+                    {/* File Upload Button */}
+                    <button
+                      type="button"
+                      id="btn-upload-profile-photo"
+                      onClick={() => photoFileInputRef.current?.click()}
+                      className="bg-white hover:bg-slate-100 text-slate-700 hover:text-slate-900 px-4 py-2.5 rounded-xl text-xs font-bold uppercase tracking-wider border border-slate-300 transition-all duration-200 flex items-center gap-2 cursor-pointer shadow-xs"
+                    >
+                      <Upload size={16} className="stroke-[2.5]" />
+                      <span>Importer un fichier</span>
+                    </button>
+
+                    {/* Delete Photo */}
+                    {selectedPhotoURL && (
                       <button 
+                        type="button"
+                        id="btn-delete-profile-photo"
                         onClick={handleDeletePhoto}
-                        className="text-slate-600 hover:text-red-600 text-xs font-bold px-4 py-2.5 rounded-2xl border border-slate-200 hover:border-red-200 bg-white transition cursor-pointer flex items-center gap-1.5"
+                        disabled={isSaving}
+                        className="text-slate-500 hover:text-red-600 text-xs font-bold px-3 py-2.5 rounded-xl border border-slate-200 hover:border-red-200 bg-white hover:bg-red-50/40 transition cursor-pointer flex items-center gap-1.5"
                       >
-                        <Trash2 size={14} />
+                        <Trash2 size={15} />
                         <span>Supprimer</span>
                       </button>
                     )}
@@ -1081,24 +1289,30 @@ export const ProfileSettings: React.FC = () => {
 
               {/* Presets Selection catalog */}
               <div className="space-y-4 pt-2">
-                <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-widest font-bold">Ou choisissez un avatar de notre catalogue</h3>
+                <div className="flex items-center justify-between">
+                  <h3 className="text-xs font-bold text-slate-600 uppercase tracking-wider">Ou choisissez un avatar rapide</h3>
+                  <span className="text-[11px] text-slate-400 font-medium">4 avatars certifiés</span>
+                </div>
                 
-                <div className="grid grid-cols-4 gap-4 max-w-sm">
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 max-w-md">
                   {PRESET_AVATARS.map((avatar, idx) => {
                     const isSelected = selectedPhotoURL === avatar;
                     return (
                       <button
                         key={idx}
                         type="button"
-                        onClick={() => setSelectedPhotoURL(avatar)}
-                        className={`relative rounded-full overflow-hidden w-16 h-16 cursor-pointer border-4 transition-all duration-300 hover:scale-105 ${
-                          isSelected ? 'border-[#EF2B2D] scale-105 shadow-md shadow-red-100' : 'border-white shadow-sm hover:border-slate-300'
+                        onClick={() => {
+                          setSelectedPhotoURL(avatar);
+                          setIsPhotoDirty(true);
+                        }}
+                        className={`relative rounded-xl overflow-hidden aspect-square cursor-pointer border-2 transition-all duration-200 hover:scale-105 ${
+                          isSelected ? 'border-[#EF2B2D] ring-2 ring-red-100 shadow-md' : 'border-slate-200 bg-white hover:border-slate-400'
                         }`}
                       >
-                        <img src={avatar} alt="Preset Option" className="w-full h-full object-cover" />
+                        <img src={avatar} alt={`Avatar catalogue ${idx + 1}`} className="w-full h-full object-cover" />
                         {isSelected && (
                           <div className="absolute inset-0 bg-[#EF2B2D]/40 flex items-center justify-center text-white backdrop-blur-[1px]">
-                            <Check size={18} className="stroke-[3.5]" />
+                            <Check size={20} className="stroke-[3.5]" />
                           </div>
                         )}
                       </button>
@@ -1106,27 +1320,164 @@ export const ProfileSettings: React.FC = () => {
                   })}
                 </div>
 
-                <div className="pt-6 border-t border-slate-100">
+                {/* Save Button */}
+                <div className="pt-6 border-t border-slate-100 flex items-center gap-4">
                   <button 
-                    onClick={handleSavePhotoChange}
+                    onClick={() => handleSavePhotoChange()}
                     id="btn-save-photo-change"
-                    disabled={isSaving || selectedPhotoURL === profile?.photoURL}
-                    className="bg-slate-900 text-white px-6 py-3 rounded-2xl text-xs font-black uppercase tracking-wider hover:bg-slate-800 transition duration-300 disabled:opacity-50 flex items-center gap-2 cursor-pointer shadow-sm"
+                    disabled={isSaving || (!isPhotoDirty && selectedPhotoURL === (profile?.photoURL || ''))}
+                    className="bg-slate-900 text-white px-6 py-3 rounded-xl text-xs font-bold uppercase tracking-wider hover:bg-slate-800 transition duration-200 disabled:opacity-40 flex items-center gap-2 cursor-pointer shadow-sm"
                   >
                     {isSaving ? (
                       <>
-                        <RefreshCw size={13} className="animate-spin" />
-                        <span>Sauvegarde...</span>
+                        <RefreshCw size={14} className="animate-spin" />
+                        <span>Enregistrement en cours...</span>
                       </>
                     ) : (
                       <>
-                        <Sparkles size={13} />
+                        <Sparkles size={14} />
                         <span>Enregistrer la photo de profil</span>
                       </>
                     )}
                   </button>
+
+                  {isPhotoDirty && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setSelectedPhotoURL(profile?.photoURL || '');
+                        setIsPhotoDirty(false);
+                      }}
+                      className="text-xs text-slate-500 hover:text-slate-800 font-semibold px-3 py-2 cursor-pointer"
+                    >
+                      Annuler les modifications
+                    </button>
+                  )}
                 </div>
               </div>
+
+              {/* LIVE CAMERA MODAL */}
+              <AnimatePresence>
+                {isPhotoCameraOpen && (
+                  <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs">
+                    <motion.div 
+                      initial={{ opacity: 0, scale: 0.95 }}
+                      animate={{ opacity: 1, scale: 1 }}
+                      exit={{ opacity: 0, scale: 0.95 }}
+                      className="bg-white rounded-2xl max-w-md w-full overflow-hidden shadow-2xl border border-slate-200"
+                    >
+                      {/* Modal Header */}
+                      <div className="flex items-center justify-between p-4 border-b border-slate-100 bg-slate-50">
+                        <div className="flex items-center gap-2">
+                          <Camera size={18} className="text-[#EF2B2D]" />
+                          <h3 className="font-bold text-sm text-slate-900">Prendre une photo de profil</h3>
+                        </div>
+                        <button 
+                          onClick={stopPhotoCamera}
+                          className="p-1 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-200 transition cursor-pointer"
+                        >
+                          <X size={18} />
+                        </button>
+                      </div>
+
+                      {/* Viewfinder Frame */}
+                      <div className="relative bg-slate-950 aspect-square flex items-center justify-center overflow-hidden">
+                        <video
+                          ref={photoVideoRef}
+                          autoPlay
+                          playsInline
+                          muted
+                          className={`w-full h-full object-cover ${photoFacingMode === 'user' ? 'scale-x-[-1]' : ''}`}
+                        />
+
+                        {/* Circular portrait guide overlay */}
+                        <div className="absolute inset-0 pointer-events-none flex items-center justify-center">
+                          <div className="w-56 h-56 rounded-full border-2 border-dashed border-white/80 shadow-[0_0_0_9999px_rgba(0,0,0,0.45)]" />
+                        </div>
+
+                        {/* Shutter Flash Animation */}
+                        {isCapturingPhoto && (
+                          <div className="absolute inset-0 bg-white animate-fade-out" />
+                        )}
+
+                        {photoCameraError && (
+                          <div className="absolute inset-x-4 bottom-4 p-3 bg-red-600 text-white text-xs rounded-xl text-center">
+                            {photoCameraError}
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Controls Footer */}
+                      <div className="p-4 bg-slate-50 border-t border-slate-100 flex items-center justify-between gap-3">
+                        <button
+                          type="button"
+                          onClick={flipPhotoCamera}
+                          className="p-2.5 bg-white border border-slate-200 hover:bg-slate-100 rounded-xl text-slate-700 text-xs font-semibold flex items-center gap-1.5 cursor-pointer"
+                          title="Changer de caméra"
+                        >
+                          <RefreshCw size={15} />
+                          <span className="hidden sm:inline">Inverser</span>
+                        </button>
+
+                        <button
+                          type="button"
+                          id="btn-capture-photo-shutter"
+                          onClick={captureProfilePhoto}
+                          disabled={isCapturingPhoto}
+                          className="bg-[#EF2B2D] hover:bg-red-700 text-white px-6 py-3 rounded-xl text-xs font-bold uppercase tracking-wider flex items-center gap-2 cursor-pointer shadow-md shadow-red-200"
+                        >
+                          <Camera size={16} />
+                          <span>Capturer</span>
+                        </button>
+
+                        <button
+                          type="button"
+                          onClick={stopPhotoCamera}
+                          className="px-4 py-2.5 text-xs font-bold text-slate-600 hover:text-slate-900 cursor-pointer"
+                        >
+                          Annuler
+                        </button>
+                      </div>
+                    </motion.div>
+                  </div>
+                )}
+              </AnimatePresence>
+
+              {/* PHOTO PREVIEW MODAL */}
+              <AnimatePresence>
+                {photoPreviewModal && (
+                  <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/70 backdrop-blur-xs">
+                    <motion.div 
+                      initial={{ opacity: 0, scale: 0.95 }}
+                      animate={{ opacity: 1, scale: 1 }}
+                      exit={{ opacity: 0, scale: 0.95 }}
+                      className="bg-white rounded-2xl max-w-sm w-full overflow-hidden shadow-2xl border border-slate-200 p-6 space-y-4 text-center"
+                    >
+                      <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+                        <h3 className="font-bold text-sm text-slate-900">Photo de profil</h3>
+                        <button 
+                          onClick={() => setPhotoPreviewModal(null)}
+                          className="p-1 text-slate-400 hover:text-slate-700 cursor-pointer"
+                        >
+                          <X size={18} />
+                        </button>
+                      </div>
+
+                      <div className="aspect-square rounded-xl overflow-hidden border border-slate-200">
+                        <img src={photoPreviewModal} alt="Agrandissement" className="w-full h-full object-cover" />
+                      </div>
+
+                      <button
+                        type="button"
+                        onClick={() => setPhotoPreviewModal(null)}
+                        className="w-full bg-slate-900 text-white py-2.5 rounded-xl text-xs font-bold uppercase tracking-wider cursor-pointer"
+                      >
+                        Fermer
+                      </button>
+                    </motion.div>
+                  </div>
+                )}
+              </AnimatePresence>
             </div>
           )}
 
