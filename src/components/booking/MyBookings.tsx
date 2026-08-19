@@ -532,39 +532,39 @@ const SuiviReservationModal: React.FC<SuiviReservationModalProps> = ({ isOpen, o
     : (booking.paymentStatus === 'advance_paid' ? (booking.totalPrice - booking.advancePaid) : booking.totalPrice);
 
   return (
-    <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[9999] flex items-start justify-center p-3 sm:p-6 pt-4 sm:pt-8 pb-10 overflow-y-auto">
+    <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs z-[9999] flex items-start justify-center p-3 sm:p-6 pt-4 sm:pt-8 pb-10 overflow-y-auto">
       <motion.div 
-        initial={{ opacity: 0, scale: 0.95 }}
+        initial={{ opacity: 0, scale: 0.98 }}
         animate={{ opacity: 1, scale: 1 }}
-        exit={{ opacity: 0, scale: 0.95 }}
-        className="bg-white rounded-[32px] w-full max-w-2xl overflow-hidden shadow-2xl border border-slate-100 flex flex-col max-h-[88vh] my-auto sm:my-0"
+        exit={{ opacity: 0, scale: 0.98 }}
+        className="bg-white rounded-xl w-full max-w-2xl overflow-hidden shadow-xl border border-slate-200 flex flex-col max-h-[88vh] my-auto sm:my-0"
       >
         {/* Header */}
-        <div className="px-8 py-6 bg-slate-900 text-white flex justify-between items-center shrink-0">
+        <div className="px-6 py-4 bg-slate-50 border-b border-slate-200 flex justify-between items-center shrink-0">
           <div>
-            <span className="text-[10px] font-black text-red-500 uppercase tracking-widest block mb-1">Suivi & Détails du Séjour</span>
-            <h3 className="text-xl font-black tracking-tight">{residence.title}</h3>
+            <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block mb-0.5">Suivi & Détails du Séjour</span>
+            <h3 className="text-base font-bold text-slate-900 tracking-tight">{residence.title}</h3>
           </div>
           <button 
             onClick={onClose}
-            className="w-10 h-10 bg-white/10 hover:bg-white/20 text-white rounded-full flex items-center justify-center transition-colors cursor-pointer"
+            className="w-8 h-8 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-lg flex items-center justify-center transition-colors cursor-pointer"
           >
-            <X size={20} />
+            <X size={16} />
           </button>
         </div>
 
         {/* Content */}
-        <div className="p-8 overflow-y-auto space-y-8 flex-1">
+        <div className="p-6 overflow-y-auto space-y-6 flex-1">
           {/* Tracking Timeline */}
           <div>
-            <h4 className="text-sm font-black text-slate-900 uppercase tracking-wider mb-6 flex items-center gap-2">
-              <Clock size={16} className="text-red-600" />
+            <h4 className="text-xs font-bold text-slate-800 uppercase tracking-wider mb-4 flex items-center gap-2">
+              <Clock size={15} className="text-slate-600" />
               État d'avancement du séjour
             </h4>
 
-            <div className="relative pl-8 space-y-6">
+            <div className="relative pl-7 space-y-5">
               {/* Timeline continuous line */}
-              <div className="absolute left-3.5 top-2 bottom-2 w-0.5 bg-slate-100"></div>
+              <div className="absolute left-3 top-2 bottom-2 w-0.5 bg-slate-200"></div>
 
               {steps.map((step, idx) => {
                 const isCompleted = step.status === 'completed';
@@ -575,21 +575,21 @@ const SuiviReservationModal: React.FC<SuiviReservationModalProps> = ({ isOpen, o
                   <div key={step.id} className="relative">
                     {/* Circle Indicator */}
                     <div className={cn(
-                      "absolute -left-8 top-1 w-7.5 h-7.5 rounded-full flex items-center justify-center border-2 transition-all",
+                      "absolute -left-7 top-0.5 w-6 h-6 rounded-full flex items-center justify-center border text-xs transition-all",
                       isCompleted 
-                        ? "bg-green-500 border-green-500 text-white" 
+                        ? "bg-emerald-600 border-emerald-600 text-white" 
                         : isCurrent 
-                          ? "bg-amber-500 border-amber-500 text-white animate-pulse"
+                          ? "bg-amber-600 border-amber-600 text-white"
                           : isCancelled
-                            ? "bg-red-500 border-red-500 text-white"
-                            : "bg-white border-slate-200 text-slate-400"
+                            ? "bg-rose-600 border-rose-600 text-white"
+                            : "bg-white border-slate-300 text-slate-400"
                     )}>
                       {isCompleted ? (
-                        <Check size={14} className="stroke-[3]" />
+                        <Check size={12} className="stroke-[2.5]" />
                       ) : isCancelled ? (
-                        <X size={14} className="stroke-[3]" />
+                        <X size={12} className="stroke-[2.5]" />
                       ) : (
-                        <span className="text-xs font-black">{idx + 1}</span>
+                        <span className="text-[10px] font-bold">{idx + 1}</span>
                       )}
                     </div>
 
@@ -597,20 +597,20 @@ const SuiviReservationModal: React.FC<SuiviReservationModalProps> = ({ isOpen, o
                     <div>
                       <div className="flex items-baseline justify-between gap-2">
                         <span className={cn(
-                          "text-sm font-black",
-                          isCompleted ? "text-slate-900" : isCurrent ? "text-amber-600" : isCancelled ? "text-red-600" : "text-slate-400"
+                          "text-xs font-bold",
+                          isCompleted ? "text-slate-900" : isCurrent ? "text-amber-800" : isCancelled ? "text-rose-800" : "text-slate-500"
                         )}>
                           {step.label}
                         </span>
                         {step.date && (
-                          <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
+                          <span className="text-[10px] font-medium text-slate-400">
                             {step.date}
                           </span>
                         )}
                       </div>
                       <p className={cn(
-                        "text-xs mt-1 leading-relaxed",
-                        isCompleted || isCurrent ? "text-slate-600 font-medium" : "text-slate-400 font-normal"
+                        "text-xs mt-0.5 leading-relaxed",
+                        isCompleted || isCurrent ? "text-slate-600 font-normal" : "text-slate-400 font-normal"
                       )}>
                         {step.description}
                       </p>
@@ -621,23 +621,23 @@ const SuiviReservationModal: React.FC<SuiviReservationModalProps> = ({ isOpen, o
             </div>
           </div>
 
-          <hr className="border-slate-100" />
+          <hr className="border-slate-200" />
 
           {/* Core Information Grid */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div className="bg-slate-50 p-5 rounded-2xl border border-slate-100">
-              <h5 className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3 flex items-center gap-1.5">
-                <MapPin size={12} className="text-red-500" />
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+            <div className="bg-slate-50 p-4 rounded-lg border border-slate-200">
+              <h5 className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-2 flex items-center gap-1.5">
+                <MapPin size={12} className="text-slate-500" />
                 Hébergement
               </h5>
-              <div className="space-y-2 text-xs">
+              <div className="space-y-1.5 text-xs">
                 <p className="font-bold text-slate-800">{residence.title}</p>
-                <p className="text-slate-500 font-medium">{residence.type === 'chambre' ? 'Chambre' : residence.type === 'appartement' ? 'Appartement' : residence.type === 'villa' ? 'Villa' : 'Auberge'}</p>
-                <p className="text-slate-500 font-medium">
+                <p className="text-slate-500">{residence.type === 'chambre' ? 'Chambre' : residence.type === 'appartement' ? 'Appartement' : residence.type === 'villa' ? 'Villa' : 'Auberge'}</p>
+                <p className="text-slate-500">
                   Secteur {residence.address?.neighborhood || residence.neighborhood}, {residence.address?.city || residence.city}
                 </p>
                 {residence.ownerName && (
-                  <p className="text-slate-600 font-bold mt-2 pt-2 border-t border-slate-200/50 flex items-center gap-1">
+                  <p className="text-slate-700 font-semibold mt-2 pt-2 border-t border-slate-200 flex items-center gap-1">
                     <User size={12} className="text-slate-400" />
                     Hôte: <span className="text-slate-900">{residence.ownerName}</span>
                   </p>
@@ -645,80 +645,80 @@ const SuiviReservationModal: React.FC<SuiviReservationModalProps> = ({ isOpen, o
               </div>
             </div>
 
-            <div className="bg-slate-50 p-5 rounded-2xl border border-slate-100">
-              <h5 className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3 flex items-center gap-1.5">
-                <Calendar size={12} className="text-red-500" />
+            <div className="bg-slate-50 p-4 rounded-lg border border-slate-200">
+              <h5 className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-2 flex items-center gap-1.5">
+                <Calendar size={12} className="text-slate-500" />
                 Détails du Séjour
               </h5>
-              <div className="space-y-2 text-xs font-medium text-slate-600">
+              <div className="space-y-1.5 text-xs text-slate-600">
                 <p>Du <strong className="text-slate-800 font-bold">{formatDateFr(booking.checkIn)}</strong></p>
                 <p>Au <strong className="text-slate-800 font-bold">{formatDateFr(booking.checkOut)}</strong></p>
-                <p className="pt-2 border-t border-slate-200/50">Durée : <strong className="text-slate-800 font-bold">{totalNights} nuit(s)</strong></p>
+                <p className="pt-1.5 border-t border-slate-200">Durée : <strong className="text-slate-800 font-bold">{totalNights} nuit(s)</strong></p>
                 <p>Voyageurs : <strong className="text-slate-800 font-bold">{booking.guests} personne(s)</strong></p>
               </div>
             </div>
           </div>
 
           {/* Pricing Harmonization Details */}
-          <div className="bg-red-50/30 border border-red-100/50 p-6 rounded-2xl space-y-4">
-            <h5 className="text-xs font-black text-red-800 uppercase tracking-wider flex items-center gap-2">
-              <CreditCard size={14} />
+          <div className="bg-slate-50 border border-slate-200 p-4 rounded-lg space-y-3">
+            <h5 className="text-xs font-bold text-slate-800 uppercase tracking-wider flex items-center gap-2">
+              <CreditCard size={13} className="text-slate-600" />
               Détails Financiers & Paiements
             </h5>
 
-            <div className="divide-y divide-red-100/40 text-xs">
-              <div className="py-2.5 flex justify-between items-center">
-                <span className="text-slate-500 font-bold">Tarif de la résidence</span>
-                <span className="font-black text-slate-800">{formatCurrency(residence.pricePerNight)} F CFA / nuit</span>
+            <div className="divide-y divide-slate-200 text-xs">
+              <div className="py-2 flex justify-between items-center">
+                <span className="text-slate-500">Tarif de la résidence</span>
+                <span className="font-bold text-slate-800">{formatCurrency(residence.pricePerNight)} F CFA / nuit</span>
               </div>
-              <div className="py-2.5 flex justify-between items-center">
-                <span className="text-slate-500 font-bold">Montant Total du Séjour</span>
-                <span className="font-black text-slate-950 text-sm">{formatCurrency(booking.totalPrice)} F CFA</span>
+              <div className="py-2 flex justify-between items-center">
+                <span className="text-slate-500">Montant Total du Séjour</span>
+                <span className="font-bold text-slate-900">{formatCurrency(booking.totalPrice)} F CFA</span>
               </div>
-              <div className="py-2.5 flex justify-between items-center">
-                <span className="text-slate-500 font-bold">
+              <div className="py-2 flex justify-between items-center">
+                <span className="text-slate-500">
                   {booking.paymentStatus === 'fully_paid' 
                     ? 'Total Payé (100%)' 
                     : booking.paymentStatus === 'advance_paid'
                       ? `Acompte Payé (${(booking.totalPrice > 0 && booking.advancePaid > 0) ? Math.round((booking.advancePaid / booking.totalPrice) * 100) : 30}%)`
                       : 'Acompte Payé (En attente)'}
                 </span>
-                <span className={cn("font-black", totalPaid > 0 ? "text-green-600" : "text-amber-600")}>
+                <span className={cn("font-bold", totalPaid > 0 ? "text-emerald-700" : "text-amber-700")}>
                   {formatCurrency(totalPaid)} F CFA
                 </span>
               </div>
-              <div className="py-2.5 flex justify-between items-center bg-red-100/10 px-2 -mx-2 rounded-lg">
-                <span className="text-red-800 font-bold">Reste à payer (à l'arrivée)</span>
-                <span className="font-black text-red-600 text-sm">{formatCurrency(remainingToPay)} F CFA</span>
+              <div className="py-2 flex justify-between items-center bg-white px-2.5 rounded border border-slate-200">
+                <span className="text-slate-800 font-semibold">Reste à payer (à l'arrivée)</span>
+                <span className="font-bold text-slate-900">{formatCurrency(remainingToPay)} F CFA</span>
               </div>
             </div>
 
-            <div className="text-[10px] text-slate-600 leading-relaxed font-medium bg-white p-3.5 rounded-xl border border-slate-100 space-y-2">
+            <div className="text-[11px] text-slate-600 leading-relaxed bg-white p-3 rounded-lg border border-slate-200 space-y-1.5">
               {booking.paymentStatus === 'pending' ? (
                 <p>
                   <strong>Rappel de paiement :</strong> L'acompte est en attente de versement. Effectuez le paiement de l'acompte requis en ligne pour bloquer vos dates. Le solde de <strong>{formatCurrency(remainingToPay)} F CFA</strong> sera réglé directement à l'hôte à l'arrivée.
                 </p>
               ) : booking.paymentStatus === 'advance_paid' ? (
                 <p>
-                  <strong>Rappel crucial :</strong> L'acompte de <strong>{formatCurrency(booking.advancePaid)} F CFA ({(booking.totalPrice > 0 && booking.advancePaid > 0) ? Math.round((booking.advancePaid / booking.totalPrice) * 100) : 30}%)</strong> a été versé et sécurisé en ligne. Le solde restant de <strong>{formatCurrency(remainingToPay)} F CFA</strong> est à régler directement à l'hôte lors de la remise des clés de la résidence (en espèces ou par Mobile Money local).
+                  <strong>Rappel :</strong> L'acompte de <strong>{formatCurrency(booking.advancePaid)} F CFA ({(booking.totalPrice > 0 && booking.advancePaid > 0) ? Math.round((booking.advancePaid / booking.totalPrice) * 100) : 30}%)</strong> a été versé et sécurisé en ligne. Le solde restant de <strong>{formatCurrency(remainingToPay)} F CFA</strong> est à régler directement à l'hôte lors de la remise des clés de la résidence.
                 </p>
               ) : (
                 <p>
                   <strong>Rappel :</strong> La totalité de votre séjour (<strong>{formatCurrency(booking.totalPrice)} F CFA</strong>) a été réglée et sécurisée en ligne. Aucun solde supplémentaire n'est dû à l'arrivée.
                 </p>
               )}
-              <p className="text-[9px] text-slate-500 font-medium border-t border-slate-100 pt-2 flex items-center gap-1">
-                <strong>Politique d'annulation :</strong> Toute demande d'annulation est soumise à la politique définie par l'hôte. Les frais administratifs et la commission de service restent non remboursables.
+              <p className="text-[10px] text-slate-400 border-t border-slate-100 pt-1.5">
+                Politique d'annulation : toute demande d'annulation est soumise aux conditions de l'hôte.
               </p>
             </div>
           </div>
         </div>
 
         {/* Footer */}
-        <div className="px-8 py-5 bg-slate-50 border-t border-slate-100 flex justify-end shrink-0">
+        <div className="px-6 py-3.5 bg-slate-50 border-t border-slate-200 flex justify-end shrink-0">
           <button 
             onClick={onClose}
-            className="px-6 py-3 bg-slate-900 text-white rounded-xl text-xs font-black uppercase tracking-wider hover:bg-slate-850 transition-colors cursor-pointer"
+            className="px-5 py-2 bg-slate-800 text-white rounded-lg text-xs font-bold uppercase tracking-wider hover:bg-slate-900 transition-colors cursor-pointer"
           >
             Fermer le suivi
           </button>

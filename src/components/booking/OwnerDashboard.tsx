@@ -751,25 +751,25 @@ const BookingTable: React.FC<BookingTableProps> = ({
         return (
           <div className="fixed inset-0 z-[150] flex items-start justify-center p-3 sm:p-6 pt-4 sm:pt-8 pb-10 overflow-y-auto">
             <div 
-              className="fixed inset-0 bg-slate-950/70 backdrop-blur-md transition-opacity animate-fade-in" 
+              className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs transition-opacity animate-fade-in" 
               onClick={() => setSelectedBookingForDetails(null)} 
             />
             
-            <div className="relative w-full max-w-3xl my-auto sm:my-0 bg-white rounded-3xl shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-200 text-slate-800 font-sans max-h-[90vh] flex flex-col border border-slate-150">
+            <div className="relative w-full max-w-3xl my-auto sm:my-0 bg-white rounded-xl shadow-xl overflow-hidden animate-in fade-in zoom-in-95 duration-150 text-slate-800 font-sans max-h-[90vh] flex flex-col border border-slate-200">
               
               {/* Header */}
-              <div className="px-6 py-5 border-b border-slate-100 flex items-center justify-between bg-gradient-to-r from-slate-50/80 via-white to-slate-50/80 shrink-0">
+              <div className="px-5 py-4 border-b border-slate-200 flex items-center justify-between bg-slate-50/70 shrink-0">
                 <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-2xl bg-red-50 border border-red-100 flex items-center justify-center text-red-600 shrink-0">
-                    <Building2 size={20} />
+                  <div className="w-9 h-9 rounded-lg bg-red-50 border border-red-100 flex items-center justify-center text-red-600 shrink-0">
+                    <Building2 size={18} />
                   </div>
                   <div>
                     <div className="flex items-center gap-2 flex-wrap">
-                      <span className="text-[10px] font-black uppercase tracking-wider text-slate-400">
+                      <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500">
                         Dossier Réservation
                       </span>
                       <span className={cn(
-                        "px-2.5 py-0.5 rounded-full text-[10px] font-extrabold tracking-wide uppercase flex items-center gap-1",
+                        "px-2 py-0.5 rounded text-[10px] font-bold tracking-wide uppercase flex items-center gap-1",
                         selectedBookingForDetails.bookingStatus === 'confirmed' 
                           ? (isFullyPaid ? "bg-emerald-50 text-emerald-700 border border-emerald-200" : "bg-blue-50 text-blue-700 border border-blue-200")
                           : selectedBookingForDetails.bookingStatus === 'cancelled'
@@ -792,8 +792,8 @@ const BookingTable: React.FC<BookingTableProps> = ({
                       </span>
                     </div>
                     <div className="flex items-center gap-2 mt-0.5">
-                      <h4 className="text-base font-extrabold text-slate-900 tracking-tight">
-                        ID: <span className="font-mono">#{selectedBookingForDetails.id.slice(0, 10).toUpperCase()}</span>
+                      <h4 className="text-sm font-bold text-slate-900">
+                        ID: <span className="font-mono text-slate-700 font-semibold">#{selectedBookingForDetails.id.slice(0, 10).toUpperCase()}</span>
                       </h4>
                       <button
                         onClick={() => {
@@ -801,7 +801,7 @@ const BookingTable: React.FC<BookingTableProps> = ({
                           addToast("ID copié dans le presse-papier !", "info");
                         }}
                         title="Copier l'identifiant"
-                        className="text-slate-400 hover:text-slate-700 transition-colors p-1 rounded-md hover:bg-slate-100"
+                        className="text-slate-400 hover:text-slate-700 transition-colors p-1 rounded hover:bg-slate-200"
                       >
                         <Copy size={13} />
                       </button>
@@ -812,49 +812,49 @@ const BookingTable: React.FC<BookingTableProps> = ({
                 <button 
                   type="button"
                   onClick={() => setSelectedBookingForDetails(null)}
-                  className="w-9 h-9 flex items-center justify-center rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-500 hover:text-slate-900 transition-colors cursor-pointer"
+                  className="w-8 h-8 flex items-center justify-center rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-500 hover:text-slate-900 transition-colors cursor-pointer"
                 >
-                  <X size={18} />
+                  <X size={16} />
                 </button>
               </div>
 
               {/* Content */}
-              <div className="p-6 overflow-y-auto max-h-[72vh] space-y-5">
+              <div className="p-5 overflow-y-auto max-h-[72vh] space-y-4">
                 
                 {/* Bento Grid Top: Residence & Stay Info */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5">
                   
                   {/* Card 1: Residence & Location */}
-                  <div className="bg-slate-50/70 border border-slate-200/70 rounded-2xl p-4.5 space-y-3 flex flex-col justify-between">
+                  <div className="bg-slate-50 border border-slate-200 rounded-lg p-4 space-y-2.5 flex flex-col justify-between">
                     <div>
-                      <div className="flex items-center justify-between gap-2 mb-2">
-                        <span className="text-[10px] font-black uppercase tracking-wider text-slate-400 flex items-center gap-1.5">
-                          <Home size={13} className="text-red-500" />
+                      <div className="flex items-center justify-between gap-2 mb-1.5">
+                        <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500 flex items-center gap-1.5">
+                          <Home size={13} className="text-slate-600" />
                           Hébergement
                         </span>
                         {currentRes?.type && (
-                          <span className="px-2 py-0.5 bg-white border border-slate-200 rounded text-[9px] font-extrabold uppercase text-slate-700 shadow-2xs">
+                          <span className="px-2 py-0.5 bg-white border border-slate-200 rounded text-[9px] font-bold uppercase text-slate-700">
                             {currentRes.type === 'chambre' ? "Chambre d'hôte" : currentRes.type === 'appartement' ? 'Appartement' : currentRes.type === 'villa' ? 'Villa' : currentRes.type}
                           </span>
                         )}
                       </div>
 
-                      <h5 className="text-base font-black text-slate-900 leading-snug">
+                      <h5 className="text-sm font-bold text-slate-900 leading-snug">
                         {currentRes?.title || "Hébergement"}
                       </h5>
 
-                      <div className="flex items-start gap-1.5 mt-2 text-xs text-slate-600 font-medium">
-                        <MapPin size={14} className="text-slate-400 shrink-0 mt-0.5" />
+                      <div className="flex items-start gap-1.5 mt-1.5 text-xs text-slate-600">
+                        <MapPin size={13} className="text-slate-400 shrink-0 mt-0.5" />
                         <span>
                           {currentRes?.address?.street && currentRes.address.street !== 'Secteur non configuré' && `${currentRes.address.street}, `}
                           {currentRes?.address?.neighborhood && `${currentRes.address.neighborhood}, `}
-                          <strong className="text-slate-800 font-bold">{currentRes?.address?.city || "Burkina Faso"}</strong>
+                          <strong className="text-slate-800 font-semibold">{currentRes?.address?.city || "Burkina Faso"}</strong>
                         </span>
                       </div>
                     </div>
 
                     {currentRes?.address?.coordinates && (
-                      <div className="pt-2 border-t border-slate-200/50 flex items-center justify-between text-[10px] text-slate-400 font-mono">
+                      <div className="pt-2 border-t border-slate-200 flex items-center justify-between text-[10px] text-slate-400 font-mono">
                         <span>Lat: {currentRes.address.coordinates.lat.toFixed(4)}</span>
                         <span>Lng: {currentRes.address.coordinates.lng.toFixed(4)}</span>
                       </div>
@@ -862,29 +862,29 @@ const BookingTable: React.FC<BookingTableProps> = ({
                   </div>
 
                   {/* Card 2: Stay Logistics & Traveler */}
-                  <div className="bg-slate-50/70 border border-slate-200/70 rounded-2xl p-4.5 space-y-3 flex flex-col justify-between">
+                  <div className="bg-slate-50 border border-slate-200 rounded-lg p-4 space-y-2.5 flex flex-col justify-between">
                     <div>
-                      <div className="flex items-center justify-between gap-2 mb-2">
-                        <span className="text-[10px] font-black uppercase tracking-wider text-slate-400 flex items-center gap-1.5">
-                          <CalendarDays size={13} className="text-red-500" />
+                      <div className="flex items-center justify-between gap-2 mb-1.5">
+                        <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500 flex items-center gap-1.5">
+                          <CalendarDays size={13} className="text-slate-600" />
                           Logistique du Séjour
                         </span>
-                        <span className="px-2 py-0.5 bg-red-50 border border-red-100 rounded text-[9px] font-black uppercase text-red-600">
+                        <span className="px-2 py-0.5 bg-slate-200/70 border border-slate-300/80 rounded text-[9px] font-bold uppercase text-slate-700">
                           {nights} {nights > 1 ? 'Nuitées' : 'Nuitée'}
                         </span>
                       </div>
 
                       {/* Dates Pills */}
                       <div className="grid grid-cols-2 gap-2 mt-2">
-                        <div className="bg-white p-2.5 rounded-xl border border-slate-200/80 shadow-2xs">
-                          <span className="text-[9px] font-bold text-slate-400 uppercase block">Arrivée</span>
-                          <span className="text-xs font-black text-slate-900 block mt-0.5">
+                        <div className="bg-white p-2 rounded-lg border border-slate-200">
+                          <span className="text-[9px] font-semibold text-slate-400 uppercase block">Arrivée</span>
+                          <span className="text-xs font-bold text-slate-800 block mt-0.5">
                             {formatDateFr(selectedBookingForDetails.checkIn)}
                           </span>
                         </div>
-                        <div className="bg-white p-2.5 rounded-xl border border-slate-200/80 shadow-2xs">
-                          <span className="text-[9px] font-bold text-slate-400 uppercase block">Départ</span>
-                          <span className="text-xs font-black text-slate-900 block mt-0.5">
+                        <div className="bg-white p-2 rounded-lg border border-slate-200">
+                          <span className="text-[9px] font-semibold text-slate-400 uppercase block">Départ</span>
+                          <span className="text-xs font-bold text-slate-800 block mt-0.5">
                             {formatDateFr(selectedBookingForDetails.checkOut)}
                           </span>
                         </div>
@@ -892,16 +892,16 @@ const BookingTable: React.FC<BookingTableProps> = ({
                     </div>
 
                     {/* Traveler Info */}
-                    <div className="pt-2 border-t border-slate-200/50 flex items-center justify-between text-xs">
+                    <div className="pt-2 border-t border-slate-200 flex items-center justify-between text-xs">
                       <div className="flex items-center gap-2">
-                        <div className="w-7 h-7 rounded-full bg-slate-200/80 flex items-center justify-center text-[10px] font-black text-slate-700 uppercase">
+                        <div className="w-6 h-6 rounded-full bg-slate-200 flex items-center justify-center text-[10px] font-bold text-slate-700 uppercase">
                           {(selectedBookingForDetails.clientName || 'V').charAt(0)}
                         </div>
                         <div>
-                          <span className="font-extrabold text-slate-900 block text-xs leading-none">
+                          <span className="font-bold text-slate-900 block text-xs leading-none">
                             {selectedBookingForDetails.clientName || `Client #${selectedBookingForDetails.clientId?.substring(0,6)}`}
                           </span>
-                          <span className="text-[10px] text-slate-500 font-medium">
+                          <span className="text-[10px] text-slate-500">
                             {selectedBookingForDetails.guests || 1} voyageur(s)
                           </span>
                         </div>
@@ -914,66 +914,66 @@ const BookingTable: React.FC<BookingTableProps> = ({
 
                 </div>
 
-                {/* Section 2: Financial Structure & Earnings Breakdown */}
-                <div className="bg-gradient-to-br from-slate-900 to-slate-950 text-white rounded-3xl p-5 shadow-lg space-y-4">
-                  <div className="flex items-center justify-between border-b border-slate-800 pb-3">
-                    <span className="text-[10px] font-black uppercase tracking-widest text-slate-400 flex items-center gap-1.5">
-                      <CreditCard size={14} className="text-red-400" />
+                {/* Section 2: Clean Light Financial Structure */}
+                <div className="bg-slate-50 border border-slate-200 rounded-lg p-4 space-y-3.5">
+                  <div className="flex items-center justify-between border-b border-slate-200 pb-2.5">
+                    <span className="text-[10px] font-bold uppercase tracking-wider text-slate-600 flex items-center gap-1.5">
+                      <CreditCard size={14} className="text-slate-600" />
                       Structure Financière & Répartition
                     </span>
-                    <span className="px-2.5 py-0.5 rounded-full text-[9px] font-black uppercase bg-slate-800 text-slate-300 border border-slate-700">
+                    <span className="px-2 py-0.5 rounded text-[9px] font-bold uppercase bg-white text-slate-700 border border-slate-200">
                       Statut : {formatPaymentStatus(selectedBookingForDetails.paymentStatus)}
                     </span>
                   </div>
 
-                  {/* 3 Main Metrics */}
-                  <div className="grid grid-cols-3 gap-3">
-                    <div className="bg-white/5 border border-white/10 rounded-2xl p-3.5">
-                      <span className="text-[9px] font-bold uppercase tracking-wider text-slate-400 block mb-1">
+                  {/* 3 Main Metrics - Clean Light Style */}
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
+                    <div className="bg-white border border-slate-200 rounded-lg p-3">
+                      <span className="text-[9px] font-bold uppercase tracking-wider text-slate-400 block mb-0.5">
                         Montant Total
                       </span>
-                      <span className="text-base sm:text-lg font-black text-white tracking-tight">
-                        {formatCurrency(selectedBookingForDetails.totalPrice)} <span className="text-xs font-normal text-slate-400">F CFA</span>
+                      <span className="text-base font-bold text-slate-900 tracking-tight">
+                        {formatCurrency(selectedBookingForDetails.totalPrice)} <span className="text-xs font-normal text-slate-500">F CFA</span>
                       </span>
                     </div>
 
-                    <div className="bg-emerald-500/10 border border-emerald-500/20 rounded-2xl p-3.5">
-                      <span className="text-[9px] font-bold uppercase tracking-wider text-emerald-400 block mb-1">
+                    <div className="bg-white border border-slate-200 rounded-lg p-3">
+                      <span className="text-[9px] font-bold uppercase tracking-wider text-slate-400 block mb-0.5">
                         Acompte Versé
                       </span>
-                      <span className="text-base sm:text-lg font-black text-emerald-400 tracking-tight">
-                        {formatCurrency(advanceAmount)} <span className="text-xs font-normal text-emerald-300/70">F CFA</span>
+                      <span className="text-base font-bold text-emerald-700 tracking-tight">
+                        {formatCurrency(advanceAmount)} <span className="text-xs font-normal text-slate-500">F CFA</span>
                       </span>
                     </div>
 
-                    <div className="bg-white/5 border border-white/10 rounded-2xl p-3.5">
-                      <span className="text-[9px] font-bold uppercase tracking-wider text-slate-400 block mb-1">
+                    <div className="bg-white border border-slate-200 rounded-lg p-3">
+                      <span className="text-[9px] font-bold uppercase tracking-wider text-slate-400 block mb-0.5">
                         Solde Restant
                       </span>
-                      <span className={cn("text-base sm:text-lg font-black tracking-tight", remainingAmount > 0 ? "text-amber-400" : "text-slate-300")}>
-                        {formatCurrency(remainingAmount)} <span className="text-xs font-normal text-slate-400">F CFA</span>
+                      <span className={cn("text-base font-bold tracking-tight", remainingAmount > 0 ? "text-amber-700" : "text-slate-700")}>
+                        {formatCurrency(remainingAmount)} <span className="text-xs font-normal text-slate-500">F CFA</span>
                       </span>
                     </div>
                   </div>
 
-                  {/* Net Earnings & Demarcheur Breakdown */}
+                  {/* Net Earnings & Commission Breakdown */}
                   {(selectedBookingForDetails.ownerNetEarnings !== undefined || selectedBookingForDetails.demarcheurEarnings !== undefined) && (
-                    <div className="pt-3 border-t border-slate-800/80 grid grid-cols-1 sm:grid-cols-3 gap-2.5">
-                      <div className="bg-white/5 p-2.5 rounded-xl border border-white/5">
-                        <span className="text-[9px] text-slate-400 font-bold uppercase block">Commission Plateforme (10%)</span>
-                        <span className="text-xs font-extrabold text-red-400 mt-0.5 block">
+                    <div className="pt-2.5 border-t border-slate-200 grid grid-cols-1 sm:grid-cols-3 gap-2">
+                      <div className="bg-white p-2 rounded-lg border border-slate-200">
+                        <span className="text-[9px] text-slate-400 font-semibold uppercase block">Commission Plateforme (10%)</span>
+                        <span className="text-xs font-bold text-slate-700 mt-0.5 block">
                           -{formatCurrency(selectedBookingForDetails.platformCommission || Math.round((selectedBookingForDetails.totalPrice || 0) * 0.1))} F CFA
                         </span>
                       </div>
-                      <div className="bg-emerald-500/10 p-2.5 rounded-xl border border-emerald-500/15">
-                        <span className="text-[9px] text-emerald-300 font-bold uppercase block">Net Hôte Propriétaire</span>
-                        <span className="text-xs font-black text-emerald-300 mt-0.5 block">
+                      <div className="bg-white p-2 rounded-lg border border-slate-200">
+                        <span className="text-[9px] text-emerald-700 font-semibold uppercase block">Net Hôte Propriétaire</span>
+                        <span className="text-xs font-bold text-emerald-800 mt-0.5 block">
                           {formatCurrency(selectedBookingForDetails.ownerNetEarnings || Math.round((selectedBookingForDetails.totalPrice || 0) * 0.9))} F CFA
                         </span>
                       </div>
-                      <div className="bg-amber-500/10 p-2.5 rounded-xl border border-amber-500/15">
-                        <span className="text-[9px] text-amber-300 font-bold uppercase block">Part Mandataire / Démarcheur</span>
-                        <span className="text-xs font-black text-amber-300 mt-0.5 block">
+                      <div className="bg-white p-2 rounded-lg border border-slate-200">
+                        <span className="text-[9px] text-slate-600 font-semibold uppercase block">Part Mandataire</span>
+                        <span className="text-xs font-bold text-slate-800 mt-0.5 block">
                           +{formatCurrency(selectedBookingForDetails.demarcheurEarnings || 0)} F CFA
                         </span>
                       </div>
@@ -981,10 +981,10 @@ const BookingTable: React.FC<BookingTableProps> = ({
                   )}
 
                   {/* Bottom bar of finance section */}
-                  <div className="pt-2 flex flex-wrap items-center justify-between gap-3 text-xs text-slate-400">
-                    <div className="flex items-center gap-3 flex-wrap">
+                  <div className="pt-1.5 flex flex-wrap items-center justify-between gap-2.5 text-xs text-slate-500">
+                    <div className="flex items-center gap-2 flex-wrap">
                       {selectedBookingForDetails.transactionId && (
-                        <span className="font-mono text-[11px] text-slate-300 bg-white/5 px-2.5 py-1 rounded-lg border border-white/10">
+                        <span className="font-mono text-[10px] text-slate-600 bg-white px-2 py-0.5 rounded border border-slate-200">
                           TX: {selectedBookingForDetails.transactionId}
                         </span>
                       )}
@@ -993,9 +993,9 @@ const BookingTable: React.FC<BookingTableProps> = ({
                     {(selectedBookingForDetails.paymentStatus === 'advance_paid' || selectedBookingForDetails.paymentStatus === 'fully_paid') && selectedBookingForDetails.bookingStatus !== 'cancelled' && (
                       <button 
                         onClick={() => setSelectedBookingForInvoice(selectedBookingForDetails)}
-                        className="px-3.5 py-1.5 bg-white hover:bg-slate-100 text-slate-900 rounded-xl font-bold text-xs shadow-sm flex items-center gap-1.5 transition-colors cursor-pointer ml-auto"
+                        className="px-3 py-1.5 bg-white hover:bg-slate-100 text-slate-800 rounded-lg font-bold text-xs border border-slate-200 flex items-center gap-1.5 transition-colors cursor-pointer ml-auto"
                       >
-                        <Download size={13} className="text-slate-900" />
+                        <Download size={13} className="text-slate-600" />
                         <span>Télécharger le Reçu</span>
                       </button>
                     )}
@@ -1004,15 +1004,15 @@ const BookingTable: React.FC<BookingTableProps> = ({
 
                 {/* Section 3: Official State Directive & Verification */}
                 <div className="space-y-3">
-                  <div className="bg-amber-500/10 border border-amber-500/25 rounded-2xl p-4 flex gap-3.5 items-start">
-                    <div className="w-8 h-8 rounded-xl bg-amber-500 text-white flex items-center justify-center shrink-0 shadow-xs">
-                      <ShieldCheck size={18} />
+                  <div className="bg-slate-50 border border-slate-200 rounded-lg p-3.5 flex gap-3 items-start">
+                    <div className="w-7 h-7 rounded-md bg-slate-200 text-slate-700 flex items-center justify-center shrink-0">
+                      <ShieldCheck size={16} />
                     </div>
                     <div className="space-y-0.5">
-                      <span className="text-xs font-black uppercase text-amber-950 tracking-wide block">
+                      <span className="text-xs font-bold uppercase text-slate-800 tracking-wide block">
                         Directive Réglementaire & Sécurité Hôte
                       </span>
-                      <p className="text-xs font-medium text-amber-900/90 leading-relaxed">
+                      <p className="text-xs text-slate-600 leading-relaxed">
                         En tant qu'hôte responsable, l'État vous impose d'effectuer rigoureusement les vérifications d'identité (comparaison de la pièce physique du voyageur avec les documents enregistrés) <strong>avant toute remise formelle des clés</strong>.
                       </p>
                     </div>
@@ -1036,22 +1036,22 @@ const BookingTable: React.FC<BookingTableProps> = ({
 
                 {/* Section 4: Cancellation Journal if applicable */}
                 {selectedBookingForDetails.bookingStatus === 'cancelled' && (
-                  <div className="p-4 bg-rose-50 border border-rose-200/80 rounded-2xl space-y-2.5">
-                    <div className="flex items-center gap-2 text-rose-800 font-black text-xs uppercase tracking-wide">
-                      <AlertCircle size={15} className="text-rose-600 shrink-0" />
+                  <div className="p-3.5 bg-rose-50 border border-rose-200 rounded-lg space-y-2">
+                    <div className="flex items-center gap-2 text-rose-800 font-bold text-xs uppercase tracking-wide">
+                      <AlertCircle size={14} className="text-rose-600 shrink-0" />
                       <span>Séjour Annulé (par {selectedBookingForDetails.cancelledBy === 'client' ? 'le Voyageur' : selectedBookingForDetails.cancelledBy === 'owner' ? "l'Hôte" : "l'Administration"})</span>
                     </div>
                     {selectedBookingForDetails.cancellationReason && (
-                      <p className="text-xs text-slate-700 font-medium">
-                        Motif : <span className="font-bold italic">"{selectedBookingForDetails.cancellationReason}"</span>
+                      <p className="text-xs text-slate-700">
+                        Motif : <span className="font-semibold italic">"{selectedBookingForDetails.cancellationReason}"</span>
                       </p>
                     )}
                     {selectedBookingForDetails.refundStatus && selectedBookingForDetails.refundStatus !== 'none' && (
-                      <div className="pt-2 border-t border-rose-200/60 flex flex-wrap items-center justify-between gap-2 text-xs">
+                      <div className="pt-2 border-t border-rose-200 flex flex-wrap items-center justify-between gap-2 text-xs">
                         <span className="font-bold text-rose-900">
                           Remboursement ({selectedBookingForDetails.refundProvider?.toUpperCase()} {selectedBookingForDetails.refundPhone}) : <strong>{formatCurrency(selectedBookingForDetails.refundAmount)} F CFA</strong>
                         </span>
-                        <span className="px-2.5 py-0.5 bg-rose-200/70 text-rose-900 rounded-md font-black text-[10px] uppercase">
+                        <span className="px-2 py-0.5 bg-rose-200 text-rose-900 rounded font-bold text-[10px] uppercase">
                           {selectedBookingForDetails.refundStatus === 'refunded' ? 'Soldé' : 'En traitement'}
                         </span>
                       </div>
@@ -1060,26 +1060,26 @@ const BookingTable: React.FC<BookingTableProps> = ({
                 )}
 
                 {/* Section 5: Check-in / Check-out Timestamps */}
-                <div className="grid grid-cols-2 gap-3">
-                  <div className="p-3.5 bg-slate-50 border border-slate-200/70 rounded-2xl flex items-center gap-3">
-                    <div className="w-8 h-8 rounded-xl bg-slate-200/70 flex items-center justify-center text-slate-600 shrink-0">
-                      <Key size={15} />
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                  <div className="p-3 bg-slate-50 border border-slate-200 rounded-lg flex items-center gap-2.5">
+                    <div className="w-7 h-7 rounded-md bg-slate-200 flex items-center justify-center text-slate-600 shrink-0">
+                      <Key size={14} />
                     </div>
                     <div>
                       <span className="text-[9px] font-bold text-slate-400 uppercase block">Check-in Effectif</span>
-                      <span className="text-xs font-extrabold text-slate-800 block mt-0.5">
+                      <span className="text-xs font-bold text-slate-800 block mt-0.5">
                         {selectedBookingForDetails.checkedInAt ? new Date(selectedBookingForDetails.checkedInAt).toLocaleString('fr-FR') : "Non enregistré"}
                       </span>
                     </div>
                   </div>
 
-                  <div className="p-3.5 bg-slate-50 border border-slate-200/70 rounded-2xl flex items-center gap-3">
-                    <div className="w-8 h-8 rounded-xl bg-slate-200/70 flex items-center justify-center text-slate-600 shrink-0">
-                      <DoorOpen size={15} />
+                  <div className="p-3 bg-slate-50 border border-slate-200 rounded-lg flex items-center gap-2.5">
+                    <div className="w-7 h-7 rounded-md bg-slate-200 flex items-center justify-center text-slate-600 shrink-0">
+                      <DoorOpen size={14} />
                     </div>
                     <div>
                       <span className="text-[9px] font-bold text-slate-400 uppercase block">Check-out Effectif</span>
-                      <span className="text-xs font-extrabold text-slate-800 block mt-0.5">
+                      <span className="text-xs font-bold text-slate-800 block mt-0.5">
                         {selectedBookingForDetails.checkedOutAt ? new Date(selectedBookingForDetails.checkedOutAt).toLocaleString('fr-FR') : "Non enregistré"}
                       </span>
                     </div>
@@ -1089,15 +1089,15 @@ const BookingTable: React.FC<BookingTableProps> = ({
               </div>
 
               {/* Footer */}
-              <div className="px-6 py-4 bg-slate-50/80 border-t border-slate-100 flex items-center justify-between shrink-0">
+              <div className="px-5 py-3.5 bg-slate-50 border-t border-slate-200 flex items-center justify-between shrink-0">
                 <span className="text-xs text-slate-400 font-medium hidden sm:inline">
                   ResiFaso • Système de Réservation Garanti
                 </span>
-                <div className="flex items-center gap-2.5 w-full sm:w-auto justify-end">
+                <div className="flex items-center gap-2 w-full sm:w-auto justify-end">
                   <button 
                     type="button"
                     onClick={() => setSelectedBookingForDetails(null)}
-                    className="w-full sm:w-auto px-6 py-2.5 bg-slate-900 hover:bg-slate-800 text-white rounded-xl font-bold text-xs uppercase tracking-wider transition-all shadow-sm cursor-pointer"
+                    className="w-full sm:w-auto px-5 py-2 bg-slate-800 hover:bg-slate-900 text-white rounded-lg font-bold text-xs uppercase tracking-wider transition-colors cursor-pointer"
                   >
                     Fermer l'aperçu
                   </button>
