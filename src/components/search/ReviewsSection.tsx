@@ -50,75 +50,73 @@ export const ReviewsSection: React.FC<Props> = ({ residenceId }) => {
     );
   }
 
-  const averageRating = reviews.length > 0 
-    ? (reviews.reduce((acc, r) => acc + r.rating, 0) / reviews.length).toFixed(1)
+  const validReviews = reviews.filter(r => r.comment && r.comment.trim().length > 1 && r.comment.trim() !== '-' && r.comment.trim() !== '--');
+  
+  const averageRating = validReviews.length > 0 
+    ? (validReviews.reduce((acc, r) => acc + r.rating, 0) / validReviews.length).toFixed(1)
     : 0;
 
   return (
-    <div className="mb-12">
-      <div className="flex items-end justify-between mb-8">
+    <div className="mb-10">
+      <div className="flex items-center justify-between mb-6">
         <div>
-          <h2 className="text-2xl font-black text-slate-900 flex items-center gap-2">
-            <MessageCircle className="text-red-600" size={24} />
-            Avis des Voyageurs
-          </h2>
+          <h3 className="text-lg sm:text-xl font-bold text-slate-900 flex items-center gap-2">
+            <MessageCircle className="text-brand-primary" size={20} />
+            <span>Avis des Voyageurs</span>
+          </h3>
+          <p className="text-xs text-slate-500 font-normal mt-0.5">Retours d'expérience vérifiés des locataires</p>
         </div>
-        {reviews.length > 0 && (
-          <div className="text-right">
-            <div className="text-3xl font-black text-slate-900 flex items-center justify-end gap-1">
-              <Star className="text-yellow-400 fill-yellow-400" size={28} />
-              {averageRating}
-            </div>
-            <div className="text-xs font-bold text-slate-500 uppercase tracking-widest mt-1">
-              {reviews.length} avis vérifié{reviews.length > 1 ? 's' : ''}
-            </div>
+        {validReviews.length > 0 && (
+          <div className="flex items-center gap-2 bg-slate-50 border border-slate-200/80 px-3 py-1.5 rounded-lg">
+            <Star className="text-amber-400 fill-amber-400" size={18} />
+            <span className="text-sm font-black text-slate-900">{averageRating}</span>
+            <span className="text-xs text-slate-400 font-medium">({validReviews.length} avis)</span>
           </div>
         )}
       </div>
 
-      {reviews.length === 0 ? (
-        <div className="bg-slate-50 border border-slate-100 rounded-3xl p-8 text-center">
-          <Star className="text-slate-300 mx-auto mb-3" size={32} />
-          <p className="text-sm font-bold text-slate-500">Aucun avis pour l'instant.</p>
-          <p className="text-xs text-slate-400 mt-1">Les avis apparaîtront ici une fois les séjours terminés.</p>
+      {validReviews.length === 0 ? (
+        <div className="bg-slate-50 border border-slate-200/80 rounded-xl p-6 text-center">
+          <p className="text-xs font-semibold text-slate-700">Aucun avis publié pour le moment</p>
+          <p className="text-[11px] text-slate-500 mt-1">Les avis certifiés apparaîtront automatiquement à la fin de chaque séjour.</p>
         </div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          {reviews.map((review, idx) => (
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          {validReviews.map((review, idx) => (
             <motion.div 
-              key={review.id}
+              key={review.id || idx}
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: idx * 0.1 }}
-              className="bg-white border border-slate-100 rounded-3xl p-6 shadow-sm flex flex-col"
+              transition={{ delay: idx * 0.05 }}
+              className="bg-white border border-slate-200/80 rounded-xl p-4 shadow-xs flex flex-col justify-between"
             >
-              <div className="flex items-center justify-between mb-4">
-                <div className="flex items-center gap-3">
+              <div className="flex items-center justify-between mb-3">
+                <div className="flex items-center gap-2.5">
                   {review.clientPhoto ? (
-                    <img src={review.clientPhoto} alt={review.clientName} className="w-10 h-10 rounded-full object-cover border-2 border-slate-100" />
+                    <img src={review.clientPhoto} alt={review.clientName} className="w-8 h-8 rounded-full object-cover border border-slate-200" />
                   ) : (
-                    <div className="w-10 h-10 rounded-full bg-slate-100 flex items-center justify-center text-slate-400">
-                      <User size={18} />
+                    <div className="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center text-slate-500 text-xs font-bold">
+                      {(review.clientName || 'V').charAt(0).toUpperCase()}
                     </div>
                   )}
                   <div>
-                    <div className="font-bold text-sm text-slate-900">{review.clientName || 'Voyageur'}</div>
-                    <div className="text-[10px] text-slate-400 uppercase tracking-wider font-semibold">
+                    <div className="font-bold text-xs text-slate-900">{review.clientName || 'Voyageur vérifié'}</div>
+                    <div className="text-[10px] text-slate-400 font-medium">
                       {formatDateFr(review.createdAt)}
                     </div>
                   </div>
                 </div>
-                <div className="flex bg-yellow-50 px-2 py-1 rounded-lg">
+                <div className="flex items-center gap-0.5">
                   {Array.from({ length: 5 }).map((_, i) => (
                     <Star 
                       key={i} 
-                      size={12} 
-                      className={i < review.rating ? "text-yellow-400 fill-yellow-400" : "text-yellow-200"} 
+                      size={11} 
+                      className={i < review.rating ? "text-amber-400 fill-amber-400" : "text-slate-200"} 
                     />
                   ))}
                 </div>
               </div>
-              <p className="text-sm text-slate-600 leading-relaxed italic flex-1">"{review.comment}"</p>
+              <p className="text-xs text-slate-600 leading-relaxed italic">"{review.comment}"</p>
             </motion.div>
           ))}
         </div>

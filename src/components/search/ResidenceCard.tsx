@@ -128,10 +128,17 @@ export const ResidenceCard: React.FC<Props> = ({
       {/* Photo Container */}
       <div className="relative aspect-[16/10] sm:aspect-[4/3] overflow-hidden bg-slate-100">
         <img 
-          src={residence.images?.[0] || "https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?auto=format&fit=crop&q=80&w=800"} 
+          src={residence.images?.[0] || "/cities/ouaga.png"} 
           alt={residence.title}
           className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500 ease-out"
           loading="lazy"
+          referrerPolicy="no-referrer"
+          onError={(e) => {
+            const target = e.currentTarget;
+            if (target.src.indexOf('/cities/ouaga.png') === -1) {
+              target.src = '/cities/ouaga.png';
+            }
+          }}
         />
 
         {/* Top Badges (Contained and wrapped to prevent overlap with heart button) */}
