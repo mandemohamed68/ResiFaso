@@ -54,10 +54,12 @@ export const Hero: React.FC = () => {
       return true;
     });
 
+    const defaultHeroImage = branding?.heroBackgroundImage || '/rondpm.png';
+
     const list: HeroSlide[] = [
       {
         isDefault: true,
-        imageUrl: '/rondpm.webp',
+        imageUrl: defaultHeroImage,
         title: "L'art du séjour meublé au Burkina Faso",
         description: bSlogan,
         frequency: 12
@@ -120,30 +122,36 @@ export const Hero: React.FC = () => {
       <AnimatePresence mode="wait">
         <motion.div
           key={`hero-bg-${currentIndex}`}
-          initial={{ opacity: 0, scale: 1.03 }}
+          initial={{ opacity: 0, scale: 1.02 }}
           animate={{ opacity: 1, scale: 1 }}
           exit={{ opacity: 0 }}
-          transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
+          transition={{ duration: 0.7, ease: [0.16, 1, 0.3, 1] }}
           className="absolute inset-0 overflow-hidden bg-slate-950"
         >
           {currentSlide.isDefault ? (
             <img 
               src={currentSlide.imageUrl}
-              alt="ResiFaso Hero"
+              alt="Résidences de standing au Burkina Faso"
               className="w-full h-full object-cover object-center"
               loading="eager"
               // @ts-ignore
               fetchPriority="high"
               decoding="async"
+              onError={(e) => {
+                (e.currentTarget as HTMLImageElement).src = 'https://images.unsplash.com/photo-1600585154340-be6161a56a0c?auto=format&fit=crop&q=80&w=1920';
+              }}
             />
           ) : (
             <>
               <img 
                 src={currentSlide.imageUrl}
                 alt=""
-                className="absolute inset-0 w-full h-full object-cover blur-lg opacity-40 scale-105"
+                className="absolute inset-0 w-full h-full object-cover blur-md opacity-40 scale-105"
                 loading="eager"
                 decoding="async"
+                onError={(e) => {
+                  (e.currentTarget as HTMLImageElement).src = 'https://images.unsplash.com/photo-1600585154340-be6161a56a0c?auto=format&fit=crop&q=80&w=1920';
+                }}
               />
               <img 
                 src={currentSlide.imageUrl}
@@ -151,39 +159,34 @@ export const Hero: React.FC = () => {
                 className="absolute inset-0 w-full h-full object-contain object-center"
                 loading="eager"
                 decoding="async"
+                onError={(e) => {
+                  (e.currentTarget as HTMLImageElement).src = 'https://images.unsplash.com/photo-1600585154340-be6161a56a0c?auto=format&fit=crop&q=80&w=1920';
+                }}
               />
             </>
           )}
         </motion.div>
       </AnimatePresence>
 
-      {/* Refined Dark Vignette & Gradient Overlay */}
-      <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/50 to-black/30 z-[2]" />
+      {/* Refined Balanced Gradient Overlay */}
+      <div className="absolute inset-0 bg-gradient-to-t from-slate-950/85 via-slate-950/45 to-slate-900/30 z-[2]" />
 
       {/* Slogan & Message Text Content */}
-      <div className="relative z-10 text-center px-4 max-w-3xl mt-[-20px]">
+      <div className="relative z-10 text-center px-4 max-w-3xl mt-[-10px]">
         <AnimatePresence mode="wait">
           <motion.div
             key={`hero-text-${currentIndex}`}
-            initial={{ opacity: 0, y: 15 }}
+            initial={{ opacity: 0, y: 12 }}
             animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -15 }}
-            transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
-            className="space-y-4"
+            exit={{ opacity: 0, y: -12 }}
+            transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
+            className="space-y-3"
           >
-            {/* Top Quality Badge */}
-            <div className="flex justify-center">
-              <span className="inline-flex items-center gap-1.5 bg-white/10 backdrop-blur-md text-white/95 text-[11px] font-semibold tracking-wider px-3.5 py-1.5 rounded-full border border-white/15 shadow-sm">
-                <Sparkles className="w-3.5 h-3.5 text-amber-400" />
-                <span>Hospitalité d'Excellence • Burkina Faso</span>
-              </span>
-            </div>
-
             {/* Clean Editorial Title */}
             <h1 className="text-3xl sm:text-4xl md:text-5xl font-black text-white leading-tight tracking-tight drop-shadow-md">
               {currentSlide.isDefault ? (
                 <>
-                  L'art du séjour meublé avec <span className="text-[#EF2B2D]">{bName1}</span><span className="text-[#009E49]">{bName2}</span><span className="text-[#FCD116] ml-1 text-2xl sm:text-3xl">★</span>
+                  L'art du séjour meublé avec <span className="text-[#EF2B2D]">{bName1}</span><span className="text-[#009E49]">{bName2}</span>
                 </>
               ) : (
                 currentSlide.title
@@ -191,30 +194,11 @@ export const Hero: React.FC = () => {
             </h1>
 
             {/* Refined Subtitle */}
-            <p className="text-sm md:text-base text-slate-200/90 font-medium max-w-2xl mx-auto leading-relaxed px-4 drop-shadow-sm">
+            <p className="text-sm md:text-base text-slate-200 font-medium max-w-2xl mx-auto leading-relaxed px-4 drop-shadow-sm">
               {currentSlide.isDefault ? bSlogan : currentSlide.description}
             </p>
           </motion.div>
         </AnimatePresence>
-
-        {/* Feature Badges */}
-        {currentSlide.isDefault && (
-          <motion.div 
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.3, duration: 0.5 }}
-            className="flex flex-wrap justify-center gap-2.5 text-xs font-semibold text-white/90 mt-6"
-          >
-            <span className="flex items-center gap-1.5 bg-white/10 backdrop-blur-md px-3 py-1 rounded-full border border-white/15">
-              <ShieldCheck className="w-3.5 h-3.5 text-emerald-400" />
-              Logements vérifiés
-            </span>
-            <span className="flex items-center gap-1.5 bg-white/10 backdrop-blur-md px-3 py-1 rounded-full border border-white/15">
-              <HeartHandshake className="w-3.5 h-3.5 text-amber-400" />
-              Accueil garanti
-            </span>
-          </motion.div>
-        )}
       </div>
 
       {/* Slide Index Dots */}

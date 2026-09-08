@@ -1182,28 +1182,34 @@ export const ResidenceDetailView: React.FC<ResidenceDetailViewProps> = ({
             {/* Transparent Cost Breakdown */}
             <div className="space-y-2.5 text-xs text-slate-600 dark:text-slate-400 pt-2 border-t border-slate-100 dark:border-slate-800">
               <div className="flex items-center justify-between">
-                <span>{formatFCFA(currentPricePerNight)} × {nights} nuits</span>
-                <span className="font-bold text-slate-800 dark:text-slate-200">{formatFCFA(baseBeforeDiscount)}</span>
+                <span>{currency === 'XOF' ? formatFCFA(currentPricePerNight) : formatPrice(currentPricePerNight, { showEquivalent: false })} × {nights} nuit{nights > 1 ? 's' : ''}</span>
+                <span className="font-bold text-slate-800 dark:text-slate-200">
+                  {currency === 'XOF' ? formatFCFA(baseBeforeDiscount) : formatPrice(baseBeforeDiscount, { showEquivalent: false })}
+                </span>
               </div>
 
               {discountPercent > 0 && (
-                <div className="flex items-center justify-between text-green-600 dark:text-green-400 font-bold bg-green-50 dark:bg-green-950/40 p-2 rounded-lg">
+                <div className="flex items-center justify-between text-emerald-700 dark:text-emerald-400 font-semibold bg-emerald-50 dark:bg-emerald-950/40 p-2 rounded-lg border border-emerald-100 dark:border-emerald-900/40">
                   <span>Remise séjour ({discountPercent}%)</span>
-                  <span>- {formatFCFA(discountAmount)}</span>
+                  <span>- {currency === 'XOF' ? formatFCFA(discountAmount) : formatPrice(discountAmount, { showEquivalent: false })}</span>
                 </div>
               )}
 
               {cleaningFee > 0 && (
                 <div className="flex items-center justify-between">
                   <span>Frais de ménage</span>
-                  <span className="font-bold text-slate-800 dark:text-slate-200">{formatFCFA(cleaningFee)}</span>
+                  <span className="font-bold text-slate-800 dark:text-slate-200">
+                    {currency === 'XOF' ? formatFCFA(cleaningFee) : formatPrice(cleaningFee, { showEquivalent: false })}
+                  </span>
                 </div>
               )}
 
               {clientServiceFeeEnabled && clientServiceFee > 0 && (
                 <div className="flex items-center justify-between">
                   <span>Frais de service plateforme ({clientServiceFeePercentage}%)</span>
-                  <span className="font-bold text-slate-800 dark:text-slate-200">+{formatFCFA(clientServiceFee)}</span>
+                  <span className="font-bold text-slate-800 dark:text-slate-200">
+                    +{currency === 'XOF' ? formatFCFA(clientServiceFee) : formatPrice(clientServiceFee, { showEquivalent: false })}
+                  </span>
                 </div>
               )}
 
@@ -1213,23 +1219,37 @@ export const ResidenceDetailView: React.FC<ResidenceDetailViewProps> = ({
                   <p className="text-[10px] uppercase tracking-wider text-slate-400 font-bold">Total du Séjour</p>
                   <p className="text-xs text-slate-300 font-medium">Net à payer (TTC)</p>
                 </div>
-                <span className="text-2xl font-black text-brand-primary tracking-tight">
-                  {formatFCFA(totalAmount)}
-                </span>
+                <div className="text-right">
+                  <span className="text-2xl font-black text-white tracking-tight">
+                    {currency === 'XOF' ? formatFCFA(totalAmount) : formatPrice(totalAmount, { showEquivalent: false })}
+                  </span>
+                  {currency !== 'XOF' && (
+                    <span className="text-[10px] font-medium text-slate-400 block leading-tight">
+                      soit {formatFCFA(totalAmount)}
+                    </span>
+                  )}
+                </div>
               </div>
             </div>
 
             {/* Deposit Box (Acompte requis) */}
-            <div className="p-3.5 rounded-lg bg-amber-50/80 dark:bg-amber-950/40 border border-amber-200/80 dark:border-amber-900/60 space-y-1">
+            <div className="p-3.5 rounded-lg bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 space-y-1">
               <div className="flex items-center justify-between">
-                <span className="text-xs font-black text-amber-900 dark:text-amber-300 uppercase tracking-tight">
+                <span className="text-xs font-bold text-slate-800 dark:text-slate-200 uppercase tracking-tight">
                   Acompte Requis ({advancePercent}%)
                 </span>
-                <span className="text-base font-black text-amber-900 dark:text-amber-200">
-                  {formatFCFA(advanceAmount)}
-                </span>
+                <div className="text-right">
+                  <span className="text-base font-black text-slate-900 dark:text-white">
+                    {currency === 'XOF' ? formatFCFA(advanceAmount) : formatPrice(advanceAmount, { showEquivalent: false })}
+                  </span>
+                  {currency !== 'XOF' && (
+                    <span className="text-[10px] font-medium text-slate-500 dark:text-slate-400 block leading-tight">
+                      soit {formatFCFA(advanceAmount)}
+                    </span>
+                  )}
+                </div>
               </div>
-              <p className="text-[10px] text-amber-700 dark:text-amber-400 leading-tight">
+              <p className="text-[10px] text-slate-500 dark:text-slate-400 leading-tight">
                 Paiement sécurisé via Mobile Money après acceptation de votre demande par l'hôte.
               </p>
             </div>

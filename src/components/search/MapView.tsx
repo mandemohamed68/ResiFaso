@@ -3,6 +3,7 @@ import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet';
 import { Residence } from '../../types';
 import L from 'leaflet';
 import { formatFCFA } from '../../lib/utils';
+import { useCurrency } from '../../contexts/CurrencyContext';
 import { MapPin, Star, Phone, MessageSquare } from 'lucide-react';
 
 interface Props {
@@ -77,27 +78,27 @@ function getDeterministicCoords(id: string, cityStr: string = '', neighborhoodSt
 }
 
 // Custom HTML Price Tag Icon for Leaflet
-function createPriceIcon(price: number, isPromoted?: boolean) {
-  const formatted = price > 0 ? `${(price / 1000).toFixed(price % 1000 === 0 ? 0 : 1)}k F` : 'Promo';
+function createPriceIcon(priceLabel: string, isPromoted?: boolean) {
   const html = `
     <div style="
       background-color: ${isPromoted ? '#dc2626' : '#0f172a'};
       color: #ffffff;
-      padding: 4px 8px;
-      border-radius: 20px;
+      padding: 4px 9px;
+      border-radius: 9999px;
       font-size: 11px;
-      font-weight: 900;
+      font-weight: 800;
       white-space: nowrap;
-      box-shadow: 0 4px 12px rgba(0,0,0,0.3);
-      border: 2px solid #ffffff;
-      display: flex;
+      box-shadow: 0 4px 14px rgba(0,0,0,0.35);
+      border: 1.5px solid #ffffff;
+      display: inline-flex;
       align-items: center;
-      gap: 4px;
+      gap: 5px;
       transform: translate(-50%, -100%);
       cursor: pointer;
+      font-family: system-ui, -apple-system, sans-serif;
     ">
       <span style="background-color: #ef4444; width: 6px; height: 6px; border-radius: 50%; display: inline-block;"></span>
-      <span>${formatted}</span>
+      <span>${priceLabel}</span>
     </div>
   `;
 
@@ -111,6 +112,7 @@ function createPriceIcon(price: number, isPromoted?: boolean) {
 
 export const MapView: React.FC<Props> = ({ residences, onResidenceClick }) => {
   const center: [number, number] = [12.3714, -1.5197]; // Center of Ouagadougou
+  const { currency, formatPrice } = useCurrency();
 
   const validResidencesWithCoords = useMemo(() => {
     return residences.map(res => {
@@ -139,7 +141,7 @@ export const MapView: React.FC<Props> = ({ residences, onResidenceClick }) => {
   }, [residences]);
 
   return (
-    <div className="h-[600px] sm:h-[680px] rounded-3xl overflow-hidden border border-slate-200 shadow-md relative z-0">
+    <div className="h-[600px] sm:h-[680px] rounded-2xl overflow-hidden border border-slate-200/80 shadow-md relative z-0">
       <MapContainerAny 
         center={center} 
         zoom={13} 
@@ -147,13 +149,17 @@ export const MapView: React.FC<Props> = ({ residences, onResidenceClick }) => {
         scrollWheelZoom={true}
       >
         <TileLayerAny
-          attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>'
-          url="https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png"
+          attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+          url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
         />
 
         {validResidencesWithCoords.map((res) => {
           const price = res.promoPrice || res.promo_price || res.pricePerNight || res.price_per_night || 0;
-          const customIcon = createPriceIcon(price, res.promoted || res.recommended);
+          const label = currency === 'XOF'
+            ? (price > 0 ? `${(price / 1000).toFixed(price % 1000 === 0 ? 0 : 1)}k F` : 'Promo')
+            : formatPrice(price, { showEquivalent: false });
+
+          const customIcon = createPriceIcon(label, res.promoted || res.recommended);
 
           return (
             <MarkerComp 
@@ -182,7 +188,9 @@ export const MapView: React.FC<Props> = ({ residences, onResidenceClick }) => {
                   </div>
 
                   <div className="flex items-baseline gap-1 mb-3">
-                    <span className="text-sm font-black text-red-600">{formatFCFA(price)}</span>
+                    <span className="text-sm font-black text-red-600">
+                      {currency === 'XOF' ? formatFCFA(price) : formatPrice(price, { showEquivalent: false })}
+                    </span>
                     <span className="text-[10px] text-slate-400 font-semibold">/ nuit</span>
                   </div>
 
@@ -202,3 +210,4 @@ export const MapView: React.FC<Props> = ({ residences, onResidenceClick }) => {
     </div>
   );
 };
+
