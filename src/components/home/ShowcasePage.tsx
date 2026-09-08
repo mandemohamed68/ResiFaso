@@ -1,6 +1,10 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { useBrandingSettings } from '../../hooks/useQueries';
+import ouagaCityImg from '../../assets/images/ouagadougou_city_1788876678363.jpg';
+import boboCityImg from '../../assets/images/bobo_dioulasso_1788876693516.jpg';
+import koudougouCityImg from '../../assets/images/koudougou_city_1788876707852.jpg';
+import banforaCityImg from '../../assets/images/banfora_cascades_1788876721680.jpg';
 import { 
   Search, ShieldCheck, Smartphone, Home, MapPin, Calendar, CheckCircle2, 
   ArrowRight, Users, Zap, Droplets, CreditCard, Star, Clock, Lock, 
@@ -29,7 +33,8 @@ export const ShowcasePage: React.FC<ShowcasePageProps> = ({ onNavigate, onOpenAu
       tagline: "Capitale & Cœur des affaires",
       description: "Appartements de haut standing à Ouaga 2000, villas familiales sécurisées et studios calmes pour missions professionnelles.",
       districts: ["Ouaga 2000", "Patte d'Oie", "Koulouba", "Zogona", "Dassasgho", "Zone du Bois"],
-      image: "/src/assets/images/ouagadougou_city_1788876678363.jpg",
+      image: ouagaCityImg,
+      fallback: "/cities/ouagadougou.jpg",
       count: "120+ résidences"
     },
     {
@@ -38,7 +43,8 @@ export const ShowcasePage: React.FC<ShowcasePageProps> = ({ onNavigate, onOpenAu
       tagline: "Capitale culturelle & économique",
       description: "Demeures de charme au cœur de la ville de Sya, appartements spacieux avec cours arborées pour vos séjours détendus.",
       districts: ["Sya", "Accart-Ville", "Sarfalao", "Koko", "Colma", "Belle-Ville"],
-      image: "/src/assets/images/bobo_dioulasso_1788876693516.jpg",
+      image: boboCityImg,
+      fallback: "/cities/bobo.jpg",
       count: "45+ résidences"
     },
     {
@@ -47,7 +53,8 @@ export const ShowcasePage: React.FC<ShowcasePageProps> = ({ onNavigate, onOpenAu
       tagline: "Cité du Cavalier Rouge",
       description: "Logements confortables et équipés pour missions universitaires, séminaires régionaux et haltes conviviales.",
       districts: ["Secteur 1", "Secteur 3", "Palogo", "Nayalgué"],
-      image: "/src/assets/images/koudougou_city_1788876707852.jpg",
+      image: koudougouCityImg,
+      fallback: "/cities/koudougou.jpg",
       count: "18+ résidences"
     },
     {
@@ -56,7 +63,8 @@ export const ShowcasePage: React.FC<ShowcasePageProps> = ({ onNavigate, onOpenAu
       tagline: "Joyau touristique des Cascades",
       description: "Villas et résidences paisibles au milieu d'une nature généreuse, idéales pour les escapades touristiques et le ressourcement.",
       districts: ["Secteur 2", "Secteur 5", "Karfiguéla", "Bérégadougou"],
-      image: "/src/assets/images/banfora_cascades_1788876721680.jpg",
+      image: banforaCityImg,
+      fallback: "/cities/banfora.jpg",
       count: "15+ résidences"
     }
   ];
@@ -279,8 +287,14 @@ export const ShowcasePage: React.FC<ShowcasePageProps> = ({ onNavigate, onOpenAu
                 >
                   <div className="relative aspect-[4/3] overflow-hidden bg-stone-100">
                     <img 
-                      src={city.image} 
+                      src={city.image || city.fallback} 
                       alt={city.name} 
+                      onError={(e) => {
+                        const target = e.currentTarget;
+                        if (target.src !== city.fallback && !target.src.endsWith(city.fallback)) {
+                          target.src = city.fallback;
+                        }
+                      }}
                       className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
                       referrerPolicy="no-referrer"
                     />
