@@ -12,7 +12,13 @@ const formatDateSafe = (dateStr?: string | null) => {
   });
 };
 
-export const generateInvoice = (booking: Booking, residence?: Residence | null, clientName?: string, logoBase64?: string) => {
+export const generateInvoice = (
+  booking: Booking, 
+  residence?: Residence | null, 
+  clientName?: string, 
+  logoBase64?: string,
+  qrCodeDataUrl?: string
+) => {
   const doc = new jsPDF();
   const pageWidth = doc.internal.pageSize.getWidth();
   
@@ -183,17 +189,52 @@ export const generateInvoice = (booking: Booking, residence?: Residence | null, 
   // 5. Financial Summary Box
   const summaryY = tableY + 42;
   
-  // Left: Reassurance note
-  doc.setFont("helvetica", "bold");
-  doc.setFontSize(8.5);
-  doc.setTextColor(15, 23, 42);
-  doc.text("Garantie Sécurisée ResiFaso", 18, summaryY + 5);
+  // Left: Reassurance note & Verification QR Code
+  if (qrCodeDataUrl) {
+    try {
+      doc.setFillColor(255, 255, 255);
+      doc.setDrawColor(226, 232, 240);
+      doc.roundedRect(18, summaryY + 1, 80, 32, 2, 2, 'FD');
+      doc.addImage(qrCodeDataUrl, 'PNG', 20, summaryY + 3, 27, 27);
 
-  doc.setFont("helvetica", "normal");
-  doc.setFontSize(8);
-  doc.setTextColor(100, 116, 139);
-  doc.text("Paiement protégé par la passerelle officielle Mobile Money.", 18, summaryY + 11);
-  doc.text("Validation instantanée & assistance client 7j/7.", 18, summaryY + 16);
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(8);
+      doc.setTextColor(15, 23, 42);
+      doc.text("Pass Contrôle d'Accès", 50, summaryY + 8);
+
+      doc.setFont("helvetica", "normal");
+      doc.setFontSize(6.5);
+      doc.setTextColor(100, 116, 139);
+      doc.text("Scannable à l'arrivée", 50, summaryY + 13);
+      doc.text("par l'hôte ou gardien.", 50, summaryY + 17);
+
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(7);
+      doc.setTextColor(5, 150, 105);
+      doc.text("✓ CERTIFIÉ SÉCURISÉ", 50, summaryY + 23);
+    } catch (e) {
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(8.5);
+      doc.setTextColor(15, 23, 42);
+      doc.text("Garantie Sécurisée ResiFaso", 18, summaryY + 5);
+      doc.setFont("helvetica", "normal");
+      doc.setFontSize(8);
+      doc.setTextColor(100, 116, 139);
+      doc.text("Paiement protégé par la passerelle officielle Mobile Money.", 18, summaryY + 11);
+      doc.text("Validation instantanée & assistance client 7j/7.", 18, summaryY + 16);
+    }
+  } else {
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(8.5);
+    doc.setTextColor(15, 23, 42);
+    doc.text("Garantie Sécurisée ResiFaso", 18, summaryY + 5);
+
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(8);
+    doc.setTextColor(100, 116, 139);
+    doc.text("Paiement protégé par la passerelle officielle Mobile Money.", 18, summaryY + 11);
+    doc.text("Validation instantanée & assistance client 7j/7.", 18, summaryY + 16);
+  }
 
   // Right Summary Container
   doc.setFillColor(248, 250, 252);

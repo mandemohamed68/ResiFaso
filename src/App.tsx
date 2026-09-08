@@ -5,7 +5,13 @@ import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { RoleProvider, useRole } from './contexts/RoleContext';
 import { ToastProvider, useToast } from './contexts/ToastContext';
 import { DataRefreshProvider, useDataRefresh } from './contexts/DataRefreshContext';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { CurrencyProvider } from './contexts/CurrencyContext';
+import { ComparisonProvider } from './contexts/ComparisonContext';
+import { ConciergeProvider, useConcierge } from './contexts/ConciergeContext';
+import { ResidenceComparatorModal } from './components/search/ResidenceComparatorModal';
+import { ConciergeModal } from './components/concierge/ConciergeModal';
+import { useQuery, useMutation, useQueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { queryClient } from './lib/queryClient';
 import { useResidences, useGlobalSettings, useBrandingSettings } from './hooks/useQueries';
 import { Navbar } from './components/common/Navbar';
 import { LoadingScreen } from './components/common/LoadingScreen';
@@ -111,8 +117,8 @@ function AppContent() {
     brandNamePart2: 'Faso',
     brandSlogan: 'La référence de la réservation meublée au Burkina Faso',
     activeTheme: 'default',
-    primaryColor: '#10b981',
-    secondaryColor: '#ef4444',
+    primaryColor: '#EF2B2D',
+    secondaryColor: '#009E49',
     christmasLights: false,
     snowParticles: false,
     rainParticles: false,
@@ -131,8 +137,8 @@ function AppContent() {
         brandNamePart2: bData.brandNamePart2 || 'Faso',
         brandSlogan: bData.brandSlogan || 'La référence de la réservation meublée au Burkina Faso',
         activeTheme: bData.activeTheme || 'default',
-        primaryColor: bData.primaryColor || '#10b981',
-        secondaryColor: bData.secondaryColor || '#ef4444',
+        primaryColor: bData.primaryColor || '#EF2B2D',
+        secondaryColor: bData.secondaryColor || '#009E49',
         christmasLights: !!bData.christmasLights,
         snowParticles: !!bData.snowParticles,
         rainParticles: !!bData.rainParticles,
@@ -312,6 +318,7 @@ function AppContent() {
       window.removeEventListener('popstate', handleUrlChange);
     };
   }, []);
+  const { isConciergeOpen, closeConcierge, residenceTitle, residenceCity } = useConcierge();
   const [isPaymentOpen, setIsPaymentOpen] = useState(false);
   const [activeBookingForPayment, setActiveBookingForPayment] = useState<any>(null);
   const [isAuthOpen, setIsAuthOpen] = useState(false);
@@ -480,6 +487,7 @@ function AppContent() {
     type: string;
     capacity: number;
     amenities: string[];
+    autonomousOnly?: boolean;
   } | null>(null);
 
   useEffect(() => {
@@ -691,6 +699,14 @@ function AppContent() {
         resAm.includes(am)
       );
       if (!matchesAllAmenities) return false;
+    }
+
+    // 6. 100% Autonome (Forage d'eau garanti + Groupe électrogène ou Énergie solaire)
+    if (searchFilters.autonomousOnly) {
+      const am = (res.amenities || []).map(a => a.toLowerCase());
+      const hasPower = am.some(a => a.includes('groupe') || a.includes('solaire') || a.includes('générateur'));
+      const hasWater = am.some(a => a.includes('forage') || a.includes('citerne') || a.includes('surpresseur') || a.includes('eau'));
+      if (!hasPower || !hasWater) return false;
     }
 
     return true;
@@ -910,12 +926,12 @@ function AppContent() {
       {/* Dynamic Branding Stylesheet */}
       <style>{`
         :root {
-          --brand-primary: ${branding.primaryColor || '#10b981'};
-          --brand-primary-dark: ${darkenColor(branding.primaryColor || '#10b981', 15)};
-          --brand-primary-light: ${adjustBrightness(branding.primaryColor || '#10b981', 85)};
-          --brand-secondary: ${branding.secondaryColor || '#ef4444'};
-          --brand-secondary-dark: ${darkenColor(branding.secondaryColor || '#ef4444', 15)};
-          --brand-secondary-light: ${adjustBrightness(branding.secondaryColor || '#ef4444', 85)};
+          --brand-primary: ${branding.primaryColor || '#EF2B2D'};
+          --brand-primary-dark: ${darkenColor(branding.primaryColor || '#EF2B2D', 15)};
+          --brand-primary-light: ${adjustBrightness(branding.primaryColor || '#EF2B2D', 85)};
+          --brand-secondary: ${branding.secondaryColor || '#009E49'};
+          --brand-secondary-dark: ${darkenColor(branding.secondaryColor || '#009E49', 15)};
+          --brand-secondary-light: ${adjustBrightness(branding.secondaryColor || '#009E49', 85)};
         }
         /* Brand primary & secondary dynamic mappings */
         .text-brand-primary, .text-primary { color: var(--brand-primary) !important; }
@@ -1509,6 +1525,23 @@ function AppContent() {
         config={promoPopupConfig} 
         currentPage={view === 'home' ? 'home' : view === 'search' ? 'search' : 'all'} 
       />
+
+      {/* Interactive Residence Comparator (Côte à côte) */}
+      <ResidenceComparatorModal 
+        onSelectResidence={(res) => {
+          setSelectedResidence(res);
+          setView('details');
+          window.scrollTo({ top: 0, behavior: 'smooth' });
+        }}
+      />
+
+      {/* Conciergerie Privée Modal */}
+      <ConciergeModal 
+        isOpen={isConciergeOpen}
+        onClose={closeConcierge}
+        residenceTitle={residenceTitle}
+        residenceCity={residenceCity}
+      />
     </div>
   );
 }
@@ -1519,7 +1552,13 @@ export default function App() {
       <RoleProvider>
         <ToastProvider>
           <DataRefreshProvider>
-            <AppContent />
+            <CurrencyProvider>
+              <ComparisonProvider>
+                <ConciergeProvider>
+                  <AppContent />
+                </ConciergeProvider>
+              </ComparisonProvider>
+            </CurrencyProvider>
           </DataRefreshProvider>
         </ToastProvider>
       </RoleProvider>

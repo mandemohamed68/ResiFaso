@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Search, MapPin, Building2, Users, Wifi, Wind, Car, HelpCircle, Check, MapPinIcon, ShieldCheck, Utensils, Trees, Zap, Droplet, Filter, X, ChevronDown } from 'lucide-react';
 import { useLocations } from '../../hooks/useLocations';
+import { useGlobalSettings } from '../../hooks/useQueries';
 import { cn } from '../../lib/utils';
 import { CustomSelect } from '../common/CustomSelect';
 import { motion, AnimatePresence } from 'motion/react';
@@ -12,16 +13,21 @@ interface SearchFormProps {
     type: string;
     capacity: number;
     amenities: string[];
+    autonomousOnly?: boolean;
   }) => void;
 }
 
 export const SearchForm: React.FC<SearchFormProps> = ({ onSearch }) => {
   const { allLocations } = useLocations();
+  const { data: gsData } = useGlobalSettings();
+  const autonomyFilterEnabled = gsData?.autonomyFilterEnabled !== false;
+
   const [selectedCityId, setSelectedCityId] = useState('');
   const [selectedNeighborhoodId, setSelectedNeighborhoodId] = useState('');
   const [housingType, setHousingType] = useState('Tout type');
   const [capacity, setCapacity] = useState(1);
   const [selectedAmenities, setSelectedAmenities] = useState<string[]>([]);
+  const [autonomousOnly, setAutonomousOnly] = useState(false);
   const [isAmenityDropdownOpen, setIsAmenityDropdownOpen] = useState(false);
 
   const currentCity = allLocations.find(c => c.id === selectedCityId);
@@ -51,7 +57,8 @@ export const SearchForm: React.FC<SearchFormProps> = ({ onSearch }) => {
       neighborhoodId: selectedNeighborhoodId,
       type: housingType,
       capacity,
-      amenities: selectedAmenities
+      amenities: selectedAmenities,
+      autonomousOnly
     });
   };
 
@@ -128,11 +135,28 @@ export const SearchForm: React.FC<SearchFormProps> = ({ onSearch }) => {
           </div>
         </div>
 
-        {/* Amenities Dropdown Row */}
-        <div className="border-t border-slate-100 pt-4 flex flex-col md:flex-row md:items-center gap-3 md:gap-4 px-1 md:px-4">
-          <div className="flex items-center justify-between w-full md:w-auto shrink-0">
-            <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Équipements :</span>
-          </div>
+        {/* Amenities & Autonomy Row */}
+        <div className="border-t border-slate-100 pt-3 flex flex-col md:flex-row md:items-center gap-2.5 md:gap-3 px-1 md:px-3">
+          {autonomyFilterEnabled && (
+            <div className="flex flex-wrap items-center gap-2 shrink-0">
+              {/* 100% Autonome Toggle Pill */}
+              <button
+                type="button"
+                onClick={() => setAutonomousOnly(prev => !prev)}
+                className={cn(
+                  "flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors cursor-pointer border select-none",
+                  autonomousOnly
+                    ? "bg-slate-900 border-slate-900 text-white"
+                    : "bg-slate-100 border-slate-200 text-slate-700 hover:bg-slate-200/80"
+                )}
+                title="Filtrer uniquement les logements avec Forage d'eau garanti ET Groupe électrogène ou Solaire"
+              >
+                <Zap size={13} className={autonomousOnly ? "text-amber-400 fill-amber-400" : "text-slate-600"} />
+                <span>100% Autonome (Eau & Élec)</span>
+                {autonomousOnly && <span className="text-[10px] bg-white/20 px-1 py-0.2 rounded">✓</span>}
+              </button>
+            </div>
+          )}
           
           <div className="flex-1 relative group">
             <div className="bg-slate-50 border border-slate-150 rounded-lg p-2.5 flex flex-wrap gap-2 min-h-[48px] items-center">

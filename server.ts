@@ -1315,56 +1315,67 @@ async function startServer() {
     }
   });
 
+  // User account deletion helper function (complies with Apple Guideline 5.1.1(v))
+  const performCompleteUserDeletion = async (uid: string) => {
+    await executeSql("SET FOREIGN_KEY_CHECKS = 0");
+    try {
+      // 1. Social & Communication
+      await executeSql("DELETE FROM support_chat_messages WHERE user_id = ? OR sender_id = ?", [uid, uid]);
+      await executeSql("DELETE FROM messages WHERE sender_id = ?", [uid]);
+      await executeSql("DELETE FROM notifications WHERE user_id = ?", [uid]);
+      await executeSql("DELETE FROM favorites WHERE user_id = ?", [uid]);
+      
+      // 2. Reviews
+      await executeSql("DELETE FROM reviews WHERE client_id = ?", [uid]);
+      
+      // 3. Residences related
+      const userResidences = await executeSql("SELECT id FROM residences WHERE owner_id = ?", [uid]);
+      for (const res of userResidences) {
+        await executeSql("DELETE FROM residence_amenities WHERE residence_id = ?", [res.id]);
+        await executeSql("DELETE FROM residence_images WHERE residence_id = ?", [res.id]);
+        await executeSql("DELETE FROM reviews WHERE residence_id = ?", [res.id]);
+        await executeSql("DELETE FROM residences WHERE id = ?", [res.id]);
+      }
+      
+      // 4. Bookings
+      await executeSql("DELETE FROM bookings WHERE client_id = ?", [uid]);
+      await executeSql("UPDATE bookings SET owner_id = NULL WHERE owner_id = ?", [uid]);
+      
+      // 5. Withdrawals
+      await executeSql("UPDATE withdrawals SET owner_id = NULL WHERE owner_id = ?", [uid]);
+      
+      // 6. Finally delete user record completely
+      await queries.deleteUser(uid);
+    } finally {
+      await executeSql("SET FOREIGN_KEY_CHECKS = 1");
+    }
+  };
+
+  // Self account deletion endpoint
+  app.delete("/api/users/me", authenticateToken, async (req: AuthRequest, res) => {
+    try {
+      const uid = req.user?.uid;
+      if (!uid) {
+        return res.status(401).json({ error: "Non authentifié" });
+      }
+      await performCompleteUserDeletion(uid);
+      res.json({ success: true, message: "Compte utilisateur et données associées supprimés définitivement." });
+    } catch (err: any) {
+      console.error("[SELF DELETE USER ERROR]", err);
+      res.status(500).json({ error: err.message || "Erreur lors de la suppression du compte" });
+    }
+  });
+
   app.delete("/api/users/:uid", authenticateToken, async (req: AuthRequest, res) => {
     try {
-      if (req.user?.role !== 'admin') {
-        return res.status(403).json({ error: "Réservé aux administrateurs" });
+      const targetUid = req.params.uid;
+      // Allow user to delete their own account, or admin to delete any user
+      if (req.user?.uid !== targetUid && req.user?.role !== 'admin') {
+        return res.status(403).json({ error: "Non autorisé à supprimer ce compte" });
       }
       
-      const uid = req.params.uid;
-      
-      // Thorough cleanup of related records to avoid foreign key constraint errors
-      // Use a transaction-like approach by disabling FK checks temporarily if needed, 
-      // but manual cleanup is safer for data integrity.
-      
-      try {
-        await executeSql("SET FOREIGN_KEY_CHECKS = 0");
-        
-        // 1. Social & Communication
-        await executeSql("DELETE FROM support_chat_messages WHERE user_id = ? OR sender_id = ?", [uid, uid]);
-        await executeSql("DELETE FROM messages WHERE sender_id = ?", [uid]);
-        await executeSql("DELETE FROM notifications WHERE user_id = ?", [uid]);
-        await executeSql("DELETE FROM favorites WHERE user_id = ?", [uid]);
-        
-        // 2. Reviews (usually cascade, but let's be explicit)
-        await executeSql("DELETE FROM reviews WHERE client_id = ?", [uid]);
-        
-        // 3. Residences related (amenities and images should cascade from residence delete)
-        // Find all residences owned by this user
-        const userResidences = await executeSql("SELECT id FROM residences WHERE owner_id = ?", [uid]);
-        for (const res of userResidences) {
-          await executeSql("DELETE FROM residence_amenities WHERE residence_id = ?", [res.id]);
-          await executeSql("DELETE FROM residence_images WHERE residence_id = ?", [res.id]);
-          await executeSql("DELETE FROM reviews WHERE residence_id = ?", [res.id]);
-          await executeSql("DELETE FROM residences WHERE id = ?", [res.id]);
-        }
-        
-        // 4. Bookings (SET NULL usually, but let's delete if user is the client to be clean)
-        await executeSql("DELETE FROM bookings WHERE client_id = ?", [uid]);
-        await executeSql("UPDATE bookings SET owner_id = NULL WHERE owner_id = ?", [uid]);
-        
-        // 5. Withdrawals - set to null if they exist
-        await executeSql("UPDATE withdrawals SET owner_id = NULL WHERE owner_id = ?", [uid]);
-        
-        // 6. Finally delete the user
-        await queries.deleteUser(uid);
-        
-        await executeSql("SET FOREIGN_KEY_CHECKS = 1");
-        res.json({ success: true });
-      } catch (innerErr: any) {
-        await executeSql("SET FOREIGN_KEY_CHECKS = 1");
-        throw innerErr;
-      }
+      await performCompleteUserDeletion(targetUid);
+      res.json({ success: true, message: "Compte utilisateur supprimé définitivement." });
     } catch (err: any) {
       console.error("[DELETE USER ERROR]", err);
       res.status(500).json({ error: err.message });

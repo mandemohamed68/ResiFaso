@@ -57,7 +57,7 @@ export const Hero: React.FC = () => {
     const list: HeroSlide[] = [
       {
         isDefault: true,
-        imageUrl: '/rondpm.png',
+        imageUrl: '/rondpm.webp',
         title: "L'art du séjour meublé au Burkina Faso",
         description: bSlogan,
         frequency: 12
@@ -77,6 +77,16 @@ export const Hero: React.FC = () => {
 
     return list;
   }, [activeAds, bSlogan]);
+
+  // Preload all slide images for smooth transitions
+  useEffect(() => {
+    slides.forEach(slide => {
+      if (slide.imageUrl) {
+        const img = new Image();
+        img.src = slide.imageUrl;
+      }
+    });
+  }, [slides]);
 
   // Slides rotation timer
   useEffect(() => {
@@ -110,26 +120,37 @@ export const Hero: React.FC = () => {
       <AnimatePresence mode="wait">
         <motion.div
           key={`hero-bg-${currentIndex}`}
-          initial={{ opacity: 0, scale: 1.05 }}
+          initial={{ opacity: 0, scale: 1.03 }}
           animate={{ opacity: 1, scale: 1 }}
           exit={{ opacity: 0 }}
-          transition={{ duration: 1.2, ease: [0.16, 1, 0.3, 1] }}
+          transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
           className="absolute inset-0 overflow-hidden bg-slate-950"
         >
           {currentSlide.isDefault ? (
-            <div 
-              className="absolute inset-0 bg-cover bg-center"
-              style={{ backgroundImage: `url(${currentSlide.imageUrl})` }}
+            <img 
+              src={currentSlide.imageUrl}
+              alt="ResiFaso Hero"
+              className="w-full h-full object-cover object-center"
+              loading="eager"
+              // @ts-ignore
+              fetchPriority="high"
+              decoding="async"
             />
           ) : (
             <>
-              <div 
-                className="absolute inset-0 bg-cover bg-center blur-lg opacity-40 scale-105"
-                style={{ backgroundImage: `url(${currentSlide.imageUrl})` }}
+              <img 
+                src={currentSlide.imageUrl}
+                alt=""
+                className="absolute inset-0 w-full h-full object-cover blur-lg opacity-40 scale-105"
+                loading="eager"
+                decoding="async"
               />
-              <div 
-                className="absolute inset-0 bg-contain bg-no-repeat bg-center"
-                style={{ backgroundImage: `url(${currentSlide.imageUrl})` }}
+              <img 
+                src={currentSlide.imageUrl}
+                alt={currentSlide.title}
+                className="absolute inset-0 w-full h-full object-contain object-center"
+                loading="eager"
+                decoding="async"
               />
             </>
           )}
@@ -162,7 +183,7 @@ export const Hero: React.FC = () => {
             <h1 className="text-3xl sm:text-4xl md:text-5xl font-black text-white leading-tight tracking-tight drop-shadow-md">
               {currentSlide.isDefault ? (
                 <>
-                  L'art du séjour meublé avec <span className="text-red-500">{bName1}</span><span className="text-emerald-400">{bName2}</span>
+                  L'art du séjour meublé avec <span className="text-[#EF2B2D]">{bName1}</span><span className="text-[#009E49]">{bName2}</span><span className="text-[#FCD116] ml-1 text-2xl sm:text-3xl">★</span>
                 </>
               ) : (
                 currentSlide.title

@@ -198,24 +198,22 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onNavigat
           
           {/* Brand Header */}
           <div className="text-center select-none pt-1">
-            <div className="inline-flex items-center gap-3.5 justify-center mb-3">
-              <div className="w-14 h-14 sm:w-16 sm:h-16 flex-shrink-0 flex items-center justify-center overflow-hidden rounded-xl bg-white border border-slate-200/80 dark:border-slate-700 shadow-sm p-1">
+            <div className="inline-flex items-center gap-4 justify-center mb-4">
+              <div className="w-20 h-20 sm:w-24 sm:h-24 flex-shrink-0 flex items-center justify-center overflow-hidden rounded-2xl bg-white dark:bg-slate-800 border border-slate-200/90 dark:border-slate-700 shadow-md ring-4 ring-red-500/10 p-1.5">
                 <img 
-                  src="/logoresifaso_new.jpg" 
+                  src="/LOGO%20RESIFASO.png" 
                   alt="ResiFaso logo" 
-                  className="w-full h-full object-contain" 
+                  className="w-full h-full object-contain filter drop-shadow-xs" 
                   referrerPolicy="no-referrer"
-                  onError={(e) => {
-                    const target = e.target as HTMLImageElement;
-                    target.src = "/logoresifasoORG.png";
-                  }}
                 />
               </div>
               <div className="flex flex-col text-left">
-                <span className="text-2xl sm:text-3xl font-black tracking-tight leading-none">
-                  <span className="text-brand-primary">{bName1}</span><span className="text-brand-secondary">{bName2}</span>
+                <span className="text-2xl sm:text-3xl font-black tracking-tight leading-none flex items-center">
+                  <span className="text-[#EF2B2D]">{bName1}</span>
+                  <span className="text-[#009E49]">{bName2}</span>
+                  <span className="text-[#FCD116] ml-1 text-base animate-pulse">★</span>
                 </span>
-                <span className="text-[9px] font-bold uppercase tracking-[0.2em] text-slate-400 dark:text-slate-500 mt-1">
+                <span className="text-[9.5px] font-extrabold uppercase tracking-[0.16em] text-slate-500 dark:text-slate-400 mt-1.5">
                   {bSlogan}
                 </span>
               </div>

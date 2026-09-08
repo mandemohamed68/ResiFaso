@@ -1,8 +1,11 @@
 import React, { useState, useMemo } from 'react';
-import { Star, MapPin, Heart, Sparkles, Droplets, Zap, Calendar, ChevronDown, Phone, MessageSquare, ShieldCheck } from 'lucide-react';
+import { Star, MapPin, Heart, Droplets, Zap, Calendar, ChevronDown, Phone, MessageSquare, ShieldCheck, Scale, Check, Sparkles } from 'lucide-react';
 import { Residence } from '../../types';
 import { motion, AnimatePresence } from 'motion/react';
 import { formatFCFA, cn } from '../../lib/utils';
+import { useComparison } from '../../contexts/ComparisonContext';
+import { useCurrency } from '../../contexts/CurrencyContext';
+import { useGlobalSettings } from '../../hooks/useQueries';
 
 interface Props {
   residence: Residence;
@@ -19,6 +22,10 @@ export const ResidenceCard: React.FC<Props> = ({
   enablePhoneCalls = true,
   enableWhatsApp = true,
 }) => {
+  const { data: gsData } = useGlobalSettings();
+  const autonomyFilterEnabled = gsData?.autonomyFilterEnabled !== false;
+  const comparatorEnabled = gsData?.comparatorEnabled !== false;
+
   const [isWishlist, setIsWishlist] = useState<boolean>(() => {
     try {
       const favs = JSON.parse(localStorage.getItem('resifaso_favorites') || '[]');
@@ -29,6 +36,9 @@ export const ResidenceCard: React.FC<Props> = ({
   });
 
   const [show14DayMatrix, setShow14DayMatrix] = useState(false);
+  const { toggleCompare, isInComparison } = useComparison();
+  const { formatPrice, currency } = useCurrency();
+  const isCompared = isInComparison(residence.id);
 
   const handleWishlist = (e: React.MouseEvent) => {
     e.preventDefault();
@@ -103,6 +113,11 @@ export const ResidenceCard: React.FC<Props> = ({
   const originalPrice = (residence.promoPrice || residence.promo_price) ? (residence.pricePerNight || residence.price_per_night) : null;
   const ownerPhone = residence.ownerPhone || (residence as any).phone || '70000000';
 
+  const am = (residence.amenities || []).map(a => a.toLowerCase());
+  const hasPower = am.some(a => a.includes('groupe') || a.includes('solaire') || a.includes('générateur'));
+  const hasWater = am.some(a => a.includes('forage') || a.includes('citerne') || a.includes('surpresseur') || a.includes('eau'));
+  const is100Autonomous = hasPower && hasWater;
+
   return (
     <motion.div 
       whileHover={{ y: -4 }}
@@ -143,21 +158,53 @@ export const ResidenceCard: React.FC<Props> = ({
               -{discount}% Séjour
             </span>
           )}
+
+          {is100Autonomous && autonomyFilterEnabled && (
+            <span 
+              className="bg-slate-900/80 backdrop-blur-md text-white text-[9px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-md flex items-center gap-1 shadow-xs shrink-0 border border-slate-700"
+              title="Groupe électrogène/Solaire & Forage garantis (zéro coupure)"
+            >
+              <Zap size={10} className="text-amber-400 fill-amber-400" />
+              <span>Autonome</span>
+            </span>
+          )}
         </div>
 
-        {/* Favorite Heart Button */}
-        <button 
-          type="button"
-          onClick={handleWishlist}
-          className="absolute top-3 right-3 p-2 bg-white/90 hover:bg-white backdrop-blur-md rounded-lg text-slate-500 hover:text-red-500 shadow-sm transition-all duration-200 z-20 cursor-pointer active:scale-90"
-          title={isWishlist ? "Retirer des favoris" : "Ajouter aux favoris"}
-        >
-          <Heart 
-            size={16} 
-            fill={isWishlist ? "currentColor" : "none"} 
-            className={cn("transition-colors", isWishlist ? "text-red-500" : "")} 
-          />
-        </button>
+        {/* Top Right Action Buttons: Compare & Favorite */}
+        <div className="absolute top-3 right-3 flex items-center gap-1.5 z-20">
+          {comparatorEnabled && (
+            <button 
+              type="button"
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                toggleCompare(residence);
+              }}
+              className={cn(
+                "p-2 rounded-lg backdrop-blur-md shadow-xs transition-all duration-200 cursor-pointer active:scale-90 flex items-center justify-center",
+                isCompared 
+                  ? "bg-slate-900 text-white ring-1 ring-slate-700" 
+                  : "bg-white/90 hover:bg-white text-slate-600 hover:text-slate-900"
+              )}
+              title={isCompared ? "Retirer du comparateur" : "Comparer avec d'autres résidences"}
+            >
+              {isCompared ? <Check size={14} className="stroke-[3]" /> : <Scale size={14} />}
+            </button>
+          )}
+
+          <button 
+            type="button"
+            onClick={handleWishlist}
+            className="p-2 bg-white/90 hover:bg-white backdrop-blur-md rounded-lg text-slate-500 hover:text-red-500 shadow-xs transition-all duration-200 cursor-pointer active:scale-90"
+            title={isWishlist ? "Retirer des favoris" : "Ajouter aux favoris"}
+          >
+            <Heart 
+              size={16} 
+              fill={isWishlist ? "currentColor" : "none"} 
+              className={cn("transition-colors", isWishlist ? "text-red-500" : "")} 
+            />
+          </button>
+        </div>
 
         {/* Bottom Availability Badge */}
         <div className="absolute bottom-3 left-3 z-10 pointer-events-none">
@@ -296,15 +343,19 @@ export const ResidenceCard: React.FC<Props> = ({
             <span className="text-[9px] text-slate-400 font-bold uppercase tracking-wider block leading-none mb-0.5">Tarif</span>
             <div className="flex items-baseline gap-1 truncate">
               <span className="text-sm sm:text-base font-black text-slate-900 whitespace-nowrap">
-                {formatFCFA(currentPrice)}
+                {currency === 'XOF' ? formatFCFA(currentPrice) : formatPrice(currentPrice, { showEquivalent: false })}
               </span>
               <span className="text-[10px] text-slate-500 font-semibold whitespace-nowrap">/ nuit</span>
             </div>
-            {originalPrice && (
+            {currency !== 'XOF' ? (
+              <span className="text-[9px] text-slate-400 font-medium block leading-tight">
+                ~{formatFCFA(currentPrice)}
+              </span>
+            ) : originalPrice ? (
               <span className="text-[10px] text-slate-400 line-through block leading-none">
                 {formatFCFA(originalPrice)}
               </span>
-            )}
+            ) : null}
           </div>
 
           {/* Action Buttons: Phone, WhatsApp, and Reserve */}

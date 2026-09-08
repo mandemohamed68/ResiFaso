@@ -133,6 +133,13 @@ export const AdminDashboard: React.FC<{ onBackToTraveler?: () => void }> = ({ on
         if (s.sappayPassword !== undefined) setSappayPassword(s.sappayPassword);
         if (s.refundMode !== undefined) setRefundMode(s.refundMode);
         if (s.withdrawalMode !== undefined) setWithdrawalMode(s.withdrawalMode);
+        if (s.conciergeEnabled !== undefined) setConciergeEnabled(s.conciergeEnabled);
+        if (s.autonomyFilterEnabled !== undefined) setAutonomyFilterEnabled(s.autonomyFilterEnabled);
+        if (s.comparatorEnabled !== undefined) setComparatorEnabled(s.comparatorEnabled);
+        if (s.currencySelectorEnabled !== undefined) setCurrencySelectorEnabled(s.currencySelectorEnabled);
+        if (s.invoiceQrCodeEnabled !== undefined) setInvoiceQrCodeEnabled(s.invoiceQrCodeEnabled);
+        if (s.gpsDirectionsEnabled !== undefined) setGpsDirectionsEnabled(s.gpsDirectionsEnabled);
+        if (s.utilityTransparencyEnabled !== undefined) setUtilityTransparencyEnabled(s.utilityTransparencyEnabled);
         
         if (s.announcements && s.announcements.length > 0) {
           setAnnouncements(s.announcements);
@@ -180,8 +187,8 @@ export const AdminDashboard: React.FC<{ onBackToTraveler?: () => void }> = ({ on
   const [brandNamePart2, setBrandNamePart2] = useState('Faso');
   const [brandSlogan, setBrandSlogan] = useState('La référence de la réservation meublée au Burkina Faso');
   const [activeTheme, setActiveTheme] = useState<'default' | 'christmas' | 'newyear' | 'valentines' | 'rainy' | 'harmattan' | 'ramadan' | 'burkina' | 'spring' | 'custom' | 'celebration'>('default');
-  const [primaryColor, setPrimaryColor] = useState('#10b981');
-  const [secondaryColor, setSecondaryColor] = useState('#ef4444');
+  const [primaryColor, setPrimaryColor] = useState('#EF2B2D');
+  const [secondaryColor, setSecondaryColor] = useState('#009E49');
   const [christmasLights, setChristmasLights] = useState(false);
   const [snowParticles, setSnowParticles] = useState(false);
   const [rainParticles, setRainParticles] = useState(false);
@@ -328,6 +335,15 @@ export const AdminDashboard: React.FC<{ onBackToTraveler?: () => void }> = ({ on
   const [maxBookingsWithoutId, setMaxBookingsWithoutId] = useState(3);
   const [clientServiceFeeEnabled, setClientServiceFeeEnabled] = useState(false);
   const [clientServiceFeePercentage, setClientServiceFeePercentage] = useState(5);
+
+  // Nouvelles fonctionnalités modulaires
+  const [conciergeEnabled, setConciergeEnabled] = useState(true);
+  const [autonomyFilterEnabled, setAutonomyFilterEnabled] = useState(true);
+  const [comparatorEnabled, setComparatorEnabled] = useState(true);
+  const [currencySelectorEnabled, setCurrencySelectorEnabled] = useState(true);
+  const [invoiceQrCodeEnabled, setInvoiceQrCodeEnabled] = useState(true);
+  const [gpsDirectionsEnabled, setGpsDirectionsEnabled] = useState(true);
+  const [utilityTransparencyEnabled, setUtilityTransparencyEnabled] = useState(true);
   
   // Status Editing for Booking
   const [editingBookingId, setEditingBookingId] = useState<string | null>(null);
@@ -1467,6 +1483,13 @@ export const AdminDashboard: React.FC<{ onBackToTraveler?: () => void }> = ({ on
       clientServiceFeePercentage: clientServiceFeePercentage,
       refundMode: refundMode,
       withdrawalMode: withdrawalMode,
+      conciergeEnabled: conciergeEnabled,
+      autonomyFilterEnabled: autonomyFilterEnabled,
+      comparatorEnabled: comparatorEnabled,
+      currencySelectorEnabled: currencySelectorEnabled,
+      invoiceQrCodeEnabled: invoiceQrCodeEnabled,
+      gpsDirectionsEnabled: gpsDirectionsEnabled,
+      utilityTransparencyEnabled: utilityTransparencyEnabled,
       announcement: {
         text: announcementText,
         type: announcementType,
@@ -5549,6 +5572,179 @@ export const AdminDashboard: React.FC<{ onBackToTraveler?: () => void }> = ({ on
                 )}
               </div>
 
+              {/* MODULES & FONCTIONNALITÉS NOUVELLES */}
+              <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm space-y-4">
+                <div className="border-b border-slate-100 pb-3">
+                  <h4 className="text-sm font-black text-slate-900 uppercase tracking-wider">
+                    Activation des Fonctionnalités
+                  </h4>
+                  <p className="text-xs text-slate-500 font-medium mt-0.5">
+                    Activez ou désactivez les fonctionnalités selon vos besoins de gestion.
+                  </p>
+                </div>
+
+                {/* 1. Conciergerie */}
+                <div className="flex items-center justify-between py-2 border-b border-slate-50">
+                  <div className="pr-4">
+                    <span className="text-xs font-bold text-slate-800 block">Conciergerie Privée</span>
+                    <span className="text-[11px] text-slate-500">Transferts aéroport, chef cuisinier, chauffeur, blanchisserie.</span>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setConciergeEnabled(!conciergeEnabled)}
+                    className={cn(
+                      "relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none",
+                      conciergeEnabled ? "bg-slate-900" : "bg-slate-200"
+                    )}
+                  >
+                    <span
+                      className={cn(
+                        "pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out",
+                        conciergeEnabled ? "translate-x-5" : "translate-x-0"
+                      )}
+                    />
+                  </button>
+                </div>
+
+                {/* 2. Filtre 100% Autonome */}
+                <div className="flex items-center justify-between py-2 border-b border-slate-50">
+                  <div className="pr-4">
+                    <span className="text-xs font-bold text-slate-800 block">Filtre & Badge 100% Autonome</span>
+                    <span className="text-[11px] text-slate-500">Mise en avant des logements avec groupe électrogène et réserve d'eau.</span>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setAutonomyFilterEnabled(!autonomyFilterEnabled)}
+                    className={cn(
+                      "relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none",
+                      autonomyFilterEnabled ? "bg-slate-900" : "bg-slate-200"
+                    )}
+                  >
+                    <span
+                      className={cn(
+                        "pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out",
+                        autonomyFilterEnabled ? "translate-x-5" : "translate-x-0"
+                      )}
+                    />
+                  </button>
+                </div>
+
+                {/* 3. Comparateur */}
+                <div className="flex items-center justify-between py-2 border-b border-slate-50">
+                  <div className="pr-4">
+                    <span className="text-xs font-bold text-slate-800 block">Comparateur de Résidences</span>
+                    <span className="text-[11px] text-slate-500">Comparaison côte à côte des prix, équipements et règles.</span>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setComparatorEnabled(!comparatorEnabled)}
+                    className={cn(
+                      "relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none",
+                      comparatorEnabled ? "bg-slate-900" : "bg-slate-200"
+                    )}
+                  >
+                    <span
+                      className={cn(
+                        "pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out",
+                        comparatorEnabled ? "translate-x-5" : "translate-x-0"
+                      )}
+                    />
+                  </button>
+                </div>
+
+                {/* 4. Multi-Devises */}
+                <div className="flex items-center justify-between py-2 border-b border-slate-50">
+                  <div className="pr-4">
+                    <span className="text-xs font-bold text-slate-800 block">Sélecteur Multi-Devises</span>
+                    <span className="text-[11px] text-slate-500">Affichage et conversion automatique en FCFA, EUR et USD.</span>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setCurrencySelectorEnabled(!currencySelectorEnabled)}
+                    className={cn(
+                      "relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none",
+                      currencySelectorEnabled ? "bg-slate-900" : "bg-slate-200"
+                    )}
+                  >
+                    <span
+                      className={cn(
+                        "pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out",
+                        currencySelectorEnabled ? "translate-x-5" : "translate-x-0"
+                      )}
+                    />
+                  </button>
+                </div>
+
+                {/* 5. QR Code Facture */}
+                <div className="flex items-center justify-between py-2 border-b border-slate-50">
+                  <div className="pr-4">
+                    <span className="text-xs font-bold text-slate-800 block">QR Code de Sécurité sur Facture</span>
+                    <span className="text-[11px] text-slate-500">Vérification numérique de validité sur les factures générées.</span>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setInvoiceQrCodeEnabled(!invoiceQrCodeEnabled)}
+                    className={cn(
+                      "relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none",
+                      invoiceQrCodeEnabled ? "bg-slate-900" : "bg-slate-200"
+                    )}
+                  >
+                    <span
+                      className={cn(
+                        "pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out",
+                        invoiceQrCodeEnabled ? "translate-x-5" : "translate-x-0"
+                      )}
+                    />
+                  </button>
+                </div>
+
+                {/* 6. Guidage GPS & Waze */}
+                <div className="flex items-center justify-between py-2 border-b border-slate-50">
+                  <div className="pr-4">
+                    <span className="text-xs font-bold text-slate-800 block">Itinéraires GPS & Waze</span>
+                    <span className="text-[11px] text-slate-500">Lancement d'un guidage direct 1-clic vers le logement.</span>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setGpsDirectionsEnabled(!gpsDirectionsEnabled)}
+                    className={cn(
+                      "relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none",
+                      gpsDirectionsEnabled ? "bg-slate-900" : "bg-slate-200"
+                    )}
+                  >
+                    <span
+                      className={cn(
+                        "pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out",
+                        gpsDirectionsEnabled ? "translate-x-5" : "translate-x-0"
+                      )}
+                    />
+                  </button>
+                </div>
+
+                {/* 7. Transparence des Charges */}
+                <div className="flex items-center justify-between py-2">
+                  <div className="pr-4">
+                    <span className="text-xs font-bold text-slate-800 block">Transparence des Charges</span>
+                    <span className="text-[11px] text-slate-500">Mention claire sur l'inclusion de l'eau et de l'électricité.</span>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setUtilityTransparencyEnabled(!utilityTransparencyEnabled)}
+                    className={cn(
+                      "relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none",
+                      utilityTransparencyEnabled ? "bg-slate-900" : "bg-slate-200"
+                    )}
+                  >
+                    <span
+                      className={cn(
+                        "pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out",
+                        utilityTransparencyEnabled ? "translate-x-5" : "translate-x-0"
+                      )}
+                    />
+                  </button>
+                </div>
+              </div>
+
               <button 
                 type="submit" 
                 id="btn-save-admin-platform-settings"
@@ -5613,8 +5809,8 @@ export const AdminDashboard: React.FC<{ onBackToTraveler?: () => void }> = ({ on
                       type="button"
                       onClick={() => {
                         setActiveTheme('default');
-                        setPrimaryColor('#10b981');
-                        setSecondaryColor('#ef4444');
+                        setPrimaryColor('#EF2B2D');
+                        setSecondaryColor('#009E49');
                         setChristmasLights(false);
                         setSnowParticles(false);
                         setRainParticles(false);
@@ -5627,12 +5823,12 @@ export const AdminDashboard: React.FC<{ onBackToTraveler?: () => void }> = ({ on
                       className={cn(
                         "p-4 rounded-2xl border text-left flex flex-col justify-between transition-all duration-200",
                         activeTheme === 'default' 
-                          ? "border-emerald-500 bg-emerald-50/50 shadow-sm" 
+                          ? "border-red-500 bg-red-50/50 shadow-sm" 
                           : "border-slate-200 hover:border-slate-350 bg-white"
                       )}
                     >
                       <span className="text-xs font-black text-slate-900">Standard Faso 🇧🇫</span>
-                      <span className="text-[10px] text-slate-500 font-medium mt-1">Vert Émeraude & Rouge. Chaleureux et officiel.</span>
+                      <span className="text-[10px] text-slate-500 font-medium mt-1">Rouge & Vert Faso (#EF2B2D & #009E49). Couleurs officielles du logo.</span>
                     </button>
 
                     <button

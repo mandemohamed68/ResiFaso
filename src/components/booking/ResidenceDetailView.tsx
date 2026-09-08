@@ -5,7 +5,8 @@ import {
   Droplets, Zap, ChevronRight, ChevronLeft, X, Maximize2, 
   Sparkles, Clock, AlertTriangle, Home, Bed, Bath, Users, 
   Tv, Wifi, Shield, Wind, Coffee, Car, Lock, Waves, 
-  CalendarDays, Info, Compass, ExternalLink, HelpCircle, CreditCard
+  CalendarDays, Info, Compass, ExternalLink, HelpCircle, CreditCard,
+  Scale, Navigation
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Residence } from '../../types';
@@ -16,6 +17,10 @@ import { formatFCFA } from '../../lib/utils';
 import { formatCurrency } from '../../utils/currency';
 import { cn } from '../../lib/utils';
 import { useAuth } from '../../contexts/AuthContext';
+import { useCurrency } from '../../contexts/CurrencyContext';
+import { useComparison } from '../../contexts/ComparisonContext';
+import { useConcierge } from '../../contexts/ConciergeContext';
+import { useGlobalSettings } from '../../hooks/useQueries';
 
 interface ResidenceDetailViewProps {
   residence: Residence;
@@ -62,6 +67,18 @@ export const ResidenceDetailView: React.FC<ResidenceDetailViewProps> = ({
   isDarkMode = false,
 }) => {
   const { user } = useAuth();
+  const { currency, formatPrice } = useCurrency();
+  const { toggleCompare, isInComparison } = useComparison();
+  const { openConcierge } = useConcierge();
+  const { data: gsData } = useGlobalSettings();
+
+  const conciergeEnabled = gsData?.conciergeEnabled !== false;
+  const comparatorEnabled = gsData?.comparatorEnabled !== false;
+  const gpsDirectionsEnabled = gsData?.gpsDirectionsEnabled !== false;
+  const utilityTransparencyEnabled = gsData?.utilityTransparencyEnabled !== false;
+
+  const isCompared = isInComparison(residence.id);
+
   const [activeImageIndex, setActiveImageIndex] = useState(0);
   const [isLightboxOpen, setIsLightboxOpen] = useState(false);
   const [isCopied, setIsCopied] = useState(false);
@@ -319,6 +336,24 @@ export const ResidenceDetailView: React.FC<ResidenceDetailViewProps> = ({
               </span>
             )}
           </button>
+
+          {/* Compare Toggle */}
+          {comparatorEnabled && (
+            <button 
+              type="button"
+              onClick={() => toggleCompare(residence)}
+              className={cn(
+                "flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-xs font-bold transition-all cursor-pointer shadow-2xs",
+                isCompared 
+                  ? "bg-slate-900 border-slate-900 text-white" 
+                  : "border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 hover:bg-slate-50"
+              )}
+              title={isCompared ? "Retirer du comparateur" : "Ajouter au comparateur de résidences"}
+            >
+              <Scale size={14} />
+              <span className="hidden sm:inline">{isCompared ? "Comparé ✓" : "Comparer"}</span>
+            </button>
+          )}
 
           {/* Favorite Toggle */}
           <button 
@@ -825,6 +860,120 @@ export const ResidenceDetailView: React.FC<ResidenceDetailViewProps> = ({
             </div>
           </div>
 
+          {/* Localisation, Accès Facile & Itinéraire GPS 1-Clic */}
+          {gpsDirectionsEnabled && (
+            <div className="p-5 sm:p-6 rounded-xl bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 space-y-4">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                <div>
+                  <h3 className="text-base font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                    <Navigation size={18} className="text-slate-700 dark:text-slate-300" />
+                    <span>Localisation & Itinéraire GPS</span>
+                  </h3>
+                  <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                    Guidage direct vers la résidence en 1 clic sur votre smartphone
+                  </p>
+                </div>
+
+                {/* Action Buttons: Google Maps & Waze */}
+                <div className="flex flex-wrap items-center gap-2">
+                  {(() => {
+                    const lat = residence.address?.coordinates?.lat || (residence as any).latitude || 12.3714;
+                    const lng = residence.address?.coordinates?.lng || (residence as any).longitude || -1.5197;
+                    const destQuery = `${lat},${lng}`;
+                    const gmapsUrl = `https://www.google.com/maps/dir/?api=1&destination=${destQuery}`;
+                    const wazeUrl = `https://waze.com/ul?ll=${lat},${lng}&navigate=yes`;
+
+                    return (
+                      <>
+                        <a
+                          href={gmapsUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-900 hover:bg-slate-800 text-white text-xs font-semibold transition-colors cursor-pointer"
+                        >
+                          <MapPin size={13} />
+                          <span>Google Maps</span>
+                          <ExternalLink size={11} className="opacity-70" />
+                        </a>
+
+                        <a
+                          href={wazeUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-700 hover:bg-slate-600 text-white text-xs font-semibold transition-colors cursor-pointer"
+                        >
+                          <Navigation size={13} />
+                          <span>Waze</span>
+                          <ExternalLink size={11} className="opacity-70" />
+                        </a>
+                      </>
+                    );
+                  })()}
+                </div>
+              </div>
+
+              {/* Landmarks & Local Taxi Guidance Box */}
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-2">
+                <div className="p-3 rounded-lg bg-white dark:bg-slate-800 border border-slate-200/80 dark:border-slate-700">
+                  <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Zone & Quartier</span>
+                  <span className="text-xs font-bold text-slate-900 dark:text-white mt-0.5 block truncate">
+                    {residence.address?.neighborhood || residence.neighborhood || 'Quartier résidentiel'}
+                  </span>
+                  <span className="text-[10px] text-slate-500">
+                    {residence.address?.city || residence.city || 'Ouagadougou'}
+                  </span>
+                </div>
+
+                <div className="p-3 rounded-lg bg-white dark:bg-slate-800 border border-slate-200/80 dark:border-slate-700">
+                  <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Accès Goudron</span>
+                  <span className="text-xs font-bold text-slate-800 dark:text-slate-200 mt-0.5 block">
+                    Voie bitumée à proximité
+                  </span>
+                  <span className="text-[10px] text-slate-500">
+                    Accessible facilement en berline ou taxi
+                  </span>
+                </div>
+
+                <div className="p-3 rounded-lg bg-white dark:bg-slate-800 border border-slate-200/80 dark:border-slate-700">
+                  <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Arrivée Chauffeur</span>
+                  <span className="text-xs font-bold text-slate-900 dark:text-white mt-0.5 block">
+                    Assistance à l'accueil
+                  </span>
+                  <span className="text-[10px] text-slate-500">
+                    L'hôte ou le gardien vous attend au portail
+                  </span>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Conciergerie Privée ResiFaso Banner */}
+          {conciergeEnabled && (
+            <div className="p-5 sm:p-6 rounded-xl bg-slate-900 text-white border border-slate-800 shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+              <div className="space-y-1.5 max-w-lg">
+                <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-slate-800 text-amber-300 text-[10px] font-bold uppercase tracking-wider">
+                  <Sparkles size={11} className="text-amber-400" />
+                  <span>Conciergerie Privée 24/7</span>
+                </div>
+                <h4 className="text-sm sm:text-base font-bold tracking-tight text-white flex items-center gap-1.5">
+                  <span>Services personnalisés durant votre séjour</span>
+                </h4>
+                <p className="text-xs text-slate-300 leading-relaxed">
+                  Transfert aéroport, chef cuisinier, pressing ou chauffeur privé sur demande.
+                </p>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => openConcierge(residence.title, residence.address?.city || residence.city)}
+                className="px-4 py-2.5 rounded-lg bg-white hover:bg-slate-100 text-slate-900 font-bold text-xs uppercase tracking-wider transition-colors cursor-pointer whitespace-nowrap shrink-0 flex items-center justify-center gap-2"
+              >
+                <Sparkles size={14} className="text-slate-900" />
+                <span>Demander un service</span>
+              </button>
+            </div>
+          )}
+
           {/* Reviews Section */}
           <div className="pt-6 border-t border-slate-100 dark:border-slate-800">
             <ReviewsSection residenceId={residence.id} />
@@ -867,22 +1016,34 @@ export const ResidenceDetailView: React.FC<ResidenceDetailViewProps> = ({
                     <div className="flex flex-col">
                       <div className="flex items-baseline gap-2">
                         <span className="text-3xl font-black text-red-600 tracking-tight">
-                          {formatFCFA(residence.promoPrice || residence.promo_price)}
+                          {formatPrice(residence.promoPrice || residence.promo_price)}
                         </span>
                         <span className="text-xs font-bold text-slate-400 line-through">
-                          {formatFCFA(residence.pricePerNight || residence.price_per_night)}
+                          {formatPrice(residence.pricePerNight || residence.price_per_night)}
                         </span>
                       </div>
+                      {currency !== 'XOF' && (
+                        <span className="text-[11px] font-bold text-slate-500 dark:text-slate-400">
+                          soit {formatFCFA(residence.promoPrice || residence.promo_price)}
+                        </span>
+                      )}
                       <span className="text-[10px] font-black text-red-600 bg-red-50 dark:bg-red-950/60 dark:text-red-400 px-2 py-0.5 rounded-md w-fit uppercase mt-1">
                         Offre Promo Spéciale
                       </span>
                     </div>
                   ) : (
-                    <div className="flex items-baseline gap-1">
-                      <span className="text-3xl font-black text-slate-900 dark:text-white tracking-tight">
-                        {formatFCFA(currentPricePerNight)}
-                      </span>
-                      <span className="text-xs font-semibold text-slate-500 dark:text-slate-400">/ nuit</span>
+                    <div className="flex flex-col">
+                      <div className="flex items-baseline gap-1">
+                        <span className="text-3xl font-black text-slate-900 dark:text-white tracking-tight">
+                          {formatPrice(currentPricePerNight)}
+                        </span>
+                        <span className="text-xs font-semibold text-slate-500 dark:text-slate-400">/ nuit</span>
+                      </div>
+                      {currency !== 'XOF' && (
+                        <span className="text-[11px] font-bold text-slate-500 dark:text-slate-400">
+                          soit {formatFCFA(currentPricePerNight)}
+                        </span>
+                      )}
                     </div>
                   )}
                 </div>

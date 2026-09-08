@@ -5,14 +5,16 @@ import { useToast } from '../../contexts/ToastContext';
 import { 
   Home, Search, Heart, User, LogOut, Shield, Briefcase, 
   LayoutDashboard, MessageSquare, Bell, ShieldAlert, CalendarCheck, Check, Sun, Moon,
-  Info, AlertTriangle, CheckCircle2, AlertCircle, Clock, HelpCircle
+  Info, AlertTriangle, CheckCircle2, AlertCircle, Clock, HelpCircle, Sparkles
 } from 'lucide-react';
 import { cn } from '../../lib/utils';
 import { UserRole } from '../../types';
 import { AuthModal } from './AuthModal';
 import { apiFetch } from '../../lib/api';
 import { requestNotificationPermission, showNotification } from '../../lib/notifications';
-import { useBrandingSettings } from '../../hooks/useQueries';
+import { useBrandingSettings, useGlobalSettings } from '../../hooks/useQueries';
+import { CurrencySelector } from '../layout/CurrencySelector';
+import { useConcierge } from '../../contexts/ConciergeContext';
 
 export const Navbar: React.FC<{ 
   onNavigate: (view: any) => void;
@@ -22,12 +24,17 @@ export const Navbar: React.FC<{
 }> = ({ onNavigate, isDarkMode, onToggleDarkMode, activeView }) => {
   const { user, profile, logOut } = useAuth();
   const { currentRole, setCurrentRole, canSwitch } = useRole();
+  const { openConcierge } = useConcierge();
   const { addToast } = useToast();
   const [isAuthOpen, setIsAuthOpen] = useState(false);
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
   const isSuperAdmin = profile?.email === 'mandemohamed68@gmail.com' || user?.email === 'mandemohamed68@gmail.com';
 
   const { data: branding } = useBrandingSettings();
+  const { data: gsData } = useGlobalSettings();
+  const conciergeEnabled = gsData?.conciergeEnabled !== false;
+  const currencySelectorEnabled = gsData?.currencySelectorEnabled !== false;
+
   const bName1 = branding?.brandNamePart1 || 'Resi';
   const bName2 = branding?.brandNamePart2 || 'Faso';
   const activeTheme = branding?.activeTheme || 'default';
@@ -186,7 +193,7 @@ export const Navbar: React.FC<{
             onClick={() => onNavigate('home')} 
             className="flex items-center gap-2 sm:gap-3 cursor-pointer group select-none relative min-w-0"
           >
-            <div className="w-10 h-10 sm:w-12 sm:h-12 md:w-14 md:h-14 flex-shrink-0 flex items-center justify-center overflow-hidden rounded-xl sm:rounded-2xl bg-white border border-slate-200 shadow-xs relative group-hover:scale-105 transition-transform duration-200">
+            <div className="w-12 h-12 sm:w-14 sm:h-14 md:w-16 md:h-16 flex-shrink-0 flex items-center justify-center overflow-hidden rounded-2xl bg-white dark:bg-slate-800 border border-slate-200/90 dark:border-slate-700 shadow-md shadow-slate-200/40 dark:shadow-none ring-2 ring-red-500/10 group-hover:ring-red-500/30 group-hover:scale-105 transition-all duration-300 relative p-1">
               {/* Christmas Santa Hat */}
               {isChristmas && (
                 <div className="absolute -top-1 -left-1 w-6 h-6 sm:w-8 sm:h-8 rotate-[-15deg] z-20 pointer-events-none drop-shadow-md select-none animate-bounce" style={{ animationDuration: '3s' }}>
@@ -241,25 +248,23 @@ export const Navbar: React.FC<{
               )}
 
               <img 
-                src="/logoresifaso_new.jpg" 
+                src="/LOGO%20RESIFASO.png" 
                 alt="ResiFaso logo" 
-                className="w-full h-full object-contain p-0.5" 
+                className="w-full h-full object-contain filter drop-shadow-xs" 
                 referrerPolicy="no-referrer"
-                onError={(e) => {
-                  const target = e.target as HTMLImageElement;
-                  target.src = "/logoresifasoORG.png";
-                }}
               />
             </div>
             <div className="flex flex-col min-w-0">
-              <span className="text-lg sm:text-xl md:text-2xl font-black tracking-tighter leading-none select-none truncate">
-                <span className="text-brand-primary">{bName1}</span><span className="text-brand-secondary">{bName2}</span>
+              <span className="text-xl sm:text-2xl md:text-[26px] font-black tracking-tight leading-none select-none truncate flex items-center">
+                <span className="text-[#EF2B2D]">{bName1}</span>
+                <span className="text-[#009E49]">{bName2}</span>
+                <span className="text-[#FCD116] ml-1 text-xs sm:text-sm animate-pulse" title="Burkina Faso">★</span>
               </span>
               <span className={cn(
-                "text-[7.5px] sm:text-[8.5px] md:text-[9px] font-bold uppercase tracking-[0.12em] mt-0.5 sm:mt-1 truncate max-w-[110px] sm:max-w-[180px] md:max-w-none",
+                "text-[8px] sm:text-[9px] md:text-[10px] font-extrabold uppercase tracking-[0.14em] mt-1 truncate max-w-[120px] sm:max-w-[190px] md:max-w-none",
                 isDarkMode ? "text-slate-400" : "text-slate-500"
               )}>
-                {branding?.brandSlogan || "Résidences du Burkina"}
+                {branding?.brandSlogan || "Résidences & Séjours au Burkina"}
               </span>
             </div>
           </div>
@@ -306,6 +311,21 @@ export const Navbar: React.FC<{
 
         {/* Mobile Actions */}
         <div className="flex md:hidden items-center gap-1.5 sm:gap-2 shrink-0">
+          {currencySelectorEnabled && <CurrencySelector compact />}
+          {conciergeEnabled && (
+            <button
+              onClick={() => openConcierge()}
+              className={cn(
+                "px-2 py-1.5 rounded-lg cursor-pointer transition-colors flex items-center gap-1 border text-xs font-medium shrink-0",
+                isDarkMode 
+                  ? "bg-slate-800 text-slate-200 border-slate-700 hover:bg-slate-750" 
+                  : "bg-slate-100 text-slate-700 border-slate-200 hover:bg-slate-200/80"
+              )}
+              title="Conciergerie"
+            >
+              <span>Conciergerie</span>
+            </button>
+          )}
           {!user && (
             <button 
               onClick={() => setIsAuthOpen(true)}
@@ -329,6 +349,25 @@ export const Navbar: React.FC<{
 
         {/* Desktop Nav */}
         <div className="hidden md:flex items-center gap-2">
+          {/* Currency Switcher */}
+          {currencySelectorEnabled && <CurrencySelector />}
+
+          {/* Conciergerie */}
+          {conciergeEnabled && (
+            <button 
+              onClick={() => openConcierge()}
+              className={cn(
+                "text-xs font-semibold uppercase tracking-wider transition-colors cursor-pointer px-2.5 py-1.5 rounded-lg border",
+                isDarkMode 
+                  ? "bg-slate-800/80 text-slate-200 border-slate-700 hover:bg-slate-750 hover:text-white" 
+                  : "bg-slate-50 text-slate-700 border-slate-200 hover:bg-slate-100 hover:text-slate-900"
+              )}
+              title="Services de conciergerie"
+            >
+              <span>Conciergerie</span>
+            </button>
+          )}
+
           {/* Desktop Theme Switcher */}
           <button
             onClick={onToggleDarkMode}

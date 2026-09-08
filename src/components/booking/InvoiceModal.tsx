@@ -9,7 +9,9 @@ import {
 import { Booking, Residence } from '../../types';
 import { generateInvoice } from '../../utils/invoice';
 import { useToast } from '../../contexts/ToastContext';
+import { useGlobalSettings } from '../../hooks/useQueries';
 import { cn } from '../../lib/utils';
+import QRCode from 'qrcode';
 
 const formatDateSafe = (dateStr?: string | null) => {
   if (!dateStr) return '-';
@@ -37,15 +39,37 @@ export const InvoiceModal: React.FC<InvoiceModalProps> = ({
   clientName 
 }) => {
   const { addToast } = useToast();
+  const { data: gsData } = useGlobalSettings();
+  const invoiceQrCodeEnabled = gsData?.invoiceQrCodeEnabled !== false;
+
   const invoiceRef = useRef<HTMLDivElement>(null);
   const [logoBase64, setLogoBase64] = useState<string>('');
+  const [qrCodeDataUrl, setQrCodeDataUrl] = useState<string>('');
   const [copied, setCopied] = useState(false);
+
+  useEffect(() => {
+    if (booking?.id && invoiceQrCodeEnabled) {
+      const payload = `https://resifaso.bf/verify?id=${encodeURIComponent(booking.id)}&ref=FAC-${String(booking.id).slice(0, 8).toUpperCase()}&total=${booking.totalPrice || 0}XOF`;
+      QRCode.toDataURL(payload, {
+        width: 300,
+        margin: 1,
+        color: {
+          dark: '#0f172a',
+          light: '#ffffff'
+        }
+      })
+        .then(url => setQrCodeDataUrl(url))
+        .catch(err => console.error("Error generating invoice QR Code:", err));
+    } else {
+      setQrCodeDataUrl('');
+    }
+  }, [booking?.id, booking?.totalPrice, invoiceQrCodeEnabled]);
 
   useEffect(() => {
     let active = true;
     const fetchFallback = async () => {
       try {
-        const response = await fetch('/logoresifasoORG.png');
+        const response = await fetch('/LOGO%20RESIFASO.png');
         if (!response.ok) throw new Error("Status " + response.status);
         const blob = await response.blob();
         const reader = new FileReader();
@@ -82,7 +106,7 @@ export const InvoiceModal: React.FC<InvoiceModalProps> = ({
         img.onerror = () => {
           fetchFallback();
         };
-        img.src = '/logoresifasoORG.png';
+        img.src = '/LOGO%20RESIFASO.png';
       } catch (error) {
         console.error("Failed to load logo", error);
       }
@@ -121,16 +145,16 @@ export const InvoiceModal: React.FC<InvoiceModalProps> = ({
   };
 
   const handleDownloadPDF = () => {
-    const doc = generateInvoice(booking, residence, clientName, logoBase64);
+    const doc = generateInvoice(booking, residence, clientName, logoBase64, qrCodeDataUrl);
     doc.save(`Recu_${booking.id}_ResiFaso.pdf`);
-    addToast("Téléchargement du reçu PDF lancé.", "info");
+    addToast("Téléchargement du reçu PDF avec QR Code de contrôle lancé.", "info");
   };
 
   const handlePrint = () => {
     try {
-      const doc = generateInvoice(booking, residence, clientName, logoBase64);
+      const doc = generateInvoice(booking, residence, clientName, logoBase64, qrCodeDataUrl);
       doc.save(`Recu_${booking.id}_ResiFaso_Impression.pdf`);
-      addToast("Le reçu a été préparé au format PDF prêt à imprimer.", "info");
+      addToast("Le reçu officiel avec QR Code a été préparé au format PDF.", "info");
     } catch (e) {
       console.error("Erreur lors de l'impression:", e);
       addToast("Une erreur s'est produite lors de la préparation de l'impression.", "error");
@@ -207,15 +231,18 @@ export const InvoiceModal: React.FC<InvoiceModalProps> = ({
                 <div className="flex flex-col sm:flex-row justify-between items-start pb-5 border-b border-slate-200 gap-4">
                   <div className="flex items-center gap-3">
                     <img 
-                      src="/logoresifasoORG.png" 
+                      src="/LOGO%20RESIFASO.png" 
                       alt="ResiFaso Logo" 
-                      className="h-10 w-auto object-contain" 
+                      className="h-14 sm:h-16 w-auto object-contain" 
                       referrerPolicy="no-referrer" 
                     />
                     <div>
                       <div className="flex items-center gap-2">
-                        <h1 className="text-xl font-bold text-slate-900 tracking-tight leading-none">ResiFaso</h1>
-                        <span className="px-1.5 py-0.5 bg-red-50 text-red-600 border border-red-100 text-[9px] font-bold uppercase rounded tracking-wider">
+                        <h1 className="text-2xl font-black tracking-tight leading-none">
+                          <span className="text-[#EF2B2D]">Resi</span><span className="text-[#009E49]">Faso</span>
+                          <span className="text-[#FCD116] ml-1 text-sm">★</span>
+                        </h1>
+                        <span className="px-2 py-0.5 bg-red-50 text-[#EF2B2D] border border-red-100 text-[9px] font-black uppercase rounded tracking-wider">
                           Officiel
                         </span>
                       </div>
@@ -349,16 +376,33 @@ export const InvoiceModal: React.FC<InvoiceModalProps> = ({
                   </div>
                 </div>
 
-                {/* Financial Summary */}
+                {/* Financial Summary & Verification QR Code */}
                 <div className="flex flex-col sm:flex-row justify-between items-start sm:items-end border-t border-slate-200 pt-5 gap-4 text-xs">
-                  <div className="space-y-1.5 max-w-xs text-slate-500 text-[11px]">
-                    <div className="flex items-center gap-1.5 font-bold text-slate-700">
-                      <ShieldCheck size={14} className="text-emerald-600 shrink-0" />
-                      <span>Garantie Réservation ResiFaso</span>
+                  <div className="flex items-start gap-3.5 max-w-sm">
+                    {qrCodeDataUrl && (
+                      <div className="p-1.5 bg-white rounded-xl border border-slate-200 shadow-xs shrink-0">
+                        <img 
+                          src={qrCodeDataUrl} 
+                          alt="QR Code de contrôle ResiFaso" 
+                          className="w-18 h-18 object-contain rounded-lg"
+                        />
+                        <span className="block text-[8px] font-black text-center text-slate-400 mt-1 uppercase tracking-wider">
+                          Scanner
+                        </span>
+                      </div>
+                    )}
+                    <div className="space-y-1 text-slate-500 text-[11px]">
+                      <div className="flex items-center gap-1.5 font-bold text-slate-800">
+                        <ShieldCheck size={14} className="text-emerald-600 shrink-0" />
+                        <span>Pass Contrôle & Sécurité</span>
+                      </div>
+                      <p className="leading-relaxed text-[10px] text-slate-500">
+                        Présentez ce QR Code ou votre facture à l'hôte / gardien pour validation immédiate de votre séjour.
+                      </p>
+                      <span className="inline-flex items-center gap-1 text-[9px] font-black text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-md">
+                        ✓ Reçu électronique infalsifiable
+                      </span>
                     </div>
-                    <p className="leading-relaxed text-[10px] text-slate-500">
-                      Tous les paiements en ligne sont sécurisés et certifiés par la passerelle de paiement Mobile Money au Burkina Faso.
-                    </p>
                   </div>
 
                   <div className="w-full sm:w-72 bg-slate-50 p-3.5 rounded-lg border border-slate-200 space-y-2">

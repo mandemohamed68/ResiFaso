@@ -177,8 +177,10 @@ export const ShowcasePage: React.FC<ShowcasePageProps> = ({ onNavigate, onOpenAu
             {/* Main Value Proposition */}
             <div className="lg:col-span-7 space-y-6 text-center lg:text-left">
               
-              <div className="inline-flex items-center gap-2 bg-slate-100 border border-slate-200 px-3.5 py-1.5 rounded-lg text-slate-800 text-xs font-bold tracking-wide">
-                <Building2 size={15} className="text-red-600" />
+              <div className="inline-flex items-center gap-2.5 bg-white border border-slate-200/90 shadow-2xs px-3.5 py-1.5 rounded-xl text-slate-800 text-xs font-bold tracking-wide">
+                <div className="w-6 h-6 rounded-md bg-white p-0.5 border border-slate-200 shadow-2xs flex items-center justify-center shrink-0">
+                  <img src="/LOGO%20RESIFASO.png" alt="ResiFaso" className="w-full h-full object-contain" />
+                </div>
                 <span>Service National de Réservation de Résidences Meublées</span>
               </div>
 
@@ -187,7 +189,7 @@ export const ShowcasePage: React.FC<ShowcasePageProps> = ({ onNavigate, onOpenAu
               </h1>
 
               <p className="text-slate-600 text-base sm:text-lg font-normal leading-relaxed max-w-2xl mx-auto lg:mx-0">
-                <span className="font-extrabold"><span className="text-brand-primary">{bName1}</span><span className="text-brand-secondary">{bName2}</span></span> simplifie la recherche et la réservation d'appartements, studios et villas meublés pour vos déplacements professionnels et séjours en famille à Ouagadougou, Bobo-Dioulasso, Koudougou et Banfora.
+                <span className="font-extrabold"><span className="text-[#EF2B2D]">{bName1}</span><span className="text-[#009E49]">{bName2}</span><span className="text-[#FCD116] ml-0.5">★</span></span> simplifie la recherche et la réservation d'appartements, studios et villas meublés pour vos déplacements professionnels et séjours en famille à Ouagadougou, Bobo-Dioulasso, Koudougou et Banfora.
               </p>
 
               {/* Action Buttons */}

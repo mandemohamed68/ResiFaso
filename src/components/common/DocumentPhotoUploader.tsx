@@ -441,6 +441,7 @@ export const DocumentPhotoUploader: React.FC<DocumentPhotoUploaderProps> = ({
                 ref={videoRef}
                 autoPlay
                 playsInline
+                muted
                 className={`w-full h-full max-h-[380px] object-contain ${facingMode === 'user' ? 'scale-x-[-1]' : ''}`}
               />
 

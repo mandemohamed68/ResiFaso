@@ -127,8 +127,8 @@ export async function showNotification(
       try {
         const options: any = {
           body,
-          icon: '/logoresifaso_new.jpg',
-          badge: '/favicon.png',
+          icon: '/LOGO%20RESIFASO.png',
+          badge: '/LOGO%20RESIFASO.png',
           vibrate: [100, 50, 100],
           data: payload || {}
         };

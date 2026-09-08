@@ -6,13 +6,13 @@ if (!fs.existsSync(assetsDir)) {
   fs.mkdirSync(assetsDir);
 }
 
-const logoPath = path.join(__dirname, 'public', 'logoresifasoORG.png');
+const logoPath = path.join(__dirname, 'public', 'LOGO RESIFASO.png');
 if (fs.existsSync(logoPath)) {
   fs.copyFileSync(logoPath, path.join(assetsDir, 'icon.png'));
   fs.copyFileSync(logoPath, path.join(assetsDir, 'splash.png'));
   console.log('Assets prepared for Capacitor in assets/ directory.');
 } else {
-  console.error('Error: public/logoresifaso.png not found');
+  console.error('Error: public/LOGO RESIFASO.png not found');
 }
 
 const googleServicesSrc = path.join(__dirname, 'google-services.json');

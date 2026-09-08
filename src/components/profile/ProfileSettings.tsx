@@ -12,7 +12,7 @@ import {
 import { motion, AnimatePresence } from 'motion/react';
 import { resizeImage } from '../../lib/imageResize';
 
-type Tab = 'personal' | 'id' | 'photo' | 'payment' | 'notifications' | 'security' | 'privacy' | 'server' | 'deactivate';
+type Tab = 'personal' | 'id' | 'photo' | 'payment' | 'notifications' | 'security' | 'privacy' | 'server' | 'deactivate' | 'delete-account';
 
 const PRESET_AVATARS = [
   "https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&q=80&w=200", // Woman
@@ -88,6 +88,12 @@ export const ProfileSettings: React.FC = () => {
   const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
+
+  // Account Deletion State (Apple App Store Guideline 5.1.1(v) Compliant)
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+  const [deleteConfirmPhrase, setDeleteConfirmPhrase] = useState('');
+  const [hasAcceptedDeleteRisk, setHasAcceptedDeleteRisk] = useState(false);
+  const [isDeletingAccount, setIsDeletingAccount] = useState(false);
 
   // Custom API Server configurations (Useful for APK debugging/production migration)
   const [customServerUrl, setCustomServerUrl] = useState(() => typeof window !== 'undefined' ? localStorage.getItem('custom_server_url') || '' : '');
@@ -702,59 +708,80 @@ export const ProfileSettings: React.FC = () => {
     }
   };
 
-  // Deactivate account
+  // Deactivate account (temporary pause)
   const handleDeactivate = async () => {
     if (!user) return;
-    const confirm = window.confirm("Souhaitez-vous vraiment désactiver votre compte ? Toutes vos annonces et profils seront momentanément invisibles de la plateforme.");
+    const confirm = window.confirm("Souhaitez-vous vraiment suspendre temporairement votre compte ? Toutes vos annonces et profils seront momentanément masqués jusqu'à votre prochaine connexion.");
     if (!confirm) return;
     setIsSaving(true);
     try {
-      
-      const res = await apiFetch('/api/users/profile', { method: 'PUT', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${localStorage.getItem('auth_token')}` }, body: JSON.stringify({
-        deactivated: true
-      }) });
+      const res = await apiFetch('/api/users/profile', { 
+        method: 'PUT', 
+        headers: { 
+          'Content-Type': 'application/json', 
+          'Authorization': `Bearer ${localStorage.getItem('auth_token')}` 
+        }, 
+        body: JSON.stringify({
+          deactivated: true
+        }) 
+      });
 
       if (!res.ok) {
-        const errorData = await res.json();
+        const errorData = await res.json().catch(() => ({}));
         throw new Error(errorData.error || 'Erreur lors de la désactivation');
       }
 
-      addToast("Votre compte a été désactivé. À bientôt sur ResiFaso !", "error");
+      addToast("Votre compte a été suspendu temporairement. Vous pourrez le réactiver à tout moment en vous reconnectant.", "info");
       await logOut();
-    } catch (e) {
+    } catch (e: any) {
       console.error(e);
-      addToast("Erreur de désactivation.", "error");
+      addToast(e.message || "Erreur de suspension.", "error");
     } finally {
       setIsSaving(false);
     }
   };
 
-  // Delete account completely
-  const handleDelete = async () => {
+  // Apple Guideline 5.1.1(v) - Complete Permanent Account Deletion
+  const handleConfirmAccountDeletion = async () => {
     if (!user) return;
-    const confirm = window.confirm("ATTENTION: Votre compte, ainsi que toutes vos annonces publiées et réservations, seront définitivement effacées. Cette opération est irréversible ! Voulez-vous continuer ?");
-    if (!confirm) return;
-    setIsSaving(true);
+    if (deleteConfirmPhrase.trim().toUpperCase() !== 'SUPPRIMER') {
+      addToast('Veuillez taper exactement "SUPPRIMER" pour valider la suppression définitive.', 'error');
+      return;
+    }
+    if (!hasAcceptedDeleteRisk) {
+      addToast('Veuillez cocher la case d\'acceptation des conséquences de la suppression.', 'error');
+      return;
+    }
+
+    setIsDeletingAccount(true);
     try {
-      
-      const res = await apiFetch('/api/users/profile', { method: 'PUT', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${localStorage.getItem('auth_token')}` }, body: JSON.stringify({
-        deactivated: true,
-        displayName: "[Utilisateur Supprimé]",
-        phoneNumber: ""
-      }) });
+      const res = await apiFetch('/api/users/me', { 
+        method: 'DELETE', 
+        headers: { 
+          'Authorization': `Bearer ${localStorage.getItem('auth_token')}` 
+        } 
+      });
 
       if (!res.ok) {
-        const errorData = await res.json();
-        throw new Error(errorData.error || 'Erreur lors de la suppression');
+        const errorData = await res.json().catch(() => ({}));
+        throw new Error(errorData.error || 'Erreur lors de la suppression définitive du compte');
       }
 
-      addToast("Vos données ont été supprimées. Déconnexion en cours.", "error");
+      // Complete purge of local storage and session data
+      try {
+        localStorage.removeItem('auth_token');
+        localStorage.removeItem('resifaso_cached_user');
+        sessionStorage.clear();
+      } catch (e) {}
+
+      setIsDeleteModalOpen(false);
+      addToast("Votre compte et toutes vos données personnelles ont été définitivement supprimés.", "success");
       await logOut();
-    } catch (e) {
-      console.error(e);
-      addToast("Erreur de suppression.", "error");
+    } catch (e: any) {
+      console.error("Account deletion failed:", e);
+      addToast(e.message || "Échec de la suppression définitive du compte.", "error");
     } finally {
-      setIsSaving(false);
+      setIsDeletingAccount(false);
     }
   };
 
@@ -764,7 +791,7 @@ export const ProfileSettings: React.FC = () => {
     { id: 'photo', label: 'Photo de profil', icon: Upload },
     { id: 'security', label: 'Sécurité du compte', icon: Key },
     { id: 'privacy', label: 'Confidentialité', icon: Eye },
-    { id: 'deactivate', label: 'Désactivation du compte', icon: AlertTriangle, danger: true },
+    { id: 'delete-account', label: 'Suppression du compte', icon: Trash2, danger: true },
   ];
 
   const getVerificationStatusBadge = () => {
@@ -2053,52 +2080,208 @@ export const ProfileSettings: React.FC = () => {
             </div>
           )}
 
-          {/* TAB 8: DEACTIVATE / DELETE */}
-          {activeTab === 'deactivate' && (
-            <div className="space-y-8 animate-in fade-in duration-300">
+          {/* TAB 8: ACCOUNT DELETION (Apple Guideline 5.1.1(v) Compliant) */}
+          {(activeTab === 'delete-account' || (activeTab as string) === 'deactivate') && (
+            <div className="space-y-8 animate-in fade-in duration-300" id="account-deletion-section">
               <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 border-b border-slate-100 pb-5">
                 <div className="space-y-1">
-                  <h2 className="text-xl font-bold text-red-600 leading-none">Désactiver ou supprimer le compte</h2>
-                  <p className="text-xs text-slate-400 font-medium">Prenez du recul ou supprimez définitivement vos données de l'écosystème ResiFaso.</p>
+                  <h2 className="text-xl font-bold text-red-600 leading-none">Suppression définitive du compte</h2>
+                  <p className="text-xs text-slate-400 font-medium">Gérez la suppression définitive de vos données personnelles conformément aux exigences Apple et au RGPD.</p>
                 </div>
               </div>
               
-              <div className="bg-red-50/20 border border-red-100/70 p-6 sm:p-8 rounded-3xl space-y-8">
+              {/* Main Deletion Section */}
+              <div className="bg-red-50/30 border-2 border-red-200/80 p-6 sm:p-8 rounded-3xl space-y-6 shadow-xs">
                 <div className="space-y-3">
-                  <h3 className="font-extrabold text-red-950 text-base flex items-center gap-2">
-                    <span className="p-1.5 bg-red-100 rounded-xl text-red-700">
-                      <EyeOff size={16} className="stroke-[2.2]" />
+                  <div className="flex items-center gap-3">
+                    <span className="p-2.5 bg-red-600 rounded-2xl text-white shadow-md shadow-red-200">
+                      <Trash2 size={20} className="stroke-[2.2]" />
                     </span>
-                    <span>Masquer temporairement le compte</span>
-                  </h3>
-                  <p className="text-xs text-red-800/80 font-medium leading-relaxed max-w-2xl">
-                    Si vous faites une pause, la désactivation suspendra votre profil et masquera de la recherche toutes vos annonces (si vous êtes propriétaire) jusqu'à votre prochaine reconnexion.
+                    <div>
+                      <h3 className="font-extrabold text-red-950 text-base">Suppression définitive du compte et des données</h3>
+                      <p className="text-xs text-red-800/80 font-medium">Cette action est immédiate, irréversible et supprime toutes vos données.</p>
+                    </div>
+                  </div>
+                  
+                  <p className="text-xs text-red-900 font-medium leading-relaxed max-w-2xl bg-white/80 border border-red-100 p-4 rounded-2xl">
+                    Lorsque vous initiez la suppression de votre compte, l'intégralité de vos informations est effacée de nos serveurs en temps réel :
                   </p>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
+                    <div className="p-3.5 bg-white border border-red-100 rounded-2xl flex items-start gap-2.5">
+                      <div className="p-1.5 bg-red-100 text-red-700 rounded-xl shrink-0 mt-0.5">
+                        <User size={14} />
+                      </div>
+                      <div className="text-xs">
+                        <span className="font-bold text-slate-900 block">Profil & Authentification</span>
+                        <span className="text-slate-500 text-[11px]">Nom, email, téléphone, mot de passe et photo de profil.</span>
+                      </div>
+                    </div>
+
+                    <div className="p-3.5 bg-white border border-red-100 rounded-2xl flex items-start gap-2.5">
+                      <div className="p-1.5 bg-red-100 text-red-700 rounded-xl shrink-0 mt-0.5">
+                        <Shield size={14} />
+                      </div>
+                      <div className="text-xs">
+                        <span className="font-bold text-slate-900 block">Documents d'identité</span>
+                        <span className="text-slate-500 text-[11px]">Scans et photos de CNIB ou passeport téléversés.</span>
+                      </div>
+                    </div>
+
+                    <div className="p-3.5 bg-white border border-red-100 rounded-2xl flex items-start gap-2.5">
+                      <div className="p-1.5 bg-red-100 text-red-700 rounded-xl shrink-0 mt-0.5">
+                        <FileText size={14} />
+                      </div>
+                      <div className="text-xs">
+                        <span className="font-bold text-slate-900 block">Annonces & Résidences</span>
+                        <span className="text-slate-500 text-[11px]">Toutes vos propriétés listées, photos et descriptions.</span>
+                      </div>
+                    </div>
+
+                    <div className="p-3.5 bg-white border border-red-100 rounded-2xl flex items-start gap-2.5">
+                      <div className="p-1.5 bg-red-100 text-red-700 rounded-xl shrink-0 mt-0.5">
+                        <CreditCard size={14} />
+                      </div>
+                      <div className="text-xs">
+                        <span className="font-bold text-slate-900 block">Réservations & Messages</span>
+                        <span className="text-slate-500 text-[11px]">Historiques de réservations, avis et conversations.</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="pt-2">
                   <button 
-                    onClick={handleDeactivate} 
-                    className="bg-white border border-red-200 text-red-700 px-5 py-3 rounded-2xl text-[10px] font-black uppercase tracking-widest hover:bg-red-50/50 hover:border-red-300 transition duration-300 cursor-pointer shadow-sm"
+                    id="btn-open-delete-account-modal"
+                    type="button"
+                    onClick={() => {
+                      setDeleteConfirmPhrase('');
+                      setHasAcceptedDeleteRisk(false);
+                      setIsDeleteModalOpen(true);
+                    }} 
+                    className="w-full sm:w-auto bg-[#EF2B2D] hover:bg-red-700 text-white px-6 py-3.5 rounded-2xl text-xs font-black uppercase tracking-wider flex items-center justify-center gap-2 transition duration-300 cursor-pointer shadow-lg shadow-red-600/20 active:scale-98"
                   >
-                    Désactiver temporairement
+                    <Trash2 size={16} />
+                    <span>Supprimer mon compte définitivement</span>
                   </button>
                 </div>
-                
-                <hr className="border-red-100/60" />
-                
-                <div className="space-y-3">
-                  <h3 className="font-extrabold text-red-950 text-base flex items-center gap-2">
-                    <span className="p-1.5 bg-red-500 rounded-xl text-white">
-                      <Trash2 size={16} className="stroke-[2.2]" />
+              </div>
+
+              {/* Alternative: Temporary Pause */}
+              <div className="bg-slate-50 border border-slate-200/80 p-6 sm:p-8 rounded-3xl space-y-4">
+                <div className="space-y-2">
+                  <h3 className="font-extrabold text-slate-900 text-base flex items-center gap-2">
+                    <span className="p-1.5 bg-slate-200 rounded-xl text-slate-700">
+                      <EyeOff size={16} className="stroke-[2.2]" />
                     </span>
-                    <span>Suppression définitive (Irréversible)</span>
+                    <span>Vous préférez faire une pause ? (Désactivation temporaire)</span>
                   </h3>
-                  <p className="text-xs text-red-800/80 font-medium leading-relaxed max-w-2xl">
-                    Si vous demandez la suppression, toutes vos données d'utilisateur, l'historique de vos paiements mobiles, ainsi que l'intégralité de vos séjours et appartements Burkina seront immédiatement et définitivement effacés de notre base de données.
+                  <p className="text-xs text-slate-600 font-medium leading-relaxed max-w-2xl">
+                    Si vous ne souhaitez pas effacer vos données mais désirez suspendre temporairement votre visibilité, vous pouvez désactiver votre compte. Vos annonces seront masquées jusqu'à votre prochaine reconnexion.
                   </p>
                   <button 
-                    onClick={handleDelete} 
-                    className="bg-[#EF2B2D] text-white px-5 py-3 rounded-2xl text-[10px] font-black uppercase tracking-widest hover:bg-red-700 transition duration-300 cursor-pointer shadow-md shadow-red-100"
+                    id="btn-temporary-deactivate-account"
+                    type="button"
+                    onClick={handleDeactivate} 
+                    className="bg-white border border-slate-300 text-slate-700 px-5 py-3 rounded-2xl text-[10px] font-black uppercase tracking-widest hover:bg-slate-100 transition duration-300 cursor-pointer shadow-xs"
                   >
-                    Supprimer mon compte définitivement
+                    Suspendre temporairement mon compte
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* DEDICATED ACCOUNT DELETION CONFIRMATION MODAL (Apple App Store Guideline 5.1.1(v)) */}
+          {isDeleteModalOpen && (
+            <div className="fixed inset-0 z-[2200] bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in duration-200" id="account-deletion-modal">
+              <div className="bg-white dark:bg-slate-900 border border-red-200 dark:border-red-900/50 rounded-3xl w-full max-w-lg overflow-hidden shadow-2xl relative flex flex-col max-h-[90vh]">
+                
+                {/* Modal Header */}
+                <div className="p-6 bg-red-600 text-white flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="p-2 bg-white/20 rounded-xl">
+                      <AlertTriangle size={24} className="text-white" />
+                    </div>
+                    <div>
+                      <h3 className="font-black text-base uppercase tracking-wider">Confirmer la suppression</h3>
+                      <p className="text-xs text-white/80 font-medium">Action irréversible</p>
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setIsDeleteModalOpen(false)}
+                    className="p-2 text-white/80 hover:text-white bg-white/10 hover:bg-white/20 rounded-xl transition cursor-pointer"
+                  >
+                    <X size={18} />
+                  </button>
+                </div>
+
+                {/* Modal Body */}
+                <div className="p-6 overflow-y-auto space-y-5 text-slate-800 dark:text-slate-200 text-xs leading-relaxed">
+                  <div className="p-4 bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-900/50 rounded-2xl text-red-900 dark:text-red-300 font-medium space-y-2">
+                    <p className="font-bold">Attention : Cette opération efface définitivement toutes vos données :</p>
+                    <ul className="list-disc pl-5 space-y-1 text-[11px]">
+                      <li>Votre profil d'utilisateur ({profile?.email || user?.email})</li>
+                      <li>Vos documents d'identité et pièces de vérification</li>
+                      <li>Vos annonces de résidences et photos associées</li>
+                      <li>Vos réservations et historiques de transactions</li>
+                    </ul>
+                  </div>
+
+                  {/* Confirmation Input */}
+                  <div className="space-y-2">
+                    <label className="block text-[11px] font-black uppercase tracking-wider text-slate-700 dark:text-slate-300">
+                      Pour confirmer, tapez le mot <span className="text-red-600 font-black underline">SUPPRIMER</span> ci-dessous :
+                    </label>
+                    <input
+                      id="delete-confirmation-input"
+                      type="text"
+                      value={deleteConfirmPhrase}
+                      onChange={(e) => setDeleteConfirmPhrase(e.target.value)}
+                      placeholder="SUPPRIMER"
+                      className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-800 border-2 border-slate-200 dark:border-slate-700 rounded-xl font-mono text-sm uppercase tracking-wider focus:border-red-500 focus:outline-none"
+                    />
+                  </div>
+
+                  {/* Checkbox Risk Acceptance */}
+                  <label className="flex items-start gap-3 p-3 bg-slate-50 dark:bg-slate-800/60 rounded-xl cursor-pointer select-none">
+                    <input
+                      id="delete-risk-checkbox"
+                      type="checkbox"
+                      checked={hasAcceptedDeleteRisk}
+                      onChange={(e) => setHasAcceptedDeleteRisk(e.target.checked)}
+                      className="mt-0.5 w-4 h-4 text-red-600 rounded border-slate-300 focus:ring-red-500 cursor-pointer"
+                    />
+                    <span className="text-[11px] text-slate-600 dark:text-slate-400 font-medium">
+                      Je confirme que je souhaite supprimer définitivement mon compte ResiFaso et renoncer à l'accès à mes annonces et réservations.
+                    </span>
+                  </label>
+                </div>
+
+                {/* Modal Footer */}
+                <div className="p-4 sm:p-6 bg-slate-50 dark:bg-slate-800/50 border-t border-slate-100 dark:border-slate-800 flex items-center justify-end gap-3">
+                  <button
+                    type="button"
+                    onClick={() => setIsDeleteModalOpen(false)}
+                    className="px-5 py-2.5 bg-slate-200 dark:bg-slate-700 hover:bg-slate-300 text-slate-800 dark:text-slate-200 rounded-xl text-xs font-bold transition cursor-pointer"
+                  >
+                    Annuler
+                  </button>
+
+                  <button
+                    id="btn-confirm-delete-account"
+                    type="button"
+                    disabled={isDeletingAccount || deleteConfirmPhrase.trim().toUpperCase() !== 'SUPPRIMER' || !hasAcceptedDeleteRisk}
+                    onClick={handleConfirmAccountDeletion}
+                    className="px-6 py-2.5 bg-red-600 hover:bg-red-700 text-white rounded-xl text-xs font-black uppercase tracking-wider flex items-center gap-2 transition cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed shadow-md shadow-red-600/20"
+                  >
+                    {isDeletingAccount ? (
+                      <RefreshCw size={14} className="animate-spin" />
+                    ) : (
+                      <Trash2 size={14} />
+                    )}
+                    <span>Confirmer la suppression</span>
                   </button>
                 </div>
               </div>
