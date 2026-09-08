@@ -454,7 +454,8 @@ function AppContent() {
 
     if (typeof window !== 'undefined') {
       let targetPath = '/';
-      if (v === 'tos') targetPath = '/Conditions_Generales';
+      if (v === 'showcase') targetPath = '/presentation';
+      else if (v === 'tos') targetPath = '/Conditions_Generales';
       else if (v === 'privacy') targetPath = '/Politique_de_Confidentialite';
       else if (v === 'faq') targetPath = '/faq';
       else if (v === 'contact') targetPath = '/contact';

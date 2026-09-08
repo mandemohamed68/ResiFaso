@@ -27,28 +27,28 @@ export const ShowcasePage: React.FC<ShowcasePageProps> = ({ onNavigate, onOpenAu
       name: "Ouagadougou",
       tagline: "Capitale politique & Centre des affaires",
       districts: ["Ouaga 2000", "Patte d'Oie", "Koulouba", "Zogona", "Dassasgho", "Wayalghin"],
-      image: "https://images.unsplash.com/photo-1542314831-068cd1dbfeeb?auto=format&fit=crop&w=800&q=80",
+      image: "/src/assets/images/ouagadougou_city_1788876678363.jpg",
       residenceCount: "120+ résidences meublées"
     },
     {
       name: "Bobo-Dioulasso",
       tagline: "Capitale culturelle & économique",
       districts: ["Sya", "Accart-Ville", "Sarfalao", "Koko", "Colma"],
-      image: "https://images.unsplash.com/photo-1566073771259-6a8506099945?auto=format&fit=crop&w=800&q=80",
+      image: "/src/assets/images/bobo_dioulasso_1788876693516.jpg",
       residenceCount: "45+ résidences meublées"
     },
     {
       name: "Koudougou",
       tagline: "Centre universitaire & économique de l'Ouest",
       districts: ["Secteur 1", "Secteur 3", "Palogo"],
-      image: "https://images.unsplash.com/photo-1582719478250-c89cae4dc85b?auto=format&fit=crop&w=800&q=80",
+      image: "/src/assets/images/koudougou_city_1788876707852.jpg",
       residenceCount: "18+ résidences meublées"
     },
     {
       name: "Banfora",
       tagline: "Cité touristique de la région des Cascades",
       districts: ["Secteur 2", "Secteur 5"],
-      image: "https://images.unsplash.com/photo-1571896349842-33c89424de2d?auto=format&fit=crop&w=800&q=80",
+      image: "/src/assets/images/banfora_cascades_1788876721680.jpg",
       residenceCount: "15+ résidences meublées"
     }
   ];
@@ -67,7 +67,7 @@ export const ShowcasePage: React.FC<ShowcasePageProps> = ({ onNavigate, onOpenAu
     {
       icon: CreditCard,
       title: "Paiement Sécurisé Mobile Money",
-      description: "Règlement des acomptes de réservation via la passerelle certifiée SapPay (Orange Money, Moov Money, Telecel Cash, Coris Money)."
+      description: "Règlement des acomptes de réservation via la passerelle certifiée SapPay (Orange Money, Moov Money, Telecel Money, Coris Money)."
     },
     {
       icon: MessageSquare,
@@ -126,7 +126,7 @@ export const ShowcasePage: React.FC<ShowcasePageProps> = ({ onNavigate, onOpenAu
     },
     {
       q: "Quels sont les modes de paiement acceptés ?",
-      a: "Toutes les transactions financières s'effectuent par Mobile Money via le processeur SapPay. Sont acceptés : Orange Money (*144#), Moov Money / Flooz (*160#), Telecel Cash et Coris Money."
+      a: "Toutes les transactions financières s'effectuent exclusivement par Mobile Money via la passerelle certifiée SapPay. Sont acceptés : Orange Money, Moov Money, Telecel Money et Coris Money."
     },
     {
       q: "Comment sont régies les charges d'électricité (Cash Power) et d'eau (ONEA) ?",
@@ -181,7 +181,7 @@ export const ShowcasePage: React.FC<ShowcasePageProps> = ({ onNavigate, onOpenAu
                 <div className="w-6 h-6 rounded-md bg-white p-0.5 border border-slate-200 shadow-2xs flex items-center justify-center shrink-0">
                   <img src="/LOGO%20RESIFASO.png" alt="ResiFaso" className="w-full h-full object-contain" />
                 </div>
-                <span>Service National de Réservation de Résidences Meublées</span>
+                <span>Plateforme de Réservation de Résidences Meublées</span>
               </div>
 
               <h1 className="text-3xl sm:text-5xl lg:text-5xl font-black text-slate-900 tracking-tight leading-[1.15]">
@@ -218,19 +218,19 @@ export const ShowcasePage: React.FC<ShowcasePageProps> = ({ onNavigate, onOpenAu
                 </p>
                 <div className="flex flex-wrap items-center justify-center lg:justify-start gap-2 text-xs font-bold text-slate-800">
                   <span className="bg-white border border-slate-200 px-3 py-1.5 rounded-lg shadow-2xs flex items-center gap-1.5">
-                    <span className="w-2 h-2 rounded-full bg-orange-500"></span>
-                    Orange Money (*144#)
+                    <span className="w-2 h-2 rounded-full bg-[#FF6600]"></span>
+                    Orange Money
                   </span>
                   <span className="bg-white border border-slate-200 px-3 py-1.5 rounded-lg shadow-2xs flex items-center gap-1.5">
-                    <span className="w-2 h-2 rounded-full bg-blue-600"></span>
-                    Moov Money / Flooz (*160#)
+                    <span className="w-2 h-2 rounded-full bg-[#0055A5]"></span>
+                    Moov Money
                   </span>
                   <span className="bg-white border border-slate-200 px-3 py-1.5 rounded-lg shadow-2xs flex items-center gap-1.5">
-                    <span className="w-2 h-2 rounded-full bg-purple-600"></span>
-                    Telecel Cash
+                    <span className="w-2 h-2 rounded-full bg-[#E20074]"></span>
+                    Telecel Money
                   </span>
                   <span className="bg-white border border-slate-200 px-3 py-1.5 rounded-lg shadow-2xs flex items-center gap-1.5">
-                    <span className="w-2 h-2 rounded-full bg-emerald-600"></span>
+                    <span className="w-2 h-2 rounded-full bg-[#008751]"></span>
                     Coris Money
                   </span>
                 </div>

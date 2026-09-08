@@ -388,7 +388,7 @@ export const LegalPage: React.FC<LegalPageProps> = ({ type: initialType = 'tos' 
 
                   <div className="text-xs text-slate-600 space-y-2 leading-relaxed">
                     <p>
-                      Les paiements d'acomptes s'effectuent via les services Mobile Money partenaires (Orange Money, Moov Money, Telecel Cash, Coris Money). Le paiement sécurise la réservation et bloque les dates sélectionnées.
+                      Les paiements d'acomptes s'effectuent via les services Mobile Money partenaires (Orange Money, Moov Money, Telecel Money, Coris Money). Le paiement sécurise la réservation et bloque les dates sélectionnées.
                     </p>
                   </div>
                 </div>
