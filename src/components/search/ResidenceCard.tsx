@@ -118,6 +118,17 @@ export const ResidenceCard: React.FC<Props> = ({
   const hasWater = am.some(a => a.includes('forage') || a.includes('citerne') || a.includes('surpresseur') || a.includes('eau'));
   const is100Autonomous = hasPower && hasWater;
 
+  const formatTypeName = (rawType?: string) => {
+    if (!rawType) return 'Résidence';
+    const t = rawType.toLowerCase();
+    if (t.includes('appartement')) return 'Appartement';
+    if (t.includes('villa')) return 'Villa';
+    if (t.includes('chambre')) return 'Chambre';
+    if (t.includes('studio')) return 'Studio';
+    if (t.includes('duplex')) return 'Duplex';
+    return rawType;
+  };
+
   return (
     <motion.div 
       whileHover={{ y: -4 }}
@@ -141,44 +152,34 @@ export const ResidenceCard: React.FC<Props> = ({
           }}
         />
 
-        {/* Top Badges (Contained and wrapped to prevent overlap with heart button) */}
-        <div className="absolute top-3 left-3 flex flex-wrap items-center gap-1.5 z-10 pointer-events-none max-w-[calc(100%-54px)]">
-          <span className="bg-slate-900/85 backdrop-blur-md text-white text-[10px] font-bold px-2 py-0.5 rounded-md uppercase tracking-wider shadow-sm truncate">
-            {residence.type || 'Résidence'}
+        {/* Top-Left Badges (Strict single-line or clean inline layout that stops before action buttons) */}
+        <div className="absolute top-2.5 left-2.5 flex items-center gap-1.5 z-10 pointer-events-none max-w-[calc(100%-86px)]">
+          <span className="bg-slate-900/85 backdrop-blur-md text-white text-[10px] font-bold px-2 py-0.5 rounded-md uppercase tracking-wide shadow-xs shrink truncate">
+            {formatTypeName(residence.type)}
           </span>
 
+          {!!discount && (
+            <span className="bg-emerald-600/90 backdrop-blur-md text-white text-[10px] font-bold px-1.5 py-0.5 rounded-md shadow-xs shrink-0 whitespace-nowrap">
+              -{discount}%
+            </span>
+          )}
+
           {!!residence.recommended && (
-            <span className="bg-red-600 text-yellow-300 text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded-md flex items-center gap-1 shadow-sm border border-red-500/50 shrink-0">
+            <span className="bg-red-600 text-yellow-300 text-[10px] font-black uppercase px-1.5 py-0.5 rounded-md shadow-xs shrink-0 border border-red-500/40 whitespace-nowrap">
               ★ Recommandé
             </span>
           )}
 
           {!!residence.promoted && !residence.recommended && (
-            <span className="bg-red-600/90 backdrop-blur-md text-white text-[10px] font-bold px-2 py-0.5 rounded-md flex items-center gap-1 shadow-sm shrink-0">
-              <Sparkles size={11} className="text-amber-300" />
-              Coup de cœur
-            </span>
-          )}
-
-          {!!discount && (
-            <span className="bg-emerald-600/90 backdrop-blur-md text-white text-[10px] font-bold px-2 py-0.5 rounded-md shadow-sm shrink-0">
-              -{discount}% Séjour
-            </span>
-          )}
-
-          {is100Autonomous && autonomyFilterEnabled && (
-            <span 
-              className="bg-slate-900/80 backdrop-blur-md text-white text-[9px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-md flex items-center gap-1 shadow-xs shrink-0 border border-slate-700"
-              title="Groupe électrogène/Solaire & Forage garantis (zéro coupure)"
-            >
-              <Zap size={10} className="text-amber-400 fill-amber-400" />
-              <span>Autonome</span>
+            <span className="bg-amber-600/90 backdrop-blur-md text-white text-[10px] font-bold px-1.5 py-0.5 rounded-md flex items-center gap-0.5 shadow-xs shrink-0 whitespace-nowrap">
+              <Sparkles size={10} className="text-amber-200" />
+              <span>Top</span>
             </span>
           )}
         </div>
 
         {/* Top Right Action Buttons: Compare & Favorite */}
-        <div className="absolute top-3 right-3 flex items-center gap-1.5 z-20">
+        <div className="absolute top-2.5 right-2.5 flex items-center gap-1.5 z-20">
           {comparatorEnabled && (
             <button 
               type="button"
@@ -188,41 +189,54 @@ export const ResidenceCard: React.FC<Props> = ({
                 toggleCompare(residence);
               }}
               className={cn(
-                "p-2 rounded-lg backdrop-blur-md shadow-xs transition-all duration-200 cursor-pointer active:scale-90 flex items-center justify-center",
+                "p-1.5 rounded-lg backdrop-blur-md shadow-xs transition-all duration-200 cursor-pointer active:scale-90 flex items-center justify-center",
                 isCompared 
                   ? "bg-slate-900 text-white ring-1 ring-slate-700" 
                   : "bg-white/90 hover:bg-white text-slate-600 hover:text-slate-900"
               )}
               title={isCompared ? "Retirer du comparateur" : "Comparer avec d'autres résidences"}
             >
-              {isCompared ? <Check size={14} className="stroke-[3]" /> : <Scale size={14} />}
+              {isCompared ? <Check size={13} className="stroke-[3]" /> : <Scale size={13} />}
             </button>
           )}
 
           <button 
             type="button"
             onClick={handleWishlist}
-            className="p-2 bg-white/90 hover:bg-white backdrop-blur-md rounded-lg text-slate-500 hover:text-red-500 shadow-xs transition-all duration-200 cursor-pointer active:scale-90"
+            className="p-1.5 bg-white/90 hover:bg-white backdrop-blur-md rounded-lg text-slate-500 hover:text-red-500 shadow-xs transition-all duration-200 cursor-pointer active:scale-90 flex items-center justify-center"
             title={isWishlist ? "Retirer des favoris" : "Ajouter aux favoris"}
           >
             <Heart 
-              size={16} 
+              size={15} 
               fill={isWishlist ? "currentColor" : "none"} 
               className={cn("transition-colors", isWishlist ? "text-red-500" : "")} 
             />
           </button>
         </div>
 
-        {/* Bottom Availability Badge */}
-        <div className="absolute bottom-3 left-3 z-10 pointer-events-none">
+        {/* Bottom Left: Availability Indicator */}
+        <div className="absolute bottom-2.5 left-2.5 z-10 pointer-events-none">
           <span className={cn(
-            "inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md backdrop-blur-md text-white text-[10px] font-bold shadow-sm",
+            "inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md backdrop-blur-md text-white text-[10px] font-bold shadow-xs",
             isTodayAvailable ? "bg-slate-900/85" : "bg-red-950/85"
           )}>
             <span className={cn("w-1.5 h-1.5 rounded-full", isTodayAvailable ? "bg-emerald-400 animate-pulse" : "bg-red-400")} />
-            <span>{isTodayAvailable ? 'Disponible aujourd\'hui' : 'Occupé ce jour'}</span>
+            <span>{isTodayAvailable ? 'Disponible' : 'Occupé'}</span>
           </span>
         </div>
+
+        {/* Bottom Right: Autonomy Indicator (if guaranteed) */}
+        {is100Autonomous && autonomyFilterEnabled && (
+          <div className="absolute bottom-2.5 right-2.5 z-10 pointer-events-none">
+            <span 
+              className="bg-slate-900/85 backdrop-blur-md text-white text-[9px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-md flex items-center gap-1 shadow-xs border border-slate-700/60"
+              title="Groupe électrogène/Solaire & Forage garantis"
+            >
+              <Zap size={10} className="text-amber-400 fill-amber-400" />
+              <span>Autonome</span>
+            </span>
+          </div>
+        )}
       </div>
 
       {/* Card Body */}
