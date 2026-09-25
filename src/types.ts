@@ -110,6 +110,8 @@ export interface Residence {
   street?: string;
   lat?: number;
   lng?: number;
+  latitude?: number;
+  longitude?: number;
 }
 
 export type PaymentStatus = "pending" | "advance_paid" | "fully_paid" | "failed" | "paid";

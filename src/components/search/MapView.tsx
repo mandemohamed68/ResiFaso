@@ -1,10 +1,12 @@
-import React, { useMemo } from 'react';
-import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet';
+import React, { useMemo, useEffect } from 'react';
+import { MapContainer, TileLayer, Marker, Popup, useMap } from 'react-leaflet';
 import { Residence } from '../../types';
 import L from 'leaflet';
+import 'leaflet/dist/leaflet.css';
 import { formatFCFA } from '../../lib/utils';
 import { useCurrency } from '../../contexts/CurrencyContext';
-import { MapPin, Star, Phone, MessageSquare } from 'lucide-react';
+import { MapPin } from 'lucide-react';
+import { resolveResidenceCoordinates } from '../../utils/geo';
 
 interface Props {
   residences: Residence[];
@@ -15,67 +17,6 @@ const MapContainerAny = MapContainer as any;
 const TileLayerAny = TileLayer as any;
 const MarkerComp = Marker as any;
 const PopupComp = Popup as any;
-
-// Coordinate lookup for Burkina cities & neighborhoods
-const CITY_COORDS: Record<string, [number, number]> = {
-  'ouagadougou': [12.3714, -1.5197],
-  'ouaga': [12.3714, -1.5197],
-  'bobo-dioulasso': [11.1772, -4.2979],
-  'bobo': [11.1772, -4.2979],
-  'koudougou': [12.2500, -2.3667],
-  'banfora': [10.6333, -4.7500],
-  'ouahigouya': [13.5833, -2.4167],
-};
-
-const NEIGHBORHOOD_OFFSETS: Record<string, [number, number]> = {
-  'ouaga-2000': [-0.063, 0.015],
-  'ouaga 2000': [-0.063, 0.015],
-  'bonheur ville': [-0.045, -0.035],
-  'bonheur-ville': [-0.045, -0.035],
-  'dassasgho': [0.009, 0.035],
-  'koulouba': [-0.003, -0.002],
-  'patte-doie': [-0.036, -0.010],
-  'patte d\'oie': [-0.036, -0.010],
-  'gounghin': [-0.016, -0.035],
-  'somgande': [0.038, 0.029],
-  'tampouy': [0.045, -0.040],
-  'zogona': [0.002, 0.020],
-  'saaba': [-0.010, 0.070],
-  'karpala': [-0.048, 0.042],
-  'pissy': [-0.025, -0.055],
-};
-
-// Simple string hash to deterministic pseudo-coords if missing
-function getDeterministicCoords(id: string, cityStr: string = '', neighborhoodStr: string = ''): [number, number] {
-  const cityLower = (cityStr || '').toLowerCase();
-  const neighLower = (neighborhoodStr || '').toLowerCase();
-
-  let base: [number, number] = [12.3714, -1.5197]; // Ouaga default
-  for (const [key, coords] of Object.entries(CITY_COORDS)) {
-    if (cityLower.includes(key)) {
-      base = coords;
-      break;
-    }
-  }
-
-  // Check neighborhood offset
-  for (const [key, offset] of Object.entries(NEIGHBORHOOD_OFFSETS)) {
-    if (neighLower.includes(key)) {
-      return [base[0] + offset[0], base[1] + offset[1]];
-    }
-  }
-
-  // Hash ID to scatter evenly around city base
-  let hash = 0;
-  for (let i = 0; i < id.length; i++) {
-    hash = (hash << 5) - hash + id.charCodeAt(i);
-    hash |= 0;
-  }
-  const latOffset = ((Math.abs(hash) % 100) - 50) / 1200; // ~ +-0.04 deg
-  const lngOffset = ((Math.abs(hash >> 3) % 100) - 50) / 1200;
-
-  return [base[0] + latOffset, base[1] + lngOffset];
-}
 
 // Custom HTML Price Tag Icon for Leaflet
 function createPriceIcon(priceLabel: string, isPromoted?: boolean) {
@@ -110,47 +51,79 @@ function createPriceIcon(priceLabel: string, isPromoted?: boolean) {
   });
 }
 
+// Component to handle auto-resizing Leaflet viewport upon tab switch / animation
+function MapResizer() {
+  const map = useMap();
+  useEffect(() => {
+    const timers = [
+      setTimeout(() => map.invalidateSize(), 50),
+      setTimeout(() => map.invalidateSize(), 200),
+      setTimeout(() => map.invalidateSize(), 500),
+      setTimeout(() => map.invalidateSize(), 1000)
+    ];
+
+    const handleResize = () => {
+      map.invalidateSize();
+    };
+
+    window.addEventListener('resize', handleResize);
+    return () => {
+      timers.forEach(clearTimeout);
+      window.removeEventListener('resize', handleResize);
+    };
+  }, [map]);
+  return null;
+}
+
+// Component to adjust bounds when residences list changes
+function MapBoundsUpdater({ residences }: { residences: Array<{ resolvedLat: number; resolvedLng: number }> }) {
+  const map = useMap();
+  useEffect(() => {
+    if (residences && residences.length > 0) {
+      const validPoints = residences
+        .filter(r => r.resolvedLat && r.resolvedLng && !isNaN(r.resolvedLat) && !isNaN(r.resolvedLng))
+        .map(r => [r.resolvedLat, r.resolvedLng] as [number, number]);
+
+      if (validPoints.length > 1) {
+        const bounds = L.latLngBounds(validPoints);
+        map.fitBounds(bounds, { padding: [40, 40], maxZoom: 15 });
+      } else if (validPoints.length === 1) {
+        map.setView(validPoints[0], 14);
+      }
+    }
+  }, [residences, map]);
+  return null;
+}
+
 export const MapView: React.FC<Props> = ({ residences, onResidenceClick }) => {
-  const center: [number, number] = [12.3714, -1.5197]; // Center of Ouagadougou
+  const defaultCenter: [number, number] = [12.3714, -1.5197]; // Center of Ouagadougou
   const { currency, formatPrice } = useCurrency();
 
   const validResidencesWithCoords = useMemo(() => {
     return residences.map(res => {
-      let lat = res.address?.coordinates?.lat || res.lat;
-      let lng = res.address?.coordinates?.lng || res.lng;
-
-      if (typeof lat === 'string') lat = parseFloat(lat);
-      if (typeof lng === 'string') lng = parseFloat(lng);
-
-      if (!lat || !lng || isNaN(lat) || isNaN(lng)) {
-        const [fallbackLat, fallbackLng] = getDeterministicCoords(
-          res.id,
-          res.address?.city || res.city,
-          res.address?.neighborhood || res.neighborhood
-        );
-        lat = fallbackLat;
-        lng = fallbackLng;
-      }
-
+      const coords = resolveResidenceCoordinates(res);
       return {
         ...res,
-        resolvedLat: lat,
-        resolvedLng: lng
+        resolvedLat: coords.lat,
+        resolvedLng: coords.lng
       };
     });
   }, [residences]);
 
   return (
-    <div className="h-[600px] sm:h-[680px] rounded-2xl overflow-hidden border border-slate-200/80 shadow-md relative z-0">
+    <div className="h-[600px] sm:h-[680px] rounded-2xl overflow-hidden border border-slate-200/80 dark:border-slate-800 shadow-md relative z-0">
       <MapContainerAny 
-        center={center} 
+        center={defaultCenter} 
         zoom={13} 
         style={{ height: '100%', width: '100%' }}
         scrollWheelZoom={true}
       >
+        <MapResizer />
+        <MapBoundsUpdater residences={validResidencesWithCoords} />
+
         <TileLayerAny
-          attribution='Tiles &copy; Esri &mdash; OpenStreetMap contributors'
-          url="https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}"
+          attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>'
+          url="https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png"
         />
 
         {validResidencesWithCoords.map((res) => {
@@ -210,4 +183,3 @@ export const MapView: React.FC<Props> = ({ residences, onResidenceClick }) => {
     </div>
   );
 };
-

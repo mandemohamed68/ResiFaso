@@ -54,6 +54,7 @@ import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import { BookingVerificationSection } from './BookingVerificationSection';
 import { RoleGuide } from '../common/RoleGuide';
+import { getCoordinatesForLocation, resolveResidenceCoordinates } from '../../utils/geo';
 
 
 const formatPaymentStatus = (status?: string) => {
@@ -2283,9 +2284,8 @@ export const OwnerDashboard: React.FC<{ isTestMode?: boolean; onBackToTraveler?:
     setOwnerPhone(res.ownerPhone || (res as any).owner_phone || profile?.phoneNumber || '');
     setImages(res.images || []);
     setAmenities(res.amenities || []);
-    if (res.address?.coordinates || (res.lat && res.lng)) {
-      setCoordinates(res.address?.coordinates || { lat: res.lat, lng: res.lng });
-    }
+    const resolvedCoords = resolveResidenceCoordinates(res);
+    setCoordinates(resolvedCoords);
     setAvailabilityStatus(res.availabilityStatus || 'available');
     setUtilitiesIncluded(res.utilitiesIncluded || { water: false, electricity: false });
     setPricingTiers(res.pricingTiers || []);
@@ -2388,6 +2388,10 @@ export const OwnerDashboard: React.FC<{ isTestMode?: boolean; onBackToTraveler?:
         street: street || 'Secteur non précisé',
         coordinates: coordinates
       },
+      lat: coordinates.lat,
+      lng: coordinates.lng,
+      latitude: coordinates.lat,
+      longitude: coordinates.lng,
       amenities,
       images: finalImages,
       capacity: Number(capacity),
@@ -3975,6 +3979,9 @@ export const OwnerDashboard: React.FC<{ isTestMode?: boolean; onBackToTraveler?:
                           onChange={(val) => {
                             setSelectedCityId(val);
                             setSelectedNeighborhoodId('');
+                            const cityName = allLocations.find(c => c.id === val)?.name || val;
+                            const newCoords = getCoordinatesForLocation(cityName, '');
+                            setCoordinates(newCoords);
                           }}
                         />
                       </div>
@@ -3985,7 +3992,13 @@ export const OwnerDashboard: React.FC<{ isTestMode?: boolean; onBackToTraveler?:
                           placeholder="Sélectionnez le quartier"
                           options={currentCity?.neighborhoods.map(nb => ({ id: nb.id, name: nb.name }))}
                           value={selectedNeighborhoodId}
-                          onChange={(val) => setSelectedNeighborhoodId(val)}
+                          onChange={(val) => {
+                            setSelectedNeighborhoodId(val);
+                            const cityName = currentCity?.name || selectedCityId;
+                            const neighName = currentCity?.neighborhoods.find(n => n.id === val)?.name || val;
+                            const newCoords = getCoordinatesForLocation(cityName, neighName);
+                            setCoordinates(newCoords);
+                          }}
                         />
                       </div>
                     </div>

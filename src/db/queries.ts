@@ -181,10 +181,16 @@ export const getAllResidences = async (ownerId?: string) => {
     amenities: amenitiesMap[res.id] || [],
     images: imagesMap[res.id] || [],
     occupiedDates: bookingsMap[res.id] || [],
+    lat: (res.latitude !== undefined && res.latitude !== null) ? Number(res.latitude) : undefined,
+    lng: (res.longitude !== undefined && res.longitude !== null) ? Number(res.longitude) : undefined,
     address: {
       city: cleanSecteur(res.city),
       neighborhood: cleanSecteur(res.neighborhood),
-      street: cleanSecteur(res.street || res.neighborhood)
+      street: cleanSecteur(res.street || res.neighborhood),
+      coordinates: (res.latitude !== undefined && res.latitude !== null && res.longitude !== undefined && res.longitude !== null) ? {
+        lat: Number(res.latitude),
+        lng: Number(res.longitude)
+      } : undefined
     },
     utilitiesIncluded: (() => {
       try {
@@ -211,6 +217,7 @@ export const getResidenceById = async (id: string) => {
       availability_status as availabilityStatus, promoted, weekly_discount as weeklyDiscount, 
       monthly_discount as monthlyDiscount, promo_price as promoPrice, rejection_reason as rejectionReason, 
       utilities_included as utilitiesIncludedRaw, owner_phone as ownerPhone,
+      latitude, longitude,
       created_at as createdAt 
     FROM residences WHERE id = ?
   `, [id]);
@@ -282,10 +289,16 @@ export const getResidenceById = async (id: string) => {
         return { from: String(ci).split('T')[0], to: String(co).split('T')[0] };
       })
       .filter((b: any) => b.to >= new Date().toISOString().split('T')[0]),
+    lat: (row.latitude !== undefined && row.latitude !== null) ? Number(row.latitude) : undefined,
+    lng: (row.longitude !== undefined && row.longitude !== null) ? Number(row.longitude) : undefined,
     address: {
       city: cleanSecteur(row.city),
       neighborhood: cleanSecteur(row.neighborhood),
-      street: cleanSecteur(row.street || row.neighborhood)
+      street: cleanSecteur(row.street || row.neighborhood),
+      coordinates: (row.latitude !== undefined && row.latitude !== null && row.longitude !== undefined && row.longitude !== null) ? {
+        lat: Number(row.latitude),
+        lng: Number(row.longitude)
+      } : undefined
     },
     utilitiesIncluded: (() => {
       try {
@@ -477,6 +490,7 @@ export const getSettings = async (key: string) => {
       if (data.isTestMode !== undefined) data.isTestMode = Boolean(data.isTestMode);
       if (data.enablePhoneCalls !== undefined) data.enablePhoneCalls = Boolean(data.enablePhoneCalls);
       if (data.enableWhatsApp !== undefined) data.enableWhatsApp = Boolean(data.enableWhatsApp);
+      data.conciergeEnabled = data.conciergeEnabled === true;
       if (data.announcement && data.announcement.active !== undefined) {
         data.announcement.active = Boolean(data.announcement.active);
       }
@@ -667,7 +681,8 @@ const VALID_RESIDENCE_COLS = new Set([
   'advance_percentage', 'cleaning_fee', 'service_fee', 'city', 'neighborhood',
   'street', 'capacity', 'bedrooms', 'beds', 'bathrooms', 'rooms', 'status',
   'availability_status', 'promoted', 'weekly_discount', 'monthly_discount',
-  'promo_price', 'rejection_reason', 'utilities_included', 'owner_phone', 'created_at'
+  'promo_price', 'rejection_reason', 'utilities_included', 'owner_phone',
+  'latitude', 'longitude', 'created_at'
 ]);
 
 const VALID_USER_COLS = new Set([
@@ -693,6 +708,24 @@ export const updateResidence = async (id: string, updates: any) => {
     mappedUpdates.city = address.city;
     mappedUpdates.neighborhood = address.neighborhood;
     mappedUpdates.street = address.street;
+    if (address.coordinates?.lat !== undefined && address.coordinates?.lat !== null) {
+      mappedUpdates.latitude = address.coordinates.lat;
+    }
+    if (address.coordinates?.lng !== undefined && address.coordinates?.lng !== null) {
+      mappedUpdates.longitude = address.coordinates.lng;
+    }
+  }
+  if (updates.coordinates?.lat !== undefined && updates.coordinates?.lat !== null) {
+    mappedUpdates.latitude = updates.coordinates.lat;
+  }
+  if (updates.coordinates?.lng !== undefined && updates.coordinates?.lng !== null) {
+    mappedUpdates.longitude = updates.coordinates.lng;
+  }
+  if (updates.lat !== undefined && updates.lat !== null) {
+    mappedUpdates.latitude = updates.lat;
+  }
+  if (updates.lng !== undefined && updates.lng !== null) {
+    mappedUpdates.longitude = updates.lng;
   }
   if (utilitiesIncluded !== undefined) {
     mappedUpdates.utilities_included = formatSqlValue(utilitiesIncluded);
@@ -734,6 +767,24 @@ export const createResidence = async (res: any) => {
     mappedObj.city = address.city;
     mappedObj.neighborhood = address.neighborhood;
     mappedObj.street = address.street;
+    if (address.coordinates?.lat !== undefined && address.coordinates?.lat !== null) {
+      mappedObj.latitude = address.coordinates.lat;
+    }
+    if (address.coordinates?.lng !== undefined && address.coordinates?.lng !== null) {
+      mappedObj.longitude = address.coordinates.lng;
+    }
+  }
+  if (res.coordinates?.lat !== undefined && res.coordinates?.lat !== null) {
+    mappedObj.latitude = res.coordinates.lat;
+  }
+  if (res.coordinates?.lng !== undefined && res.coordinates?.lng !== null) {
+    mappedObj.longitude = res.coordinates.lng;
+  }
+  if (res.lat !== undefined && res.lat !== null) {
+    mappedObj.latitude = res.lat;
+  }
+  if (res.lng !== undefined && res.lng !== null) {
+    mappedObj.longitude = res.lng;
   }
   if (utilitiesIncluded !== undefined) {
     mappedObj.utilities_included = formatSqlValue(utilitiesIncluded);

@@ -26,12 +26,15 @@ export const CurrencySelector: React.FC<Props> = ({ className, compact = false }
   const currentRate = rates[currency] || rates.XOF;
 
   return (
-    <div className={cn("relative inline-block text-left", className)} ref={dropdownRef}>
+    <div className={cn("relative inline-block text-left shrink-0", className)} ref={dropdownRef}>
       <button
         type="button"
         onClick={() => setIsOpen(!isOpen)}
         className={cn(
-          "flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl border transition-all text-xs font-bold cursor-pointer select-none active:scale-95",
+          "flex items-center rounded-lg sm:rounded-xl border transition-all text-xs font-bold cursor-pointer select-none active:scale-95",
+          compact 
+            ? "gap-1 px-1.5 sm:px-2.5 py-1 sm:py-1.5 text-[11px] sm:text-xs" 
+            : "gap-1.5 px-2.5 py-1.5",
           "bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700",
           "border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200",
           isOpen && "ring-2 ring-red-500/20 border-red-500/50"
@@ -39,10 +42,10 @@ export const CurrencySelector: React.FC<Props> = ({ className, compact = false }
         title="Changer la devise d'affichage"
         aria-label="Sélecteur de devise"
       >
-        <span className="text-sm leading-none">{currentRate.flag}</span>
-        <span className="tracking-wide">{currency}</span>
+        <span className="text-xs sm:text-sm leading-none">{currentRate.flag}</span>
+        <span className="tracking-tight sm:tracking-wide font-extrabold">{currency}</span>
         {!compact && <span className="text-[10px] text-slate-400 font-medium">({currentRate.symbol})</span>}
-        <ChevronDown size={13} className={cn("text-slate-400 transition-transform duration-200", isOpen && "rotate-180")} />
+        <ChevronDown size={11} className={cn("text-slate-400 transition-transform duration-200", isOpen && "rotate-180")} />
       </button>
 
       {isOpen && (

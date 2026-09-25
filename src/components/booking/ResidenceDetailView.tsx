@@ -21,6 +21,7 @@ import { useCurrency } from '../../contexts/CurrencyContext';
 import { useComparison } from '../../contexts/ComparisonContext';
 import { useConcierge } from '../../contexts/ConciergeContext';
 import { useGlobalSettings } from '../../hooks/useQueries';
+import { getGoogleMapsNavigationUrl, getWazeNavigationUrl, resolveResidenceCoordinates } from '../../utils/geo';
 
 interface ResidenceDetailViewProps {
   residence: Residence;
@@ -72,7 +73,7 @@ export const ResidenceDetailView: React.FC<ResidenceDetailViewProps> = ({
   const { openConcierge } = useConcierge();
   const { data: gsData } = useGlobalSettings();
 
-  const conciergeEnabled = gsData?.conciergeEnabled !== false;
+  const conciergeEnabled = gsData?.conciergeEnabled === true;
   const comparatorEnabled = gsData?.comparatorEnabled !== false;
   const gpsDirectionsEnabled = gsData?.gpsDirectionsEnabled !== false;
   const utilityTransparencyEnabled = gsData?.utilityTransparencyEnabled !== false;
@@ -876,39 +877,27 @@ export const ResidenceDetailView: React.FC<ResidenceDetailViewProps> = ({
 
                 {/* Action Buttons: Google Maps & Waze */}
                 <div className="flex flex-wrap items-center gap-2">
-                  {(() => {
-                    const lat = residence.address?.coordinates?.lat || (residence as any).latitude || 12.3714;
-                    const lng = residence.address?.coordinates?.lng || (residence as any).longitude || -1.5197;
-                    const destQuery = `${lat},${lng}`;
-                    const gmapsUrl = `https://www.google.com/maps/dir/?api=1&destination=${destQuery}`;
-                    const wazeUrl = `https://waze.com/ul?ll=${lat},${lng}&navigate=yes`;
+                  <a
+                    href={getGoogleMapsNavigationUrl(residence)}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-900 hover:bg-slate-800 text-white text-xs font-semibold transition-colors cursor-pointer shadow-sm hover:shadow"
+                  >
+                    <MapPin size={13} />
+                    <span>Google Maps</span>
+                    <ExternalLink size={11} className="opacity-70" />
+                  </a>
 
-                    return (
-                      <>
-                        <a
-                          href={gmapsUrl}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-900 hover:bg-slate-800 text-white text-xs font-semibold transition-colors cursor-pointer"
-                        >
-                          <MapPin size={13} />
-                          <span>Google Maps</span>
-                          <ExternalLink size={11} className="opacity-70" />
-                        </a>
-
-                        <a
-                          href={wazeUrl}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-700 hover:bg-slate-600 text-white text-xs font-semibold transition-colors cursor-pointer"
-                        >
-                          <Navigation size={13} />
-                          <span>Waze</span>
-                          <ExternalLink size={11} className="opacity-70" />
-                        </a>
-                      </>
-                    );
-                  })()}
+                  <a
+                    href={getWazeNavigationUrl(residence)}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-700 hover:bg-slate-600 text-white text-xs font-semibold transition-colors cursor-pointer shadow-sm hover:shadow"
+                  >
+                    <Navigation size={13} />
+                    <span>Waze</span>
+                    <ExternalLink size={11} className="opacity-70" />
+                  </a>
                 </div>
               </div>
 

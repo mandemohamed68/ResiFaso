@@ -133,7 +133,8 @@ export const AdminDashboard: React.FC<{ onBackToTraveler?: () => void }> = ({ on
         if (s.sappayPassword !== undefined) setSappayPassword(s.sappayPassword);
         if (s.refundMode !== undefined) setRefundMode(s.refundMode);
         if (s.withdrawalMode !== undefined) setWithdrawalMode(s.withdrawalMode);
-        if (s.conciergeEnabled !== undefined) setConciergeEnabled(s.conciergeEnabled);
+        if (s.conciergeEnabled !== undefined) setConciergeEnabled(!!s.conciergeEnabled);
+        else setConciergeEnabled(false);
         if (s.autonomyFilterEnabled !== undefined) setAutonomyFilterEnabled(s.autonomyFilterEnabled);
         if (s.comparatorEnabled !== undefined) setComparatorEnabled(s.comparatorEnabled);
         if (s.currencySelectorEnabled !== undefined) setCurrencySelectorEnabled(s.currencySelectorEnabled);
@@ -337,7 +338,7 @@ export const AdminDashboard: React.FC<{ onBackToTraveler?: () => void }> = ({ on
   const [clientServiceFeePercentage, setClientServiceFeePercentage] = useState(5);
 
   // Nouvelles fonctionnalités modulaires
-  const [conciergeEnabled, setConciergeEnabled] = useState(true);
+  const [conciergeEnabled, setConciergeEnabled] = useState(false);
   const [autonomyFilterEnabled, setAutonomyFilterEnabled] = useState(true);
   const [comparatorEnabled, setComparatorEnabled] = useState(true);
   const [currencySelectorEnabled, setCurrencySelectorEnabled] = useState(true);
@@ -5584,18 +5585,31 @@ export const AdminDashboard: React.FC<{ onBackToTraveler?: () => void }> = ({ on
                 </div>
 
                 {/* 1. Conciergerie */}
-                <div className="flex items-center justify-between py-2 border-b border-slate-50">
+                <div className="flex items-center justify-between py-2.5 border-b border-slate-100">
                   <div className="pr-4">
-                    <span className="text-xs font-bold text-slate-800 block">Conciergerie Privée</span>
-                    <span className="text-[11px] text-slate-500">Transferts aéroport, chef cuisinier, chauffeur, blanchisserie.</span>
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs font-bold text-slate-800 block">Menu Conciergerie Privée</span>
+                      <span className={cn(
+                        "text-[9px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full",
+                        conciergeEnabled 
+                          ? "bg-emerald-100 text-emerald-700" 
+                          : "bg-slate-100 text-slate-500"
+                      )}>
+                        {conciergeEnabled ? "Actif (Visible)" : "Désactivé (Masqué)"}
+                      </span>
+                    </div>
+                    <span className="text-[11px] text-slate-500 block mt-0.5">
+                      Contrôle l'affichage du bouton Conciergerie dans la barre de navigation et sur les fiches de résidences.
+                    </span>
                   </div>
                   <button
                     type="button"
                     onClick={() => setConciergeEnabled(!conciergeEnabled)}
                     className={cn(
                       "relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none",
-                      conciergeEnabled ? "bg-slate-900" : "bg-slate-200"
+                      conciergeEnabled ? "bg-brand-primary" : "bg-slate-300"
                     )}
+                    aria-label="Basculer le menu conciergerie"
                   >
                     <span
                       className={cn(

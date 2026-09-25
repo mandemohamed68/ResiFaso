@@ -166,7 +166,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onNavigat
   };
 
   return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center p-3 sm:p-6 overflow-y-auto">
+    <div className="fixed inset-0 z-[100] flex items-center justify-center p-3 sm:p-6 overflow-y-auto overflow-x-hidden">
       {/* Backdrop with modern blur */}
       <motion.div 
         initial={{ opacity: 0 }}
@@ -182,24 +182,24 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onNavigat
         animate={{ opacity: 1, scale: 1, y: 0 }}
         exit={{ opacity: 0, scale: 0.96, y: 16 }}
         transition={{ duration: 0.25, ease: [0.16, 1, 0.3, 1] }}
-        className="relative w-full max-w-[460px] bg-white dark:bg-slate-900 rounded-2xl border border-slate-200/80 dark:border-slate-800 shadow-2xl shadow-slate-950/20 overflow-hidden z-10 my-auto max-h-[92vh] flex flex-col"
+        className="relative w-full max-w-[440px] bg-white dark:bg-slate-900 rounded-2xl sm:rounded-3xl border border-slate-200/80 dark:border-slate-800 shadow-2xl shadow-slate-950/20 overflow-hidden z-10 my-auto max-h-[94vh] flex flex-col box-border mx-auto"
       >
         {/* Close Button */}
         <button 
           onClick={onClose}
-          className="absolute top-4 right-4 p-2 rounded-xl text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition-all cursor-pointer z-20"
+          className="absolute top-3 right-3 sm:top-4 sm:right-4 p-2 rounded-xl text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition-all cursor-pointer z-30"
           aria-label="Fermer"
         >
           <X size={18} />
         </button>
 
         {/* Scrollable Content Body */}
-        <div className="p-6 sm:p-8 overflow-y-auto hide-scrollbar space-y-6">
+        <div className="p-4 sm:p-7 overflow-y-auto hide-scrollbar space-y-4 sm:space-y-5">
           
           {/* Brand Header */}
           <div className="text-center select-none pt-1">
-            <div className="inline-flex items-center gap-4 justify-center mb-4">
-              <div className="w-20 h-20 sm:w-24 sm:h-24 flex-shrink-0 flex items-center justify-center overflow-hidden rounded-2xl bg-white dark:bg-slate-800 border border-slate-200/90 dark:border-slate-700 shadow-md ring-4 ring-red-500/10 p-1.5">
+            <div className="flex flex-col items-center justify-center mb-3">
+              <div className="w-16 h-16 sm:w-20 sm:h-20 flex-shrink-0 flex items-center justify-center overflow-hidden rounded-2xl bg-white dark:bg-slate-800 border border-slate-200/90 dark:border-slate-700 shadow-md ring-4 ring-red-500/10 p-1 mb-2">
                 <img 
                   src="/LOGO%20RESIFASO.png" 
                   alt="ResiFaso logo" 
@@ -207,19 +207,19 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onNavigat
                   referrerPolicy="no-referrer"
                 />
               </div>
-              <div className="flex flex-col text-left">
-                <span className="text-2xl sm:text-3xl font-black tracking-tight leading-none flex items-center">
+              <div className="text-center">
+                <span className="text-2xl sm:text-3xl font-black tracking-tight leading-none inline-flex items-center justify-center">
                   <span className="text-[#EF2B2D]">{bName1}</span>
                   <span className="text-[#009E49]">{bName2}</span>
-                  <span className="text-[#FCD116] ml-1 text-base animate-pulse">★</span>
+                  <span className="text-[#FCD116] ml-1 text-sm sm:text-base animate-pulse">★</span>
                 </span>
-                <span className="text-[9.5px] font-extrabold uppercase tracking-[0.16em] text-slate-500 dark:text-slate-400 mt-1.5">
+                <span className="block text-[8.5px] sm:text-[9.5px] font-extrabold uppercase tracking-[0.14em] text-slate-500 dark:text-slate-400 mt-1 max-w-[280px] mx-auto truncate">
                   {bSlogan}
                 </span>
               </div>
             </div>
 
-            <h3 className="text-xl sm:text-2xl font-black text-slate-900 dark:text-white tracking-tight">
+            <h3 className="text-lg sm:text-2xl font-black text-slate-900 dark:text-white tracking-tight">
               {isForgotPassword 
                 ? "Mot de passe oublié" 
                 : isSignUp 

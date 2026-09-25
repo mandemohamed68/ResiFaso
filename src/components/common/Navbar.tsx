@@ -32,7 +32,7 @@ export const Navbar: React.FC<{
 
   const { data: branding } = useBrandingSettings();
   const { data: gsData } = useGlobalSettings();
-  const conciergeEnabled = gsData?.conciergeEnabled !== false;
+  const conciergeEnabled = gsData?.conciergeEnabled === true;
   const currencySelectorEnabled = gsData?.currencySelectorEnabled !== false;
 
   const bName1 = branding?.brandNamePart1 || 'Resi';
@@ -186,17 +186,17 @@ export const Navbar: React.FC<{
       "sticky top-0 z-50 border-b shadow-xs transition-colors duration-300",
       isDarkMode ? "bg-slate-900 border-slate-800" : "bg-white border-gray-100"
     )}>
-      <div className="max-w-7xl mx-auto flex items-center justify-between px-3 sm:px-4 py-2.5 sm:py-3 gap-2 sm:gap-4">
+      <div className="max-w-7xl mx-auto flex items-center justify-between px-2 sm:px-4 py-2 sm:py-3 gap-1.5 sm:gap-4">
         {/* Logo & Seasonal Badge */}
-        <div className="flex items-center gap-2 sm:gap-3 min-w-0 shrink-0">
+        <div className="flex items-center gap-1.5 sm:gap-3 min-w-0 flex-shrink">
           <div 
             onClick={() => onNavigate('home')} 
-            className="flex items-center gap-2 sm:gap-3 cursor-pointer group select-none relative min-w-0"
+            className="flex items-center gap-1.5 sm:gap-2.5 cursor-pointer group select-none relative min-w-0"
           >
-            <div className="w-12 h-12 sm:w-14 sm:h-14 md:w-16 md:h-16 flex-shrink-0 flex items-center justify-center overflow-hidden rounded-2xl bg-white dark:bg-slate-800 border border-slate-200/90 dark:border-slate-700 shadow-md shadow-slate-200/40 dark:shadow-none ring-2 ring-red-500/10 group-hover:ring-red-500/30 group-hover:scale-105 transition-all duration-300 relative p-1">
+            <div className="w-9 h-9 sm:w-12 sm:h-12 md:w-14 md:h-14 flex-shrink-0 flex items-center justify-center overflow-hidden rounded-xl sm:rounded-2xl bg-white dark:bg-slate-800 border border-slate-200/90 dark:border-slate-700 shadow-sm sm:shadow-md ring-1 sm:ring-2 ring-red-500/10 group-hover:ring-red-500/30 group-hover:scale-105 transition-all duration-300 relative p-0.5 sm:p-1">
               {/* Christmas Santa Hat */}
               {isChristmas && (
-                <div className="absolute -top-1 -left-1 w-6 h-6 sm:w-8 sm:h-8 rotate-[-15deg] z-20 pointer-events-none drop-shadow-md select-none animate-bounce" style={{ animationDuration: '3s' }}>
+                <div className="absolute -top-1 -left-1 w-5 h-5 sm:w-7 sm:h-7 rotate-[-15deg] z-20 pointer-events-none drop-shadow-md select-none animate-bounce" style={{ animationDuration: '3s' }}>
                   <svg viewBox="0 0 50 50" className="w-full h-full">
                     <path d="M10 30 Q12 12 35 15 C38 16 40 22 35 25 Q20 28 10 30 Z" fill="#ef4444" />
                     <path d="M8 26 Q14 26 22 28 Q30 29 36 26 C38 30 32 34 22 34 Q10 34 8 26 Z" fill="#ffffff" />
@@ -206,43 +206,43 @@ export const Navbar: React.FC<{
               )}
               {/* New Year Gold Sparkle */}
               {isNewYear && (
-                <div className="absolute -top-1 -right-1 w-5 h-5 rotate-[15deg] z-20 pointer-events-none select-none animate-pulse">
+                <div className="absolute -top-1 -right-1 w-4 h-4 sm:w-5 sm:h-5 rotate-[15deg] z-20 pointer-events-none select-none animate-pulse">
                   <span className="text-xs sm:text-base">✨</span>
                 </div>
               )}
               {/* Valentines Heart Badge */}
               {isValentines && (
-                <div className="absolute -top-1 -right-1 w-5 h-5 rotate-[12deg] z-20 pointer-events-none select-none animate-bounce" style={{ animationDuration: '2s' }}>
+                <div className="absolute -top-1 -right-1 w-4 h-4 sm:w-5 sm:h-5 rotate-[12deg] z-20 pointer-events-none select-none animate-bounce" style={{ animationDuration: '2s' }}>
                   <span className="text-xs sm:text-sm">💖</span>
                 </div>
               )}
               {/* Ramadan Moon */}
               {isRamadan && (
-                <div className="absolute -top-1 -right-1 w-5 h-5 rotate-[-10deg] z-20 pointer-events-none select-none animate-pulse">
+                <div className="absolute -top-1 -right-1 w-4 h-4 sm:w-5 sm:h-5 rotate-[-10deg] z-20 pointer-events-none select-none animate-pulse">
                   <span className="text-xs sm:text-sm">🌙</span>
                 </div>
               )}
               {/* Burkina Star Flag Ribbon */}
               {isBurkina && (
-                <div className="absolute -top-1 -left-1 w-4 h-4 sm:w-5 sm:h-5 z-20 pointer-events-none select-none flex items-center justify-center bg-red-600 rounded-full border border-amber-300 shadow-xs">
-                  <span className="text-[8px] sm:text-[9px] text-amber-300 font-bold">★</span>
+                <div className="absolute -top-1 -left-1 w-3.5 h-3.5 sm:w-4.5 sm:h-4.5 z-20 pointer-events-none select-none flex items-center justify-center bg-red-600 rounded-full border border-amber-300 shadow-xs">
+                  <span className="text-[7px] sm:text-[8px] text-amber-300 font-bold">★</span>
                 </div>
               )}
               {/* Rainy Cloud */}
               {isRainy && (
-                <div className="absolute -top-1 -right-1 w-5 h-5 z-20 pointer-events-none select-none animate-pulse">
+                <div className="absolute -top-1 -right-1 w-4 h-4 sm:w-5 sm:h-5 z-20 pointer-events-none select-none animate-pulse">
                   <span className="text-xs sm:text-sm">🌧️</span>
                 </div>
               )}
               {/* Harmattan Sun */}
               {isHarmattan && (
-                <div className="absolute -top-1 -right-1 w-5 h-5 z-20 pointer-events-none select-none animate-pulse">
+                <div className="absolute -top-1 -right-1 w-4 h-4 sm:w-5 sm:h-5 z-20 pointer-events-none select-none animate-pulse">
                   <span className="text-xs sm:text-sm">🌪️</span>
                 </div>
               )}
               {/* Spring Blossom */}
               {isSpring && (
-                <div className="absolute -top-1 -right-1 w-5 h-5 z-20 pointer-events-none select-none animate-spin" style={{ animationDuration: '10s' }}>
+                <div className="absolute -top-1 -right-1 w-4 h-4 sm:w-5 sm:h-5 z-20 pointer-events-none select-none animate-spin" style={{ animationDuration: '10s' }}>
                   <span className="text-xs sm:text-sm">🌸</span>
                 </div>
               )}
@@ -255,13 +255,13 @@ export const Navbar: React.FC<{
               />
             </div>
             <div className="flex flex-col min-w-0">
-              <span className="text-xl sm:text-2xl md:text-[26px] font-black tracking-tight leading-none select-none truncate flex items-center">
+              <span className="text-lg sm:text-2xl md:text-[26px] font-black tracking-tight leading-none select-none truncate flex items-center">
                 <span className="text-[#EF2B2D]">{bName1}</span>
                 <span className="text-[#009E49]">{bName2}</span>
                 <span className="text-[#FCD116] ml-1 text-xs sm:text-sm animate-pulse" title="Burkina Faso">★</span>
               </span>
               <span className={cn(
-                "text-[8px] sm:text-[9px] md:text-[10px] font-extrabold uppercase tracking-[0.14em] mt-1 truncate max-w-[120px] sm:max-w-[190px] md:max-w-none",
+                "hidden sm:block text-[8px] sm:text-[9px] md:text-[10px] font-extrabold uppercase tracking-[0.14em] mt-1 truncate max-w-[190px] md:max-w-none",
                 isDarkMode ? "text-slate-400" : "text-slate-500"
               )}>
                 {branding?.brandSlogan || "Résidences & Séjours au Burkina"}
@@ -310,13 +310,13 @@ export const Navbar: React.FC<{
         )}
 
         {/* Mobile Actions */}
-        <div className="flex md:hidden items-center gap-1.5 sm:gap-2 shrink-0">
+        <div className="flex md:hidden items-center gap-1 sm:gap-1.5 shrink-0">
           {currencySelectorEnabled && <CurrencySelector compact />}
           {conciergeEnabled && (
             <button
               onClick={() => openConcierge()}
               className={cn(
-                "px-2 py-1.5 rounded-lg cursor-pointer transition-colors flex items-center gap-1 border text-xs font-medium shrink-0",
+                "px-2 py-1.5 rounded-lg cursor-pointer transition-colors flex items-center gap-1 border text-[11px] sm:text-xs font-semibold shrink-0",
                 isDarkMode 
                   ? "bg-slate-800 text-slate-200 border-slate-700 hover:bg-slate-750" 
                   : "bg-slate-100 text-slate-700 border-slate-200 hover:bg-slate-200/80"
@@ -326,24 +326,38 @@ export const Navbar: React.FC<{
               <span>Conciergerie</span>
             </button>
           )}
-          {!user && (
+          {!user ? (
             <button 
               onClick={() => setIsAuthOpen(true)}
-              className="bg-brand-primary hover:bg-brand-primary-dark text-white px-3 py-2 rounded-lg text-[11px] font-extrabold uppercase tracking-wider transition-all shadow-sm cursor-pointer whitespace-nowrap flex items-center gap-1.5 active:scale-95"
+              className="bg-brand-primary hover:bg-brand-primary-dark text-white px-2 sm:px-2.5 py-1.5 rounded-lg text-[11px] sm:text-xs font-black uppercase tracking-wide transition-all shadow-xs cursor-pointer whitespace-nowrap flex items-center gap-1 active:scale-95 shrink-0"
+              aria-label="Se connecter"
             >
-              <User size={13} />
+              <User size={13} className="shrink-0" />
               <span>Connexion</span>
+            </button>
+          ) : (
+            <button
+              onClick={() => onNavigate('profile')}
+              className={cn(
+                "p-1.5 rounded-lg cursor-pointer transition-all flex items-center justify-center border shrink-0",
+                isDarkMode ? "bg-slate-800 hover:bg-slate-700 text-slate-200 border-slate-700" : "bg-slate-100 hover:bg-slate-200 text-slate-700 border-slate-200"
+              )}
+              title="Mon profil"
+              aria-label="Mon profil"
+            >
+              <User size={15} />
             </button>
           )}
           <button
             onClick={onToggleDarkMode}
             className={cn(
-              "p-2 rounded-lg cursor-pointer transition-all flex items-center justify-center border shrink-0",
+              "p-1.5 sm:p-2 rounded-lg cursor-pointer transition-all flex items-center justify-center border shrink-0",
               isDarkMode ? "bg-slate-800 hover:bg-slate-700 text-amber-400 border-slate-700" : "bg-slate-100 hover:bg-slate-200 text-slate-700 border-slate-200"
             )}
             title={isDarkMode ? "Passer en mode Clair" : "Passer en mode Sombre"}
+            aria-label="Basculer le mode sombre"
           >
-            {isDarkMode ? <Sun size={16} className="text-amber-400 animate-pulse" /> : <Moon size={16} className="text-slate-700" />}
+            {isDarkMode ? <Sun size={15} className="text-amber-400 animate-pulse" /> : <Moon size={15} className="text-slate-700" />}
           </button>
         </div>
 

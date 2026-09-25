@@ -213,6 +213,17 @@ export const initDatabase = async () => {
     `);
 
     try {
+      const latCols = await executeSql("SHOW COLUMNS FROM residences LIKE 'latitude'");
+      if (!latCols || latCols.length === 0) {
+        await executeSql("ALTER TABLE residences ADD COLUMN latitude DECIMAL(10, 6) NULL");
+        await executeSql("ALTER TABLE residences ADD COLUMN longitude DECIMAL(10, 6) NULL");
+        console.log("Migration MariaDB: Colonnes latitude et longitude ajoutées à la table residences.");
+      }
+    } catch (latErr: any) {
+      console.warn("Avertissement migration MariaDB residences.latitude/longitude:", latErr.message);
+    }
+
+    try {
       const ratingCols = await executeSql("SHOW COLUMNS FROM residences LIKE 'rating'");
       if (!ratingCols || ratingCols.length === 0) {
         await executeSql("ALTER TABLE residences ADD COLUMN rating DECIMAL(3, 2) DEFAULT 0");
@@ -706,6 +717,8 @@ export const initDatabase = async () => {
     await safeAlter('residences', 'commission_payer', "TEXT DEFAULT 'owner'");
     await safeAlter('residences', 'demarcheur_name', 'TEXT');
     await safeAlter('residences', 'demarcheur_phone', 'TEXT');
+    await safeAlter('residences', 'latitude', 'REAL NULL');
+    await safeAlter('residences', 'longitude', 'REAL NULL');
 
     // Residence Amenities Table
     await executeSql(`

@@ -22,6 +22,11 @@
 
 @variant dark (&:where(.dark, .dark *));
 
+html, body {
+  overflow-x: hidden;
+  max-width: 100vw;
+}
+
 body {
   @apply bg-slate-50 text-slate-800 transition-colors duration-300 font-sans antialiased;
   letter-spacing: -0.011em;
